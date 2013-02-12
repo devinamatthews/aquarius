@@ -1,0 +1,35 @@
+topdir = /path/to/aquarius
+
+ELEMENTAL = /path/to/elemental
+CYCLOPSTF = /path/to/cyclopstf
+
+BLAS_LIBS = -llapack -lblas
+ELEMENTAL_LIBS = -L$(ELEMENTAL)/lib -lelemental -lplcg -lpmrrr -llapack-addons
+CYCLOPSTF_LIBS = -L$(CYCLOPSTF)/lib -ldist_tensor -ltensor_interface -ltensor_reference -lcyclopstf
+
+DEFAULT_COMPONENTS = aquarius
+
+DEFS = 
+CPPFLAGS = 
+LDFLAGS = 
+INCLUDES = 
+
+AR = ar -crs
+CP = cp
+
+DEPFLAGS = -MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po
+
+CC = gcc
+CFLAGS = -fopenmp -g -O2 -std=c99
+
+CXX = mpicxx -cxx=g++
+CXXFLAGS = -fopenmp -g -O2 -D__STDC_LIMIT_MACROS -Drestrict=
+
+FORTRAN_INTEGER_SIZE=4
+F77 = gfortran
+F77_NAME = $(LOWER_UNDERSCORE)
+F90 = gfortran
+F90_NAME = $(LOWER_UNDERSCORE)
+F77FLAGS = -g -O2
+F90FLAGS = -g -O2
+FLIBS = -lgfortran

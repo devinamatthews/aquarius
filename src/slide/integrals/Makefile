@@ -1,0 +1,8 @@
+include ../../../config.mk
+include ../../../rules.mk
+
+slide: $(libdir)/libslide.a
+$(libdir)/libslide.a: fmgamma.o hrr.o ish.o kei.o nai.o os.o osinv.o rys.o \
+                      vrr.o ovi.o
+
+INCLUDES += -I$(topdir)/src/slide -I$(topdir)/src/slide/include
