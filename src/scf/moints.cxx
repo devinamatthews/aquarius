@@ -24,6 +24,8 @@
 
 #include "moints.hpp"
 
+using namespace std;
+
 namespace aquarius
 {
 namespace scf

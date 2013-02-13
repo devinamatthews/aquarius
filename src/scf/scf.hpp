@@ -63,7 +63,7 @@ class UHF : public Iterative
         int diis_start;
         bool diis_jacobi;
         double damping;
-        vector<double> Ea, Eb;
+        std::vector<double> Ea, Eb;
         diis::DIIS<DistTensor> diis;
         DistTensor *Fa, *Fb;
         DistTensor *dF;
