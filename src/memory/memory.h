@@ -26,6 +26,9 @@
 #define _AQUARIUS_MEMORY_H_
 
 #include <stddef.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "util/util.h"
 
@@ -57,8 +60,10 @@ for (x)
 
 #define FREE(ptr) aq_free(ptr, __FILE__, __LINE__)
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
 
 extern size_t mem_limit, mem_used;
 
@@ -74,6 +79,8 @@ void* aq_realloc(void* ptr, const size_t size, const char* who, const int where,
 
 void aq_free(void* ptr, const char* who, const int where);
 
+#ifdef __cplusplus
 }
+#endif
 
 #endif

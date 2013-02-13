@@ -9,7 +9,7 @@ CYCLOPSTF_LIBS = -L$(CYCLOPSTF)/lib -ldist_tensor -ltensor_interface -ltensor_re
 
 DEFAULT_COMPONENTS = aquarius
 
-DEFS = 
+DEFS = -D_POSIX_C_SOURCE=200112L
 CPPFLAGS = 
 LDFLAGS = 
 INCLUDES = 

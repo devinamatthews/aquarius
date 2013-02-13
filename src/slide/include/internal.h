@@ -25,13 +25,6 @@
 #ifndef _AQUARIUS_SLIDE_INTERNAL_H_
 #define _AQUARIUS_SLIDE_INTERNAL_H_
 
-//#ifndef _POSIX_C_SOURCE
-//#define _POSIX_C_SOURCE 200809L
-//#else if _POSIX_C_SOURCE < 200809L
-//#undef _POSIC_C_SOURCE
-#define _POSIX_C_SOURCE 200809L
-//#endif
-
 #include "slide.h"
 #include "memory/memory.h"
 #include "util/util.h"
@@ -51,14 +44,6 @@
 #endif
 
 #define MODULO(a,b) ((a)%(b) < 0 ? (a)%(b)+(b) : (a)%(b))
-
-#ifndef MIN
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#endif
-
-#ifndef MAX
-#define MAX(a,b) ((a) < (b) ? (b) : (a))
-#endif
 
 #define MAKEIDX(irrep,idx) (uint16_t)((((irrep)&0x7)<<13)|((idx)&0x1FFF))
 

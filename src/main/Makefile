@@ -3,7 +3,7 @@ include ../../rules.mk
 
 aquarius: $(bindir)/aquarius
 $(bindir)/aquarius: main.o $(libdir)/libcc.a $(libdir)/libscf.a \
-                    $(libdir)/libautocc.a $(libdir)/libinout.a \
+                    $(libdir)/libautocc.a $(libdir)/libinput.a \
                     $(libdir)/libtime.a $(libdir)/libslide.a \
                     $(libdir)/libmemory.a
 

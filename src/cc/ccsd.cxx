@@ -40,7 +40,7 @@ namespace cc
 
 CCSD::CCSD(const Config& config, MOIntegrals& moints)
 : Iterative(config), moints(moints),
-  T1(moints.getFAI()), E1("a,i"), D1("a,i"), Z1("a,i"),
+  T1("a,i"), E1("a,i"), D1("a,i"), Z1("a,i"),
   T2("ac,ij"), E2("ad,ij"), D2("af,ij"), Z2("ae,ij")
 {
     int N = moints.getSCF().getMolecule().getNumOrbitals();
@@ -61,6 +61,9 @@ CCSD::CCSD(const Config& config, MOIntegrals& moints)
 
     DistWorld *dw = moints.getFAB().getSpinCase(0).dw;
 
+    T1.addSpinCase(new DistTensor(2, sizeAI, shapeNN, dw, false), "A,I", "AI");
+    T1.addSpinCase(new DistTensor(2, sizeai, shapeNN, dw, false), "a,i", "ai");
+
     E1.addSpinCase(new DistTensor(2, sizeAI, shapeNN, dw, false), "A,I", "AI");
     E1.addSpinCase(new DistTensor(2, sizeai, shapeNN, dw, false), "a,i", "ai");
 
@@ -73,8 +76,6 @@ CCSD::CCSD(const Config& config, MOIntegrals& moints)
     T2.addSpinCase(new DistTensor(4, sizeAAII, shapeANAN, dw, false), "AC,IJ", "ACIJ");
     T2.addSpinCase(new DistTensor(4, sizeAaIi, shapeNNNN, dw, false), "Ac,Ij", "AcIj");
     T2.addSpinCase(new DistTensor(4, sizeaaii, shapeANAN, dw, false), "ac,ij", "acij");
-
-    T2["abij"] = moints.getVABIJ()["abij"];
 
     E2.addSpinCase(new DistTensor(4, sizeAAII, shapeANAN, dw, false), "AD,IJ", "ADIJ");
     E2.addSpinCase(new DistTensor(4, sizeAaIi, shapeNNNN, dw, false), "Ad,Ij", "AdIj");
@@ -123,6 +124,9 @@ CCSD::CCSD(const Config& config, MOIntegrals& moints)
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
     }
+
+    T1["ai"] = moints.getFAI()["ai"]*D1["ai"];
+    T2["abij"] = moints.getVABIJ()["abij"]*D2["abij"];
 }
 
 void CCSD::_iterate()
@@ -161,13 +165,18 @@ void CCSD::_iterate()
      * Intermediates for T1->T1 and T2->T1
      */
     PROFILE_SECTION(calc_FEM)
-    FME["me"] = WMNEF["mnef"]*T1["fn"];
+    FME["me"] += WMNEF["mnef"]*T1["fn"];
     PROFILE_STOP
 
     PROFILE_SECTION(calc_FMI)
-    FMI["mi"] = 0.5*WMNEF["mnef"]*T2["efin"];
+    FMI["mi"] += 0.5*WMNEF["mnef"]*T2["efin"];
     FMI["mi"] += FME["me"]*T1["ei"];
     FMI["mi"] += WMNIE["mnif"]*T1["fn"];
+    PROFILE_STOP
+
+    PROFILE_SECTION(calc_WIJKL)
+    WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*Tau["efij"];
+    WMNIJ["mnij"] += WMNIE["mnie"]*T1["ej"];
     PROFILE_STOP
 
     PROFILE_SECTION(calc_WMNIE)
@@ -185,27 +194,27 @@ void CCSD::_iterate()
     PROFILE_STOP
 
     PROFILE_SECTION(calc_T1_IN_T1_RING)
-    //Z1["ai"] -= T1["em"]*WMBEJ["amei"];
+    Z1["ai"] += T1["em"]*WMBEJ["maei"];
     PROFILE_STOP
 
     PROFILE_SECTION(calc_T2_IN_T1_ABCI)
-    //Z1["ai"] += 0.5*WAMEF["amef"]*Tau["efim"];
+    Z1["ai"] += 0.5*WAMEF["amef"]*Tau["efim"];
     PROFILE_STOP
 
     PROFILE_SECTION(calc_T2_IN_T1_IJKA)
-    //Z1["ai"] -= 0.5*WMNIE["mnie"]*T2["aemn"];
+    Z1["ai"] -= 0.5*WMNIE["mnie"]*T2["aemn"];
     PROFILE_STOP
 
     PROFILE_SECTION(calc_T2_IN_T1_FME)
-    //Z1["ai"] += T2["aeim"]*FME["me"];
+    Z1["ai"] += T2["aeim"]*FME["me"];
     PROFILE_STOP
 
     PROFILE_SECTION(calc_T1_IN_T1_FAE)
-    //Z1["ai"] += T1["ei"]*FAE["ae"];
+    Z1["ai"] += T1["ei"]*FAE["ae"];
     PROFILE_STOP
 
     PROFILE_SECTION(calc_T1_IN_T1_FMI)
-    //Z1["ai"] -= T1["am"]*FMI["mi"];
+    Z1["ai"] -= T1["am"]*FMI["mi"];
     PROFILE_STOP
     /*
      *************************************************************************/
@@ -215,24 +224,19 @@ void CCSD::_iterate()
      * Intermediates for T1->T2 and T2->T2
      */
     PROFILE_SECTION(calc_FAE)
-    FAE["ae"] = -0.5*WMNEF["mnef"]*T2["afmn"];
+    FAE["ae"] -= 0.5*WMNEF["mnef"]*T2["afmn"];
     FAE["ae"] -= FME["me"]*T1["am"];
-    FAE["ae"] += WABEJ["efan"]*T1["fn"];
-    PROFILE_STOP
-
-    PROFILE_SECTION(calc_WIJKL)
-    WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*Tau["efij"];
-    WMNIJ["mnij"] += WMNIE["mnie"]*T1["ej"];
+    FAE["ae"] += WAMEF["amef"]*T1["fm"];
     PROFILE_STOP
 
     PROFILE_SECTION(calc_WAIJK)
-    WMBIJ["mbij"] += 0.5*WABEJ["febm"]*Tau["efij"];
-    WMBIJ["mbij"] += WMBEJ["amej"]*T1["ei"];
+    WMBIJ["mbij"] += 0.5*WAMEF["bmfe"]*Tau["efij"];
+    WMBIJ["mbij"] += WMBEJ["mbej"]*T1["ei"];
     PROFILE_STOP
 
     PROFILE_SECTION(calc_WMBEJ)
     WMBEJ["maei"] += 0.5*WMNEF["mnef"]*T2["afin"];
-    WMBEJ["maei"] += WABEJ["feam"]*T1["fi"];
+    WMBEJ["maei"] += WAMEF["amfe"]*T1["fi"];
     WMBEJ["maei"] -= WMNIE["nmie"]*T1["an"];
     PROFILE_STOP
     /*

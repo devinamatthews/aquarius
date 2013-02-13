@@ -55,9 +55,10 @@ class Iterative
 
         bool iterate()
         {
-            _iterate();
             iter++;
-            return iter < maxiter && !isConverged();
+            if (iter >= maxiter || isConverged()) return false;
+            _iterate();
+            return true;
         }
 
         double getEnergy() const { return energy; }

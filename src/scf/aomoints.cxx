@@ -69,176 +69,15 @@ struct pqrs_integrals
     size_t nints;
     integral_t *ints;
 
-    /*
-     * Read integrals in and break (pq|rs)=(rs|pq) symmetry
-     */
-    pqrs_integrals(const AOIntegrals& aoints)
-    {
-        ns = nr = nq = np = aoints.getMolecule().getNumOrbitals();
+    pqrs_integrals(const AOIntegrals& aoints);
 
-        size_t noldints = aoints.getNumInts();
-        integral_t *oldints = aoints.getInts();
-        nints = noldints;
+    pqrs_integrals(const abrs_integrals& abrs);
 
-        for (size_t i = 0;i < noldints;i++)
-        {
-            idx4_t idx = oldints[i].idx;
+    void free();
 
-            if (idx.i != idx.k || idx.j != idx.l)
-            {
-                nints++;
-            }
-        }
+    void transpose();
 
-        ints = SAFE_MALLOC(integral_t, nints);
-        copy(oldints, oldints+noldints, ints);
-
-        size_t j = noldints;
-        for (size_t i = 0;i < noldints;i++)
-        {
-            idx4_t idx = oldints[i].idx;
-
-            if (idx.i != idx.k || idx.j != idx.l)
-            {
-                ints[j] = oldints[i];
-                swap(ints[j].idx.i, ints[j].idx.k);
-                swap(ints[j].idx.j, ints[j].idx.l);
-            }
-        }
-    }
-
-    pqrs_integrals(const abrs_integrals& abrs)
-    {
-        np = abrs.na;
-        nq = abrs.nb;
-        nr = abrs.nr;
-        ns = abrs.ns;
-
-        nints = abrs.nints;
-        ints = SAFE_MALLOC(integral_t, nints);
-        for (size_t ipqrs = 0, irs = 0;irs < abrs.nrs;irs++)
-        {
-            int r = abrs.rs[irs].i;
-            int s = abrs.rs[irs].j;
-
-            for (int q = 0;q < nq;q++)
-            {
-                for (int p = 0;p < np;p++)
-                {
-                    ints[ipqrs].idx.i = p;
-                    ints[ipqrs].idx.j = q;
-                    ints[ipqrs].idx.k = r;
-                    ints[ipqrs].idx.l = s;
-                    ints[ipqrs].value = abrs.ints[ipqrs];
-                    ipqrs++;
-                }
-            }
-        }
-    }
-
-    void free()
-    {
-        FREE(ints);
-    }
-
-    void transpose()
-    {
-        for (size_t ipqrs = 0;ipqrs < nints;ipqrs++)
-        {
-            int p = ints[ipqrs].idx.i;
-            int q = ints[ipqrs].idx.j;
-            int r = ints[ipqrs].idx.k;
-            int s = ints[ipqrs].idx.l;
-
-            ints[ipqrs].idx.i = r;
-            ints[ipqrs].idx.j = s;
-            ints[ipqrs].idx.k = p;
-            ints[ipqrs].idx.l = q;
-        }
-    }
-
-    /*
-     * Redistribute integrals such that each node has all pq for each rs pair
-     */
-    void collect(Intracomm& comm, const bool rles)
-    {
-        int nproc = comm.Get_size();
-        int rank = comm.Get_rank();
-
-        int nrs;
-        if (rles)
-        {
-            nrs = nr*(nr+1)/2;
-        }
-        else
-        {
-            nrs = nr*ns;
-        }
-
-        sort(ints, ints+nints, sortIntsByRS);
-
-        int *rscount = SAFE_MALLOC(int, nrs);
-        fill(rscount, rscount+nrs, 0);
-
-        for (int i = 0;i < nints;i++)
-        {
-            if (rles)
-            {
-                rscount[ints[i].idx.k+ints[i].idx.l*(ints[i].idx.l-1)/2]++;
-            }
-            else
-            {
-                rscount[ints[i].idx.k+ints[i].idx.l*nr]++;
-            }
-        }
-
-        int *rscountall = SAFE_MALLOC(int, nrs*nproc);
-        comm.Allgather(rscount, nrs, INT, rscountall, nrs*nproc, INT);
-
-        FREE(rscount);
-
-        size_t nnewints = 0;
-        int *sendcount = SAFE_MALLOC(int, nproc);
-        int *sendoff = SAFE_MALLOC(int, nproc);
-        int *recvcount = SAFE_MALLOC(int, nproc);
-        int *recvoff = SAFE_MALLOC(int, nproc);
-        fill(sendcount, sendcount+nproc, 0);
-        sendoff[0] = 0;
-        fill(recvcount, recvcount+nproc, 0);
-        recvoff[0] = 0;
-        fill(rscount, rscount+nrs, 0);
-        for (int i = 0;i < nproc;i++)
-        {
-            for (int rs = (nrs*rank)/nproc;rs < (nrs*(rank+1))/nproc;rs++)
-            {
-                recvcount[i] += rscountall[rs+nrs*i];
-            }
-            if (i > 0) recvoff[i] = recvoff[i-1]+recvcount[i];
-            nnewints += recvcount[i];
-
-            for (int rs = (nrs*i)/nproc;rs < (nrs*(i+1))/nproc;rs++)
-            {
-                sendcount[i] += rscountall[rs+nrs*rank];
-            }
-            if (i > 0) sendoff[i] = sendoff[i-1]+sendcount[i];
-        }
-
-        FREE(rscountall);
-
-        integral_t* newints = SAFE_MALLOC(integral_t, nnewints);
-
-        comm.Alltoallv(   ints, sendcount, sendoff, integral_t::mpi_type,
-                       newints, recvcount, recvoff, integral_t::mpi_type);
-
-        FREE(sendcount);
-        FREE(sendoff);
-        FREE(recvcount);
-        FREE(recvoff);
-
-        nints = nnewints;
-        swap(ints, newints);
-        FREE(newints);
-    }
+    void collect(Intracomm& comm, const bool rles);
 };
 
 struct abrs_integrals
@@ -249,127 +88,304 @@ struct abrs_integrals
     size_t nrs;
     idx2_t *rs;
 
-    /*
-     * Expand (p_i q_j|r_k s_l) into (pq|r_k s_l), where pleq = true indicates
-     * that (pq|rs) = (qp|rs) and only p_i <= q_j is stored in the input
-     */
-    abrs_integrals(const pqrs_integrals& pqrs, const bool pleq = true)
+    abrs_integrals(const pqrs_integrals& pqrs, const bool pleq = true);
+
+    abrs_integrals transform(Index index, const char trans, const int nc, const double* C, const int ldc);
+
+    void free();
+};
+
+/*
+ * Read integrals in and break (pq|rs)=(rs|pq) symmetry
+ */
+pqrs_integrals::pqrs_integrals(const AOIntegrals& aoints)
+{
+    ns = nr = nq = np = aoints.getMolecule().getNumOrbitals();
+
+    size_t noldints = aoints.getNumInts();
+    const integral_t *oldints = aoints.getInts();
+    nints = noldints;
+
+    for (size_t i = 0;i < noldints;i++)
     {
-        na = pqrs.np;
-        nb = pqrs.nq;
-        nr = pqrs.nr;
-        ns = pqrs.ns;
+        idx4_t idx = oldints[i].idx;
 
-        nrs = 1;
-        for (size_t ipqrs = 1;ipqrs < pqrs.nints;ipqrs++)
+        if (idx.i != idx.k || idx.j != idx.l)
         {
-            if (pqrs.ints[ipqrs].idx.k != pqrs.ints[ipqrs-1].idx.k ||
-                pqrs.ints[ipqrs].idx.l != pqrs.ints[ipqrs-1].idx.l) nrs++;
-        }
-
-        rs = SAFE_MALLOC(idx2_t, nrs);
-        nints = nrs*na*nb;
-        ints = SAFE_MALLOC(double, nints);
-        fill(ints, ints+nints, 0.0);
-
-        rs[0].i = pqrs.ints[0].idx.k;
-        rs[0].j = pqrs.ints[0].idx.l;
-        for (size_t ipqrs = 1, irs = 1, iabrs = 0;ipqrs < pqrs.nints;ipqrs++)
-        {
-            if (pqrs.ints[ipqrs].idx.k != pqrs.ints[ipqrs-1].idx.k ||
-                pqrs.ints[ipqrs].idx.l != pqrs.ints[ipqrs-1].idx.l)
-            {
-                rs[irs].i = pqrs.ints[ipqrs].idx.k;
-                rs[irs].j = pqrs.ints[ipqrs].idx.l;
-                irs++;
-                iabrs += na*nb;
-            }
-
-            int p = pqrs.ints[ipqrs].idx.i;
-            int q = pqrs.ints[ipqrs].idx.j;
-
-            ints[iabrs+p+q*na] = pqrs.ints[ipqrs].value;
-            if (p != q && pleq)
-                ints[iabrs+q+p*na] = pqrs.ints[ipqrs].value;
+            nints++;
         }
     }
 
-    /*
-     * Transform (ab|rs) -> (cb|rs) (index = A) or (ab|rs) -> (ac|rs) (index = B)
-     *
-     * C is ldc*nc if trans = 'N' and ldc*[na|nb] if trans = 'T'
-     */
-    abrs_integrals transform(Index index, const char trans, const int nc, const double* C, const int ldc)
+    ints = SAFE_MALLOC(integral_t, nints);
+    copy(oldints, oldints+noldints, ints);
+
+    size_t j = noldints;
+    for (size_t i = 0;i < noldints;i++)
     {
-        abrs_integrals out = *this;
+        idx4_t idx = oldints[i].idx;
 
-        out.rs = SAFE_MALLOC(idx2_t, nrs);
-        copy(rs, rs+nrs, out.rs);
-
-        if (index == A)
+        if (idx.i != idx.k || idx.j != idx.l)
         {
-            out.na = nc;
-            out.nints = nrs*nc*nb;
-            out.ints = SAFE_MALLOC(double, out.nints);
+            ints[j] = oldints[i];
+            swap(ints[j].idx.i, ints[j].idx.k);
+            swap(ints[j].idx.j, ints[j].idx.l);
+        }
+    }
+}
 
-            size_t iin = 0;
-            size_t iout = 0;
-            for (size_t irs = 0;irs < nrs;irs++)
+pqrs_integrals::pqrs_integrals(const abrs_integrals& abrs)
+{
+    np = abrs.na;
+    nq = abrs.nb;
+    nr = abrs.nr;
+    ns = abrs.ns;
+
+    nints = abrs.nints;
+    ints = SAFE_MALLOC(integral_t, nints);
+    for (size_t ipqrs = 0, irs = 0;irs < abrs.nrs;irs++)
+    {
+        int r = abrs.rs[irs].i;
+        int s = abrs.rs[irs].j;
+
+        for (int q = 0;q < nq;q++)
+        {
+            for (int p = 0;p < np;p++)
             {
-                if (trans == 'N')
-                {
-                    dgemm('T', 'N', nc, nb, na, 1.0,             C, ldc,
-                                                          ints+iin,  na,
-                                                0.0, out.ints+iout,  nc);
-                }
-                else
-                {
-                    dgemm('N', 'N', nc, nb, na, 1.0,             C, ldc,
-                                                          ints+iin,  na,
-                                                0.0, out.ints+iout,  nc);
-                }
-
-                iin += na*nb;
-                iout += nc*nb;
+                ints[ipqrs].idx.i = p;
+                ints[ipqrs].idx.j = q;
+                ints[ipqrs].idx.k = r;
+                ints[ipqrs].idx.l = s;
+                ints[ipqrs].value = abrs.ints[ipqrs];
+                ipqrs++;
             }
+        }
+    }
+}
+
+void pqrs_integrals::free()
+{
+    FREE(ints);
+}
+
+void pqrs_integrals::transpose()
+{
+    for (size_t ipqrs = 0;ipqrs < nints;ipqrs++)
+    {
+        int p = ints[ipqrs].idx.i;
+        int q = ints[ipqrs].idx.j;
+        int r = ints[ipqrs].idx.k;
+        int s = ints[ipqrs].idx.l;
+
+        ints[ipqrs].idx.i = r;
+        ints[ipqrs].idx.j = s;
+        ints[ipqrs].idx.k = p;
+        ints[ipqrs].idx.l = q;
+    }
+}
+
+/*
+ * Redistribute integrals such that each node has all pq for each rs pair
+ */
+void pqrs_integrals::collect(Intracomm& comm, const bool rles)
+{
+    int nproc = comm.Get_size();
+    int rank = comm.Get_rank();
+
+    int nrs;
+    if (rles)
+    {
+        nrs = nr*(nr+1)/2;
+    }
+    else
+    {
+        nrs = nr*ns;
+    }
+
+    sort(ints, ints+nints, sortIntsByRS);
+
+    int *rscount = SAFE_MALLOC(int, nrs);
+    fill(rscount, rscount+nrs, 0);
+
+    for (int i = 0;i < nints;i++)
+    {
+        if (rles)
+        {
+            rscount[ints[i].idx.k+ints[i].idx.l*(ints[i].idx.l-1)/2]++;
         }
         else
         {
-            out.nb = nc;
-            out.nints = nrs*na*nc;
-            out.ints = SAFE_MALLOC(double, out.nints);
+            rscount[ints[i].idx.k+ints[i].idx.l*nr]++;
+        }
+    }
 
-            size_t iin = 0;
-            size_t iout = 0;
-            for (size_t irs = 0;irs < nrs;irs++)
-            {
-                if (trans == 'N')
-                {
-                    dgemm('N', 'N', na, nc, nb, 1.0,      ints+iin,  na,
-                                                                 C, ldc,
-                                                0.0, out.ints+iout,  na);
-                }
-                else
-                {
-                    dgemm('N', 'T', na, nc, nb, 1.0,      ints+iin,  na,
-                                                                 C, ldc,
-                                                0.0, out.ints+iout,  na);
-                }
+    int *rscountall = SAFE_MALLOC(int, nrs*nproc);
+    comm.Allgather(rscount, nrs, INT, rscountall, nrs*nproc, INT);
 
-                iin += na*nb;
-                iout += na*nc;
-            }
+    FREE(rscount);
+
+    size_t nnewints = 0;
+    int *sendcount = SAFE_MALLOC(int, nproc);
+    int *sendoff = SAFE_MALLOC(int, nproc);
+    int *recvcount = SAFE_MALLOC(int, nproc);
+    int *recvoff = SAFE_MALLOC(int, nproc);
+    fill(sendcount, sendcount+nproc, 0);
+    sendoff[0] = 0;
+    fill(recvcount, recvcount+nproc, 0);
+    recvoff[0] = 0;
+    fill(rscount, rscount+nrs, 0);
+    for (int i = 0;i < nproc;i++)
+    {
+        for (int rs = (nrs*rank)/nproc;rs < (nrs*(rank+1))/nproc;rs++)
+        {
+            recvcount[i] += rscountall[rs+nrs*i];
+        }
+        if (i > 0) recvoff[i] = recvoff[i-1]+recvcount[i];
+        nnewints += recvcount[i];
+
+        for (int rs = (nrs*i)/nproc;rs < (nrs*(i+1))/nproc;rs++)
+        {
+            sendcount[i] += rscountall[rs+nrs*rank];
+        }
+        if (i > 0) sendoff[i] = sendoff[i-1]+sendcount[i];
+    }
+
+    FREE(rscountall);
+
+    integral_t* newints = SAFE_MALLOC(integral_t, nnewints);
+
+    comm.Alltoallv(   ints, sendcount, sendoff, integral_t::mpi_type,
+                   newints, recvcount, recvoff, integral_t::mpi_type);
+
+    FREE(sendcount);
+    FREE(sendoff);
+    FREE(recvcount);
+    FREE(recvoff);
+
+    nints = nnewints;
+    swap(ints, newints);
+    FREE(newints);
+}
+
+/*
+ * Expand (p_i q_j|r_k s_l) into (pq|r_k s_l), where pleq = true indicates
+ * that (pq|rs) = (qp|rs) and only p_i <= q_j is stored in the input
+ */
+abrs_integrals::abrs_integrals(const pqrs_integrals& pqrs, const bool pleq)
+{
+    na = pqrs.np;
+    nb = pqrs.nq;
+    nr = pqrs.nr;
+    ns = pqrs.ns;
+
+    nrs = 1;
+    for (size_t ipqrs = 1;ipqrs < pqrs.nints;ipqrs++)
+    {
+        if (pqrs.ints[ipqrs].idx.k != pqrs.ints[ipqrs-1].idx.k ||
+            pqrs.ints[ipqrs].idx.l != pqrs.ints[ipqrs-1].idx.l) nrs++;
+    }
+
+    rs = SAFE_MALLOC(idx2_t, nrs);
+    nints = nrs*na*nb;
+    ints = SAFE_MALLOC(double, nints);
+    fill(ints, ints+nints, 0.0);
+
+    rs[0].i = pqrs.ints[0].idx.k;
+    rs[0].j = pqrs.ints[0].idx.l;
+    for (size_t ipqrs = 1, irs = 1, iabrs = 0;ipqrs < pqrs.nints;ipqrs++)
+    {
+        if (pqrs.ints[ipqrs].idx.k != pqrs.ints[ipqrs-1].idx.k ||
+            pqrs.ints[ipqrs].idx.l != pqrs.ints[ipqrs-1].idx.l)
+        {
+            rs[irs].i = pqrs.ints[ipqrs].idx.k;
+            rs[irs].j = pqrs.ints[ipqrs].idx.l;
+            irs++;
+            iabrs += na*nb;
         }
 
-        return out;
+        int p = pqrs.ints[ipqrs].idx.i;
+        int q = pqrs.ints[ipqrs].idx.j;
+
+        ints[iabrs+p+q*na] = pqrs.ints[ipqrs].value;
+        if (p != q && pleq)
+            ints[iabrs+q+p*na] = pqrs.ints[ipqrs].value;
+    }
+}
+
+/*
+ * Transform (ab|rs) -> (cb|rs) (index = A) or (ab|rs) -> (ac|rs) (index = B)
+ *
+ * C is ldc*nc if trans = 'N' and ldc*[na|nb] if trans = 'T'
+ */
+abrs_integrals abrs_integrals::transform(Index index, const char trans, const int nc, const double* C, const int ldc)
+{
+    abrs_integrals out = *this;
+
+    out.rs = SAFE_MALLOC(idx2_t, nrs);
+    copy(rs, rs+nrs, out.rs);
+
+    if (index == A)
+    {
+        out.na = nc;
+        out.nints = nrs*nc*nb;
+        out.ints = SAFE_MALLOC(double, out.nints);
+
+        size_t iin = 0;
+        size_t iout = 0;
+        for (size_t irs = 0;irs < nrs;irs++)
+        {
+            if (trans == 'N')
+            {
+                dgemm('T', 'N', nc, nb, na, 1.0,             C, ldc,
+                                                      ints+iin,  na,
+                                            0.0, out.ints+iout,  nc);
+            }
+            else
+            {
+                dgemm('N', 'N', nc, nb, na, 1.0,             C, ldc,
+                                                      ints+iin,  na,
+                                            0.0, out.ints+iout,  nc);
+            }
+
+            iin += na*nb;
+            iout += nc*nb;
+        }
+    }
+    else
+    {
+        out.nb = nc;
+        out.nints = nrs*na*nc;
+        out.ints = SAFE_MALLOC(double, out.nints);
+
+        size_t iin = 0;
+        size_t iout = 0;
+        for (size_t irs = 0;irs < nrs;irs++)
+        {
+            if (trans == 'N')
+            {
+                dgemm('N', 'N', na, nc, nb, 1.0,      ints+iin,  na,
+                                                             C, ldc,
+                                            0.0, out.ints+iout,  na);
+            }
+            else
+            {
+                dgemm('N', 'T', na, nc, nb, 1.0,      ints+iin,  na,
+                                                             C, ldc,
+                                            0.0, out.ints+iout,  na);
+            }
+
+            iin += na*nb;
+            iout += na*nc;
+        }
     }
 
-    void free()
-    {
-        FREE(ints);
-        FREE(rs);
-    }
-};
+    return out;
+}
+
+void abrs_integrals::free()
+{
+    FREE(ints);
+    FREE(rs);
+}
 
 AOMOIntegrals::AOMOIntegrals(DistWorld *dw, AOIntegrals& ints, const UHF& uhf)
 : MOIntegrals(dw, uhf)
@@ -581,14 +597,14 @@ void AOMOIntegrals::doTransformation(AOIntegrals& ints)
     /*
      * Make <AI||BJ> and <ai||bj>
      */
-    AIBJ_["AIBJ"] -= ABIJ__["ABJI"];
-    aibj_["aibj"] -= abij__["abji"];
+    (*AIBJ_)["AIBJ"] -= ABIJ__["ABJI"];
+    (*aibj_)["aibj"] -= abij__["abji"];
 
     /*
      * Make <AB||IJ> and <ab||ij>
      */
-    ABIJ_["ABIJ"] = 0.5*ABIJ__["ABIJ"];
-    abij_["abij"] = 0.5*abij__["abij"];
+    (*ABIJ_)["ABIJ"] = 0.5*ABIJ__["ABIJ"];
+    (*abij_)["abij"] = 0.5*abij__["abij"];
 
     free(cA);
     free(ca);

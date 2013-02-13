@@ -39,6 +39,9 @@ if (!(x))                           \
     abort();                        \
 }
 
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+
 #define SIZE(m,n,lda) ((m)*(n) == 0 ? 0 : (lda)*((n)-1)+(m))
 
 #define MASTER if (gpid() == 0)

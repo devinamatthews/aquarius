@@ -78,7 +78,7 @@ void* aq_realloc(void* ptr, const size_t size, const char *file, const int line,
 	    return NULL;
     }
 
-	if (ptr == NULL) return SLIDE_malloc(size, file, line);
+	if (ptr == NULL) return aq_malloc(size, file, line, bailout);
 	if (size == 0)
 	{
 		aq_free(ptr, file, line);
@@ -94,7 +94,7 @@ void* aq_realloc(void* ptr, const size_t size, const char *file, const int line,
 	    return NULL;
     }
 
-    void* mem = SLIDE_malloc(size, file, line);
+    void* mem = aq_malloc(size, file, line, bailout);
     if (mem == NULL)
     {
         if (bailout) ERROR_AT(file, line, "Could not allocate memory");

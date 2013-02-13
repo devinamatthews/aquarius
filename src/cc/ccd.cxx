@@ -40,7 +40,7 @@ namespace cc
 
 CCD::CCD(const Config& config, MOIntegrals& moints)
 : Iterative(config), moints(moints),
-  T2(moints.getVABIJ()), E2("ab,ij"), D2("ab,ij"), Z2("ab,ij")
+  T2("ab,ij"), E2("ab,ij"), D2("ab,ij"), Z2("ab,ij")
 {
     int N = moints.getSCF().getMolecule().getNumOrbitals();
     int nI = moints.getSCF().getMolecule().getNumAlphaElectrons();
@@ -56,6 +56,10 @@ CCD::CCD(const Config& config, MOIntegrals& moints)
     int shapeANAN[] = {AS, NS, AS, NS};
 
     DistWorld *dw = moints.getFAB().getSpinCase(0).dw;
+
+    T2.addSpinCase(new DistTensor(4, sizeAAII, shapeANAN, dw, false), "AB,IJ", "ABIJ");
+    T2.addSpinCase(new DistTensor(4, sizeAaIi, shapeNNNN, dw, false), "Ab,Ij", "AbIj");
+    T2.addSpinCase(new DistTensor(4, sizeaaii, shapeANAN, dw, false), "ab,ij", "abij");
 
     E2.addSpinCase(new DistTensor(4, sizeAAII, shapeANAN, dw, false), "AB,IJ", "ABIJ");
     E2.addSpinCase(new DistTensor(4, sizeAaIi, shapeNNNN, dw, false), "Ab,Ij", "AbIj");
@@ -91,6 +95,8 @@ CCD::CCD(const Config& config, MOIntegrals& moints)
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
     }
+
+    T2["abij"] = moints.getVABIJ()["abij"]*D2["abij"];
 }
 
 void CCD::_iterate()

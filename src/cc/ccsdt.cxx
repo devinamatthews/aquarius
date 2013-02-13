@@ -40,8 +40,8 @@ namespace cc
 
 CCSDT::CCSDT(const Config& config, MOIntegrals& moints)
 : Iterative(config), moints(moints),
-  T1(moints.getFAI()), E1("a,i"), D1("a,i"), Z1("a,i"),
-  T2(moints.getVABIJ()), E2("ab,ij"), D2("ab,ij"), Z2("ab,ij"),
+  T1("a,i"), E1("a,i"), D1("a,i"), Z1("a,i"),
+  T2("ab,ij"), E2("ab,ij"), D2("ab,ij"), Z2("ab,ij"),
   T3("abc,ijk"), E3("abc,ijk"), D3("abc,ijk"), Z3("abc,ijk")
 {
     int N = moints.getSCF().getMolecule().getNumOrbitals();
@@ -69,6 +69,9 @@ CCSDT::CCSDT(const Config& config, MOIntegrals& moints)
 
     DistWorld *dw = moints.getFAB().getSpinCase(0).dw;
 
+    T1.addSpinCase(new DistTensor(2, sizeAI, shapeNN, dw, false), "A,I", "AI");
+    T1.addSpinCase(new DistTensor(2, sizeai, shapeNN, dw, false), "a,i", "ai");
+
     E1.addSpinCase(new DistTensor(2, sizeAI, shapeNN, dw, false), "A,I", "AI");
     E1.addSpinCase(new DistTensor(2, sizeai, shapeNN, dw, false), "a,i", "ai");
 
@@ -77,6 +80,10 @@ CCSDT::CCSDT(const Config& config, MOIntegrals& moints)
 
     Z1.addSpinCase(new DistTensor(2, sizeAI, shapeNN, dw, false), "A,I", "AI");
     Z1.addSpinCase(new DistTensor(2, sizeai, shapeNN, dw, false), "a,i", "ai");
+
+    T2.addSpinCase(new DistTensor(4, sizeAAII, shapeANAN, dw, false), "AB,IJ", "ABIJ");
+    T2.addSpinCase(new DistTensor(4, sizeAaIi, shapeNNNN, dw, false), "Ab,Ij", "AbIj");
+    T2.addSpinCase(new DistTensor(4, sizeaaii, shapeANAN, dw, false), "ab,ij", "abij");
 
     E2.addSpinCase(new DistTensor(4, sizeAAII, shapeANAN, dw, false), "AB,IJ", "ABIJ");
     E2.addSpinCase(new DistTensor(4, sizeAaIi, shapeNNNN, dw, false), "Ab,Ij", "AbIj");
@@ -172,6 +179,9 @@ CCSDT::CCSDT(const Config& config, MOIntegrals& moints)
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
     }
+
+    T1["ai"] = moints.getFAI()["ai"]*D1["ai"];
+    T2["abij"] = moints.getVABIJ()["abij"]*D2["abij"];
 }
 
 void CCSDT::_iterate()
