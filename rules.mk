@@ -40,6 +40,8 @@ _F77FLAGS = $(F77FLAGS)
 _F90FLAGS = $(F90FLAGS)
 _DEPENDENCIES = $(DEPENDENCIES) Makefile $(topdir)/config.mk $(topdir)/rules.mk
 _LIBS = $(LIBS) $(CYCLOPSTF_LIBS) $(ELEMENTAL_LIBS) $(BLAS_LIBS)
+_LIBDEPS = $(patsubst -l%,$(CYCLOPSTF)/lib/lib%.a,$(filter -l%,$(CYCLOPSTF_LIBS))) \
+           $(patsubst -l%,$(ELEMENTAL)/lib/lib%.a,$(filter -l%,$(ELEMENTAL_LIBS)))
 
 .NOTPARALLEL:
 .PHONY: all default clean $(ALL_COMPONENTS)
@@ -58,7 +60,7 @@ clean:
 		(cd $$subdir && $(MAKE) clean); \
 	done
 
-$(bindir)/%: $(_DEPENDENCIES) 
+$(bindir)/%: $(_DEPENDENCIES) $(_LIBDEPS)
 	@mkdir -p $(dir $@)
 	$(LINK) $(filter %.o,$^) $(FLIBS) $(_LIBS)
 
