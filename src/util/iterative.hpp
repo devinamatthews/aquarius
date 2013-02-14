@@ -56,7 +56,7 @@ class Iterative
         bool iterate()
         {
             iter++;
-            if (iter >= maxiter || isConverged()) return false;
+            if (iter > maxiter || isConverged()) return false;
             _iterate();
             return true;
         }
