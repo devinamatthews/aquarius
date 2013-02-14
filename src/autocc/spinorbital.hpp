@@ -399,7 +399,7 @@ class SpinorbitalTensor : public libtensor::Tensor< SpinorbitalTensor<Base> >
             int *idx_B_ = new int[B.ndim_];
             int *idx_C_ = new int[ndim_];
 
-            std::vector<int> beta(cases.size(), beta_);
+            std::vector<double> beta(cases.size(), beta_);
 
             std::string sA = "T(" + std::string(idx_A).substr(0, A.nA+A.nM) + "," +
                                     std::string(idx_A).substr(A.nA+A.nM) + ")";
@@ -642,7 +642,7 @@ class SpinorbitalTensor : public libtensor::Tensor< SpinorbitalTensor<Base> >
             int *idx_A_ = new int[A.ndim_];
             int *idx_B_ = new int[ndim_];
 
-            std::vector<int> beta(cases.size(), beta_);
+            std::vector<double> beta(cases.size(), beta_);
 
             std::string sA = "T(" + std::string(idx_A).substr(0, A.nA+A.nM) + "," +
                                     std::string(idx_A).substr(A.nA+A.nM) + ")";
