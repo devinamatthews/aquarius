@@ -19,7 +19,7 @@ CP = cp
 
 DEPFLAGS = -MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po
 
-CC = gcc
+CC = mpicc -cc=gcc
 CFLAGS = -fopenmp -g -O2 -std=c99
 
 CXX = mpicxx -cxx=g++
