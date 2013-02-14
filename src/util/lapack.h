@@ -1075,7 +1075,7 @@ void FFUNC(dgeqrfp,DGEQRFP)( integer* m, integer* n, double* a, integer* lda,
 /*
  * C wrappers
  */
-inline integer c_dgetrf( integer m, integer n, double* a, integer lda,
+static inline integer c_dgetrf( integer m, integer n, double* a, integer lda,
                     integer* ipiv )
 {
     integer info;
@@ -1083,7 +1083,7 @@ inline integer c_dgetrf( integer m, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dgbtrf( integer m, integer n, integer kl,
+static inline integer c_dgbtrf( integer m, integer n, integer kl,
                     integer ku, double* ab, integer ldab,
                     integer* ipiv )
 {
@@ -1092,7 +1092,7 @@ inline integer c_dgbtrf( integer m, integer n, integer kl,
     return info;
 }
 
-inline integer c_dgttrf( integer n, double* dl, double* d, double* du,
+static inline integer c_dgttrf( integer n, double* dl, double* d, double* du,
                     double* du2, integer* ipiv )
 {
     integer info;
@@ -1100,14 +1100,14 @@ inline integer c_dgttrf( integer n, double* dl, double* d, double* du,
     return info;
 }
 
-inline integer c_dpotrf( char uplo, integer n, double* a, integer lda )
+static inline integer c_dpotrf( char uplo, integer n, double* a, integer lda )
 {
     integer info;
     FFUNC(dpotrf,DPOTRF)(&uplo, &n, a, &lda, &info);
     return info;
 }
 
-inline integer c_dpstrf( char uplo, integer n, double* a, integer lda,
+static inline integer c_dpstrf( char uplo, integer n, double* a, integer lda,
                     integer* piv, integer* rank, double tol,
                     double* work )
 {
@@ -1116,21 +1116,21 @@ inline integer c_dpstrf( char uplo, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dpftrf( char transr, char uplo, integer n, double* a )
+static inline integer c_dpftrf( char transr, char uplo, integer n, double* a )
 {
     integer info;
     FFUNC(dpftrf,DPFTRF)(&transr, &uplo, &n, a, &info);
     return info;
 }
 
-inline integer c_dpptrf( char uplo, integer n, double* ap )
+static inline integer c_dpptrf( char uplo, integer n, double* ap )
 {
     integer info;
     FFUNC(dpptrf,DPPTRF)(&uplo, &n, ap, &info);
     return info;
 }
 
-inline integer c_dpbtrf( char uplo, integer n, integer kd, double* ab,
+static inline integer c_dpbtrf( char uplo, integer n, integer kd, double* ab,
                     integer ldab )
 {
     integer info;
@@ -1138,14 +1138,14 @@ inline integer c_dpbtrf( char uplo, integer n, integer kd, double* ab,
     return info;
 }
 
-inline integer c_dpttrf( integer n, double* d, double* e )
+static inline integer c_dpttrf( integer n, double* d, double* e )
 {
     integer info;
     FFUNC(dpttrf,DPTTRF)(&n, d, e, &info);
     return info;
 }
 
-inline integer c_dsytrf( char uplo, integer n, double* a, integer lda,
+static inline integer c_dsytrf( char uplo, integer n, double* a, integer lda,
                     integer* ipiv, double* work, integer* lwork )
 {
     integer info;
@@ -1153,14 +1153,14 @@ inline integer c_dsytrf( char uplo, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dsptrf( char uplo, integer n, double* ap, integer* ipiv )
+static inline integer c_dsptrf( char uplo, integer n, double* ap, integer* ipiv )
 {
     integer info;
     FFUNC(dsptrf,DSPTRF)(&uplo, &n, ap, ipiv, &info);
     return info;
 }
 
-inline integer c_dgetrs( char trans, integer n, integer nrhs,
+static inline integer c_dgetrs( char trans, integer n, integer nrhs,
                     const double* a, integer lda, const integer* ipiv,
                     double* b, integer ldb )
 {
@@ -1169,7 +1169,7 @@ inline integer c_dgetrs( char trans, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dgbtrs( char trans, integer n, integer kl, integer ku,
+static inline integer c_dgbtrs( char trans, integer n, integer kl, integer ku,
                     integer nrhs, const double* ab, integer ldab,
                     const integer* ipiv, double* b, integer ldb )
 {
@@ -1178,7 +1178,7 @@ inline integer c_dgbtrs( char trans, integer n, integer kl, integer ku,
     return info;
 }
 
-inline integer c_dgttrs( char trans, integer n, integer nrhs,
+static inline integer c_dgttrs( char trans, integer n, integer nrhs,
                     const double* dl, const double* d, const double* du,
                     const double* du2, const integer* ipiv, double* b,
                     integer ldb )
@@ -1188,7 +1188,7 @@ inline integer c_dgttrs( char trans, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dpotrs( char uplo, integer n, integer nrhs,
+static inline integer c_dpotrs( char uplo, integer n, integer nrhs,
                     const double* a, integer lda, double* b,
                     integer ldb )
 {
@@ -1197,7 +1197,7 @@ inline integer c_dpotrs( char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dpftrs( char transr, char uplo, integer n, integer nrhs,
+static inline integer c_dpftrs( char transr, char uplo, integer n, integer nrhs,
                     const double* a, double* b, integer ldb )
 {
     integer info;
@@ -1205,7 +1205,7 @@ inline integer c_dpftrs( char transr, char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dpptrs( char uplo, integer n, integer nrhs,
+static inline integer c_dpptrs( char uplo, integer n, integer nrhs,
                     const double* ap, double* b, integer ldb )
 {
     integer info;
@@ -1213,7 +1213,7 @@ inline integer c_dpptrs( char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dpbtrs( char uplo, integer n, integer kd, integer nrhs,
+static inline integer c_dpbtrs( char uplo, integer n, integer kd, integer nrhs,
                     const double* ab, integer ldab, double* b,
                     integer ldb )
 {
@@ -1222,7 +1222,7 @@ inline integer c_dpbtrs( char uplo, integer n, integer kd, integer nrhs,
     return info;
 }
 
-inline integer c_dpttrs( integer n, integer nrhs, const double* d,
+static inline integer c_dpttrs( integer n, integer nrhs, const double* d,
                     const double* e, double* b, integer ldb )
 {
     integer info;
@@ -1230,7 +1230,7 @@ inline integer c_dpttrs( integer n, integer nrhs, const double* d,
     return info;
 }
 
-inline integer c_dsytrs( char uplo, integer n, integer nrhs,
+static inline integer c_dsytrs( char uplo, integer n, integer nrhs,
                     const double* a, integer lda, const integer* ipiv,
                     double* b, integer ldb )
 {
@@ -1239,7 +1239,7 @@ inline integer c_dsytrs( char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dsptrs( char uplo, integer n, integer nrhs,
+static inline integer c_dsptrs( char uplo, integer n, integer nrhs,
                     const double* ap, const integer* ipiv, double* b,
                     integer ldb )
 {
@@ -1248,7 +1248,7 @@ inline integer c_dsptrs( char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dtrtrs( char uplo, char trans, char diag, integer n,
+static inline integer c_dtrtrs( char uplo, char trans, char diag, integer n,
                     integer nrhs, const double* a, integer lda,
                     double* b, integer ldb )
 {
@@ -1257,7 +1257,7 @@ inline integer c_dtrtrs( char uplo, char trans, char diag, integer n,
     return info;
 }
 
-inline integer c_dtptrs( char uplo, char trans, char diag, integer n,
+static inline integer c_dtptrs( char uplo, char trans, char diag, integer n,
                     integer nrhs, const double* ap, double* b,
                     integer ldb )
 {
@@ -1266,7 +1266,7 @@ inline integer c_dtptrs( char uplo, char trans, char diag, integer n,
     return info;
 }
 
-inline integer c_dtbtrs( char uplo, char trans, char diag, integer n,
+static inline integer c_dtbtrs( char uplo, char trans, char diag, integer n,
                     integer kd, integer nrhs, const double* ab,
                     integer ldab, double* b, integer ldb )
 {
@@ -1275,7 +1275,7 @@ inline integer c_dtbtrs( char uplo, char trans, char diag, integer n,
     return info;
 }
 
-inline integer c_dgecon( char norm, integer n, const double* a, integer lda,
+static inline integer c_dgecon( char norm, integer n, const double* a, integer lda,
                     double anorm, double* rcond, double* work,
                     integer* iwork )
 {
@@ -1284,7 +1284,7 @@ inline integer c_dgecon( char norm, integer n, const double* a, integer lda,
     return info;
 }
 
-inline integer c_dgbcon( char norm, integer n, integer kl, integer ku,
+static inline integer c_dgbcon( char norm, integer n, integer kl, integer ku,
                     const double* ab, integer ldab, const integer* ipiv,
                     double anorm, double* rcond, double* work,
                     integer* iwork )
@@ -1294,7 +1294,7 @@ inline integer c_dgbcon( char norm, integer n, integer kl, integer ku,
     return info;
 }
 
-inline integer c_dgtcon( char norm, integer n, const double* dl,
+static inline integer c_dgtcon( char norm, integer n, const double* dl,
                     const double* d, const double* du, const double* du2,
                     const integer* ipiv, double anorm, double* rcond,
                     double* work, integer* iwork )
@@ -1304,7 +1304,7 @@ inline integer c_dgtcon( char norm, integer n, const double* dl,
     return info;
 }
 
-inline integer c_dpocon( char uplo, integer n, const double* a, integer lda,
+static inline integer c_dpocon( char uplo, integer n, const double* a, integer lda,
                     double anorm, double* rcond, double* work,
                     integer* iwork )
 {
@@ -1313,7 +1313,7 @@ inline integer c_dpocon( char uplo, integer n, const double* a, integer lda,
     return info;
 }
 
-inline integer c_dppcon( char uplo, integer n, const double* ap, double anorm,
+static inline integer c_dppcon( char uplo, integer n, const double* ap, double anorm,
                     double* rcond, double* work, integer* iwork )
 {
     integer info;
@@ -1321,7 +1321,7 @@ inline integer c_dppcon( char uplo, integer n, const double* ap, double anorm,
     return info;
 }
 
-inline integer c_dpbcon( char uplo, integer n, integer kd, const double* ab,
+static inline integer c_dpbcon( char uplo, integer n, integer kd, const double* ab,
                     integer ldab, double anorm, double* rcond,
                     double* work, integer* iwork )
 {
@@ -1330,7 +1330,7 @@ inline integer c_dpbcon( char uplo, integer n, integer kd, const double* ab,
     return info;
 }
 
-inline integer c_dptcon( integer n, const double* d, const double* e,
+static inline integer c_dptcon( integer n, const double* d, const double* e,
                     double anorm, double* rcond, double* work )
 {
     integer info;
@@ -1338,7 +1338,7 @@ inline integer c_dptcon( integer n, const double* d, const double* e,
     return info;
 }
 
-inline integer c_dsycon( char uplo, integer n, const double* a, integer lda,
+static inline integer c_dsycon( char uplo, integer n, const double* a, integer lda,
                     const integer* ipiv, double anorm, double* rcond,
                     double* work, integer* iwork )
 {
@@ -1347,7 +1347,7 @@ inline integer c_dsycon( char uplo, integer n, const double* a, integer lda,
     return info;
 }
 
-inline integer c_dspcon( char uplo, integer n, const double* ap,
+static inline integer c_dspcon( char uplo, integer n, const double* ap,
                     const integer* ipiv, double anorm, double* rcond,
                     double* work, integer* iwork )
 {
@@ -1356,7 +1356,7 @@ inline integer c_dspcon( char uplo, integer n, const double* ap,
     return info;
 }
 
-inline integer c_dtrcon( char norm, char uplo, char diag, integer n,
+static inline integer c_dtrcon( char norm, char uplo, char diag, integer n,
                     const double* a, integer lda, double* rcond,
                     double* work, integer* iwork )
 {
@@ -1365,7 +1365,7 @@ inline integer c_dtrcon( char norm, char uplo, char diag, integer n,
     return info;
 }
 
-inline integer c_dtpcon( char norm, char uplo, char diag, integer n,
+static inline integer c_dtpcon( char norm, char uplo, char diag, integer n,
                     const double* ap, double* rcond, double* work,
                     integer* iwork )
 {
@@ -1374,7 +1374,7 @@ inline integer c_dtpcon( char norm, char uplo, char diag, integer n,
     return info;
 }
 
-inline integer c_dtbcon( char norm, char uplo, char diag, integer n,
+static inline integer c_dtbcon( char norm, char uplo, char diag, integer n,
                     integer kd, const double* ab, integer ldab,
                     double* rcond, double* work, integer* iwork )
 {
@@ -1383,7 +1383,7 @@ inline integer c_dtbcon( char norm, char uplo, char diag, integer n,
     return info;
 }
 
-inline integer c_dgerfs( char trans, integer n, integer nrhs,
+static inline integer c_dgerfs( char trans, integer n, integer nrhs,
                     const double* a, integer lda, const double* af,
                     integer ldaf, const integer* ipiv, const double* b,
                     integer ldb, double* x, integer ldx, double* ferr,
@@ -1394,7 +1394,7 @@ inline integer c_dgerfs( char trans, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dgerfsx( char trans, char equed, integer n, integer nrhs,
+static inline integer c_dgerfsx( char trans, char equed, integer n, integer nrhs,
                      const double* a, integer lda, const double* af,
                      integer ldaf, const integer* ipiv, const double* r,
                      const double* c, const double* b, integer ldb,
@@ -1409,7 +1409,7 @@ inline integer c_dgerfsx( char trans, char equed, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dgbrfs( char trans, integer n, integer kl, integer ku,
+static inline integer c_dgbrfs( char trans, integer n, integer kl, integer ku,
                     integer nrhs, const double* ab, integer ldab,
                     const double* afb, integer ldafb,
                     const integer* ipiv, const double* b, integer ldb,
@@ -1422,7 +1422,7 @@ inline integer c_dgbrfs( char trans, integer n, integer kl, integer ku,
     return info;
 }
 
-inline integer c_dgbrfsx( char trans, char equed, integer n, integer kl,
+static inline integer c_dgbrfsx( char trans, char equed, integer n, integer kl,
                      integer ku, integer nrhs, const double* ab,
                      integer ldab, const double* afb, integer ldafb,
                      const integer* ipiv, const double* r, const double* c,
@@ -1438,7 +1438,7 @@ inline integer c_dgbrfsx( char trans, char equed, integer n, integer kl,
     return info;
 }
 
-inline integer c_dgtrfs( char trans, integer n, integer nrhs,
+static inline integer c_dgtrfs( char trans, integer n, integer nrhs,
                     const double* dl, const double* d, const double* du,
                     const double* dlf, const double* df, const double* duf,
                     const double* du2, const integer* ipiv, const double* b,
@@ -1451,7 +1451,7 @@ inline integer c_dgtrfs( char trans, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dporfs( char uplo, integer n, integer nrhs,
+static inline integer c_dporfs( char uplo, integer n, integer nrhs,
                     const double* a, integer lda, const double* af,
                     integer ldaf, const double* b, integer ldb,
                     double* x, integer ldx, double* ferr, double* berr,
@@ -1462,7 +1462,7 @@ inline integer c_dporfs( char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dporfsx( char uplo, char equed, integer n, integer nrhs,
+static inline integer c_dporfsx( char uplo, char equed, integer n, integer nrhs,
                      const double* a, integer lda, const double* af,
                      integer ldaf, const double* s, const double* b,
                      integer ldb, double* x, integer ldx, double* rcond,
@@ -1477,7 +1477,7 @@ inline integer c_dporfsx( char uplo, char equed, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dpprfs( char uplo, integer n, integer nrhs,
+static inline integer c_dpprfs( char uplo, integer n, integer nrhs,
                     const double* ap, const double* afp, const double* b,
                     integer ldb, double* x, integer ldx, double* ferr,
                     double* berr, double* work, integer* iwork )
@@ -1487,7 +1487,7 @@ inline integer c_dpprfs( char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dpbrfs( char uplo, integer n, integer kd, integer nrhs,
+static inline integer c_dpbrfs( char uplo, integer n, integer kd, integer nrhs,
                     const double* ab, integer ldab, const double* afb,
                     integer ldafb, const double* b, integer ldb,
                     double* x, integer ldx, double* ferr, double* berr,
@@ -1498,7 +1498,7 @@ inline integer c_dpbrfs( char uplo, integer n, integer kd, integer nrhs,
     return info;
 }
 
-inline integer c_dptrfs( integer n, integer nrhs, const double* d,
+static inline integer c_dptrfs( integer n, integer nrhs, const double* d,
                     const double* e, const double* df, const double* ef,
                     const double* b, integer ldb, double* x,
                     integer ldx, double* ferr, double* berr, double* work )
@@ -1508,7 +1508,7 @@ inline integer c_dptrfs( integer n, integer nrhs, const double* d,
     return info;
 }
 
-inline integer c_dsyrfs( char uplo, integer n, integer nrhs,
+static inline integer c_dsyrfs( char uplo, integer n, integer nrhs,
                     const double* a, integer lda, const double* af,
                     integer ldaf, const integer* ipiv, const double* b,
                     integer ldb, double* x, integer ldx, double* ferr,
@@ -1519,7 +1519,7 @@ inline integer c_dsyrfs( char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dsyrfsx( char uplo, char equed, integer n, integer nrhs,
+static inline integer c_dsyrfsx( char uplo, char equed, integer n, integer nrhs,
                      const double* a, integer lda, const double* af,
                      integer ldaf, const integer* ipiv, const double* s,
                      const double* b, integer ldb, double* x,
@@ -1534,7 +1534,7 @@ inline integer c_dsyrfsx( char uplo, char equed, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dsprfs( char uplo, integer n, integer nrhs,
+static inline integer c_dsprfs( char uplo, integer n, integer nrhs,
                     const double* ap, const double* afp, const integer* ipiv,
                     const double* b, integer ldb, double* x,
                     integer ldx, double* ferr, double* berr, double* work,
@@ -1545,7 +1545,7 @@ inline integer c_dsprfs( char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dtrrfs( char uplo, char trans, char diag, integer n,
+static inline integer c_dtrrfs( char uplo, char trans, char diag, integer n,
                     integer nrhs, const double* a, integer lda,
                     const double* b, integer ldb, const double* x,
                     integer ldx, double* ferr, double* berr, double* work,
@@ -1556,7 +1556,7 @@ inline integer c_dtrrfs( char uplo, char trans, char diag, integer n,
     return info;
 }
 
-inline integer c_dtprfs( char uplo, char trans, char diag, integer n,
+static inline integer c_dtprfs( char uplo, char trans, char diag, integer n,
                     integer nrhs, const double* ap, const double* b,
                     integer ldb, const double* x, integer ldx,
                     double* ferr, double* berr, double* work, integer* iwork )
@@ -1566,7 +1566,7 @@ inline integer c_dtprfs( char uplo, char trans, char diag, integer n,
     return info;
 }
 
-inline integer c_dtbrfs( char uplo, char trans, char diag, integer n,
+static inline integer c_dtbrfs( char uplo, char trans, char diag, integer n,
                     integer kd, integer nrhs, const double* ab,
                     integer ldab, const double* b, integer ldb,
                     const double* x, integer ldx, double* ferr,
@@ -1577,7 +1577,7 @@ inline integer c_dtbrfs( char uplo, char trans, char diag, integer n,
     return info;
 }
 
-inline integer c_dgetri( integer n, double* a, integer lda,
+static inline integer c_dgetri( integer n, double* a, integer lda,
                     const integer* ipiv, double* work, integer lwork )
 {
     integer info;
@@ -1585,28 +1585,28 @@ inline integer c_dgetri( integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dpotri( char uplo, integer n, double* a, integer lda )
+static inline integer c_dpotri( char uplo, integer n, double* a, integer lda )
 {
     integer info;
     FFUNC(dpotri,DPOTRI)(&uplo, &n, a, &lda, &info);
     return info;
 }
 
-inline integer c_dpftri( char transr, char uplo, integer n, double* a )
+static inline integer c_dpftri( char transr, char uplo, integer n, double* a )
 {
     integer info;
     FFUNC(dpftri,DPFTRI)(&transr, &uplo, &n, a, &info);
     return info;
 }
 
-inline integer c_dpptri( char uplo, integer n, double* ap )
+static inline integer c_dpptri( char uplo, integer n, double* ap )
 {
     integer info;
     FFUNC(dpptri,DPPTRI)(&uplo, &n, ap, &info);
     return info;
 }
 
-inline integer c_dsytri( char uplo, integer n, double* a, integer lda,
+static inline integer c_dsytri( char uplo, integer n, double* a, integer lda,
                     const integer* ipiv, double* work )
 {
     integer info;
@@ -1614,7 +1614,7 @@ inline integer c_dsytri( char uplo, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dsptri( char uplo, integer n, double* ap,
+static inline integer c_dsptri( char uplo, integer n, double* ap,
                     const integer* ipiv, double* work )
 {
     integer info;
@@ -1622,7 +1622,7 @@ inline integer c_dsptri( char uplo, integer n, double* ap,
     return info;
 }
 
-inline integer c_dtrtri( char uplo, char diag, integer n, double* a,
+static inline integer c_dtrtri( char uplo, char diag, integer n, double* a,
                     integer lda )
 {
     integer info;
@@ -1630,7 +1630,7 @@ inline integer c_dtrtri( char uplo, char diag, integer n, double* a,
     return info;
 }
 
-inline integer c_dtftri( char transr, char uplo, char diag, integer n,
+static inline integer c_dtftri( char transr, char uplo, char diag, integer n,
                     double* a )
 {
     integer info;
@@ -1638,14 +1638,14 @@ inline integer c_dtftri( char transr, char uplo, char diag, integer n,
     return info;
 }
 
-inline integer c_dtptri( char uplo, char diag, integer n, double* ap )
+static inline integer c_dtptri( char uplo, char diag, integer n, double* ap )
 {
     integer info;
     FFUNC(dtptri,DTPTRI)(&uplo, &diag, &n, ap, &info);
     return info;
 }
 
-inline integer c_dgeequ( integer m, integer n, const double* a,
+static inline integer c_dgeequ( integer m, integer n, const double* a,
                     integer lda, double* r, double* c, double* rowcnd,
                     double* colcnd, double* amax )
 {
@@ -1654,7 +1654,7 @@ inline integer c_dgeequ( integer m, integer n, const double* a,
     return info;
 }
 
-inline integer c_dgeequb( integer m, integer n, const double* a,
+static inline integer c_dgeequb( integer m, integer n, const double* a,
                      integer lda, double* r, double* c, double* rowcnd,
                      double* colcnd, double* amax )
 {
@@ -1663,7 +1663,7 @@ inline integer c_dgeequb( integer m, integer n, const double* a,
     return info;
 }
 
-inline integer c_dgbequ( integer m, integer n, integer kl,
+static inline integer c_dgbequ( integer m, integer n, integer kl,
                     integer ku, const double* ab, integer ldab,
                     double* r, double* c, double* rowcnd, double* colcnd,
                     double* amax )
@@ -1673,7 +1673,7 @@ inline integer c_dgbequ( integer m, integer n, integer kl,
     return info;
 }
 
-inline integer c_dgbequb( integer m, integer n, integer kl,
+static inline integer c_dgbequb( integer m, integer n, integer kl,
                      integer ku, const double* ab, integer ldab,
                      double* r, double* c, double* rowcnd, double* colcnd,
                      double* amax )
@@ -1683,7 +1683,7 @@ inline integer c_dgbequb( integer m, integer n, integer kl,
     return info;
 }
 
-inline integer c_dpoequ( integer n, const double* a, integer lda, double* s,
+static inline integer c_dpoequ( integer n, const double* a, integer lda, double* s,
                     double* scond, double* amax )
 {
     integer info;
@@ -1691,7 +1691,7 @@ inline integer c_dpoequ( integer n, const double* a, integer lda, double* s,
     return info;
 }
 
-inline integer c_dpoequb( integer n, const double* a, integer lda, double* s,
+static inline integer c_dpoequb( integer n, const double* a, integer lda, double* s,
                      double* scond, double* amax )
 {
     integer info;
@@ -1699,7 +1699,7 @@ inline integer c_dpoequb( integer n, const double* a, integer lda, double* s,
     return info;
 }
 
-inline integer c_dppequ( char uplo, integer n, const double* ap, double* s,
+static inline integer c_dppequ( char uplo, integer n, const double* ap, double* s,
                     double* scond, double* amax )
 {
     integer info;
@@ -1707,7 +1707,7 @@ inline integer c_dppequ( char uplo, integer n, const double* ap, double* s,
     return info;
 }
 
-inline integer c_dpbequ( char uplo, integer n, integer kd, const double* ab,
+static inline integer c_dpbequ( char uplo, integer n, integer kd, const double* ab,
                     integer ldab, double* s, double* scond, double* amax )
 {
     integer info;
@@ -1715,7 +1715,7 @@ inline integer c_dpbequ( char uplo, integer n, integer kd, const double* ab,
     return info;
 }
 
-inline integer c_dsyequb( char uplo, integer n, const double* a,
+static inline integer c_dsyequb( char uplo, integer n, const double* a,
                      integer lda, double* s, double* scond, double* amax,
                      double* work )
 {
@@ -1724,7 +1724,7 @@ inline integer c_dsyequb( char uplo, integer n, const double* a,
     return info;
 }
 
-inline integer c_dgesv( integer n, integer nrhs, double* a, integer lda,
+static inline integer c_dgesv( integer n, integer nrhs, double* a, integer lda,
                    integer* ipiv, double* b, integer ldb )
 {
     integer info;
@@ -1732,7 +1732,7 @@ inline integer c_dgesv( integer n, integer nrhs, double* a, integer lda,
     return info;
 }
 
-inline integer c_dsgesv( integer n, integer nrhs, double* a, integer lda,
+static inline integer c_dsgesv( integer n, integer nrhs, double* a, integer lda,
                     integer* ipiv, double* b, integer ldb, double* x,
                     integer ldx, double* work, float* swork,
                     integer* iter )
@@ -1742,7 +1742,7 @@ inline integer c_dsgesv( integer n, integer nrhs, double* a, integer lda,
     return info;
 }
 
-inline integer c_dgesvx( char fact, char trans, integer n, integer nrhs,
+static inline integer c_dgesvx( char fact, char trans, integer n, integer nrhs,
                     double* a, integer lda, double* af, integer ldaf,
                     integer* ipiv, char* equed, double* r, double* c,
                     double* b, integer ldb, double* x, integer ldx,
@@ -1755,7 +1755,7 @@ inline integer c_dgesvx( char fact, char trans, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dgesvxx( char fact, char trans, integer n, integer nrhs,
+static inline integer c_dgesvxx( char fact, char trans, integer n, integer nrhs,
                      double* a, integer lda, double* af, integer ldaf,
                      integer* ipiv, char* equed, double* r, double* c,
                      double* b, integer ldb, double* x, integer ldx,
@@ -1770,7 +1770,7 @@ inline integer c_dgesvxx( char fact, char trans, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dgbsv( integer n, integer kl, integer ku,
+static inline integer c_dgbsv( integer n, integer kl, integer ku,
                    integer nrhs, double* ab, integer ldab,
                    integer* ipiv, double* b, integer ldb )
 {
@@ -1779,7 +1779,7 @@ inline integer c_dgbsv( integer n, integer kl, integer ku,
     return info;
 }
 
-inline integer c_dgbsvx( char fact, char trans, integer n, integer kl,
+static inline integer c_dgbsvx( char fact, char trans, integer n, integer kl,
                     integer ku, integer nrhs, double* ab,
                     integer ldab, double* afb, integer ldafb,
                     integer* ipiv, char* equed, double* r, double* c,
@@ -1793,7 +1793,7 @@ inline integer c_dgbsvx( char fact, char trans, integer n, integer kl,
     return info;
 }
 
-inline integer c_dgbsvxx( char fact, char trans, integer n, integer kl,
+static inline integer c_dgbsvxx( char fact, char trans, integer n, integer kl,
                      integer ku, integer nrhs, double* ab,
                      integer ldab, double* afb, integer ldafb,
                      integer* ipiv, char* equed, double* r, double* c,
@@ -1809,7 +1809,7 @@ inline integer c_dgbsvxx( char fact, char trans, integer n, integer kl,
     return info;
 }
 
-inline integer c_dgtsv( integer n, integer nrhs, double* dl, double* d,
+static inline integer c_dgtsv( integer n, integer nrhs, double* dl, double* d,
                    double* du, double* b, integer ldb )
 {
     integer info;
@@ -1817,7 +1817,7 @@ inline integer c_dgtsv( integer n, integer nrhs, double* dl, double* d,
     return info;
 }
 
-inline integer c_dgtsvx( char fact, char trans, integer n, integer nrhs,
+static inline integer c_dgtsvx( char fact, char trans, integer n, integer nrhs,
                     const double* dl, const double* d, const double* du,
                     double* dlf, double* df, double* duf, double* du2,
                     integer* ipiv, const double* b, integer ldb,
@@ -1830,7 +1830,7 @@ inline integer c_dgtsvx( char fact, char trans, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dposv( char uplo, integer n, integer nrhs, double* a,
+static inline integer c_dposv( char uplo, integer n, integer nrhs, double* a,
                    integer lda, double* b, integer ldb )
 {
     integer info;
@@ -1838,7 +1838,7 @@ inline integer c_dposv( char uplo, integer n, integer nrhs, double* a,
     return info;
 }
 
-inline integer c_dsposv( char uplo, integer n, integer nrhs, double* a,
+static inline integer c_dsposv( char uplo, integer n, integer nrhs, double* a,
                     integer lda, double* b, integer ldb, double* x,
                     integer ldx, double* work, float* swork,
                     integer* iter )
@@ -1848,7 +1848,7 @@ inline integer c_dsposv( char uplo, integer n, integer nrhs, double* a,
     return info;
 }
 
-inline integer c_dposvx( char fact, char uplo, integer n, integer nrhs,
+static inline integer c_dposvx( char fact, char uplo, integer n, integer nrhs,
                     double* a, integer lda, double* af, integer ldaf,
                     char* equed, double* s, double* b, integer ldb,
                     double* x, integer ldx, double* rcond, double* ferr,
@@ -1860,7 +1860,7 @@ inline integer c_dposvx( char fact, char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dposvxx( char fact, char uplo, integer n, integer nrhs,
+static inline integer c_dposvxx( char fact, char uplo, integer n, integer nrhs,
                      double* a, integer lda, double* af, integer ldaf,
                      char* equed, double* s, double* b, integer ldb,
                      double* x, integer ldx, double* rcond, double* rpvgrw,
@@ -1875,7 +1875,7 @@ inline integer c_dposvxx( char fact, char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dppsv( char uplo, integer n, integer nrhs, double* ap,
+static inline integer c_dppsv( char uplo, integer n, integer nrhs, double* ap,
                    double* b, integer ldb )
 {
     integer info;
@@ -1883,7 +1883,7 @@ inline integer c_dppsv( char uplo, integer n, integer nrhs, double* ap,
     return info;
 }
 
-inline integer c_dppsvx( char fact, char uplo, integer n, integer nrhs,
+static inline integer c_dppsvx( char fact, char uplo, integer n, integer nrhs,
                     double* ap, double* afp, char* equed, double* s, double* b,
                     integer ldb, double* x, integer ldx, double* rcond,
                     double* ferr, double* berr, double* work, integer* iwork )
@@ -1893,7 +1893,7 @@ inline integer c_dppsvx( char fact, char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dpbsv( char uplo, integer n, integer kd, integer nrhs,
+static inline integer c_dpbsv( char uplo, integer n, integer kd, integer nrhs,
                    double* ab, integer ldab, double* b, integer ldb )
 {
     integer info;
@@ -1901,7 +1901,7 @@ inline integer c_dpbsv( char uplo, integer n, integer kd, integer nrhs,
     return info;
 }
 
-inline integer c_dpbsvx( char fact, char uplo, integer n, integer kd,
+static inline integer c_dpbsvx( char fact, char uplo, integer n, integer kd,
                     integer nrhs, double* ab, integer ldab, double* afb,
                     integer ldafb, char* equed, double* s, double* b,
                     integer ldb, double* x, integer ldx, double* rcond,
@@ -1913,7 +1913,7 @@ inline integer c_dpbsvx( char fact, char uplo, integer n, integer kd,
     return info;
 }
 
-inline integer c_dptsv( integer n, integer nrhs, double* d, double* e,
+static inline integer c_dptsv( integer n, integer nrhs, double* d, double* e,
                    double* b, integer ldb )
 {
     integer info;
@@ -1921,7 +1921,7 @@ inline integer c_dptsv( integer n, integer nrhs, double* d, double* e,
     return info;
 }
 
-inline integer c_dptsvx( char fact, integer n, integer nrhs,
+static inline integer c_dptsvx( char fact, integer n, integer nrhs,
                     const double* d, const double* e, double* df, double* ef,
                     const double* b, integer ldb, double* x,
                     integer ldx, double* rcond, double* ferr, double* berr,
@@ -1932,7 +1932,7 @@ inline integer c_dptsvx( char fact, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dsysv( char uplo, integer n, integer nrhs, double* a,
+static inline integer c_dsysv( char uplo, integer n, integer nrhs, double* a,
                    integer lda, integer* ipiv, double* b,
                    integer ldb, double* work, integer lwork )
 {
@@ -1941,7 +1941,7 @@ inline integer c_dsysv( char uplo, integer n, integer nrhs, double* a,
     return info;
 }
 
-inline integer c_dsysvx( char fact, char uplo, integer n, integer nrhs,
+static inline integer c_dsysvx( char fact, char uplo, integer n, integer nrhs,
                     const double* a, integer lda, double* af,
                     integer ldaf, integer* ipiv, const double* b,
                     integer ldb, double* x, integer ldx, double* rcond,
@@ -1954,7 +1954,7 @@ inline integer c_dsysvx( char fact, char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dsysvxx( char fact, char uplo, integer n, integer nrhs,
+static inline integer c_dsysvxx( char fact, char uplo, integer n, integer nrhs,
                      double* a, integer lda, double* af, integer ldaf,
                      integer* ipiv, char* equed, double* s, double* b,
                      integer ldb, double* x, integer ldx, double* rcond,
@@ -1969,7 +1969,7 @@ inline integer c_dsysvxx( char fact, char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dspsv( char uplo, integer n, integer nrhs, double* ap,
+static inline integer c_dspsv( char uplo, integer n, integer nrhs, double* ap,
                    integer* ipiv, double* b, integer ldb )
 {
     integer info;
@@ -1977,7 +1977,7 @@ inline integer c_dspsv( char uplo, integer n, integer nrhs, double* ap,
     return info;
 }
 
-inline integer c_dspsvx( char fact, char uplo, integer n, integer nrhs,
+static inline integer c_dspsvx( char fact, char uplo, integer n, integer nrhs,
                     const double* ap, double* afp, integer* ipiv,
                     const double* b, integer ldb, double* x,
                     integer ldx, double* rcond, double* ferr, double* berr,
@@ -1988,7 +1988,7 @@ inline integer c_dspsvx( char fact, char uplo, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dgeqrf( integer m, integer n, double* a, integer lda,
+static inline integer c_dgeqrf( integer m, integer n, double* a, integer lda,
                     double* tau, double* work, integer lwork )
 {
     integer info;
@@ -1996,7 +1996,7 @@ inline integer c_dgeqrf( integer m, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dgeqpf( integer m, integer n, double* a, integer lda,
+static inline integer c_dgeqpf( integer m, integer n, double* a, integer lda,
                     integer* jpvt, double* tau, double* work )
 {
     integer info;
@@ -2004,7 +2004,7 @@ inline integer c_dgeqpf( integer m, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dgeqp3( integer m, integer n, double* a, integer lda,
+static inline integer c_dgeqp3( integer m, integer n, double* a, integer lda,
                     integer* jpvt, double* tau, double* work,
                     integer lwork )
 {
@@ -2013,7 +2013,7 @@ inline integer c_dgeqp3( integer m, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dorgqr( integer m, integer n, integer k, double* a,
+static inline integer c_dorgqr( integer m, integer n, integer k, double* a,
                     integer lda, const double* tau, double* work,
                     integer lwork )
 {
@@ -2022,7 +2022,7 @@ inline integer c_dorgqr( integer m, integer n, integer k, double* a,
     return info;
 }
 
-inline integer c_dormqr( char side, char trans, integer m, integer n,
+static inline integer c_dormqr( char side, char trans, integer m, integer n,
                     integer k, const double* a, integer lda,
                     const double* tau, double* c, integer ldc, double* work,
                     integer lwork )
@@ -2032,7 +2032,7 @@ inline integer c_dormqr( char side, char trans, integer m, integer n,
     return info;
 }
 
-inline integer c_dgelqf( integer m, integer n, double* a, integer lda,
+static inline integer c_dgelqf( integer m, integer n, double* a, integer lda,
                     double* tau, double* work, integer lwork )
 {
     integer info;
@@ -2040,7 +2040,7 @@ inline integer c_dgelqf( integer m, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dorglq( integer m, integer n, integer k, double* a,
+static inline integer c_dorglq( integer m, integer n, integer k, double* a,
                     integer lda, const double* tau, double* work,
                     integer lwork )
 {
@@ -2049,7 +2049,7 @@ inline integer c_dorglq( integer m, integer n, integer k, double* a,
     return info;
 }
 
-inline integer c_dormlq( char side, char trans, integer m, integer n,
+static inline integer c_dormlq( char side, char trans, integer m, integer n,
                     integer k, const double* a, integer lda,
                     const double* tau, double* c, integer ldc, double* work,
                     integer lwork )
@@ -2059,7 +2059,7 @@ inline integer c_dormlq( char side, char trans, integer m, integer n,
     return info;
 }
 
-inline integer c_dgeqlf( integer m, integer n, double* a, integer lda,
+static inline integer c_dgeqlf( integer m, integer n, double* a, integer lda,
                     double* tau, double* work, integer lwork )
 {
     integer info;
@@ -2067,7 +2067,7 @@ inline integer c_dgeqlf( integer m, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dorgql( integer m, integer n, integer k, double* a,
+static inline integer c_dorgql( integer m, integer n, integer k, double* a,
                     integer lda, const double* tau, double* work,
                     integer lwork )
 {
@@ -2076,7 +2076,7 @@ inline integer c_dorgql( integer m, integer n, integer k, double* a,
     return info;
 }
 
-inline integer c_dormql( char side, char trans, integer m, integer n,
+static inline integer c_dormql( char side, char trans, integer m, integer n,
                     integer k, const double* a, integer lda,
                     const double* tau, double* c, integer ldc, double* work,
                     integer lwork )
@@ -2086,7 +2086,7 @@ inline integer c_dormql( char side, char trans, integer m, integer n,
     return info;
 }
 
-inline integer c_dgerqf( integer m, integer n, double* a, integer lda,
+static inline integer c_dgerqf( integer m, integer n, double* a, integer lda,
                     double* tau, double* work, integer lwork )
 {
     integer info;
@@ -2094,7 +2094,7 @@ inline integer c_dgerqf( integer m, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dorgrq( integer m, integer n, integer k, double* a,
+static inline integer c_dorgrq( integer m, integer n, integer k, double* a,
                     integer lda, const double* tau, double* work,
                     integer lwork )
 {
@@ -2103,7 +2103,7 @@ inline integer c_dorgrq( integer m, integer n, integer k, double* a,
     return info;
 }
 
-inline integer c_dormrq( char side, char trans, integer m, integer n,
+static inline integer c_dormrq( char side, char trans, integer m, integer n,
                     integer k, const double* a, integer lda,
                     const double* tau, double* c, integer ldc, double* work,
                     integer lwork )
@@ -2113,7 +2113,7 @@ inline integer c_dormrq( char side, char trans, integer m, integer n,
     return info;
 }
 
-inline integer c_dtzrzf( integer m, integer n, double* a, integer lda,
+static inline integer c_dtzrzf( integer m, integer n, double* a, integer lda,
                     double* tau, double* work, integer lwork )
 {
     integer info;
@@ -2121,7 +2121,7 @@ inline integer c_dtzrzf( integer m, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dormrz( char side, char trans, integer m, integer n,
+static inline integer c_dormrz( char side, char trans, integer m, integer n,
                     integer k, integer l, const double* a,
                     integer lda, const double* tau, double* c,
                     integer ldc, double* work, integer lwork )
@@ -2131,7 +2131,7 @@ inline integer c_dormrz( char side, char trans, integer m, integer n,
     return info;
 }
 
-inline integer c_dggqrf( integer n, integer m, integer p, double* a,
+static inline integer c_dggqrf( integer n, integer m, integer p, double* a,
                     integer lda, double* taua, double* b, integer ldb,
                     double* taub, double* work, integer lwork )
 {
@@ -2140,7 +2140,7 @@ inline integer c_dggqrf( integer n, integer m, integer p, double* a,
     return info;
 }
 
-inline integer c_dggrqf( integer m, integer p, integer n, double* a,
+static inline integer c_dggrqf( integer m, integer p, integer n, double* a,
                     integer lda, double* taua, double* b, integer ldb,
                     double* taub, double* work, integer lwork )
 {
@@ -2149,7 +2149,7 @@ inline integer c_dggrqf( integer m, integer p, integer n, double* a,
     return info;
 }
 
-inline integer c_dgebrd( integer m, integer n, double* a, integer lda,
+static inline integer c_dgebrd( integer m, integer n, double* a, integer lda,
                     double* d, double* e, double* tauq, double* taup,
                     double* work, integer lwork )
 {
@@ -2158,7 +2158,7 @@ inline integer c_dgebrd( integer m, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dgbbrd( char vect, integer m, integer n, integer ncc,
+static inline integer c_dgbbrd( char vect, integer m, integer n, integer ncc,
                     integer kl, integer ku, double* ab,
                     integer ldab, double* d, double* e, double* q,
                     integer ldq, double* pt, integer ldpt, double* c,
@@ -2169,7 +2169,7 @@ inline integer c_dgbbrd( char vect, integer m, integer n, integer ncc,
     return info;
 }
 
-inline integer c_dorgbr( char vect, integer m, integer n, integer k,
+static inline integer c_dorgbr( char vect, integer m, integer n, integer k,
                     double* a, integer lda, const double* tau, double* work,
                     integer lwork )
 {
@@ -2178,7 +2178,7 @@ inline integer c_dorgbr( char vect, integer m, integer n, integer k,
     return info;
 }
 
-inline integer c_dormbr( char vect, char side, char trans, integer m,
+static inline integer c_dormbr( char vect, char side, char trans, integer m,
                     integer n, integer k, const double* a,
                     integer lda, const double* tau, double* c,
                     integer ldc, double* work, integer lwork )
@@ -2188,7 +2188,7 @@ inline integer c_dormbr( char vect, char side, char trans, integer m,
     return info;
 }
 
-inline integer c_dbdsqr( char uplo, integer n, integer ncvt,
+static inline integer c_dbdsqr( char uplo, integer n, integer ncvt,
                     integer nru, integer ncc, double* d, double* e,
                     double* vt, integer ldvt, double* u, integer ldu,
                     double* c, integer ldc, double* work )
@@ -2198,7 +2198,7 @@ inline integer c_dbdsqr( char uplo, integer n, integer ncvt,
     return info;
 }
 
-inline integer c_dbdsdc( char uplo, char compq, integer n, double* d,
+static inline integer c_dbdsdc( char uplo, char compq, integer n, double* d,
                     double* e, double* u, integer ldu, double* vt,
                     integer ldvt, double* q, integer* iq, double* work,
                     integer* iwork )
@@ -2208,7 +2208,7 @@ inline integer c_dbdsdc( char uplo, char compq, integer n, double* d,
     return info;
 }
 
-inline integer c_dsytrd( char uplo, integer n, double* a, integer lda,
+static inline integer c_dsytrd( char uplo, integer n, double* a, integer lda,
                     double* d, double* e, double* tau, double* work,
                     integer lwork )
 {
@@ -2217,7 +2217,7 @@ inline integer c_dsytrd( char uplo, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dorgtr( char uplo, integer n, double* a, integer lda,
+static inline integer c_dorgtr( char uplo, integer n, double* a, integer lda,
                     const double* tau, double* work, integer lwork )
 {
     integer info;
@@ -2225,7 +2225,7 @@ inline integer c_dorgtr( char uplo, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dormtr( char side, char uplo, char trans, integer m,
+static inline integer c_dormtr( char side, char uplo, char trans, integer m,
                     integer n, const double* a, integer lda,
                     const double* tau, double* c, integer ldc, double* work,
                     integer lwork )
@@ -2235,7 +2235,7 @@ inline integer c_dormtr( char side, char uplo, char trans, integer m,
     return info;
 }
 
-inline integer c_dsptrd( char uplo, integer n, double* ap, double* d, double* e,
+static inline integer c_dsptrd( char uplo, integer n, double* ap, double* d, double* e,
                     double* tau )
 {
     integer info;
@@ -2243,7 +2243,7 @@ inline integer c_dsptrd( char uplo, integer n, double* ap, double* d, double* e,
     return info;
 }
 
-inline integer c_dopgtr( char uplo, integer n, const double* ap,
+static inline integer c_dopgtr( char uplo, integer n, const double* ap,
                     const double* tau, double* q, integer ldq, double* work )
 {
     integer info;
@@ -2251,7 +2251,7 @@ inline integer c_dopgtr( char uplo, integer n, const double* ap,
     return info;
 }
 
-inline integer c_dopmtr( char side, char uplo, char trans, integer m,
+static inline integer c_dopmtr( char side, char uplo, char trans, integer m,
                     integer n, const double* ap, const double* tau,
                     double* c, integer ldc, double* work )
 {
@@ -2260,7 +2260,7 @@ inline integer c_dopmtr( char side, char uplo, char trans, integer m,
     return info;
 }
 
-inline integer c_dsbtrd( char vect, char uplo, integer n, integer kd,
+static inline integer c_dsbtrd( char vect, char uplo, integer n, integer kd,
                     double* ab, integer ldab, double* d, double* e,
                     double* q, integer ldq, double* work )
 {
@@ -2269,14 +2269,14 @@ inline integer c_dsbtrd( char vect, char uplo, integer n, integer kd,
     return info;
 }
 
-inline integer c_dsterf( integer n, double* d, double* e )
+static inline integer c_dsterf( integer n, double* d, double* e )
 {
     integer info;
     FFUNC(dsterf,DSTERF)(&n, d, e, &info);
     return info;
 }
 
-inline integer c_dsteqr( char compz, integer n, double* d, double* e, double* z,
+static inline integer c_dsteqr( char compz, integer n, double* d, double* e, double* z,
                     integer ldz, double* work )
 {
     integer info;
@@ -2284,7 +2284,7 @@ inline integer c_dsteqr( char compz, integer n, double* d, double* e, double* z,
     return info;
 }
 
-inline integer c_dstemr( char jobz, char range, integer n, double* d,
+static inline integer c_dstemr( char jobz, char range, integer n, double* d,
                     double* e, double vl, double vu, integer il,
                     integer iu, integer* m, double* w, double* z,
                     integer ldz, integer nzc, integer* isuppz,
@@ -2297,7 +2297,7 @@ inline integer c_dstemr( char jobz, char range, integer n, double* d,
     return info;
 }
 
-inline integer c_dstedc( char compz, integer n, double* d, double* e, double* z,
+static inline integer c_dstedc( char compz, integer n, double* d, double* e, double* z,
                     integer ldz, double* work, integer lwork,
                     integer* iwork, integer liwork )
 {
@@ -2306,7 +2306,7 @@ inline integer c_dstedc( char compz, integer n, double* d, double* e, double* z,
     return info;
 }
 
-inline integer c_dstegr( char jobz, char range, integer n, double* d,
+static inline integer c_dstegr( char jobz, char range, integer n, double* d,
                     double* e, double vl, double vu, integer il,
                     integer iu, double abstol, integer* m, double* w,
                     double* z, integer ldz, integer* isuppz,
@@ -2319,7 +2319,7 @@ inline integer c_dstegr( char jobz, char range, integer n, double* d,
     return info;
 }
 
-inline integer c_dpteqr( char compz, integer n, double* d, double* e, double* z,
+static inline integer c_dpteqr( char compz, integer n, double* d, double* e, double* z,
                     integer ldz, double* work )
 {
     integer info;
@@ -2327,7 +2327,7 @@ inline integer c_dpteqr( char compz, integer n, double* d, double* e, double* z,
     return info;
 }
 
-inline integer c_dstebz( char range, char order, integer n, double vl,
+static inline integer c_dstebz( char range, char order, integer n, double vl,
                     double vu, integer il, integer iu, double abstol,
                     const double* d, const double* e, integer* m,
                     integer* nsplit, double* w, integer* iblock,
@@ -2339,7 +2339,7 @@ inline integer c_dstebz( char range, char order, integer n, double vl,
     return info;
 }
 
-inline integer c_dstein( integer n, const double* d, const double* e,
+static inline integer c_dstein( integer n, const double* d, const double* e,
                     integer m, const double* w, const integer* iblock,
                     const integer* isplit, double* z, integer ldz,
                     double* work, integer* iwork, integer* ifailv )
@@ -2349,7 +2349,7 @@ inline integer c_dstein( integer n, const double* d, const double* e,
     return info;
 }
 
-inline integer c_ddisna( char job, integer m, integer n, const double* d,
+static inline integer c_ddisna( char job, integer m, integer n, const double* d,
                     double* sep )
 {
     integer info;
@@ -2357,7 +2357,7 @@ inline integer c_ddisna( char job, integer m, integer n, const double* d,
     return info;
 }
 
-inline integer c_dsygst( integer itype, char uplo, integer n, double* a,
+static inline integer c_dsygst( integer itype, char uplo, integer n, double* a,
                     integer lda, const double* b, integer ldb )
 {
     integer info;
@@ -2365,7 +2365,7 @@ inline integer c_dsygst( integer itype, char uplo, integer n, double* a,
     return info;
 }
 
-inline integer c_dspgst( integer itype, char uplo, integer n, double* ap,
+static inline integer c_dspgst( integer itype, char uplo, integer n, double* ap,
                     const double* bp )
 {
     integer info;
@@ -2373,7 +2373,7 @@ inline integer c_dspgst( integer itype, char uplo, integer n, double* ap,
     return info;
 }
 
-inline integer c_dsbgst( char vect, char uplo, integer n, integer ka,
+static inline integer c_dsbgst( char vect, char uplo, integer n, integer ka,
                     integer kb, double* ab, integer ldab,
                     const double* bb, integer ldbb, double* x,
                     integer ldx, double* work )
@@ -2383,7 +2383,7 @@ inline integer c_dsbgst( char vect, char uplo, integer n, integer ka,
     return info;
 }
 
-inline integer c_dpbstf( char uplo, integer n, integer kb, double* bb,
+static inline integer c_dpbstf( char uplo, integer n, integer kb, double* bb,
                     integer ldbb )
 {
     integer info;
@@ -2391,7 +2391,7 @@ inline integer c_dpbstf( char uplo, integer n, integer kb, double* bb,
     return info;
 }
 
-inline integer c_dgehrd( integer n, integer ilo, integer ihi, double* a,
+static inline integer c_dgehrd( integer n, integer ilo, integer ihi, double* a,
                     integer lda, double* tau, double* work,
                     integer lwork )
 {
@@ -2400,7 +2400,7 @@ inline integer c_dgehrd( integer n, integer ilo, integer ihi, double* a,
     return info;
 }
 
-inline integer c_dorghr( integer n, integer ilo, integer ihi, double* a,
+static inline integer c_dorghr( integer n, integer ilo, integer ihi, double* a,
                     integer lda, const double* tau, double* work,
                     integer lwork )
 {
@@ -2409,7 +2409,7 @@ inline integer c_dorghr( integer n, integer ilo, integer ihi, double* a,
     return info;
 }
 
-inline integer c_dormhr( char side, char trans, integer m, integer n,
+static inline integer c_dormhr( char side, char trans, integer m, integer n,
                     integer ilo, integer ihi, const double* a,
                     integer lda, const double* tau, double* c,
                     integer ldc, double* work, integer lwork )
@@ -2419,7 +2419,7 @@ inline integer c_dormhr( char side, char trans, integer m, integer n,
     return info;
 }
 
-inline integer c_dgebal( char job, integer n, double* a, integer lda,
+static inline integer c_dgebal( char job, integer n, double* a, integer lda,
                     integer* ilo, integer* ihi, double* scale )
 {
     integer info;
@@ -2427,7 +2427,7 @@ inline integer c_dgebal( char job, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dgebak( char job, char side, integer n, integer ilo,
+static inline integer c_dgebak( char job, char side, integer n, integer ilo,
                     integer ihi, const double* scale, integer m,
                     double* v, integer ldv )
 {
@@ -2436,7 +2436,7 @@ inline integer c_dgebak( char job, char side, integer n, integer ilo,
     return info;
 }
 
-inline integer c_dhseqr( char job, char compz, integer n, integer ilo,
+static inline integer c_dhseqr( char job, char compz, integer n, integer ilo,
                     integer ihi, double* h, integer ldh, double* wr,
                     double* wi, double* z, integer ldz, double* work,
                     integer lwork )
@@ -2446,7 +2446,7 @@ inline integer c_dhseqr( char job, char compz, integer n, integer ilo,
     return info;
 }
 
-inline integer c_dhsein( char job, char eigsrc, char initv,
+static inline integer c_dhsein( char job, char eigsrc, char initv,
                     logical* select, integer n, const double* h,
                     integer ldh, double* wr, const double* wi, double* vl,
                     integer ldvl, double* vr, integer ldvr,
@@ -2459,7 +2459,7 @@ inline integer c_dhsein( char job, char eigsrc, char initv,
     return info;
 }
 
-inline integer c_dtrevc( char side, char howmny, logical* select,
+static inline integer c_dtrevc( char side, char howmny, logical* select,
                     integer n, const double* t, integer ldt, double* vl,
                     integer ldvl, double* vr, integer ldvr,
                     integer mm, integer* m, double* work )
@@ -2469,7 +2469,7 @@ inline integer c_dtrevc( char side, char howmny, logical* select,
     return info;
 }
 
-inline integer c_dtrsna( char job, char howmny, const logical* select,
+static inline integer c_dtrsna( char job, char howmny, const logical* select,
                     integer n, const double* t, integer ldt,
                     const double* vl, integer ldvl, const double* vr,
                     integer ldvr, double* s, double* sep, integer mm,
@@ -2481,7 +2481,7 @@ inline integer c_dtrsna( char job, char howmny, const logical* select,
     return info;
 }
 
-inline integer c_dtrexc( char compq, integer n, double* t, integer ldt,
+static inline integer c_dtrexc( char compq, integer n, double* t, integer ldt,
                     double* q, integer ldq, integer* ifst,
                     integer* ilst, double* work )
 {
@@ -2490,7 +2490,7 @@ inline integer c_dtrexc( char compq, integer n, double* t, integer ldt,
     return info;
 }
 
-inline integer c_dtrsen( char job, char compq, const logical* select,
+static inline integer c_dtrsen( char job, char compq, const logical* select,
                     integer n, double* t, integer ldt, double* q,
                     integer ldq, double* wr, double* wi, integer* m,
                     double* s, double* sep, double* work, integer lwork,
@@ -2501,7 +2501,7 @@ inline integer c_dtrsen( char job, char compq, const logical* select,
     return info;
 }
 
-inline integer c_dtrsyl( char trana, char tranb, integer isgn, integer m,
+static inline integer c_dtrsyl( char trana, char tranb, integer isgn, integer m,
                     integer n, const double* a, integer lda,
                     const double* b, integer ldb, double* c,
                     integer ldc, double* scale )
@@ -2511,7 +2511,7 @@ inline integer c_dtrsyl( char trana, char tranb, integer isgn, integer m,
     return info;
 }
 
-inline integer c_dgghrd( char compq, char compz, integer n, integer ilo,
+static inline integer c_dgghrd( char compq, char compz, integer n, integer ilo,
                     integer ihi, double* a, integer lda, double* b,
                     integer ldb, double* q, integer ldq, double* z,
                     integer ldz )
@@ -2521,7 +2521,7 @@ inline integer c_dgghrd( char compq, char compz, integer n, integer ilo,
     return info;
 }
 
-inline integer c_dggbal( char job, integer n, double* a, integer lda,
+static inline integer c_dggbal( char job, integer n, double* a, integer lda,
                     double* b, integer ldb, integer* ilo,
                     integer* ihi, double* lscale, double* rscale,
                     double* work )
@@ -2531,7 +2531,7 @@ inline integer c_dggbal( char job, integer n, double* a, integer lda,
     return info;
 }
 
-inline integer c_dggbak( char job, char side, integer n, integer ilo,
+static inline integer c_dggbak( char job, char side, integer n, integer ilo,
                     integer ihi, const double* lscale, const double* rscale,
                     integer m, double* v, integer ldv )
 {
@@ -2540,7 +2540,7 @@ inline integer c_dggbak( char job, char side, integer n, integer ilo,
     return info;
 }
 
-inline integer c_dhgeqz( char job, char compq, char compz, integer n,
+static inline integer c_dhgeqz( char job, char compq, char compz, integer n,
                     integer ilo, integer ihi, double* h,
                     integer ldh, double* t, integer ldt, double* alphar,
                     double* alphai, double* beta, double* q, integer ldq,
@@ -2552,7 +2552,7 @@ inline integer c_dhgeqz( char job, char compq, char compz, integer n,
     return info;
 }
 
-inline integer c_dtgevc( char side, char howmny, const logical* select,
+static inline integer c_dtgevc( char side, char howmny, const logical* select,
                     integer n, const double* s, integer lds,
                     const double* p, integer ldp, double* vl,
                     integer ldvl, double* vr, integer ldvr,
@@ -2563,7 +2563,7 @@ inline integer c_dtgevc( char side, char howmny, const logical* select,
     return info;
 }
 
-inline integer c_dtgexc( logical wantq, logical wantz, integer n,
+static inline integer c_dtgexc( logical wantq, logical wantz, integer n,
                     double* a, integer lda, double* b, integer ldb,
                     double* q, integer ldq, double* z, integer ldz,
                     integer* ifst, integer* ilst, double* work,
@@ -2574,7 +2574,7 @@ inline integer c_dtgexc( logical wantq, logical wantz, integer n,
     return info;
 }
 
-inline integer c_dtgsen( integer ijob, logical wantq,
+static inline integer c_dtgsen( integer ijob, logical wantq,
                     logical wantz, const logical* select,
                     integer n, double* a, integer lda, double* b,
                     integer ldb, double* alphar, double* alphai,
@@ -2589,7 +2589,7 @@ inline integer c_dtgsen( integer ijob, logical wantq,
     return info;
 }
 
-inline integer c_dtgsyl( char trans, integer ijob, integer m, integer n,
+static inline integer c_dtgsyl( char trans, integer ijob, integer m, integer n,
                     const double* a, integer lda, const double* b,
                     integer ldb, double* c, integer ldc,
                     const double* d, integer ldd, const double* e,
@@ -2603,7 +2603,7 @@ inline integer c_dtgsyl( char trans, integer ijob, integer m, integer n,
     return info;
 }
 
-inline integer c_dtgsna( char job, char howmny, const logical* select,
+static inline integer c_dtgsna( char job, char howmny, const logical* select,
                     integer n, const double* a, integer lda,
                     const double* b, integer ldb, const double* vl,
                     integer ldvl, const double* vr, integer ldvr,
@@ -2616,7 +2616,7 @@ inline integer c_dtgsna( char job, char howmny, const logical* select,
     return info;
 }
 
-inline integer c_dggsvp( char jobu, char jobv, char jobq, integer m,
+static inline integer c_dggsvp( char jobu, char jobv, char jobq, integer m,
                     integer p, integer n, double* a, integer lda,
                     double* b, integer ldb, double tola, double tolb,
                     integer* k, integer* l, double* u, integer ldu,
@@ -2629,7 +2629,7 @@ inline integer c_dggsvp( char jobu, char jobv, char jobq, integer m,
     return info;
 }
 
-inline integer c_dtgsja( char jobu, char jobv, char jobq, integer m,
+static inline integer c_dtgsja( char jobu, char jobv, char jobq, integer m,
                     integer p, integer n, integer k, integer l,
                     double* a, integer lda, double* b, integer ldb,
                     double tola, double tolb, double* alpha, double* beta,
@@ -2643,7 +2643,7 @@ inline integer c_dtgsja( char jobu, char jobv, char jobq, integer m,
     return info;
 }
 
-inline integer c_dgels( char trans, integer m, integer n, integer nrhs,
+static inline integer c_dgels( char trans, integer m, integer n, integer nrhs,
                    double* a, integer lda, double* b, integer ldb,
                    double* work, integer lwork )
 {
@@ -2652,7 +2652,7 @@ inline integer c_dgels( char trans, integer m, integer n, integer nrhs,
     return info;
 }
 
-inline integer c_dgelsy( integer m, integer n, integer nrhs, double* a,
+static inline integer c_dgelsy( integer m, integer n, integer nrhs, double* a,
                     integer lda, double* b, integer ldb,
                     integer* jpvt, double rcond, integer* rank,
                     double* work, integer lwork )
@@ -2662,7 +2662,7 @@ inline integer c_dgelsy( integer m, integer n, integer nrhs, double* a,
     return info;
 }
 
-inline integer c_dgelss( integer m, integer n, integer nrhs, double* a,
+static inline integer c_dgelss( integer m, integer n, integer nrhs, double* a,
                     integer lda, double* b, integer ldb, double* s,
                     double rcond, integer* rank, double* work,
                     integer lwork )
@@ -2672,7 +2672,7 @@ inline integer c_dgelss( integer m, integer n, integer nrhs, double* a,
     return info;
 }
 
-inline integer c_dgelsd( integer m, integer n, integer nrhs, double* a,
+static inline integer c_dgelsd( integer m, integer n, integer nrhs, double* a,
                     integer lda, double* b, integer ldb, double* s,
                     double rcond, integer* rank, double* work,
                     integer lwork, integer* iwork )
@@ -2682,7 +2682,7 @@ inline integer c_dgelsd( integer m, integer n, integer nrhs, double* a,
     return info;
 }
 
-inline integer c_dgglse( integer m, integer n, integer p, double* a,
+static inline integer c_dgglse( integer m, integer n, integer p, double* a,
                     integer lda, double* b, integer ldb, double* c,
                     double* d, double* x, double* work, integer lwork )
 {
@@ -2691,7 +2691,7 @@ inline integer c_dgglse( integer m, integer n, integer p, double* a,
     return info;
 }
 
-inline integer c_dggglm( integer n, integer m, integer p, double* a,
+static inline integer c_dggglm( integer n, integer m, integer p, double* a,
                     integer lda, double* b, integer ldb, double* d,
                     double* x, double* y, double* work, integer lwork )
 {
@@ -2700,7 +2700,7 @@ inline integer c_dggglm( integer n, integer m, integer p, double* a,
     return info;
 }
 
-inline integer c_dsyev( char jobz, char uplo, integer n, double* a,
+static inline integer c_dsyev( char jobz, char uplo, integer n, double* a,
                    integer lda, double* w, double* work, integer lwork )
 {
     integer info;
@@ -2708,7 +2708,7 @@ inline integer c_dsyev( char jobz, char uplo, integer n, double* a,
     return info;
 }
 
-inline integer c_dsyevd( char jobz, char uplo, integer n, double* a,
+static inline integer c_dsyevd( char jobz, char uplo, integer n, double* a,
                     integer lda, double* w, double* work, integer lwork,
                     integer* iwork, integer liwork )
 {
@@ -2717,7 +2717,7 @@ inline integer c_dsyevd( char jobz, char uplo, integer n, double* a,
     return info;
 }
 
-inline integer c_dsyevx( char jobz, char range, char uplo, integer n,
+static inline integer c_dsyevx( char jobz, char range, char uplo, integer n,
                     double* a, integer lda, double vl, double vu,
                     integer il, integer iu, double abstol,
                     integer* m, double* w, double* z, integer ldz,
@@ -2730,7 +2730,7 @@ inline integer c_dsyevx( char jobz, char range, char uplo, integer n,
     return info;
 }
 
-inline integer c_dsyevr( char jobz, char range, char uplo, integer n,
+static inline integer c_dsyevr( char jobz, char range, char uplo, integer n,
                     double* a, integer lda, double vl, double vu,
                     integer il, integer iu, double abstol,
                     integer* m, double* w, double* z, integer ldz,
@@ -2743,7 +2743,7 @@ inline integer c_dsyevr( char jobz, char range, char uplo, integer n,
     return info;
 }
 
-inline integer c_dspev( char jobz, char uplo, integer n, double* ap, double* w,
+static inline integer c_dspev( char jobz, char uplo, integer n, double* ap, double* w,
                    double* z, integer ldz, double* work )
 {
     integer info;
@@ -2751,7 +2751,7 @@ inline integer c_dspev( char jobz, char uplo, integer n, double* ap, double* w,
     return info;
 }
 
-inline integer c_dspevd( char jobz, char uplo, integer n, double* ap,
+static inline integer c_dspevd( char jobz, char uplo, integer n, double* ap,
                     double* w, double* z, integer ldz, double* work,
                     integer lwork, integer* iwork, integer liwork )
 {
@@ -2760,7 +2760,7 @@ inline integer c_dspevd( char jobz, char uplo, integer n, double* ap,
     return info;
 }
 
-inline integer c_dspevx( char jobz, char range, char uplo, integer n,
+static inline integer c_dspevx( char jobz, char range, char uplo, integer n,
                     double* ap, double vl, double vu, integer il,
                     integer iu, double abstol, integer* m, double* w,
                     double* z, integer ldz, double* work, integer* iwork,
@@ -2771,7 +2771,7 @@ inline integer c_dspevx( char jobz, char range, char uplo, integer n,
     return info;
 }
 
-inline integer c_dsbev( char jobz, char uplo, integer n, integer kd,
+static inline integer c_dsbev( char jobz, char uplo, integer n, integer kd,
                    double* ab, integer ldab, double* w, double* z,
                    integer ldz, double* work )
 {
@@ -2780,7 +2780,7 @@ inline integer c_dsbev( char jobz, char uplo, integer n, integer kd,
     return info;
 }
 
-inline integer c_dsbevd( char jobz, char uplo, integer n, integer kd,
+static inline integer c_dsbevd( char jobz, char uplo, integer n, integer kd,
                     double* ab, integer ldab, double* w, double* z,
                     integer ldz, double* work, integer lwork,
                     integer* iwork, integer liwork )
@@ -2790,7 +2790,7 @@ inline integer c_dsbevd( char jobz, char uplo, integer n, integer kd,
     return info;
 }
 
-inline integer c_dsbevx( char jobz, char range, char uplo, integer n,
+static inline integer c_dsbevx( char jobz, char range, char uplo, integer n,
                     integer kd, double* ab, integer ldab, double* q,
                     integer ldq, double vl, double vu, integer il,
                     integer iu, double abstol, integer* m, double* w,
@@ -2803,7 +2803,7 @@ inline integer c_dsbevx( char jobz, char range, char uplo, integer n,
     return info;
 }
 
-inline integer c_dstev( char jobz, integer n, double* d, double* e, double* z,
+static inline integer c_dstev( char jobz, integer n, double* d, double* e, double* z,
                    integer ldz, double* work )
 {
     integer info;
@@ -2811,7 +2811,7 @@ inline integer c_dstev( char jobz, integer n, double* d, double* e, double* z,
     return info;
 }
 
-inline integer c_dstevd( char jobz, integer n, double* d, double* e, double* z,
+static inline integer c_dstevd( char jobz, integer n, double* d, double* e, double* z,
                     integer ldz, double* work, integer lwork,
                     integer* iwork, integer liwork )
 {
@@ -2820,7 +2820,7 @@ inline integer c_dstevd( char jobz, integer n, double* d, double* e, double* z,
     return info;
 }
 
-inline integer c_dstevx( char jobz, char range, integer n, double* d,
+static inline integer c_dstevx( char jobz, char range, integer n, double* d,
                     double* e, double vl, double vu, integer il,
                     integer iu, double abstol, integer* m, double* w,
                     double* z, integer ldz, double* work, integer* iwork,
@@ -2831,7 +2831,7 @@ inline integer c_dstevx( char jobz, char range, integer n, double* d,
     return info;
 }
 
-inline integer c_dstevr( char jobz, char range, integer n, double* d,
+static inline integer c_dstevr( char jobz, char range, integer n, double* d,
                     double* e, double vl, double vu, integer il,
                     integer iu, double abstol, integer* m, double* w,
                     double* z, integer ldz, integer* isuppz,
@@ -2844,7 +2844,7 @@ inline integer c_dstevr( char jobz, char range, integer n, double* d,
     return info;
 }
 
-inline integer c_dgeev( char jobvl, char jobvr, integer n, double* a,
+static inline integer c_dgeev( char jobvl, char jobvr, integer n, double* a,
                    integer lda, double* wr, double* wi, double* vl,
                    integer ldvl, double* vr, integer ldvr, double* work,
                    integer lwork )
@@ -2854,7 +2854,7 @@ inline integer c_dgeev( char jobvl, char jobvr, integer n, double* a,
     return info;
 }
 
-inline integer c_dgeevx( char balanc, char jobvl, char jobvr, char sense,
+static inline integer c_dgeevx( char balanc, char jobvl, char jobvr, char sense,
                     integer n, double* a, integer lda, double* wr,
                     double* wi, double* vl, integer ldvl, double* vr,
                     integer ldvr, integer* ilo, integer* ihi,
@@ -2868,7 +2868,7 @@ inline integer c_dgeevx( char balanc, char jobvl, char jobvr, char sense,
     return info;
 }
 
-inline integer c_dgesvd( char jobu, char jobvt, integer m, integer n,
+static inline integer c_dgesvd( char jobu, char jobvt, integer m, integer n,
                     double* a, integer lda, double* s, double* u,
                     integer ldu, double* vt, integer ldvt, double* work,
                     integer lwork )
@@ -2878,7 +2878,7 @@ inline integer c_dgesvd( char jobu, char jobvt, integer m, integer n,
     return info;
 }
 
-inline integer c_dgesdd( char jobz, integer m, integer n, double* a,
+static inline integer c_dgesdd( char jobz, integer m, integer n, double* a,
                     integer lda, double* s, double* u, integer ldu,
                     double* vt, integer ldvt, double* work,
                     integer lwork, integer* iwork )
@@ -2888,7 +2888,7 @@ inline integer c_dgesdd( char jobz, integer m, integer n, double* a,
     return info;
 }
 
-inline integer c_dgejsv( char joba, char jobu, char jobv, char jobr, char jobt,
+static inline integer c_dgejsv( char joba, char jobu, char jobv, char jobr, char jobt,
                     char jobp, integer m, integer n, double* a,
                     integer lda, double* sva, double* u, integer ldu,
                     double* v, integer ldv, double* work, integer lwork,
@@ -2900,7 +2900,7 @@ inline integer c_dgejsv( char joba, char jobu, char jobv, char jobr, char jobt,
     return info;
 }
 
-inline integer c_dgesvj( char joba, char jobu, char jobv, integer m,
+static inline integer c_dgesvj( char joba, char jobu, char jobv, integer m,
                     integer n, double* a, integer lda, double* sva,
                     integer mv, double* v, integer ldv, double* work,
                     integer lwork )
@@ -2910,7 +2910,7 @@ inline integer c_dgesvj( char joba, char jobu, char jobv, integer m,
     return info;
 }
 
-inline integer c_dggsvd( char jobu, char jobv, char jobq, integer m,
+static inline integer c_dggsvd( char jobu, char jobv, char jobq, integer m,
                     integer n, integer p, integer* k, integer* l,
                     double* a, integer lda, double* b, integer ldb,
                     double* alpha, double* beta, double* u, integer ldu,
@@ -2923,7 +2923,7 @@ inline integer c_dggsvd( char jobu, char jobv, char jobq, integer m,
     return info;
 }
 
-inline integer c_dsygv( integer itype, char jobz, char uplo, integer n,
+static inline integer c_dsygv( integer itype, char jobz, char uplo, integer n,
                    double* a, integer lda, double* b, integer ldb,
                    double* w, double* work, integer lwork )
 {
@@ -2932,7 +2932,7 @@ inline integer c_dsygv( integer itype, char jobz, char uplo, integer n,
     return info;
 }
 
-inline integer c_dsygvd( integer itype, char jobz, char uplo, integer n,
+static inline integer c_dsygvd( integer itype, char jobz, char uplo, integer n,
                     double* a, integer lda, double* b, integer ldb,
                     double* w, double* work, integer lwork,
                     integer* iwork, integer liwork )
@@ -2942,7 +2942,7 @@ inline integer c_dsygvd( integer itype, char jobz, char uplo, integer n,
     return info;
 }
 
-inline integer c_dsygvx( integer itype, char jobz, char range, char uplo,
+static inline integer c_dsygvx( integer itype, char jobz, char range, char uplo,
                     integer n, double* a, integer lda, double* b,
                     integer ldb, double vl, double vu, integer il,
                     integer iu, double abstol, integer* m, double* w,
@@ -2955,7 +2955,7 @@ inline integer c_dsygvx( integer itype, char jobz, char range, char uplo,
     return info;
 }
 
-inline integer c_dspgv( integer itype, char jobz, char uplo, integer n,
+static inline integer c_dspgv( integer itype, char jobz, char uplo, integer n,
                    double* ap, double* bp, double* w, double* z,
                    integer ldz, double* work )
 {
@@ -2964,7 +2964,7 @@ inline integer c_dspgv( integer itype, char jobz, char uplo, integer n,
     return info;
 }
 
-inline integer c_dspgvd( integer itype, char jobz, char uplo, integer n,
+static inline integer c_dspgvd( integer itype, char jobz, char uplo, integer n,
                     double* ap, double* bp, double* w, double* z,
                     integer ldz, double* work, integer lwork,
                     integer* iwork, integer liwork )
@@ -2974,7 +2974,7 @@ inline integer c_dspgvd( integer itype, char jobz, char uplo, integer n,
     return info;
 }
 
-inline integer c_dspgvx( integer itype, char jobz, char range, char uplo,
+static inline integer c_dspgvx( integer itype, char jobz, char range, char uplo,
                     integer n, double* ap, double* bp, double vl,
                     double vu, integer il, integer iu, double abstol,
                     integer* m, double* w, double* z, integer ldz,
@@ -2986,7 +2986,7 @@ inline integer c_dspgvx( integer itype, char jobz, char range, char uplo,
     return info;
 }
 
-inline integer c_dsbgv( char jobz, char uplo, integer n, integer ka,
+static inline integer c_dsbgv( char jobz, char uplo, integer n, integer ka,
                    integer kb, double* ab, integer ldab, double* bb,
                    integer ldbb, double* w, double* z, integer ldz,
                    double* work )
@@ -2996,7 +2996,7 @@ inline integer c_dsbgv( char jobz, char uplo, integer n, integer ka,
     return info;
 }
 
-inline integer c_dsbgvd( char jobz, char uplo, integer n, integer ka,
+static inline integer c_dsbgvd( char jobz, char uplo, integer n, integer ka,
                     integer kb, double* ab, integer ldab, double* bb,
                     integer ldbb, double* w, double* z, integer ldz,
                     double* work, integer lwork, integer* iwork,
@@ -3007,7 +3007,7 @@ inline integer c_dsbgvd( char jobz, char uplo, integer n, integer ka,
     return info;
 }
 
-inline integer c_dsbgvx( char jobz, char range, char uplo, integer n,
+static inline integer c_dsbgvx( char jobz, char range, char uplo, integer n,
                     integer ka, integer kb, double* ab,
                     integer ldab, double* bb, integer ldbb, double* q,
                     integer ldq, double vl, double vu, integer il,
@@ -3021,7 +3021,7 @@ inline integer c_dsbgvx( char jobz, char range, char uplo, integer n,
     return info;
 }
 
-inline integer c_dggev( char jobvl, char jobvr, integer n, double* a,
+static inline integer c_dggev( char jobvl, char jobvr, integer n, double* a,
                    integer lda, double* b, integer ldb, double* alphar,
                    double* alphai, double* beta, double* vl, integer ldvl,
                    double* vr, integer ldvr, double* work,
@@ -3032,7 +3032,7 @@ inline integer c_dggev( char jobvl, char jobvr, integer n, double* a,
     return info;
 }
 
-inline integer c_dggevx( char balanc, char jobvl, char jobvr, char sense,
+static inline integer c_dggevx( char balanc, char jobvl, char jobvr, char sense,
                     integer n, double* a, integer lda, double* b,
                     integer ldb, double* alphar, double* alphai,
                     double* beta, double* vl, integer ldvl, double* vr,
@@ -3047,21 +3047,21 @@ inline integer c_dggevx( char balanc, char jobvl, char jobvr, char sense,
     return info;
 }
 
-inline void c_dsfrk( char transr, char uplo, char trans, integer n,
+static inline void c_dsfrk( char transr, char uplo, char trans, integer n,
                    integer k, double alpha, const double* a,
                    integer lda, double beta, double* c )
 {
     FFUNC(dsfrk,DSFRK)(&transr, &uplo, &trans, &n, &k, &alpha, a, &lda, &beta, c);
 }
 
-inline void c_dtfsm( char transr, char side, char uplo, char trans,
+static inline void c_dtfsm( char transr, char side, char uplo, char trans,
                    char diag, integer m, integer n, double alpha,
                    const double* a, double* b, integer ldb )
 {
     FFUNC(dtfsm,DTFSM)(&transr, &side, &uplo, &trans, &diag, &m, &n, &alpha, a, b, &ldb);
 }
 
-inline integer c_dtfttp( char transr, char uplo, integer n, const double* arf,
+static inline integer c_dtfttp( char transr, char uplo, integer n, const double* arf,
                     double* ap )
 {
     integer info;
@@ -3069,7 +3069,7 @@ inline integer c_dtfttp( char transr, char uplo, integer n, const double* arf,
     return info;
 }
 
-inline integer c_dtfttr( char transr, char uplo, integer n, const double* arf,
+static inline integer c_dtfttr( char transr, char uplo, integer n, const double* arf,
                     double* a, integer lda )
 {
     integer info;
@@ -3077,7 +3077,7 @@ inline integer c_dtfttr( char transr, char uplo, integer n, const double* arf,
     return info;
 }
 
-inline integer c_dtpttf( char transr, char uplo, integer n, const double* ap,
+static inline integer c_dtpttf( char transr, char uplo, integer n, const double* ap,
                     double* arf )
 {
     integer info;
@@ -3085,7 +3085,7 @@ inline integer c_dtpttf( char transr, char uplo, integer n, const double* ap,
     return info;
 }
 
-inline integer c_dtpttr( char uplo, integer n, const double* ap, double* a,
+static inline integer c_dtpttr( char uplo, integer n, const double* ap, double* a,
                     integer lda )
 {
     integer info;
@@ -3093,7 +3093,7 @@ inline integer c_dtpttr( char uplo, integer n, const double* ap, double* a,
     return info;
 }
 
-inline integer c_dtrttf( char transr, char uplo, integer n, const double* a,
+static inline integer c_dtrttf( char transr, char uplo, integer n, const double* a,
                     integer lda, double* arf )
 {
     integer info;
@@ -3101,7 +3101,7 @@ inline integer c_dtrttf( char transr, char uplo, integer n, const double* a,
     return info;
 }
 
-inline integer c_dtrttp( char uplo, integer n, const double* a, integer lda,
+static inline integer c_dtrttp( char uplo, integer n, const double* a, integer lda,
                     double* ap )
 {
     integer info;
@@ -3109,7 +3109,7 @@ inline integer c_dtrttp( char uplo, integer n, const double* a, integer lda,
     return info;
 }
 
-inline integer c_dgeqrfp( integer m, integer n, double* a, integer lda,
+static inline integer c_dgeqrfp( integer m, integer n, double* a, integer lda,
                      double* tau, double* work, integer lwork )
 {
     integer info;
