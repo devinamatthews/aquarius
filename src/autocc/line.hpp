@@ -122,6 +122,8 @@ class Line
 
         bool operator==(const Line& other) const;
 
+        int getType() const;
+
         int getIndex() const;
 
         int toInt() const;

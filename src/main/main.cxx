@@ -56,17 +56,30 @@ int main(int argc, char **argv)
         CholeskyIntegrals chol(&dw, config.get("cholesky"), mol);
         CholeskyUHF scf(&dw, chol, config.get("scf"));
 
+        PRINT("UHF-SCF\n\n");
+        PRINT("It.         SCF Energy     Residual\n");
         for (int i = 0;scf.iterate();i++)
         {
-            PRINT("%.15f %.15f\n", scf.getEnergy(), scf.getConvergence());
+            PRINT("%3d %18.15f %12.6e\n", i+1, scf.getEnergy(), scf.getConvergence());
         }
+
+        PRINT("\n");
+        PRINT("<S^2>     = %f\n", scf.getS2());
+        PRINT("<2S+1>    = %f\n", scf.getMultiplicity());
+        PRINT("<n_alpha> = %f\n", scf.getAvgNumAlpha());
+        PRINT("<n_beta>  = %f\n", scf.getAvgNumBeta());
+        PRINT("\n");
 
         CholeskyMOIntegrals moints(&dw, chol, scf);
         CCSD ccsd(config.get("cc"), moints);
 
+        PRINT("UHF-MP2 Energy: %18.15f\n\n", ccsd.getEnergy());
+
+        PRINT("UHF-CCSD\n\n");
+        PRINT("It. Correlation Energy     Residual\n");
         for (int i = 0;ccsd.iterate();i++)
         {
-            PRINT("%.15f %.15f\n", ccsd.getEnergy(), ccsd.getConvergence());
+            PRINT("%3d %18.15f %12.6e\n", i+1, ccsd.getEnergy(), ccsd.getConvergence());
         }
     }
 

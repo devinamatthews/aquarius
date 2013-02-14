@@ -349,6 +349,40 @@ bool Line::operator==(const Line& other) const
     return index == other.index;
 }
 
+int Line::getType() const
+{
+    int type = 0;
+
+    if (index&_INTERNAL)
+    {
+        type |= INTERNAL;
+    }
+    else
+    {
+        type |= EXTERNAL;
+    }
+
+    if (index&_HOLE)
+    {
+        type |= HOLE;
+    }
+    else
+    {
+        type |= PARTICLE;
+    }
+
+    if (index&_ALPHA)
+    {
+        type |= ALPHA;
+    }
+    else
+    {
+        type |= BETA;
+    }
+
+    return type;
+}
+
 int Line::getIndex() const
 {
     return index&INDEX_MASK;

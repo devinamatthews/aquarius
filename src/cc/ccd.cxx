@@ -97,6 +97,12 @@ CCD::CCD(const Config& config, MOIntegrals& moints)
     }
 
     T2["abij"] = moints.getVABIJ()["abij"]*D2["abij"];
+
+    energy = 0.25*scalar(moints.getVABIJ()["efmn"]*T2["efmn"]);
+
+    conv =          T2.getSpinCase(0).reduce(CTF_OP_MAXABS);
+    conv = max(conv,T2.getSpinCase(1).reduce(CTF_OP_MAXABS));
+    conv = max(conv,T2.getSpinCase(2).reduce(CTF_OP_MAXABS));
 }
 
 void CCD::_iterate()

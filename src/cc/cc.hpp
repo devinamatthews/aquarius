@@ -56,6 +56,7 @@ class CCSD : public Iterative
         scf::MOIntegrals& moints;
         autocc::SpinorbitalTensor<DistTensor> T1, E1, D1, Z1;
         autocc::SpinorbitalTensor<DistTensor> T2, E2, D2, Z2;
+        diis::DIIS< autocc::SpinorbitalTensor<DistTensor> > diis;
 
     public:
         CCSD(const input::Config& config, scf::MOIntegrals& moints);

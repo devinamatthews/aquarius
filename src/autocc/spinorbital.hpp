@@ -53,7 +53,25 @@ namespace autocc
 template<class Base>
 class SpinorbitalTensor : public libtensor::Tensor< SpinorbitalTensor<Base> >
 {
-    INHERIT_FROM_TENSOR(SpinorbitalTensor<Base>);
+    friend class libtensor::Tensor< SpinorbitalTensor<Base> >;
+
+    protected:
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::ndim_;
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::len_;
+    public:
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::mult;
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::contract;
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::weight;
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::outerProduct;
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::transpose;
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::diagonal;
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::replicate;
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::trace;
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::sum;
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::scale;
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::operator=;
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::operator+=;
+        using libtensor::Tensor< SpinorbitalTensor<Base> >::operator-=;
 
     protected:
         struct SpinCase
@@ -66,7 +84,7 @@ class SpinorbitalTensor : public libtensor::Tensor< SpinorbitalTensor<Base> >
             double permFactor;
 
             SpinCase(Base& tensor, bool isAlloced = false) : tensor(&tensor), isAlloced(isAlloced) {}
-            SpinCase(Base* tensor) : tensor(tensor), isAlloced(true) {}
+            SpinCase(Base* tensor, bool isAlloced = true) : tensor(tensor), isAlloced(isAlloced) {}
         };
 
         std::string logical;
@@ -132,6 +150,131 @@ class SpinorbitalTensor : public libtensor::Tensor< SpinorbitalTensor<Base> >
             {
                 if (i->isAlloced) delete i->tensor;
             }
+        }
+
+        libtensor::IndexedTensor< SpinorbitalTensor<Base> > operator*(const double factor)
+        {
+            libtensor::IndexedTensor< SpinorbitalTensor<Base> > it(*this, logical.c_str());
+            return factor*it;
+        }
+
+        const libtensor::IndexedTensor< SpinorbitalTensor<Base> > operator*(const double factor) const
+        {
+            libtensor::IndexedTensor< SpinorbitalTensor<Base> > it(*this, logical.c_str());
+            return factor*it;
+        }
+
+        SpinorbitalTensor<Base>& operator=(const SpinorbitalTensor<Base>& other)
+        {
+            #ifdef VALIDATE_INPUTS
+            if (ndim_ != other.ndim_) throw InvalidNdimError();
+            for (int i = 0;i < ndim_;i++)
+            {
+                if (Line(logical[i]).getType() != Line(other.logical[i]).getType())
+                    throw IndexMismatchError();
+            }
+            #endif //VALIDATE_INPUTS
+
+            (*this)[logical.c_str()] = other[logical.c_str()];
+
+            return *this;
+        }
+
+        SpinorbitalTensor<Base>& operator+=(const SpinorbitalTensor<Base>& other)
+        {
+            #ifdef VALIDATE_INPUTS
+            if (ndim_ != other.ndim_) throw InvalidNdimError();
+            for (int i = 0;i < ndim_;i++)
+            {
+                if (Line(logical[i]).getType() != Line(other.logical[i]).getType())
+                    throw IndexMismatchError();
+            }
+            #endif //VALIDATE_INPUTS
+
+            (*this)[logical.c_str()] += other[logical.c_str()];
+
+            return *this;
+        }
+
+        SpinorbitalTensor<Base>& operator-=(const SpinorbitalTensor<Base>& other)
+        {
+            #ifdef VALIDATE_INPUTS
+            if (ndim_ != other.ndim_) throw InvalidNdimError();
+            for (int i = 0;i < ndim_;i++)
+            {
+                if (Line(logical[i]).getType() != Line(other.logical[i]).getType())
+                    throw IndexMismatchError();
+            }
+            #endif //VALIDATE_INPUTS
+
+            (*this)[logical.c_str()] -= other[logical.c_str()];
+
+            return *this;
+        }
+
+        SpinorbitalTensor<Base>& operator=(const libtensor::IndexedTensor< SpinorbitalTensor<Base> >& other)
+        {
+            #ifdef VALIDATE_INPUTS
+            if (ndim_ != other.ndim_) throw InvalidNdimError();
+            for (int i = 0;i < ndim_;i++)
+            {
+                if (Line(logical[i]).getType() != Line(other.logical[i]).getType())
+                    throw IndexMismatchError();
+            }
+            if (strcmp(logical.c_str(), other.idx_) != 0) throw IndexMismatchError();
+            #endif //VALIDATE_INPUTS
+
+            (*this)[logical.c_str()] = other;
+
+            return *this;
+        }
+
+        SpinorbitalTensor<Base>& operator+=(const libtensor::IndexedTensor< SpinorbitalTensor<Base> >& other)
+        {
+            #ifdef VALIDATE_INPUTS
+            if (ndim_ != other.ndim_) throw InvalidNdimError();
+            for (int i = 0;i < ndim_;i++)
+            {
+                if (Line(logical[i]).getType() != Line(other.logical[i]).getType())
+                    throw IndexMismatchError();
+            }
+            if (strcmp(logical.c_str(), other.idx_) != 0) throw IndexMismatchError();
+            #endif //VALIDATE_INPUTS
+
+            (*this)[logical.c_str()] += other;
+
+            return *this;
+        }
+
+        SpinorbitalTensor<Base>& operator-=(const libtensor::IndexedTensor< SpinorbitalTensor<Base> >& other)
+        {
+            #ifdef VALIDATE_INPUTS
+            if (ndim_ != other.ndim_) throw InvalidNdimError();
+            for (int i = 0;i < ndim_;i++)
+            {
+                if (Line(logical[i]).getType() != Line(other.logical[i]).getType())
+                    throw IndexMismatchError();
+            }
+            if (strcmp(logical.c_str(), other.idx_) != 0) throw IndexMismatchError();
+            #endif //VALIDATE_INPUTS
+
+            (*this)[logical.c_str()] -= other;
+
+            return *this;
+        }
+
+        libtensor::IndexedTensorMult< SpinorbitalTensor<Base> > operator*(const SpinorbitalTensor<Base>& other) const
+        {
+            #ifdef VALIDATE_INPUTS
+            if (ndim_ != other.ndim_) throw InvalidNdimError();
+            for (int i = 0;i < ndim_;i++)
+            {
+                if (Line(logical[i]).getType() != Line(other.logical[i]).getType())
+                    throw IndexMismatchError();
+            }
+            #endif //VALIDATE_INPUTS
+
+            return (*this)[logical.c_str()]*other[logical.c_str()];
         }
 
         void addSpinCase(Base* tensor, std::string logical, std::string physical, double factor = 1.0, bool isAlloced = true)

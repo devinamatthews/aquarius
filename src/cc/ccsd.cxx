@@ -41,7 +41,8 @@ namespace cc
 CCSD::CCSD(const Config& config, MOIntegrals& moints)
 : Iterative(config), moints(moints),
   T1("a,i"), E1("a,i"), D1("a,i"), Z1("a,i"),
-  T2("ac,ij"), E2("ad,ij"), D2("af,ij"), Z2("ae,ij")
+  T2("ac,ij"), E2("ad,ij"), D2("af,ij"), Z2("ae,ij"),
+  diis(config.get("diis"), 2)
 {
     int N = moints.getSCF().getMolecule().getNumOrbitals();
     int nI = moints.getSCF().getMolecule().getNumAlphaElectrons();
@@ -127,6 +128,17 @@ CCSD::CCSD(const Config& config, MOIntegrals& moints)
 
     T1["ai"] = moints.getFAI()["ai"]*D1["ai"];
     T2["abij"] = moints.getVABIJ()["abij"]*D2["abij"];
+
+    SpinorbitalTensor<DistTensor> Tau(T2);
+    Tau["abij"] += 0.5*T1["ai"]*T1["bj"];
+
+    energy = 0.25*scalar(moints.getVABIJ()["efmn"]*Tau["efmn"]);
+
+    conv =          T1.getSpinCase(0).reduce(CTF_OP_MAXABS);
+    conv = max(conv,T1.getSpinCase(1).reduce(CTF_OP_MAXABS));
+    conv = max(conv,T2.getSpinCase(0).reduce(CTF_OP_MAXABS));
+    conv = max(conv,T2.getSpinCase(1).reduce(CTF_OP_MAXABS));
+    conv = max(conv,T2.getSpinCase(2).reduce(CTF_OP_MAXABS));
 }
 
 void CCSD::_iterate()
@@ -281,22 +293,34 @@ void CCSD::_iterate()
      *************************************************************************/
 
     PROFILE_SECTION(calc_EN)
+
     E1["ai"]     = Z1["ai"]*D1["ai"];
     E1["ai"]    -= T1["ai"];
     T1["ai"]    += E1["ai"];
     E2["abij"]   = Z2["abij"]*D2["abij"];
     E2["abij"]  -= T2["abij"];
     T2["abij"]  += E2["abij"];
-    Tau["abij"]  = T2["abij"];
-    Tau["abij"] += 0.5*T1["ai"]*T1["bj"];
-    energy = 0.25*scalar(WMNEF["mnef"]*Tau["efmn"]);
-    PROFILE_STOP
 
     conv =          E1.getSpinCase(0).reduce(CTF_OP_MAXABS);
     conv = max(conv,E1.getSpinCase(1).reduce(CTF_OP_MAXABS));
     conv = max(conv,E2.getSpinCase(0).reduce(CTF_OP_MAXABS));
     conv = max(conv,E2.getSpinCase(1).reduce(CTF_OP_MAXABS));
     conv = max(conv,E2.getSpinCase(2).reduce(CTF_OP_MAXABS));
+    double diis_conv = conv;
+
+    vector<SpinorbitalTensor<DistTensor>*> T(2);
+    T[0] = &T1;
+    T[1] = &T2;
+    vector<SpinorbitalTensor<DistTensor>*> E(2);
+    E[0] = &E1;
+    E[1] = &E2;
+    diis.extrapolate(T, E);
+
+    Tau["abij"]  = T2["abij"];
+    Tau["abij"] += 0.5*T1["ai"]*T1["bj"];
+    energy = 0.25*scalar(WMNEF["mnef"]*Tau["efmn"]);
+
+    PROFILE_STOP
 }
 
 }

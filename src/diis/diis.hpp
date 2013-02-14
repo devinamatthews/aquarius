@@ -30,24 +30,25 @@
 #include "util/lapack.h"
 
 #include <vector>
+#include <cassert>
 
 namespace aquarius
 {
 namespace diis
 {
 
-template<class T>
+template<typename T, typename U = T>
 class DIIS
 {
     protected:
         std::vector< std::vector<T*> > old_x;
-        std::vector<T*> old_dx;
+        std::vector< std::vector<U*> > old_dx;
         std::vector<double> c, e;
-        int nextrap, start, n;
+        int nextrap, start, nx, ndx;
 
     public:
-        DIIS(const input::Config& config, const int n = 1)
-        : n(n)
+        DIIS(const input::Config& config, const int nx = 1, const int ndx = 1)
+        : nx(nx), ndx(ndx)
         {
             nextrap = config.get<int>("order");
             start = config.get<int>("start");
@@ -55,37 +56,40 @@ class DIIS
             e.resize((nextrap+1)*(nextrap+1));
             c.resize(nextrap+1);
 
-            old_x.resize(nextrap, std::vector<T*>(n, NULL));
-            old_dx.resize(nextrap, NULL);
+            old_x.resize(nextrap, std::vector<T*>(nx, (T*)NULL));
+            old_dx.resize(nextrap, std::vector<U*>(ndx, (U*)NULL));
         }
 
         ~DIIS()
         {
-            typename std::vector< std::vector<T*> >::iterator j;
-            typename std::vector<T*>::iterator i;
-
-            for (j = old_x.begin();j != old_x.end();++j)
+            for (typename std::vector< std::vector<T*> >::iterator j = old_x.begin();j != old_x.end();++j)
             {
-                for (i = j->begin();i != j->end();i++)
+                for (typename std::vector<T*>::iterator i = j->begin();i != j->end();i++)
                 {
                     if (*i != NULL) delete *i;
                 }
             }
 
-            for (i = old_dx.begin();i != old_dx.end();++i)
+            for (typename std::vector< std::vector<U*> >::iterator j = old_dx.begin();j != old_dx.end();++j)
             {
-                if (*i != NULL) delete *i;
+                for (typename std::vector<U*>::iterator i = j->begin();i != j->end();++i)
+                {
+                    if (*i != NULL) delete *i;
+                }
             }
         }
 
-        void extrapolate(T& x, T& dx)
+        void extrapolate(T& x, U& dx)
         {
-            extrapolate(std::vector<T*>(1, &x), dx);
+            extrapolate(std::vector<T*>(1, &x), std::vector<U*>(1, &dx));
         }
 
-        void extrapolate(const std::vector<T*>& x, T& dx)
+        void extrapolate(const std::vector<T*>& x, const std::vector<U*>& dx)
         {
             if (nextrap <= 1) return;
+
+            for (int i = 0;i < nx;i++) assert(x[i] != NULL);
+            for (int i = 0;i < ndx;i++) assert(dx[i] != NULL);
 
             /*
              * Move things around such that in iteration n, the data from
@@ -101,26 +105,32 @@ class DIIS
              */
             if (old_x[0][0] == NULL)
             {
-                for (int i = 0;i < n;i++)
+                for (int i = 0;i < nx;i++)
                 {
                     old_x[0][i] = new T(*x[i]);
                 }
             }
             else
             {
-                for (int i = 0;i < n;i++)
+                for (int i = 0;i < nx;i++)
                 {
                     (*old_x[0][i]) = *x[i];
                 }
             }
 
-            if (old_dx[0] == NULL)
+            if (old_dx[0][0] == NULL)
             {
-                old_dx[0] = new T(dx);
+                for (int i = 0;i < ndx;i++)
+                {
+                    old_dx[0][i] = new U(*dx[i]);
+                }
             }
             else
             {
-                (*old_dx[0]) = dx;
+                for (int i = 0;i < ndx;i++)
+                {
+                    (*old_dx[0][i]) = *dx[i];
+                }
             }
 
             /*
@@ -136,7 +146,11 @@ class DIIS
                 c[i] = c[i-1];
             }
 
-            e[0] = libtensor::scalar(dx*dx);
+            e[0] = 0;
+            for (int i = 0;i < ndx;i++)
+            {
+                e[0] += libtensor::scalar((*dx[i])*(*dx[i]));
+            }
 
             /*
              * Get the new off-diagonal error matrix elements for all
@@ -144,9 +158,13 @@ class DIIS
              * (e.g. in iterations 1 to nextrap-1), so save this number.
              */
             int nextrap_real = 1;
-            for (int i = 1;i < nextrap && old_dx[i] != NULL;i++)
+            for (int i = 1;i < nextrap && old_dx[i][0] != NULL;i++)
             {
-                e[i] = libtensor::scalar(dx*(*old_dx[i]));
+                e[i] = 0;
+                for (int j = 0;j < ndx;j++)
+                {
+                    e[i] += libtensor::scalar((*dx[j])*(*old_dx[i][j]));
+                }
                 e[i*(nextrap+1)] = e[i];
                 nextrap_real++;
             }
@@ -192,18 +210,24 @@ class DIIS
                 ASSERT(info == 0, "failure in dsysv, info = %d", info);
             }
 
-            dx = (*old_dx[0])*c[0];
+            for (int i = 0;i < ndx;i++)
+            {
+                *dx[i] = (*old_dx[0][i])*c[0];
+            }
 
-            for (int i = 0;i < n;i++)
+            for (int i = 0;i < nx;i++)
             {
                 *x[i] = (*old_x[0][i])*c[0];
             }
 
             for (int i = 1;i < nextrap_real;i++)
             {
-                dx += (*old_dx[i])*c[i];
+                for (int j = 0;j < ndx;j++)
+                {
+                    *dx[j] += (*old_dx[i][j])*c[i];
+                }
 
-                for (int j = 0;j < n;j++)
+                for (int j = 0;j < nx;j++)
                 {
                     *x[j] += (*old_x[i][j])*c[i];
                 }

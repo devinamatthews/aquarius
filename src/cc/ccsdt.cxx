@@ -182,6 +182,17 @@ CCSDT::CCSDT(const Config& config, MOIntegrals& moints)
 
     T1["ai"] = moints.getFAI()["ai"]*D1["ai"];
     T2["abij"] = moints.getVABIJ()["abij"]*D2["abij"];
+
+    SpinorbitalTensor<DistTensor> Tau(T2);
+    Tau["abij"] += 0.5*T1["ai"]*T1["bj"];
+
+    energy = 0.25*scalar(moints.getVABIJ()["efmn"]*Tau["efmn"]);
+
+    conv =          T1.getSpinCase(0).reduce(CTF_OP_MAXABS);
+    conv = max(conv,T1.getSpinCase(1).reduce(CTF_OP_MAXABS));
+    conv = max(conv,T2.getSpinCase(0).reduce(CTF_OP_MAXABS));
+    conv = max(conv,T2.getSpinCase(1).reduce(CTF_OP_MAXABS));
+    conv = max(conv,T2.getSpinCase(2).reduce(CTF_OP_MAXABS));
 }
 
 void CCSDT::_iterate()

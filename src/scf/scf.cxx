@@ -488,7 +488,7 @@ void UHF::DIISExtrap()
     vector<DistTensor*> Fab(2);
     Fab[0] = Fa;
     Fab[1] = Fb;
-    diis.extrapolate(Fab, *dF);
+    diis.extrapolate(Fab, vector<DistTensor*>(1, dF));
 }
 
 void UHF::calcEnergy()
