@@ -40,8 +40,19 @@ _F77FLAGS = $(F77FLAGS)
 _F90FLAGS = $(F90FLAGS)
 _DEPENDENCIES = $(DEPENDENCIES) Makefile $(topdir)/config.mk $(topdir)/rules.mk
 _LIBS = $(LIBS) $(CYCLOPSTF_LIBS) $(ELEMENTAL_LIBS) $(BLAS_LIBS)
-_LIBDEPS = $(patsubst -l%,$(CYCLOPSTF)/lib/lib%.a,$(filter -l%,$(CYCLOPSTF_LIBS))) \
-           $(patsubst -l%,$(ELEMENTAL)/lib/lib%.a,$(filter -l%,$(ELEMENTAL_LIBS)))
+
+#
+# Automatic library dependency generation derived from: Steve Dieters
+# http://lists.gnu.org/archive/html/help-make/2010-03/msg00072.html
+#
+libdeps = \
+$(foreach d, $(patsubst -L%,%,$(filter -L%,$(1))),\
+ $(foreach l, $(patsubst -l%,%,$(filter -l%,$(1))),\
+  $(if $(shell if [ -e $(d)/lib$(l).a ]; then echo "X"; fi),\
+   $(d)/lib$(l).a\
+  )\
+ )\
+) $(filter %.a,$(1))
 
 .NOTPARALLEL:
 .PHONY: all default clean $(ALL_COMPONENTS)
@@ -60,7 +71,7 @@ clean:
 		(cd $$subdir && $(MAKE) clean); \
 	done
 
-$(bindir)/%: $(_DEPENDENCIES) $(_LIBDEPS)
+$(bindir)/%: $(_DEPENDENCIES) $(call libdeps,$(_LIBS))
 	@mkdir -p $(dir $@)
 	$(LINK) $(filter %.o,$^) $(FLIBS) $(_LIBS)
 
