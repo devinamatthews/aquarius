@@ -29,9 +29,11 @@
 #include <cassert>
 
 #include "memory/memory.h"
+#include "tensor/dist_tensor.hpp"
 
 using namespace std;
 using namespace MPI;
+using namespace aquarius::tensor;
 
 namespace aquarius
 {
@@ -117,18 +119,23 @@ pqrs_integrals::pqrs_integrals(const AOIntegrals& aoints)
     }
 
     ints = SAFE_MALLOC(integral_t, nints);
-    copy(oldints, oldints+noldints, ints);
 
-    size_t j = noldints;
+    size_t j = 0;
     for (size_t i = 0;i < noldints;i++)
     {
+        double val = oldints[i].value;
         idx4_t idx = oldints[i].idx;
+
+        if (idx.i > idx.j) swap(idx.i, idx.j);
+        if (idx.k > idx.l) swap(idx.k, idx.l);
+
+        ints[j++] = integral_t(val, idx);
 
         if (idx.i != idx.k || idx.j != idx.l)
         {
-            ints[j] = oldints[i];
-            swap(ints[j].idx.i, ints[j].idx.k);
-            swap(ints[j].idx.j, ints[j].idx.l);
+            swap(idx.i, idx.k);
+            swap(idx.j, idx.l);
+            ints[j++] = integral_t(val, idx);
         }
     }
 }
@@ -387,13 +394,13 @@ void abrs_integrals::free()
     FREE(rs);
 }
 
-AOMOIntegrals::AOMOIntegrals(DistWorld *dw, AOIntegrals& ints, const UHF& uhf)
-: MOIntegrals(dw, uhf)
+AOMOIntegrals::AOMOIntegrals(const AOUHF& uhf)
+: MOIntegrals(uhf)
 {
-    doTransformation(ints);
+    doTransformation(uhf.ints);
 }
 
-void AOMOIntegrals::doTransformation(AOIntegrals& ints)
+void AOMOIntegrals::doTransformation(const AOIntegrals& ints)
 {
     int N = uhf.getMolecule().getNumOrbitals();
     int nI = uhf.getMolecule().getNumAlphaElectrons();
@@ -405,29 +412,23 @@ void AOMOIntegrals::doTransformation(AOIntegrals& ints)
     int sizeaaii[] = {na, na, ni, ni};
     int shapeNNNN[] = {NS, NS, NS, NS};
 
-    DistTensor ABIJ__(4, sizeAAII, shapeNNNN, dw, false);
-    DistTensor abij__(4, sizeaaii, shapeNNNN, dw, false);
+    DistTensor<double> ABIJ__(ctf, 4, sizeAAII, shapeNNNN, false);
+    DistTensor<double> abij__(ctf, 4, sizeaaii, shapeNNNN, false);
 
-    int npair;
+    int64_t npair;
     double *cA, *ca, *cI, *ci;
 
     /*
      * Read transformation coefficients
      */
-    uhf.getCA().getAllData(&npair, &cA);
+    uhf.getCA().getAllData(npair, cA);
     assert(npair == N*nA);
-    uhf.getCa().getAllData(&npair, &ca);
+    uhf.getCa().getAllData(npair, ca);
     assert(npair == N*na);
-    uhf.getCI().getAllData(&npair, &cI);
+    uhf.getCI().getAllData(npair, cI);
     assert(npair == N*nI);
-    uhf.getCi().getAllData(&npair, &ci);
+    uhf.getCi().getAllData(npair, ci);
     assert(npair == N*ni);
-
-    /*
-     * Canonicalize integrals (p<=q, r<=s, pq<=rs), so that
-     * indexing and sorting is predictable
-     */
-    ints.canonicalize();
 
     /*
      * Resort integrals so that each node has (pq|r_k s_l) where pq

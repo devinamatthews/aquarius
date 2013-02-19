@@ -24,25 +24,27 @@
 
 #include "choleskymoints.hpp"
 
+using namespace aquarius::tensor;
+
 namespace aquarius
 {
 namespace scf
 {
 
-CholeskyMOIntegrals::CholeskyMOIntegrals(DistWorld *dw, const CholeskyIntegrals& chol, const UHF& uhf)
-: MOIntegrals(dw, uhf)
+CholeskyMOIntegrals::CholeskyMOIntegrals(const CholeskyUHF& uhf)
+: MOIntegrals(uhf)
 {
-    doTransformation(chol);
+    doTransformation(uhf.chol);
 }
 
 void CholeskyMOIntegrals::doTransformation(const CholeskyIntegrals& chol)
 {
-    const DistTensor& cA = uhf.getCA();
-    const DistTensor& ca = uhf.getCa();
-    const DistTensor& cI = uhf.getCI();
-    const DistTensor& ci = uhf.getCi();
-    const DistTensor& Lpq = chol.getL();
-    const DistTensor& D = chol.getD();
+    const DistTensor<double>& cA = uhf.getCA();
+    const DistTensor<double>& ca = uhf.getCa();
+    const DistTensor<double>& cI = uhf.getCI();
+    const DistTensor<double>& ci = uhf.getCi();
+    const DistTensor<double>& Lpq = chol.getL();
+    const DistTensor<double>& D = chol.getD();
 
     int N = uhf.getMolecule().getNumOrbitals();
     int nI = uhf.getMolecule().getNumAlphaElectrons();
@@ -60,12 +62,12 @@ void CholeskyMOIntegrals::doTransformation(const CholeskyIntegrals& chol)
 
     int shapeNNN[] = {NS, NS, NS};
 
-    DistTensor LIJ(3, sizeIIR, shapeNNN, dw, false);
-    DistTensor Lij(3, sizeiiR, shapeNNN, dw, false);
-    DistTensor LAB(3, sizeAAR, shapeNNN, dw, false);
-    DistTensor Lab(3, sizeaaR, shapeNNN, dw, false);
-    DistTensor LAI(3, sizeAIR, shapeNNN, dw, false);
-    DistTensor Lai(3, sizeaiR, shapeNNN, dw, false);
+    DistTensor<double> LIJ(ctf, 3, sizeIIR, shapeNNN, false);
+    DistTensor<double> Lij(ctf, 3, sizeiiR, shapeNNN, false);
+    DistTensor<double> LAB(ctf, 3, sizeAAR, shapeNNN, false);
+    DistTensor<double> Lab(ctf, 3, sizeaaR, shapeNNN, false);
+    DistTensor<double> LAI(ctf, 3, sizeAIR, shapeNNN, false);
+    DistTensor<double> Lai(ctf, 3, sizeaiR, shapeNNN, false);
 
     {
         int sizeNIR[] = { N, nI, R};
@@ -73,10 +75,10 @@ void CholeskyMOIntegrals::doTransformation(const CholeskyIntegrals& chol)
         int sizeNAR[] = { N, nA, R};
         int sizeNaR[] = { N, na, R};
 
-        DistTensor LpI(3, sizeNIR, shapeNNN, dw, false);
-        DistTensor Lpi(3, sizeNiR, shapeNNN, dw, false);
-        DistTensor LpA(3, sizeNAR, shapeNNN, dw, false);
-        DistTensor Lpa(3, sizeNaR, shapeNNN, dw, false);
+        DistTensor<double> LpI(ctf, 3, sizeNIR, shapeNNN, false);
+        DistTensor<double> Lpi(ctf, 3, sizeNiR, shapeNNN, false);
+        DistTensor<double> LpA(ctf, 3, sizeNAR, shapeNNN, false);
+        DistTensor<double> Lpa(ctf, 3, sizeNaR, shapeNNN, false);
 
         LpI["pIR"] = Lpq["pqR"]*cI["qI"];
         Lpi["piR"] = Lpq["pqR"]*ci["qi"];
@@ -91,12 +93,12 @@ void CholeskyMOIntegrals::doTransformation(const CholeskyIntegrals& chol)
         Lab["abR"] = Lpa["pbR"]*ca["pa"];
     }
 
-    DistTensor LDIJ(3, sizeIIR, shapeNNN, dw, false);
-    DistTensor LDij(3, sizeiiR, shapeNNN, dw, false);
-    DistTensor LDAB(3, sizeAAR, shapeNNN, dw, false);
-    DistTensor LDab(3, sizeaaR, shapeNNN, dw, false);
-    DistTensor LDAI(3, sizeAIR, shapeNNN, dw, false);
-    DistTensor LDai(3, sizeaiR, shapeNNN, dw, false);
+    DistTensor<double> LDIJ(ctf, 3, sizeIIR, shapeNNN, false);
+    DistTensor<double> LDij(ctf, 3, sizeiiR, shapeNNN, false);
+    DistTensor<double> LDAB(ctf, 3, sizeAAR, shapeNNN, false);
+    DistTensor<double> LDab(ctf, 3, sizeaaR, shapeNNN, false);
+    DistTensor<double> LDAI(ctf, 3, sizeAIR, shapeNNN, false);
+    DistTensor<double> LDai(ctf, 3, sizeaiR, shapeNNN, false);
 
     LDIJ["IJR"] = D["R"]*LIJ["IJR"];
     LDij["ijR"] = D["R"]*Lij["ijR"];

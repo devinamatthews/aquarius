@@ -25,7 +25,9 @@
 #ifndef _AQUARIUS_SCF_MOINTS_HPP_
 #define _AQUARIUS_SCF_MOINTS_HPP_
 
-#include "autocc/autocc.hpp"
+#include "util/distributed.hpp"
+#include "tensor/dist_tensor.hpp"
+#include "tensor/spinorbital.hpp"
 #include "scf.hpp"
 
 namespace aquarius
@@ -33,73 +35,71 @@ namespace aquarius
 namespace scf
 {
 
-class MOIntegrals
+class MOIntegrals : public Distributed<double>
 {
     protected:
         const scf::UHF& uhf;
-        autocc::SpinorbitalTensor<DistTensor> fab;
-        autocc::SpinorbitalTensor<DistTensor> fai;
-        autocc::SpinorbitalTensor<DistTensor> fij;
-        autocc::SpinorbitalTensor<DistTensor> ijkl;
-        autocc::SpinorbitalTensor<DistTensor> ijka;
-        autocc::SpinorbitalTensor<DistTensor> abij;
-        autocc::SpinorbitalTensor<DistTensor> aibj;
-        autocc::SpinorbitalTensor<DistTensor> abci;
-        autocc::SpinorbitalTensor<DistTensor> abcd;
-        DistTensor *fAB_;
-        DistTensor *fab_;
-        DistTensor *fAI_;
-        DistTensor *fai_;
-        DistTensor *fIJ_;
-        DistTensor *fij_;
-        DistTensor *IJKL_;
-        DistTensor *IjKl_;
-        DistTensor *ijkl_;
-        DistTensor *IJKA_;
-        DistTensor *IjKa_;
-        DistTensor *iJkA_;
-        DistTensor *ijka_;
-        DistTensor *ABIJ_;
-        DistTensor *AbIj_;
-        DistTensor *abij_;
-        DistTensor *AIBJ_;
-        DistTensor *AiBj_;
-        DistTensor *aIbJ_;
-        DistTensor *aibj_;
-        DistTensor *ABCI_;
-        DistTensor *AbCi_;
-        DistTensor *aBcI_;
-        DistTensor *abci_;
-        DistTensor *ABCD_;
-        DistTensor *AbCd_;
-        DistTensor *abcd_;
-        DistWorld *dw;
-        MPI::Intracomm comm;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > fab;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > fai;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > fij;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > ijkl;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > ijka;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > abij;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > aibj;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > abci;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > abcd;
+        tensor::DistTensor<double> *fAB_;
+        tensor::DistTensor<double> *fab_;
+        tensor::DistTensor<double> *fAI_;
+        tensor::DistTensor<double> *fai_;
+        tensor::DistTensor<double> *fIJ_;
+        tensor::DistTensor<double> *fij_;
+        tensor::DistTensor<double> *IJKL_;
+        tensor::DistTensor<double> *IjKl_;
+        tensor::DistTensor<double> *ijkl_;
+        tensor::DistTensor<double> *IJKA_;
+        tensor::DistTensor<double> *IjKa_;
+        tensor::DistTensor<double> *iJkA_;
+        tensor::DistTensor<double> *ijka_;
+        tensor::DistTensor<double> *ABIJ_;
+        tensor::DistTensor<double> *AbIj_;
+        tensor::DistTensor<double> *abij_;
+        tensor::DistTensor<double> *AIBJ_;
+        tensor::DistTensor<double> *AiBj_;
+        tensor::DistTensor<double> *aIbJ_;
+        tensor::DistTensor<double> *aibj_;
+        tensor::DistTensor<double> *ABCI_;
+        tensor::DistTensor<double> *AbCi_;
+        tensor::DistTensor<double> *aBcI_;
+        tensor::DistTensor<double> *abci_;
+        tensor::DistTensor<double> *ABCD_;
+        tensor::DistTensor<double> *AbCd_;
+        tensor::DistTensor<double> *abcd_;
 
-        MOIntegrals(DistWorld *dw, const scf::UHF& uhf);
+        MOIntegrals(const scf::UHF& uhf);
 
     public:
         const scf::UHF& getSCF() const { return uhf; }
 
-        autocc::SpinorbitalTensor<DistTensor>& getFAB()   { return  fab; }
-        autocc::SpinorbitalTensor<DistTensor>& getFAI()   { return  fai; }
-        autocc::SpinorbitalTensor<DistTensor>& getFIJ()   { return  fij; }
-        autocc::SpinorbitalTensor<DistTensor>& getVIJKL() { return ijkl; }
-        autocc::SpinorbitalTensor<DistTensor>& getVIJKA() { return ijka; }
-        autocc::SpinorbitalTensor<DistTensor>& getVABIJ() { return abij; }
-        autocc::SpinorbitalTensor<DistTensor>& getVAIBJ() { return aibj; }
-        autocc::SpinorbitalTensor<DistTensor>& getVABCI() { return abci; }
-        autocc::SpinorbitalTensor<DistTensor>& getVABCD() { return abcd; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFAB()   { return  fab; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFAI()   { return  fai; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFIJ()   { return  fij; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVIJKL() { return ijkl; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVIJKA() { return ijka; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVABIJ() { return abij; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVAIBJ() { return aibj; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVABCI() { return abci; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVABCD() { return abcd; }
 
-        const autocc::SpinorbitalTensor<DistTensor>& getFAB() const   { return  fab; }
-        const autocc::SpinorbitalTensor<DistTensor>& getFAI() const   { return  fai; }
-        const autocc::SpinorbitalTensor<DistTensor>& getFIJ() const   { return  fij; }
-        const autocc::SpinorbitalTensor<DistTensor>& getVIJKL() const { return ijkl; }
-        const autocc::SpinorbitalTensor<DistTensor>& getVIJKA() const { return ijka; }
-        const autocc::SpinorbitalTensor<DistTensor>& getVABIJ() const { return abij; }
-        const autocc::SpinorbitalTensor<DistTensor>& getVAIBJ() const { return aibj; }
-        const autocc::SpinorbitalTensor<DistTensor>& getVABCI() const { return abci; }
-        const autocc::SpinorbitalTensor<DistTensor>& getVABCD() const { return abcd; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFAB() const   { return  fab; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFAI() const   { return  fai; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFIJ() const   { return  fij; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVIJKL() const { return ijkl; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVIJKA() const { return ijka; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVABIJ() const { return abij; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVAIBJ() const { return aibj; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVABCI() const { return abci; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVABCD() const { return abcd; }
 };
 
 }

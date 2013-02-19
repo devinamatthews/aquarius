@@ -22,43 +22,26 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#include "spinorbital.hpp"
+#ifndef _AQUARIUS_UTIL_DISTRIBUTED_HPP_
+#define _AQUARIUS_UTIL_DISTRIBUTED_HPP_
 
-using namespace aquarius::autocc;
+#include "ctf.hpp"
 
-namespace libtensor
+namespace aquarius
 {
 
-template<>
-double scalar(const IndexedTensor< SpinorbitalTensor<DistTensor> >& other)
+template <typename T>
+class Distributed
 {
-    DistTensor dt(0, NULL, NULL, other.tensor_.getSpinCase(0).dw);
-    SpinorbitalTensor<DistTensor> sodt(",");
-    sodt.addSpinCase(dt, ",", "");
-    int n;
-    double ret, * val;
-    sodt[""] = other;
-    dt.getAllData(&n, &val);
-    assert(n==1);
-    ret = val[0];
-    free(val);
-    return ret;
-}
+    protected:
+        MPI::Intracomm comm;
 
-template<>
-double scalar(const IndexedTensorMult< SpinorbitalTensor<DistTensor> >& other)
-{
-    DistTensor dt(0, NULL, NULL, other.A_.tensor_.getSpinCase(0).dw);
-    SpinorbitalTensor<DistTensor> sodt(",");
-    sodt.addSpinCase(dt, ",", "");
-    int n;
-    double ret, * val;
-    sodt[""] = other;
-    dt.getAllData(&n, &val);
-    assert(n==1);
-    ret = val[0];
-    free(val);
-    return ret;
-}
+    public:
+        tCTF_World<T>& ctf;
+
+        Distributed(tCTF_World<T>& ctf) : ctf(ctf), comm(ctf.comm) {}
+};
 
 }
+
+#endif

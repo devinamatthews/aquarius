@@ -399,7 +399,9 @@ double cartcoef(const int l, const int m, const int lx, const int ly, const int 
     if (MODULO(j, 2) == 1) return 0.0;
     j = j/2;
 
-    c = sqrt((double)(binom(2*lx, lx)*binom(2*ly, ly)*binom(2*lz, lz)*binom(l+am, am))/(double)(binom(2*l, l)*binom(l, am)*binom(l, lx)*binom(l-lx, ly))/(double)(dfact(2*lx-1)*dfact(2*ly-1)*dfact(2*lz-1)))/pow(2, l);
+    c = sqrt((double)(binom(2*lx, lx)*binom(2*ly, ly)*binom(2*lz, lz)*binom(l+am, am))/
+             (double)(binom(2*l, l)*binom(l, am)*binom(lx+ly+lz, lx)*binom(ly+lz, ly))/
+             (double)(dfact(2*lx-1)*dfact(2*ly-1)*dfact(2*lz-1)))/pow(2, l);
     if (m != 0) c = c*sqrt(2.0);
 
     if (m >= 0)

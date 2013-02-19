@@ -32,7 +32,7 @@
 
 using namespace std;
 using namespace MPI;
-using namespace libtensor;
+using namespace aquarius::tensor;
 using namespace aquarius::slide;
 using namespace aquarius::input;
 
@@ -46,13 +46,13 @@ void AOUHF::buildFock()
     double *focka, *fockb;
     double *densa, *densb;
 
-    int npair;
+    int64_t npair;
 
     if (comm.Get_rank() == 0)
     {
-        H->getAllData(&npair, &focka);
+        H->getAllData(npair, focka);
         assert(npair == norb*norb);
-        H->getAllData(&npair, &fockb);
+        H->getAllData(npair, fockb);
         assert(npair == norb*norb);
     }
     else
@@ -63,9 +63,9 @@ void AOUHF::buildFock()
         fill(fockb, fockb+norb*norb, 0.0);
     }
 
-    Da->getAllData(&npair, &densa);
+    Da->getAllData(npair, densa);
     assert(npair == norb*norb);
-    Db->getAllData(&npair, &densb);
+    Db->getAllData(npair, densb);
     assert(npair == norb*norb);
 
     size_t neris = ints.getNumInts();

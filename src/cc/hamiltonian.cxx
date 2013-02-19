@@ -26,7 +26,7 @@
 
 using namespace std;
 using namespace aquarius::scf;
-using namespace aquarius::autocc;
+using namespace aquarius::tensor;
 
 namespace aquarius
 {
@@ -49,8 +49,8 @@ Hamiltonian::Hamiltonian(MOIntegrals& moints, int copy)
 {
     if (copy&FAE)
     {
-        fae.addSpinCase(new DistTensor(moints.getFAB().getSpinCase(0)), "A,E", "AE");
-        fae.addSpinCase(new DistTensor(moints.getFAB().getSpinCase(1)), "a,e", "ae");
+        fae.addSpinCase(new DistTensor<double>(moints.getFAB().getSpinCase(0)), "A,E", "AE");
+        fae.addSpinCase(new DistTensor<double>(moints.getFAB().getSpinCase(1)), "a,e", "ae");
     }
     else
     {
@@ -60,8 +60,8 @@ Hamiltonian::Hamiltonian(MOIntegrals& moints, int copy)
 
     if (copy&FMI)
     {
-        fmi.addSpinCase(new DistTensor(moints.getFIJ().getSpinCase(0)), "M,I", "MI");
-        fmi.addSpinCase(new DistTensor(moints.getFIJ().getSpinCase(1)), "m,i", "mi");
+        fmi.addSpinCase(new DistTensor<double>(moints.getFIJ().getSpinCase(0)), "M,I", "MI");
+        fmi.addSpinCase(new DistTensor<double>(moints.getFIJ().getSpinCase(1)), "m,i", "mi");
     }
     else
     {
@@ -71,8 +71,8 @@ Hamiltonian::Hamiltonian(MOIntegrals& moints, int copy)
 
     if (copy&FME)
     {
-        fme.addSpinCase(new DistTensor(moints.getFAI().getSpinCase(0)), "M,E", "EM");
-        fme.addSpinCase(new DistTensor(moints.getFAI().getSpinCase(1)), "m,e", "em");
+        fme.addSpinCase(new DistTensor<double>(moints.getFAI().getSpinCase(0)), "M,E", "EM");
+        fme.addSpinCase(new DistTensor<double>(moints.getFAI().getSpinCase(1)), "m,e", "em");
     }
     else
     {
@@ -82,9 +82,9 @@ Hamiltonian::Hamiltonian(MOIntegrals& moints, int copy)
 
     if (copy&WMNIJ)
     {
-        wmnij.addSpinCase(new DistTensor(moints.getVIJKL().getSpinCase(0)), "MN,IJ", "MNIJ");
-        wmnij.addSpinCase(new DistTensor(moints.getVIJKL().getSpinCase(1)), "Mn,Ij", "MnIj");
-        wmnij.addSpinCase(new DistTensor(moints.getVIJKL().getSpinCase(2)), "mn,ij", "mnij");
+        wmnij.addSpinCase(new DistTensor<double>(moints.getVIJKL().getSpinCase(0)), "MN,IJ", "MNIJ");
+        wmnij.addSpinCase(new DistTensor<double>(moints.getVIJKL().getSpinCase(1)), "Mn,Ij", "MnIj");
+        wmnij.addSpinCase(new DistTensor<double>(moints.getVIJKL().getSpinCase(2)), "mn,ij", "mnij");
     }
     else
     {
@@ -95,10 +95,10 @@ Hamiltonian::Hamiltonian(MOIntegrals& moints, int copy)
 
     if (copy&WMBIJ)
     {
-        wmbij.addSpinCase(new DistTensor(moints.getVIJKA().getSpinCase(0)), "MB,IJ", "IJMB");
-        wmbij.addSpinCase(new DistTensor(moints.getVIJKA().getSpinCase(1)), "Mb,Ij", "IjMb");
-        wmbij.addSpinCase(new DistTensor(moints.getVIJKA().getSpinCase(2)), "mB,iJ", "iJmB");
-        wmbij.addSpinCase(new DistTensor(moints.getVIJKA().getSpinCase(3)), "mb,ij", "ijmb");
+        wmbij.addSpinCase(new DistTensor<double>(moints.getVIJKA().getSpinCase(0)), "MB,IJ", "IJMB");
+        wmbij.addSpinCase(new DistTensor<double>(moints.getVIJKA().getSpinCase(1)), "Mb,Ij", "IjMb");
+        wmbij.addSpinCase(new DistTensor<double>(moints.getVIJKA().getSpinCase(2)), "mB,iJ", "iJmB");
+        wmbij.addSpinCase(new DistTensor<double>(moints.getVIJKA().getSpinCase(3)), "mb,ij", "ijmb");
     }
     else
     {
@@ -110,10 +110,10 @@ Hamiltonian::Hamiltonian(MOIntegrals& moints, int copy)
 
     if (copy&WMNIE)
     {
-        wmnie.addSpinCase(new DistTensor(moints.getVIJKA().getSpinCase(0)), "MN,IE", "MNIE");
-        wmnie.addSpinCase(new DistTensor(moints.getVIJKA().getSpinCase(1)), "Mn,Ie", "MnIe");
-        wmnie.addSpinCase(new DistTensor(moints.getVIJKA().getSpinCase(2)), "mN,iE", "mNiE");
-        wmnie.addSpinCase(new DistTensor(moints.getVIJKA().getSpinCase(3)), "mn,ie", "mnie");
+        wmnie.addSpinCase(new DistTensor<double>(moints.getVIJKA().getSpinCase(0)), "MN,IE", "MNIE");
+        wmnie.addSpinCase(new DistTensor<double>(moints.getVIJKA().getSpinCase(1)), "Mn,Ie", "MnIe");
+        wmnie.addSpinCase(new DistTensor<double>(moints.getVIJKA().getSpinCase(2)), "mN,iE", "mNiE");
+        wmnie.addSpinCase(new DistTensor<double>(moints.getVIJKA().getSpinCase(3)), "mn,ie", "mnie");
     }
     else
     {
@@ -125,9 +125,9 @@ Hamiltonian::Hamiltonian(MOIntegrals& moints, int copy)
 
     if (copy&WMNEF)
     {
-        wmnef.addSpinCase(new DistTensor(moints.getVABIJ().getSpinCase(0)), "MN,EF", "EFMN");
-        wmnef.addSpinCase(new DistTensor(moints.getVABIJ().getSpinCase(1)), "Mn,Ef", "EfMn");
-        wmnef.addSpinCase(new DistTensor(moints.getVABIJ().getSpinCase(2)), "mn,ef", "efmn");
+        wmnef.addSpinCase(new DistTensor<double>(moints.getVABIJ().getSpinCase(0)), "MN,EF", "EFMN");
+        wmnef.addSpinCase(new DistTensor<double>(moints.getVABIJ().getSpinCase(1)), "Mn,Ef", "EfMn");
+        wmnef.addSpinCase(new DistTensor<double>(moints.getVABIJ().getSpinCase(2)), "mn,ef", "efmn");
     }
     else
     {
@@ -138,12 +138,12 @@ Hamiltonian::Hamiltonian(MOIntegrals& moints, int copy)
 
     if (copy&WMBEJ)
     {
-        wmbej.addSpinCase(new DistTensor(moints.getVAIBJ().getSpinCase(0)), "MB,EJ", "BMEJ", -1.0);
-        wmbej.addSpinCase(new DistTensor(moints.getVAIBJ().getSpinCase(1)), "mB,Ej", "BmEj", -1.0);
-        wmbej.addSpinCase(new DistTensor(moints.getVAIBJ().getSpinCase(2)), "Mb,eJ", "bMeJ", -1.0);
-        wmbej.addSpinCase(new DistTensor(moints.getVAIBJ().getSpinCase(3)), "mb,ej", "bmej", -1.0);
-        wmbej.addSpinCase(new DistTensor(moints.getVABIJ().getSpinCase(1)), "Mb,Ej", "EbMj");
-        wmbej.addSpinCase(new DistTensor(moints.getVABIJ().getSpinCase(1)), "mB,eJ", "BeJm");
+        wmbej.addSpinCase(new DistTensor<double>(moints.getVAIBJ().getSpinCase(0)), "MB,EJ", "BMEJ", -1.0);
+        wmbej.addSpinCase(new DistTensor<double>(moints.getVAIBJ().getSpinCase(1)), "mB,Ej", "BmEj", -1.0);
+        wmbej.addSpinCase(new DistTensor<double>(moints.getVAIBJ().getSpinCase(2)), "Mb,eJ", "bMeJ", -1.0);
+        wmbej.addSpinCase(new DistTensor<double>(moints.getVAIBJ().getSpinCase(3)), "mb,ej", "bmej", -1.0);
+        wmbej.addSpinCase(new DistTensor<double>(moints.getVABIJ().getSpinCase(1)), "Mb,Ej", "EbMj");
+        wmbej.addSpinCase(new DistTensor<double>(moints.getVABIJ().getSpinCase(1)), "mB,eJ", "BeJm");
     }
     else
     {
@@ -157,10 +157,10 @@ Hamiltonian::Hamiltonian(MOIntegrals& moints, int copy)
 
     if (copy&WAMEF)
     {
-        wamef.addSpinCase(new DistTensor(moints.getVABCI().getSpinCase(0)), "AM,EF", "EFAM");
-        wamef.addSpinCase(new DistTensor(moints.getVABCI().getSpinCase(1)), "Am,Ef", "EfAm");
-        wamef.addSpinCase(new DistTensor(moints.getVABCI().getSpinCase(2)), "aM,eF", "eFaM");
-        wamef.addSpinCase(new DistTensor(moints.getVABCI().getSpinCase(3)), "am,ef", "efam");
+        wamef.addSpinCase(new DistTensor<double>(moints.getVABCI().getSpinCase(0)), "AM,EF", "EFAM");
+        wamef.addSpinCase(new DistTensor<double>(moints.getVABCI().getSpinCase(1)), "Am,Ef", "EfAm");
+        wamef.addSpinCase(new DistTensor<double>(moints.getVABCI().getSpinCase(2)), "aM,eF", "eFaM");
+        wamef.addSpinCase(new DistTensor<double>(moints.getVABCI().getSpinCase(3)), "am,ef", "efam");
     }
     else
     {
@@ -172,10 +172,10 @@ Hamiltonian::Hamiltonian(MOIntegrals& moints, int copy)
 
     if (copy&WABEJ)
     {
-        wabej.addSpinCase(new DistTensor(moints.getVABCI().getSpinCase(0)), "AB,EJ", "ABEJ");
-        wabej.addSpinCase(new DistTensor(moints.getVABCI().getSpinCase(1)), "Ab,Ej", "AbEj");
-        wabej.addSpinCase(new DistTensor(moints.getVABCI().getSpinCase(2)), "aB,eJ", "aBeJ");
-        wabej.addSpinCase(new DistTensor(moints.getVABCI().getSpinCase(3)), "ab,ej", "abej");
+        wabej.addSpinCase(new DistTensor<double>(moints.getVABCI().getSpinCase(0)), "AB,EJ", "ABEJ");
+        wabej.addSpinCase(new DistTensor<double>(moints.getVABCI().getSpinCase(1)), "Ab,Ej", "AbEj");
+        wabej.addSpinCase(new DistTensor<double>(moints.getVABCI().getSpinCase(2)), "aB,eJ", "aBeJ");
+        wabej.addSpinCase(new DistTensor<double>(moints.getVABCI().getSpinCase(3)), "ab,ej", "abej");
     }
     else
     {
@@ -187,9 +187,9 @@ Hamiltonian::Hamiltonian(MOIntegrals& moints, int copy)
 
     if (copy&WABEF)
     {
-        wabef.addSpinCase(new DistTensor(moints.getVABCD().getSpinCase(0)), "AB,EF", "ABEF");
-        wabef.addSpinCase(new DistTensor(moints.getVABCD().getSpinCase(1)), "Ab,Ef", "AbEf");
-        wabef.addSpinCase(new DistTensor(moints.getVABCD().getSpinCase(2)), "ab,ef", "abef");
+        wabef.addSpinCase(new DistTensor<double>(moints.getVABCD().getSpinCase(0)), "AB,EF", "ABEF");
+        wabef.addSpinCase(new DistTensor<double>(moints.getVABCD().getSpinCase(1)), "Ab,Ef", "AbEf");
+        wabef.addSpinCase(new DistTensor<double>(moints.getVABCD().getSpinCase(2)), "ab,ef", "abef");
     }
     else
     {

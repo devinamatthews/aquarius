@@ -25,14 +25,16 @@
 #include "moints.hpp"
 
 using namespace std;
+using namespace aquarius::tensor;
 
 namespace aquarius
 {
 namespace scf
 {
 
-MOIntegrals::MOIntegrals(DistWorld *dw, const UHF& uhf)
-: uhf(uhf),
+MOIntegrals::MOIntegrals(const UHF& uhf)
+: Distributed<double>(uhf.ctf),
+  uhf(uhf),
   fab("a,b"),
   fai("a,i"),
   fij("i,j"),
@@ -41,9 +43,7 @@ MOIntegrals::MOIntegrals(DistWorld *dw, const UHF& uhf)
   abij("ab,ij"),
   aibj("ai,bj"),
   abci("ab,ci"),
-  abcd("ab,cd"),
-  comm(dw->comm),
-  dw(dw)
+  abcd("ab,cd")
 {
     int N = uhf.getMolecule().getNumOrbitals();
     int nI = uhf.getMolecule().getNumAlphaElectrons();
@@ -85,33 +85,33 @@ MOIntegrals::MOIntegrals(DistWorld *dw, const UHF& uhf)
     int shapeANNN[] = {AS, NS, NS, NS};
     int shapeANAN[] = {AS, NS, AS, NS};
 
-    fAB_ = new DistTensor(2, sizeAA, shapeNN, dw, true);
-    fab_ = new DistTensor(2, sizeaa, shapeNN, dw, true);
-    fAI_ = new DistTensor(2, sizeAI, shapeNN, dw, true);
-    fai_ = new DistTensor(2, sizeai, shapeNN, dw, true);
-    fIJ_ = new DistTensor(2, sizeII, shapeNN, dw, true);
-    fij_ = new DistTensor(2, sizeii, shapeNN, dw, true);
-    IJKL_ = new DistTensor(4, sizeIIII, shapeANAN, dw, false);
-    IjKl_ = new DistTensor(4, sizeIiIi, shapeNNNN, dw, false);
-    ijkl_ = new DistTensor(4, sizeiiii, shapeANAN, dw, false);
-    IJKA_ = new DistTensor(4, sizeIIIA, shapeANNN, dw, false);
-    IjKa_ = new DistTensor(4, sizeIiIa, shapeNNNN, dw, false);
-    iJkA_ = new DistTensor(4, sizeiIiA, shapeNNNN, dw, false);
-    ijka_ = new DistTensor(4, sizeiiia, shapeANNN, dw, false);
-    ABIJ_ = new DistTensor(4, sizeAAII, shapeANAN, dw, false);
-    AbIj_ = new DistTensor(4, sizeAaIi, shapeNNNN, dw, false);
-    abij_ = new DistTensor(4, sizeaaii, shapeANAN, dw, false);
-    AIBJ_ = new DistTensor(4, sizeAIAI, shapeNNNN, dw, false);
-    AiBj_ = new DistTensor(4, sizeAiAi, shapeNNNN, dw, false);
-    aIbJ_ = new DistTensor(4, sizeaIaI, shapeNNNN, dw, false);
-    aibj_ = new DistTensor(4, sizeaiai, shapeNNNN, dw, false);
-    ABCI_ = new DistTensor(4, sizeAAAI, shapeANNN, dw, false);
-    AbCi_ = new DistTensor(4, sizeAaAi, shapeNNNN, dw, false);
-    aBcI_ = new DistTensor(4, sizeaAaI, shapeNNNN, dw, false);
-    abci_ = new DistTensor(4, sizeaaai, shapeANNN, dw, false);
-    ABCD_ = new DistTensor(4, sizeAAAA, shapeANAN, dw, false);
-    AbCd_ = new DistTensor(4, sizeAaAa, shapeNNNN, dw, false);
-    abcd_ = new DistTensor(4, sizeaaaa, shapeANAN, dw, false);
+    fAB_ = new DistTensor<double>(ctf, 2, sizeAA, shapeNN, true);
+    fab_ = new DistTensor<double>(ctf, 2, sizeaa, shapeNN, true);
+    fAI_ = new DistTensor<double>(ctf, 2, sizeAI, shapeNN, true);
+    fai_ = new DistTensor<double>(ctf, 2, sizeai, shapeNN, true);
+    fIJ_ = new DistTensor<double>(ctf, 2, sizeII, shapeNN, true);
+    fij_ = new DistTensor<double>(ctf, 2, sizeii, shapeNN, true);
+    IJKL_ = new DistTensor<double>(ctf, 4, sizeIIII, shapeANAN, false);
+    IjKl_ = new DistTensor<double>(ctf, 4, sizeIiIi, shapeNNNN, false);
+    ijkl_ = new DistTensor<double>(ctf, 4, sizeiiii, shapeANAN, false);
+    IJKA_ = new DistTensor<double>(ctf, 4, sizeIIIA, shapeANNN, false);
+    IjKa_ = new DistTensor<double>(ctf, 4, sizeIiIa, shapeNNNN, false);
+    iJkA_ = new DistTensor<double>(ctf, 4, sizeiIiA, shapeNNNN, false);
+    ijka_ = new DistTensor<double>(ctf, 4, sizeiiia, shapeANNN, false);
+    ABIJ_ = new DistTensor<double>(ctf, 4, sizeAAII, shapeANAN, false);
+    AbIj_ = new DistTensor<double>(ctf, 4, sizeAaIi, shapeNNNN, false);
+    abij_ = new DistTensor<double>(ctf, 4, sizeaaii, shapeANAN, false);
+    AIBJ_ = new DistTensor<double>(ctf, 4, sizeAIAI, shapeNNNN, false);
+    AiBj_ = new DistTensor<double>(ctf, 4, sizeAiAi, shapeNNNN, false);
+    aIbJ_ = new DistTensor<double>(ctf, 4, sizeaIaI, shapeNNNN, false);
+    aibj_ = new DistTensor<double>(ctf, 4, sizeaiai, shapeNNNN, false);
+    ABCI_ = new DistTensor<double>(ctf, 4, sizeAAAI, shapeANNN, false);
+    AbCi_ = new DistTensor<double>(ctf, 4, sizeAaAi, shapeNNNN, false);
+    aBcI_ = new DistTensor<double>(ctf, 4, sizeaAaI, shapeNNNN, false);
+    abci_ = new DistTensor<double>(ctf, 4, sizeaaai, shapeANNN, false);
+    ABCD_ = new DistTensor<double>(ctf, 4, sizeAAAA, shapeANAN, false);
+    AbCd_ = new DistTensor<double>(ctf, 4, sizeAaAa, shapeNNNN, false);
+    abcd_ = new DistTensor<double>(ctf, 4, sizeaaaa, shapeANAN, false);
 
     fab.addSpinCase(fAB_, "A,B", "AB");
     fab.addSpinCase(fab_, "a,b", "ab");
@@ -153,9 +153,8 @@ MOIntegrals::MOIntegrals(DistWorld *dw, const UHF& uhf)
 
     const double* ea = uhf.getAlphaEigenvalues();
     const double* eb = uhf.getBetaEigenvalues();
-    int rank, np;
-    MPI_Comm_rank(dw->comm, &rank);
-    MPI_Comm_size(dw->comm, &np);
+    int rank = comm.Get_rank();
+    int np = comm.Get_size();
 
     {
         vector<kv_pair> pairs;

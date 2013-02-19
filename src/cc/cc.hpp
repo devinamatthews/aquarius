@@ -28,9 +28,11 @@
 #include "mpi.h"
 
 #include "time/time.hpp"
-#include "autocc/spinorbital.hpp"
+#include "tensor/spinorbital.hpp"
+#include "tensor/dist_tensor.hpp"
 #include "scf/moints.hpp"
 #include "util/iterative.hpp"
+
 #include "hamiltonian.hpp"
 
 namespace aquarius
@@ -38,11 +40,11 @@ namespace aquarius
 namespace cc
 {
 
-class CCD : public Iterative
+class CCD : public Iterative, public Distributed<double>
 {
     protected:
         scf::MOIntegrals& moints;
-        autocc::SpinorbitalTensor<DistTensor> T2, E2, D2, Z2;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > T2, E2, D2, Z2;
 
     public:
         CCD(const input::Config& config, scf::MOIntegrals& moints);
@@ -50,13 +52,13 @@ class CCD : public Iterative
         void _iterate();
 };
 
-class CCSD : public Iterative
+class CCSD : public Iterative, public Distributed<double>
 {
     protected:
         scf::MOIntegrals& moints;
-        autocc::SpinorbitalTensor<DistTensor> T1, E1, D1, Z1;
-        autocc::SpinorbitalTensor<DistTensor> T2, E2, D2, Z2;
-        diis::DIIS< autocc::SpinorbitalTensor<DistTensor> > diis;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > T1, E1, D1, Z1;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > T2, E2, D2, Z2;
+        diis::DIIS< tensor::SpinorbitalTensor< tensor::DistTensor<double> > > diis;
 
     public:
         CCSD(const input::Config& config, scf::MOIntegrals& moints);
@@ -64,13 +66,13 @@ class CCSD : public Iterative
         void _iterate();
 };
 
-class CCSDT : public Iterative
+class CCSDT : public Iterative, public Distributed<double>
 {
     protected:
         scf::MOIntegrals& moints;
-        autocc::SpinorbitalTensor<DistTensor> T1, E1, D1, Z1;
-        autocc::SpinorbitalTensor<DistTensor> T2, E2, D2, Z2;
-        autocc::SpinorbitalTensor<DistTensor> T3, E3, D3, Z3;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > T1, E1, D1, Z1;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > T2, E2, D2, Z2;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > T3, E3, D3, Z3;
 
     public:
         CCSDT(const input::Config& config, scf::MOIntegrals& moints);

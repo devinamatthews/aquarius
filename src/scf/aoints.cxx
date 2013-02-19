@@ -41,10 +41,18 @@ namespace scf
 #define TMP_BUFSIZE 100
 #define INTEGRAL_CUTOFF 1e-14
 
-static Datatype _types[] = {DOUBLE, SHORT};
-static int _counts[] = {1, 4};
-static Aint _offsets[] = {0, 8};
-Datatype integral_t::mpi_type = Datatype::Create_struct(2, _counts, _offsets, _types);
+Datatype integral_t::mpi_type = DATATYPE_NULL;
+
+AOIntegrals::AOIntegrals(tCTF_World<double>& ctf, const Molecule& molecule)
+: Distributed<double>(ctf), molecule(molecule)
+{
+    Datatype _types[] = {DOUBLE, SHORT};
+    int _counts[] = {1, 4};
+    Aint _offsets[] = {0, 8};
+    integral_t::mpi_type = Datatype::Create_struct(2, _counts, _offsets, _types);
+    generateInts();
+    loadBalance();
+}
 
 void AOIntegrals::generateInts()
 {
@@ -73,6 +81,7 @@ void AOIntegrals::generateInts()
                         {
                             for (size_t i = 0;i < n;i++)
                             {
+                                //printf("%d %d %d %d %20.15f\n", tmpidx[i].i, tmpidx[i].j, tmpidx[i].k, tmpidx[i].l, tmpval[i]);
                                 tmpints.push_back(integral_t(tmpval[i], tmpidx[i]));
                             }
                         }

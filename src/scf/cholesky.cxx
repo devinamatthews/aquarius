@@ -24,24 +24,26 @@
 
 #include "cholesky.hpp"
 
+#include <cassert>
+
 using namespace std;
 using namespace MPI;
 using namespace aquarius::slide;
 using namespace aquarius::input;
+using namespace aquarius::tensor;
 
 namespace aquarius
 {
 namespace scf
 {
 
-CholeskyIntegrals::CholeskyIntegrals(DistWorld* dw, const Config& config, const Molecule& molecule)
-: rank(0),
+CholeskyIntegrals::CholeskyIntegrals(tCTF_World<double>& ctf, const Config& config, const Molecule& molecule)
+: Distributed<double>(ctf),
+  rank(0),
   molecule(molecule),
   shells(molecule.getShellsBegin(),molecule.getShellsEnd()),
   delta(config.get<double>("delta")),
-  cond(config.get<double>("cond_max")),
-  dw(dw),
-  comm(dw->comm)
+  cond(config.get<double>("cond_max"))
 {
     nfunc = 0;
     for (int i = 0;i < shells.size();i++) nfunc += shells[i].getNFunc()*shells[i].getNContr();
@@ -115,11 +117,12 @@ void CholeskyIntegrals::decompose()
     for (rank = 0;;)
     {
         int converged = 1;
-        double local_max = 0;
+        double local_max = -2;
         int max_block = 0;
         for (int block = 0;block < nblock_local;block++)
         {
             double max_elem;
+            //printf("checking block: %d\n", block);
             converged = isBlockConverged(diag+block_start[block], block_size[block], max_elem) && converged;
             if (max_elem > local_max)
             {
@@ -128,13 +131,14 @@ void CholeskyIntegrals::decompose()
             }
         }
 
+        //printf("max block: %d\n", max_block);
+        //printf("max elem: %e\n", local_max);
+
         comm.Allreduce(IN_PLACE, &converged, 1, INT, BAND);
         if (converged) break;
 
         double* maxes = new double[nproc];
-        fill(maxes, maxes+nproc, 0.0);
-        maxes[pid] = local_max;
-        comm.Allreduce(IN_PLACE, maxes, nproc, DOUBLE, MAX);
+        comm.Allgather(&local_max, 1, DOUBLE, maxes, nproc, DOUBLE);
 
         int pmax = 0;
         double global_max = 0;
@@ -157,47 +161,31 @@ void CholeskyIntegrals::decompose()
             cout << "Decomposing block " << pid+max_block*nproc << endl;
 
             decomposeBlock(block_size[max_block], block_data[max_block], D, diag+block_start[max_block]);
-            comm.Bcast(&rank, 1, INT, pid);
-            if (rank == old_rank) continue;
 
             nactive = collectActiveRows(block_size[max_block], block_data[max_block], diag+block_start[max_block],
                                         tmp_block_data, tmp_diag);
-
-            comm.Bcast(&nactive, 1, INT, pid);
-            comm.Bcast(tmp_block_data, nactive*ndiag, DOUBLE, pid);
-            comm.Bcast(tmp_diag, nactive*sizeof(diag_elem_t), BYTE, pid);
-            comm.Bcast(D+old_rank, rank-old_rank, DOUBLE, pid);
-
-            for (int next_block = 0;next_block < nblock_local;next_block++)
-            {
-                if (next_block == max_block) continue;
-
-                updateBlock(old_rank, block_size[next_block], block_data[next_block], diag+block_start[next_block],
-                                      nactive,                tmp_block_data,         tmp_diag,                     D);
-            }
         }
-        else
+
+        comm.Bcast(&rank, 1, INT, pmax);
+        if (rank == old_rank) continue;
+
+        comm.Bcast(&nactive, 1, INT, pmax);
+        comm.Bcast(tmp_block_data, nactive*ndiag, DOUBLE, pmax);
+        comm.Bcast(tmp_diag, nactive*sizeof(diag_elem_t), BYTE, pmax);
+        comm.Bcast(D+old_rank, rank-old_rank, DOUBLE, pmax);
+
+        for (int next_block = 0;next_block < nblock_local;next_block++)
         {
-            comm.Bcast(&rank, 1, INT, pmax);
-            if (rank == old_rank) continue;
+            if (next_block == max_block && pid == pmax) continue;
 
-            comm.Bcast(&nactive, 1, INT, pmax);
-            comm.Bcast(tmp_block_data, nactive*ndiag, DOUBLE, pmax);
-            comm.Bcast(tmp_diag, nactive*sizeof(diag_elem_t), BYTE, pmax);
-            comm.Bcast(D+old_rank, rank-old_rank, DOUBLE, pmax);
-
-            for (int next_block = 0;next_block < nblock_local;next_block++)
-            {
-                updateBlock(old_rank, block_size[next_block], block_data[next_block], diag+block_start[next_block],
-                                      nactive,                tmp_block_data,         tmp_diag,                     D);
-            }
+            updateBlock(old_rank, block_size[next_block], block_data[next_block], diag+block_start[next_block],
+                                  nactive,                tmp_block_data,         tmp_diag,                     D);
         }
     }
 
     ASSERT(rank > 0, "rank is 0");
 
-    if (pid == 0)
-        printf("rank: full, partial: %d %d\n\n", ndiag, rank);
+    PRINT("rank: full, partial: %d %d\n\n", ndiag, rank);
 
     for (int block = 0;block < nblock_local;block++)
         resortBlock(block_size[block], block_data[block], diag+block_start[block], tmp_block_data);
@@ -207,10 +195,10 @@ void CholeskyIntegrals::decompose()
 
     int sizer[] = {rank};
     int shapeN[] = {NS};
-    this->D = new DistTensor(1, sizer, shapeN, dw, false);
+    this->D = new DistTensor<double>(ctf, 1, sizer, shapeN, false);
     int sizeffr[] = {nfunc,nfunc,rank};
     int shapeSNN[] = {SY,NS,NS};
-    this->L = new DistTensor(3, sizeffr, shapeSNN, dw, false);
+    this->L = new DistTensor<double>(ctf, 3, sizeffr, shapeSNN, false);
 
     if (pid == 0)
     {
@@ -300,6 +288,7 @@ int CholeskyIntegrals::collectActiveRows(const int block_size, const double* L, 
     {
         if (diag[elem].status == ACTIVE)
         {
+            //printf("finishing row: %d\n", elem);
             diag[elem].status = DONE;
             diag_active[cur] = diag[elem];
             dcopy(rank, L+elem*ndiag, 1, L_active+cur*ndiag, 1);
@@ -313,13 +302,14 @@ int CholeskyIntegrals::collectActiveRows(const int block_size, const double* L, 
 bool CholeskyIntegrals::isBlockConverged(const diag_elem_t* diag, int block_size, double& max_elem)
 {
     bool converged = true;
-    max_elem = 0;
+    max_elem = -1;
 
     for (int elem = 0;elem < block_size;elem++)
     {
         if (abs(diag[elem].elem) > delta && diag[elem].status == TODO)
         {
-            max_elem = max(max_elem, diag[elem].elem);
+            max_elem = max(max_elem, fabs(diag[elem].elem));
+            //printf("row %d isn't done yet: %e %e\n", elem, max_elem, fabs(diag[elem].elem));
             converged &= false;
         }
     }
@@ -354,13 +344,104 @@ void CholeskyIntegrals::sortBlocks(diag_elem_t* diag, int* block_start, int* blo
     ASSERT(block == nblock, "too few blocks");
 }
 
+void CholeskyIntegrals::getShellOffsets(const Context& context,
+                                        const Shell& a, const Shell& b, const Shell& c, const Shell& d,
+                                        size_t& controffa, size_t& funcoffa, size_t& controffb, size_t& funcoffb,
+                                        size_t& controffc, size_t& funcoffc, size_t& controffd, size_t& funcoffd)
+{
+    controffa = 0;
+    controffb = 0;
+    controffc = 0;
+    controffd = 0;
+    funcoffa = 0;
+    funcoffb = 0;
+    funcoffc = 0;
+    funcoffd = 0;
+
+    size_t ncab = a.getNContr()*b.getNContr();
+    size_t nccd = c.getNContr()*d.getNContr();
+    size_t nfab = a.getNFunc()*b.getNFunc();
+    size_t nfcd = c.getNFunc()*d.getNFunc();
+
+    if (&context.getA() == &a || &context.getA() == &b)
+    {
+        if (&context.getA() == &a)
+        {
+            controffa += 1;
+            controffb += a.getNContr();
+            funcoffa += ncab*nccd;
+            funcoffb += ncab*nccd*a.getNFunc();
+        }
+        else
+        {
+            controffa += b.getNContr();
+            controffb += 1;
+            funcoffa += ncab*nccd*b.getNFunc();
+            funcoffb += ncab*nccd;
+        }
+
+        if (&context.getC() == &c)
+        {
+            controffc += ncab;
+            controffd += ncab*c.getNContr();
+            funcoffc += ncab*nccd*nfab;
+            funcoffd += ncab*nccd*nfab*c.getNFunc();
+        }
+        else
+        {
+            controffc += ncab*d.getNContr();
+            controffd += ncab;
+            funcoffc += ncab*nccd*nfab*d.getNFunc();
+            funcoffd += ncab*nccd*nfab;
+        }
+    }
+    else
+    {
+        if (&context.getA() == &c)
+        {
+            controffc += 1;
+            controffd += c.getNContr();
+            funcoffc += ncab*nccd;
+            funcoffd += ncab*nccd*c.getNFunc();
+        }
+        else
+        {
+            controffc += d.getNContr();
+            controffd += 1;
+            funcoffc += ncab*nccd*d.getNFunc();
+            funcoffd += ncab*nccd;
+        }
+
+        if (&context.getC() == &a)
+        {
+            controffa += nccd;
+            controffb += nccd*a.getNContr();
+            funcoffa += ncab*nccd*nfcd;
+            funcoffb += ncab*nccd*nfcd*a.getNFunc();
+        }
+        else
+        {
+            controffa += nccd*b.getNContr();
+            controffb += nccd;
+            funcoffa += ncab*nccd*nfcd*b.getNFunc();
+            funcoffb += ncab*nccd*nfcd;
+        }
+    }
+}
+
 int CholeskyIntegrals::getDiagonalBlock(const Shell& a, const Shell& b, diag_elem_t* diag)
 {
     context->calcERI(1.0, 0.0, a, b, a, b);
     double* intbuf = context->getIntegrals();
 
-    int controff = a.getNContr()*b.getNContr();
-    int funcoff = a.getNFunc()*b.getNFunc();
+    size_t controffi;
+    size_t funcoffi;
+    size_t controffj;
+    size_t funcoffj;
+
+    getShellOffsets(*context, a, b, a, b,
+                    controffi, funcoffi, controffj, funcoffj,
+                    controffi, funcoffi, controffj, funcoffj);
 
     int elem = 0;
     for (int n = 0;n < b.getNFunc();n++)
@@ -373,10 +454,12 @@ int CholeskyIntegrals::getDiagonalBlock(const Shell& a, const Shell& b, diag_ele
                 {
                     if (&a == &b && (m*a.getNContr()+o) > (n*b.getNContr()+p)) continue;
 
-                    diag[elem].func = m + n*a.getNFunc();
-                    diag[elem].contr = o + p*a.getNContr();
-                    diag[elem].elem = intbuf[diag[elem].contr*(controff+1) +
-                                             diag[elem].func*(funcoff+1)*controff*controff];
+                    diag[elem].funci = m;
+                    diag[elem].contri = o;
+                    diag[elem].funcj = n;
+                    diag[elem].contrj = p;
+                    diag[elem].elem = intbuf[m*funcoffi+o*controffi+
+                                             n*funcoffj+p*controffj];
                     diag[elem].shelli = (int)(&a-&shells[0]);
                     diag[elem].shellj = (int)(&b-&shells[0]);
                     diag[elem].idx = elem;
@@ -422,14 +505,27 @@ void CholeskyIntegrals::decomposeBlock(int block_size, double* L_, double* D, di
 
     if (!found) return;
 
-    int controff = shells[diag[0].shelli].getNContr() * shells[diag[0].shellj].getNContr();
-    int funcoff = shells[diag[0].shelli].getNFunc() * shells[diag[0].shellj].getNFunc();
-
     context->calcERI(1.0, 0.0, shells[diag[0].shelli], shells[diag[0].shellj], shells[diag[0].shelli], shells[diag[0].shellj]);
     double* intbuf = context->getIntegrals();
 
+    size_t controffi;
+    size_t funcoffi;
+    size_t controffj;
+    size_t funcoffj;
+    size_t controffk;
+    size_t funcoffk;
+    size_t controffl;
+    size_t funcoffl;
+
+    getShellOffsets(*context,
+                    shells[diag[0].shelli], shells[diag[0].shellj],
+                    shells[diag[0].shelli], shells[diag[0].shellj],
+                    controffi, funcoffi, controffj, funcoffj,
+                    controffk, funcoffk, controffl, funcoffl);
+
     for (int elem = 0;elem < block_size;elem++)
     {
+        //printf("activating row: %d\n", elem);
         if (abs(diag[elem].elem) < crit || diag[elem].status == DONE) continue;
 
         diag[elem].status = ACTIVE;
@@ -444,8 +540,10 @@ void CholeskyIntegrals::decomposeBlock(int block_size, double* L_, double* D, di
             if (diag[row].status != TODO) continue;
 
             //printf("updating L[%d][%d]\n", rank, row);
-            L[row][rank] = intbuf[(diag[elem].contr + diag[row].contr*controff) +
-                                  (diag[elem].func + diag[row].func*funcoff)*controff*controff];
+            L[row][rank] = intbuf[diag[elem].contri*controffi+diag[elem].funci*funcoffi+
+                                  diag[elem].contrj*controffj+diag[elem].funcj*funcoffj+
+                                  diag[ row].contri*controffk+diag[ row].funci*funcoffk+
+                                  diag[ row].contrj*controffl+diag[ row].funcj*funcoffl];
             for (int col = 0;col < rank;col++)
                 L[row][rank] -= D[col] * L[row][col] * L[elem][col];
             L[row][rank] /= D[rank];
@@ -495,7 +593,22 @@ void CholeskyIntegrals::updateBlock(int old_rank, int block_size_i, double* L_i_
                               shells[diag_i[0].shelli], shells[diag_i[0].shellj]);
     double* intbuf = context->getIntegrals();
 
-#pragma omp parallel for schedule(dynamic) default(shared)
+    size_t controffii;
+    size_t funcoffii;
+    size_t controffij;
+    size_t funcoffij;
+    size_t controffji;
+    size_t funcoffji;
+    size_t controffjj;
+    size_t funcoffjj;
+
+    getShellOffsets(*context,
+                    shells[diag_j[0].shelli], shells[diag_j[0].shellj],
+                    shells[diag_i[0].shelli], shells[diag_i[0].shellj],
+                    controffji, funcoffji, controffjj, funcoffjj,
+                    controffii, funcoffii, controffij, funcoffij);
+
+    #pragma omp parallel for schedule(dynamic) default(shared)
     for (int elem_i = 0;elem_i < block_size_i;elem_i++)
     {
         if (diag_i[elem_i].status != TODO) continue;
@@ -504,8 +617,10 @@ void CholeskyIntegrals::updateBlock(int old_rank, int block_size_i, double* L_i_
         for (int elem_j = 0;elem_j < block_size_j;elem_j++)
         {
             //printf("updating L[%d][%d]\n", cur_rank, elem_i);
-            L_i[elem_i][cur_rank] = intbuf[(diag_j[elem_j].contr + diag_i[elem_i].contr*controff1) +
-                                           (diag_j[elem_j].func + diag_i[elem_i].func*funcoff1)*controff1*controff2];
+            L_i[elem_i][cur_rank] = intbuf[diag_j[elem_j].contri*controffji+diag_j[elem_j].funci*funcoffji+
+                                           diag_j[elem_j].contrj*controffjj+diag_j[elem_j].funcj*funcoffjj+
+                                           diag_i[elem_i].contri*controffii+diag_i[elem_i].funci*funcoffii+
+                                           diag_i[elem_i].contrj*controffij+diag_i[elem_i].funcj*funcoffij];
             for (int col = 0;col < cur_rank;col++)
                 L_i[elem_i][cur_rank] -= D[col] * L_i[elem_i][col] * L_j[cur_rank-old_rank][col];
             L_i[elem_i][cur_rank] /= D[cur_rank];
@@ -522,8 +637,8 @@ void CholeskyIntegrals::test()
     int shapeSNN[] = {SY,NS,NS};
     int sizeffff[] = {nfunc,nfunc,nfunc,nfunc};
     int shapeNNNN[] = {NS,NS,NS,NS};
-    DistTensor LD(3, sizeffr, shapeSNN, dw, false);
-    DistTensor ints(4, sizeffff, shapeNNNN, dw, false);
+    DistTensor<double> LD(ctf, 3, sizeffr, shapeSNN, false);
+    DistTensor<double> ints(ctf, 4, sizeffff, shapeNNNN, false);
 
     context = new Context();
 
@@ -616,10 +731,23 @@ double CholeskyIntegrals::testBlock(const DenseTensor& block, const Shell& a, co
     DenseTensor packed(4, block.getLengths(), false);
     const double* ints = packed.getData();
 
-    packed["pqrs"] = block["pqrs"];
+    packed = block;
 
     context->calcERI(1.0, 0.0, a, b, c, d);
     double* intbuf = context->getIntegrals();
+
+    size_t controffa;
+    size_t funcoffa;
+    size_t controffb;
+    size_t funcoffb;
+    size_t controffc;
+    size_t funcoffc;
+    size_t controffd;
+    size_t funcoffd;
+
+    getShellOffsets(*context, a, b, c, d,
+                    controffa, funcoffa, controffb, funcoffb,
+                    controffc, funcoffc, controffd, funcoffd);
 
     double err = 0;
     int q = 0;
@@ -639,31 +767,34 @@ double CholeskyIntegrals::testBlock(const DenseTensor& block, const Shell& a, co
                             {
                                 for (int m = 0;m < a.getNContr();m++)
                                 {
-                                    if ((&a == &b && (j > i || (j == i && n > m))) ||
-                                        (&c == &d && (l > k || (l == k && p > o))))
+                                    //if ((&a == &b && (j > i || (j == i && n > m))) ||
+                                    //    (&c == &d && (l > k || (l == k && p > o))))
+                                    //{
+                                    //    q++;
+                                    //    continue;
+                                    //}
+
+                                    err += pow(ints[q] - intbuf[m*controffa+i*funcoffa+
+                                                                n*controffb+j*funcoffb+
+                                                                o*controffc+k*funcoffc+
+                                                                p*controffd+l*funcoffd], 2);
+
+                                    if (abs(ints[q] - intbuf[m*controffa+i*funcoffa+
+                                                             n*controffb+j*funcoffb+
+                                                             o*controffc+k*funcoffc+
+                                                             p*controffd+l*funcoffd]) > 1e-10)
                                     {
-                                        q++;
-                                        continue;
+                                    ///*
+                                    printf("%d %d %d %d %d %d %d %d: %.12f %.12f\n",
+                                           i, j, k, l, m, n, o, p, ints[q],
+                                           intbuf[m*controffa+i*funcoffa+
+                                                  n*controffb+j*funcoffb+
+                                                  o*controffc+k*funcoffc+
+                                                  p*controffd+l*funcoffd]);
+                                    //*/
                                     }
 
-                                    err += pow(ints[q++] - intbuf[((((((l*c.getNFunc() + k)
-                                                                         *b.getNFunc() + j)
-                                                                         *a.getNFunc() + i)
-                                                                         *d.getNContr() + p)
-                                                                         *c.getNContr() + o)
-                                                                         *b.getNContr() + n)
-                                                                         *a.getNContr() + m], 2);
-                                    /*
-                                    printf("%d %d %d %d %d %d %d %d: %f %f\n",
-                                           i, j, k, l, m, n, o, p, ints[q-1],
-                                           intbuf[((((((l*c.getNFunc() + k)
-                                                         *b.getNFunc() + j)
-                                                         *a.getNFunc() + i)
-                                                         *d.getNContr() + p)
-                                                         *c.getNContr() + o)
-                                                         *b.getNContr() + n)
-                                                         *a.getNContr() + m]);
-                                    */
+                                    q++;
                                 }
                             }
                         }

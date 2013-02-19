@@ -34,6 +34,5 @@
 #include "line.hpp"
 #include "generator.hpp"
 #include "operator.hpp"
-#include "spinorbital.hpp"
 
 #endif

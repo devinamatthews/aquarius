@@ -1,6 +1,7 @@
 molecule
+	units bohr
 	atom C
-	atom C 1 1.0
+	atom C 1 1.9
 	basis
 		basis_set DZ
 

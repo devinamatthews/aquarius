@@ -28,7 +28,7 @@
 #include "mpi.h"
 
 #include "aoints.hpp"
-#include "scf.hpp"
+#include "aoscf.hpp"
 #include "moints.hpp"
 
 namespace aquarius
@@ -39,10 +39,10 @@ namespace scf
 class AOMOIntegrals : public MOIntegrals
 {
     protected:
-        void doTransformation(AOIntegrals& ints);
+        void doTransformation(const AOIntegrals& ints);
 
     public:
-        AOMOIntegrals(DistWorld *dw, AOIntegrals& ints, const UHF& uhf);
+        AOMOIntegrals(const AOUHF& uhf);
 };
 
 }

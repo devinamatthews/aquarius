@@ -41,15 +41,11 @@ size_t get_memory_used()
     return mem_used;
 }
 
-void* aq_malloc(const size_t size, const char *file, const int line, const int bailout)
+void* aq_malloc(const size_t size_, const char *file, const int line, const int bailout)
 {
 	assert(ALIGNMENT >= sizeof(size_t));
 
-	if (size <= 0)
-    {
-	    if (bailout) ERROR_AT(file, line, "Could not allocate memory");
-	    return NULL;
-    }
+	size_t size = MAX(size_,1);
 
 	if (mem_limit > 0 && mem_used+size+ALIGNMENT > mem_limit)
     {
@@ -70,13 +66,9 @@ void* aq_malloc(const size_t size, const char *file, const int line, const int b
     return mem+ALIGNMENT;
 }
 
-void* aq_realloc(void* ptr, const size_t size, const char *file, const int line, const int bailout)
+void* aq_realloc(void* ptr, const size_t size_, const char *file, const int line, const int bailout)
 {
-	if (size <= 0)
-    {
-        if (bailout) ERROR_AT(file, line, "Could not allocate memory");
-	    return NULL;
-    }
+    size_t size = MAX(size_,1);
 
 	if (ptr == NULL) return aq_malloc(size, file, line, bailout);
 	if (size == 0)

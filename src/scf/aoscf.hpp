@@ -30,9 +30,8 @@
 #include "mpi.h"
 
 #include "elemental.hpp"
-#include "tensor.hpp"
-#include "dist_tensor.hpp"
 
+#include "tensor/dist_tensor.hpp"
 #include "slide/slide.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
@@ -52,8 +51,7 @@ namespace scf
 
 class AOUHF : public UHF
 {
-    public:
-        enum ConvergenceType {MAX_ABS, RMSD, MAD};
+    friend class AOMOIntegrals;
 
     protected:
         const AOIntegrals& ints;
@@ -61,8 +59,8 @@ class AOUHF : public UHF
         void buildFock();
 
     public:
-        AOUHF(DistWorld* dw, const AOIntegrals& ints, const input::Config& config)
-        : UHF(dw, ints.getMolecule(), config), ints(ints) {}
+        AOUHF(tCTF_World<double>& ctf, const AOIntegrals& ints, const input::Config& config)
+        : UHF(ctf, ints.getMolecule(), config), ints(ints) {}
 };
 
 }

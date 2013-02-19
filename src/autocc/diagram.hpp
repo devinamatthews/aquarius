@@ -120,6 +120,8 @@ class Diagram
 
         Diagram& sum(const std::vector<Line>& which);
 
+        Diagram& antisymmetrize(const std::vector< std::vector<Line> >& assym);
+
     protected:
         Diagram& suminternal();
 
@@ -130,8 +132,6 @@ class Diagram
         Diagram& expandrhf();
 
         Diagram& symmetrize();
-
-        Diagram& antisymmetrize(const std::vector< std::vector<Line> >& assym);
 };
 
 }

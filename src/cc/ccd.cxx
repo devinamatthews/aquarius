@@ -27,8 +27,7 @@
 #include <cfloat>
 
 using namespace std;
-using namespace libtensor;
-using namespace aquarius::autocc;
+using namespace aquarius::tensor;
 using namespace aquarius::input;
 using namespace aquarius::time;
 using namespace aquarius::scf;
@@ -39,7 +38,7 @@ namespace cc
 {
 
 CCD::CCD(const Config& config, MOIntegrals& moints)
-: Iterative(config), moints(moints),
+: Distributed<double>(moints.ctf), Iterative(config), moints(moints),
   T2("ab,ij"), E2("ab,ij"), D2("ab,ij"), Z2("ab,ij")
 {
     int N = moints.getSCF().getMolecule().getNumOrbitals();
@@ -55,42 +54,40 @@ CCD::CCD(const Config& config, MOIntegrals& moints)
     int shapeNNNN[] = {NS, NS, NS, NS};
     int shapeANAN[] = {AS, NS, AS, NS};
 
-    DistWorld *dw = moints.getFAB().getSpinCase(0).dw;
+    T2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAAII, shapeANAN, false), "AB,IJ", "ABIJ");
+    T2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAaIi, shapeNNNN, false), "Ab,Ij", "AbIj");
+    T2.addSpinCase(new DistTensor<double>(ctf, 4, sizeaaii, shapeANAN, false), "ab,ij", "abij");
 
-    T2.addSpinCase(new DistTensor(4, sizeAAII, shapeANAN, dw, false), "AB,IJ", "ABIJ");
-    T2.addSpinCase(new DistTensor(4, sizeAaIi, shapeNNNN, dw, false), "Ab,Ij", "AbIj");
-    T2.addSpinCase(new DistTensor(4, sizeaaii, shapeANAN, dw, false), "ab,ij", "abij");
+    E2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAAII, shapeANAN, false), "AB,IJ", "ABIJ");
+    E2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAaIi, shapeNNNN, false), "Ab,Ij", "AbIj");
+    E2.addSpinCase(new DistTensor<double>(ctf, 4, sizeaaii, shapeANAN, false), "ab,ij", "abij");
 
-    E2.addSpinCase(new DistTensor(4, sizeAAII, shapeANAN, dw, false), "AB,IJ", "ABIJ");
-    E2.addSpinCase(new DistTensor(4, sizeAaIi, shapeNNNN, dw, false), "Ab,Ij", "AbIj");
-    E2.addSpinCase(new DistTensor(4, sizeaaii, shapeANAN, dw, false), "ab,ij", "abij");
+    D2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAAII, shapeANAN, false), "AB,IJ", "ABIJ");
+    D2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAaIi, shapeNNNN, false), "Ab,Ij", "AbIj");
+    D2.addSpinCase(new DistTensor<double>(ctf, 4, sizeaaii, shapeANAN, false), "ab,ij", "abij");
 
-    D2.addSpinCase(new DistTensor(4, sizeAAII, shapeANAN, dw, false), "AB,IJ", "ABIJ");
-    D2.addSpinCase(new DistTensor(4, sizeAaIi, shapeNNNN, dw, false), "Ab,Ij", "AbIj");
-    D2.addSpinCase(new DistTensor(4, sizeaaii, shapeANAN, dw, false), "ab,ij", "abij");
-
-    Z2.addSpinCase(new DistTensor(4, sizeAAII, shapeANAN, dw, false), "AB,IJ", "ABIJ");
-    Z2.addSpinCase(new DistTensor(4, sizeAaIi, shapeNNNN, dw, false), "Ab,Ij", "AbIj");
-    Z2.addSpinCase(new DistTensor(4, sizeaaii, shapeANAN, dw, false), "ab,ij", "abij");
+    Z2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAAII, shapeANAN, false), "AB,IJ", "ABIJ");
+    Z2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAaIi, shapeNNNN, false), "Ab,Ij", "AbIj");
+    Z2.addSpinCase(new DistTensor<double>(ctf, 4, sizeaaii, shapeANAN, false), "ab,ij", "abij");
 
     D2["abij"]  = moints.getFIJ()["ii"];
     D2["abij"] += moints.getFIJ()["jj"];
     D2["abij"] -= moints.getFAB()["aa"];
     D2["abij"] -= moints.getFAB()["bb"];
 
-    int size;
+    int64_t size;
     double * data;
-    data = D2.getSpinCase(0).getRawData(&size);
+    data = D2.getSpinCase(0).getRawData(size);
     for (int i=0; i<size; i++){
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
     }
-    data = D2.getSpinCase(1).getRawData(&size);
+    data = D2.getSpinCase(1).getRawData(size);
     for (int i=0; i<size; i++){
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
     }
-    data = D2.getSpinCase(2).getRawData(&size);
+    data = D2.getSpinCase(2).getRawData(size);
     for (int i=0; i<size; i++){
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
@@ -112,12 +109,12 @@ void CCD::_iterate()
                           Hamiltonian::WMNIJ|
                           Hamiltonian::WMBEJ);
 
-    SpinorbitalTensor<DistTensor>& FAE = H.getFAE();
-    SpinorbitalTensor<DistTensor>& FMI = H.getFMI();
-    SpinorbitalTensor<DistTensor>& WMNEF = H.getWMNEF();
-    SpinorbitalTensor<DistTensor>& WABEF = H.getWABEF();
-    SpinorbitalTensor<DistTensor>& WMNIJ = H.getWMNIJ();
-    SpinorbitalTensor<DistTensor>& WMBEJ = H.getWMBEJ();
+    SpinorbitalTensor< DistTensor<double> >& FAE = H.getFAE();
+    SpinorbitalTensor< DistTensor<double> >& FMI = H.getFMI();
+    SpinorbitalTensor< DistTensor<double> >& WMNEF = H.getWMNEF();
+    SpinorbitalTensor< DistTensor<double> >& WABEF = H.getWABEF();
+    SpinorbitalTensor< DistTensor<double> >& WMNIJ = H.getWMNIJ();
+    SpinorbitalTensor< DistTensor<double> >& WMBEJ = H.getWMBEJ();
 
     //FAE["aa"] = 0.0;
     //FMI["ii"] = 0.0;

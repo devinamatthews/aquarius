@@ -22,11 +22,10 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _CHOLESKYMOINTS_HPP_
-#define _CHOLESKYMOINTS_HPP_
+#ifndef _AQUARIUS_SCF_CHOLESKYMOINTS_HPP_
+#define _AQUARIUS_SCF_CHOLESKYMOINTS_HPP_
 
-#include "cholesky.hpp"
-#include "scf.hpp"
+#include "choleskyscf.hpp"
 #include "moints.hpp"
 
 namespace aquarius
@@ -40,7 +39,7 @@ class CholeskyMOIntegrals : public MOIntegrals
         void doTransformation(const CholeskyIntegrals& chol);
 
     public:
-        CholeskyMOIntegrals(DistWorld *dw, const CholeskyIntegrals& chol, const UHF& uhf);
+        CholeskyMOIntegrals(const CholeskyUHF& uhf);
 };
 
 }

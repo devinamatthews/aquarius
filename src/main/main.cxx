@@ -24,10 +24,13 @@
 
 #include "input/config.hpp"
 #include "input/molecule.hpp"
+#include "scf/aoints.hpp"
 #include "scf/cholesky.hpp"
 #include "scf/choleskyscf.hpp"
 #include "scf/choleskymoints.hpp"
 #include "cc/cc.hpp"
+
+#include "fenv.h"
 
 using namespace std;
 using namespace elem;
@@ -39,12 +42,14 @@ using namespace aquarius::cc;
 
 int main(int argc, char **argv)
 {
+    //feenableexcept(FE_DIVBYZERO);
+
     MPI_Init(&argc, &argv);
     SLIDE::init();
     elem::Initialize(argc, argv);
 
     {
-        DistWorld dw;
+        tCTF_World<double> ctf;
 
         assert(argc > 1);
         Schema schema(TOPDIR "/input_schema");
@@ -53,8 +58,10 @@ int main(int argc, char **argv)
 
         Molecule mol(config);
 
-        CholeskyIntegrals chol(&dw, config.get("cholesky"), mol);
-        CholeskyUHF scf(&dw, chol, config.get("scf"));
+        CholeskyIntegrals chol(ctf, config.get("cholesky"), mol);
+        CholeskyUHF scf(chol, config.get("scf"));
+
+        //chol.test();
 
         PRINT("UHF-SCF\n\n");
         PRINT("It.         SCF Energy     Residual\n");
@@ -70,7 +77,7 @@ int main(int argc, char **argv)
         PRINT("<n_beta>  = %f\n", scf.getAvgNumBeta());
         PRINT("\n");
 
-        CholeskyMOIntegrals moints(&dw, chol, scf);
+        CholeskyMOIntegrals moints(scf);
         CCSD ccsd(config.get("cc"), moints);
 
         PRINT("UHF-MP2 Energy: %18.15f\n\n", ccsd.getEnergy());
@@ -81,6 +88,8 @@ int main(int argc, char **argv)
         {
             PRINT("%3d %18.15f %12.6e\n", i+1, ccsd.getEnergy(), ccsd.getConvergence());
         }
+
+        PRINT("\nFinal Energy: %18.15f\n", scf.getEnergy()+ccsd.getEnergy());
     }
 
     elem::Finalize();

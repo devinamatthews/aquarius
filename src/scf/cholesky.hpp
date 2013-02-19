@@ -34,21 +34,21 @@
 
 #include "mpi.h"
 
-#include "tensor.hpp"
-#include "dist_tensor.hpp"
-
+#include "tensor/dist_tensor.hpp"
+#include "tensor/dense_tensor.hpp"
 #include "slide/slide.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
 #include "util/util.h"
 #include "util/blas.h"
+#include "util/distributed.hpp"
 
 namespace aquarius
 {
 namespace scf
 {
 
-class CholeskyIntegrals
+class CholeskyIntegrals : public Distributed<double>
 {
     protected:
         enum Status {TODO, ACTIVE, DONE};
@@ -57,8 +57,10 @@ class CholeskyIntegrals
             double elem;
             int shelli;
             int shellj;
-            int func;
-            int contr;
+            int funci;
+            int funcj;
+            int contri;
+            int contrj;
             int idx;
             Status status;
         };
@@ -68,16 +70,19 @@ class CholeskyIntegrals
         std::vector<slide::Shell> shells;
         double delta;
         double cond;
-        DistTensor* L;
-        DistTensor* D;
+        tensor::DistTensor<double>* L;
+        tensor::DistTensor<double>* D;
         int ndiag;
         int nfunc;
         int nblock;
         slide::Context* context;
-        DistWorld* dw;
-        MPI::Intracomm comm;
 
         void decompose();
+
+        static void getShellOffsets(const slide::Context& context,
+                                    const slide::Shell& a, const slide::Shell& b, const slide::Shell& c, const slide::Shell& d,
+                                    size_t& controffa, size_t& funcoffa, size_t& controffb, size_t& funcoffb,
+                                    size_t& controffc, size_t& funcoffc, size_t& controffd, size_t& funcoffd);
 
         void resortBlock(const int block_size, double* L, diag_elem_t* diag, double* tmp);
 
@@ -95,7 +100,7 @@ class CholeskyIntegrals
         void updateBlock(int old_rank, int block_size_i, double* L_i, diag_elem_t* diag_i,
                          int block_size_j, double* L_j, diag_elem_t* diag_j, double* D);
 
-        double testBlock(const DenseTensor& block, const slide::Shell& a, const slide::Shell& b,
+        double testBlock(const tensor::DenseTensor& block, const slide::Shell& a, const slide::Shell& b,
                          const slide::Shell& c, const slide::Shell& d);
 
         static bool sort_by_integral(const diag_elem_t& e1, const diag_elem_t& e2) { return e1.elem > e2.elem; }
@@ -103,7 +108,7 @@ class CholeskyIntegrals
         //CholeskyIntegrals(const input::Config& config, const input::Molecule& molecule);
 
     public:
-        CholeskyIntegrals(DistWorld* dw, const input::Config& config, const input::Molecule& molecule);
+        CholeskyIntegrals(tCTF_World<double>& ctf, const input::Config& config, const input::Molecule& molecule);
 
         ~CholeskyIntegrals();
 
@@ -111,9 +116,9 @@ class CholeskyIntegrals
 
         int getRank() const { return rank; }
 
-        const DistTensor& getL() const { return *L; }
+        const tensor::DistTensor<double>& getL() const { return *L; }
 
-        const DistTensor& getD() const { return *D; }
+        const tensor::DistTensor<double>& getD() const { return *D; }
 
         void test();
 };

@@ -29,6 +29,7 @@
 
 #include "mpi.h"
 
+#include "util/distributed.hpp"
 #include "slide/slide.hpp"
 #include "input/molecule.hpp"
 
@@ -46,13 +47,12 @@ struct integral_t
     : value(value), idx(idx) {}
 };
 
-class AOIntegrals
+class AOIntegrals : public Distributed<double>
 {
     protected:
         slide::Context context;
         size_t num_ints;
         integral_t *ints;
-        MPI::Intracomm comm;
         const input::Molecule& molecule;
 
         void generateInts();
@@ -60,12 +60,7 @@ class AOIntegrals
         void loadBalance();
 
     public:
-        AOIntegrals(const input::Molecule& molecule, const MPI::Comm& comm)
-        : molecule(molecule), comm(comm)
-        {
-            generateInts();
-            loadBalance();
-        }
+        AOIntegrals(tCTF_World<double>& ctf, const input::Molecule& molecule);
 
         void canonicalize();
 

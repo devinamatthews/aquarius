@@ -28,29 +28,29 @@
 #include <limits>
 
 using namespace std;
-using namespace libtensor;
 using namespace aquarius::input;
+using namespace aquarius::tensor;
 
 namespace aquarius
 {
 namespace scf
 {
 
-CholeskyUHF::CholeskyUHF(DistWorld* dw, const CholeskyIntegrals& chol, const Config& config)
-: UHF(dw, chol.getMolecule(), config), chol(chol)
+CholeskyUHF::CholeskyUHF(const CholeskyIntegrals& chol, const Config& config)
+: UHF(chol.ctf, chol.getMolecule(), config), chol(chol)
 {
     int shapeN[] = {NS};
     int shapeNNN[] = {NS,NS,NS};
 
     int sizer[] = {chol.getRank()};
-    J = new DistTensor(1, sizer, shapeN, dw);
-    JD = new DistTensor(1, sizer, shapeN, dw);
+    J = new DistTensor<double>(ctf, 1, sizer, shapeN, false);
+    JD = new DistTensor<double>(ctf, 1, sizer, shapeN, false);
     int sizenOr[] = {norb,nalpha,chol.getRank()};
     int sizenor[] = {norb,nbeta,chol.getRank()};
-    La_occ = new DistTensor(3, sizenOr, shapeNNN, dw);
-    Lb_occ = new DistTensor(3, sizenor, shapeNNN, dw);
-    LDa_occ = new DistTensor(3, sizenOr, shapeNNN, dw);
-    LDb_occ = new DistTensor(3, sizenor, shapeNNN, dw);
+    La_occ = new DistTensor<double>(ctf, 3, sizenOr, shapeNNN, false);
+    Lb_occ = new DistTensor<double>(ctf, 3, sizenor, shapeNNN, false);
+    LDa_occ = new DistTensor<double>(ctf, 3, sizenOr, shapeNNN, false);
+    LDb_occ = new DistTensor<double>(ctf, 3, sizenor, shapeNNN, false);
 }
 
 CholeskyUHF::~CholeskyUHF()
@@ -76,10 +76,10 @@ void CholeskyUHF::buildFock()
      *
      *       = L(abJ)*{D[J]*J[J]}
      */
-    (*Da)["cd"] += (*Db)["cd"];
+    (*Da) += (*Db);
     (*J)["J"] = chol.getL()["cdJ"]*(*Da)["cd"];
     (*JD)["J"] = chol.getD()["J"]*(*J)["J"];
-    (*Da)["cd"] -= (*Db)["cd"];
+    (*Da) -= (*Db);
     (*Fa)["ab"] = (*JD)["J"]*chol.getL()["abJ"];
 
     /*
@@ -89,8 +89,8 @@ void CholeskyUHF::buildFock()
      *
      * Up though this point, Fa = Fb
      */
-    (*Fa)["ab"] += (*H)["ab"];
-    (*Fb)["ab"] = (*Fa)["ab"];
+    (*Fa) += (*H);
+    (*Fb) = (*Fa);
 
     /*
      * Exchange contribution:

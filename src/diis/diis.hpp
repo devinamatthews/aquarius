@@ -25,7 +25,7 @@
 #ifndef _AQUARIUS_DIIS_HPP_
 #define _AQUARIUS_DIIS_HPP_
 
-#include "tensor.hpp"
+#include "tensor/tensor.hpp"
 #include "input/config.hpp"
 #include "util/lapack.h"
 
@@ -149,7 +149,7 @@ class DIIS
             e[0] = 0;
             for (int i = 0;i < ndx;i++)
             {
-                e[0] += libtensor::scalar((*dx[i])*(*dx[i]));
+                e[0] += tensor::scalar((*dx[i])*(*dx[i]));
             }
 
             /*
@@ -163,13 +163,11 @@ class DIIS
                 e[i] = 0;
                 for (int j = 0;j < ndx;j++)
                 {
-                    e[i] += libtensor::scalar((*dx[j])*(*old_dx[i][j]));
+                    e[i] += tensor::scalar((*dx[j])*(*old_dx[i][j]));
                 }
                 e[i*(nextrap+1)] = e[i];
                 nextrap_real++;
             }
-
-            if (nextrap_real == 1 || --start > 1) return;
 
             /*
              * Set the elements corresponding to the unity
@@ -190,13 +188,15 @@ class DIIS
             {
                 for (int j = 0;j <= nextrap_real;j++)
                 {
-                    printf("%+11f ", ex[i+j*(nextrap+1)]);
+                    printf("%+11e ", e[i+j*(nextrap+1)]);
                 }
 
-                printf(": %+11f\n", c[i]);
+                printf(": %+11e\n", c[i]);
             }
             printf("\n");
             */
+
+            if (nextrap_real == 1 || --start > 1) return;
 
             {
                 int info;

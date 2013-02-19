@@ -39,10 +39,10 @@ namespace std
 
 template<typename T> std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 {
-    os << '[';
+    os << "[";
     if (!v.empty()) os << v[0];
     for (int i = 1;i < v.size();i++) os << ", " << v[i];
-    os << ']';
+    os << "]";
     return os;
 }
 
@@ -117,6 +117,20 @@ template<typename T, class Predicate> std::vector<T>& filter(std::vector<T>& v, 
     return v;
 }
 
+template<typename T, typename U, class Functor> std::vector<U> map(std::vector<T>& v, Functor f)
+{
+    std::vector<U> v2();
+
+    typename std::vector<T>::const_iterator i;
+
+    for (i = v.begin();i != v.end();++i)
+    {
+        v2.push_back(f(*i));
+    }
+
+    return v2;
+}
+
 template<typename T, class Predicate> std::vector<T> filter_copy(const std::vector<T>& v, Predicate pred)
 {
     typename std::vector<T> v2(v.size());
@@ -158,6 +172,55 @@ template<typename T> std::vector<T> uniq_copy(const std::vector<T>& v)
     v2.resize(i1-v2.begin());
 
     return v2;
+}
+
+template<typename T> std::vector<T> intersection(const std::vector<T>& v1, const std::vector<T>& v2)
+{
+    typename std::vector<T> v(v1.size()+v2.size());
+    typename std::vector<T>::iterator end;
+
+    end = std::set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(), v.begin());
+    v.resize(end-v.begin());
+
+    return v;
+}
+
+template<typename T> std::vector<T>& exclude(std::vector<T>& v1, const std::vector<T>& v2)
+{
+    typename std::vector<T> v3(v2);
+    typename std::vector<T>::iterator i1, i2, i3;
+
+    std::sort(v1.begin(), v1.end());
+    std::sort(v3.begin(), v3.end());
+
+    i1 = i2 = v1.begin();
+    i3 = v3.begin();
+    while (i1 != v1.end())
+    {
+        if (i3 == v3.end() || *i1 < *i3)
+        {
+            *i2 = *i1;
+            ++i1;
+            ++i2;
+        }
+        else if (*i3 < *i1)
+        {
+            ++i3;
+        }
+        else
+        {
+            ++i1;
+        }
+    }
+    v1.resize(i2-v1.begin());
+
+    return v1;
+}
+
+template<typename T> std::vector<T> exclude_copy(const std::vector<T>& v1, const std::vector<T>& v2)
+{
+    typename std::vector<T> v3(v1);
+    return exclude(v3, v2);
 }
 
 template<typename T, typename U> std::vector<T>& mask(std::vector<T>& v, const std::vector<U>& mask)

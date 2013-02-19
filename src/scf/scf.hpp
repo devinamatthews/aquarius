@@ -30,16 +30,16 @@
 
 #include "mpi.h"
 
-#include "tensor.hpp"
-#include "dist_tensor.hpp"
 #include "elemental.hpp"
 
+#include "tensor/dist_tensor.hpp"
 #include "slide/slide.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
 #include "util/util.h"
 #include "util/blas.h"
 #include "util/lapack.h"
+#include "util/distributed.hpp"
 #include "util/iterative.hpp"
 #include "diis/diis.hpp"
 
@@ -48,34 +48,25 @@ namespace aquarius
 namespace scf
 {
 
-class UHF : public Iterative
+class UHF : public Iterative, public Distributed<double>
 {
-    public:
-        enum ConvergenceType {MAX_ABS, RMSD, MAD};
-
     protected:
         const input::Molecule& molecule;
-        ConvergenceType convtype;
         int norb;
         int nalpha;
         int nbeta;
-        int ndiis;
-        int diis_start;
-        bool diis_jacobi;
         double damping;
         std::vector<double> Ea, Eb;
-        diis::DIIS<DistTensor> diis;
-        DistTensor *Fa, *Fb;
-        DistTensor *dF;
-        DistTensor *Ca, *Cb;
-        DistTensor *Ca_occ, *Cb_occ;
-        DistTensor *Ca_vrt, *Cb_vrt;
-        DistTensor *Da, *Db;
-        DistTensor *dDa, *dDb;
-        DistTensor *S, *Smhalf;
-        DistTensor *H;
-        DistWorld* dw;
-        MPI::Intracomm comm;
+        diis::DIIS< tensor::DistTensor<double> > diis;
+        tensor::DistTensor<double> *Fa, *Fb;
+        tensor::DistTensor<double> *dF;
+        tensor::DistTensor<double> *Ca, *Cb;
+        tensor::DistTensor<double> *Ca_occ, *Cb_occ;
+        tensor::DistTensor<double> *Ca_vrt, *Cb_vrt;
+        tensor::DistTensor<double> *Da, *Db;
+        tensor::DistTensor<double> *dDa, *dDb;
+        tensor::DistTensor<double> *S, *Smhalf;
+        tensor::DistTensor<double> *H;
         elem::Grid grid;
         elem::DistMatrix<double> C_elem;
         elem::DistMatrix<double> S_elem;
@@ -88,7 +79,7 @@ class UHF : public Iterative
 
         void diagonalizeFock();
 
-        void fixPhase(DistTensor& C);
+        void fixPhase(tensor::DistTensor<double>& C);
 
         virtual void buildFock() = 0;
 
@@ -99,7 +90,7 @@ class UHF : public Iterative
         void DIISExtrap();
 
     public:
-        UHF(DistWorld* dw, const input::Molecule& molecule, const input::Config& config);
+        UHF(tCTF_World<double>& ctf, const input::Molecule& molecule, const input::Config& config);
 
         ~UHF();
 
@@ -122,10 +113,10 @@ class UHF : public Iterative
 
         const input::Molecule& getMolecule() const { return molecule; }
 
-        const DistTensor& getCA() const { return *Ca_vrt; }
-        const DistTensor& getCI() const { return *Ca_occ; }
-        const DistTensor& getCa() const { return *Cb_vrt; }
-        const DistTensor& getCi() const { return *Cb_occ; }
+        const tensor::DistTensor<double>& getCA() const { return *Ca_vrt; }
+        const tensor::DistTensor<double>& getCI() const { return *Ca_occ; }
+        const tensor::DistTensor<double>& getCa() const { return *Cb_vrt; }
+        const tensor::DistTensor<double>& getCi() const { return *Cb_occ; }
 };
 
 }

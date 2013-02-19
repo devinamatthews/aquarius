@@ -225,6 +225,11 @@ const double* Context::getIntegrals() const
 void Context::calcERI(const double alpha, const double beta,
              const Shell& a, const Shell& b, const Shell& c, const Shell& d)
 {
+    this->a = &a;
+    this->b = &b;
+    this->c = &c;
+    this->d = &d;
+
     if (SLIDE_calc_eri(context, alpha, beta, a.shell, b.shell, c.shell, d.shell) < 0)
     {
         throw SLIDEError("Error calculating ERIs");
@@ -234,6 +239,9 @@ void Context::calcERI(const double alpha, const double beta,
 void Context::calcOVI(const double alpha, const double beta,
              const Shell& a, const Shell& b)
 {
+    this->a = &a;
+    this->b = &b;
+
     if (SLIDE_calc_ovi(context, alpha, beta, a.shell, b.shell) < 0)
     {
         throw SLIDEError("Error calculating OVIs");
@@ -243,6 +251,9 @@ void Context::calcOVI(const double alpha, const double beta,
 void Context::calcKEI(const double alpha, const double beta,
              const Shell& a, const Shell& b)
 {
+    this->a = &a;
+    this->b = &b;
+
     if (SLIDE_calc_kei(context, alpha, beta, a.shell, b.shell) < 0)
     {
         throw SLIDEError("Error calculating KEIs");
@@ -252,6 +263,9 @@ void Context::calcKEI(const double alpha, const double beta,
 void Context::calcNAI(const double alpha, const double beta,
              const Shell& a, const Shell& b, const Center centers[], const int ncenters)
 {
+    this->a = &a;
+    this->b = &b;
+
     center_t** center_ts = new center_t*[ncenters];
     int i;
 
@@ -264,6 +278,42 @@ void Context::calcNAI(const double alpha, const double beta,
     }
 
     delete[] center_ts;
+}
+
+const Shell& Context::getA() const
+{
+    if (a->shell == context->a) return *a;
+    if (b->shell == context->a) return *b;
+    if (c->shell == context->a) return *c;
+    if (d->shell == context->a) return *d;
+    assert(0);
+}
+
+const Shell& Context::getB() const
+{
+    if (b->shell == context->b) return *b;
+    if (a->shell == context->b) return *a;
+    if (c->shell == context->b) return *c;
+    if (d->shell == context->b) return *d;
+    assert(0);
+}
+
+const Shell& Context::getC() const
+{
+    if (c->shell == context->c) return *c;
+    if (d->shell == context->c) return *d;
+    if (a->shell == context->c) return *a;
+    if (b->shell == context->c) return *b;
+    assert(0);
+}
+
+const Shell& Context::getD() const
+{
+    if (d->shell == context->d) return *d;
+    if (c->shell == context->d) return *c;
+    if (a->shell == context->d) return *a;
+    if (b->shell == context->d) return *b;
+    assert(0);
 }
 
 Element::~Element()

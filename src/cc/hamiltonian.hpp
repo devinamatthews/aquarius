@@ -25,10 +25,8 @@
 #ifndef _AQUARIUS_CC_HAMILTONIAN_HPP_
 #define _AQUARIUS_CC_HAMILTONIAN_HPP_
 
-#include "tensor.hpp"
-#include "dist_tensor.hpp"
-
-#include "autocc/spinorbital.hpp"
+#include "tensor/dist_tensor.hpp"
+#include "tensor/spinorbital.hpp"
 #include "scf/moints.hpp"
 
 namespace aquarius
@@ -40,17 +38,17 @@ class Hamiltonian
 {
     protected:
         scf::MOIntegrals& moints;
-        autocc::SpinorbitalTensor<DistTensor> fae;
-        autocc::SpinorbitalTensor<DistTensor> fmi;
-        autocc::SpinorbitalTensor<DistTensor> fme;
-        autocc::SpinorbitalTensor<DistTensor> wmnij;
-        autocc::SpinorbitalTensor<DistTensor> wmbij;
-        autocc::SpinorbitalTensor<DistTensor> wmnie;
-        autocc::SpinorbitalTensor<DistTensor> wmnef;
-        autocc::SpinorbitalTensor<DistTensor> wmbej;
-        autocc::SpinorbitalTensor<DistTensor> wamef;
-        autocc::SpinorbitalTensor<DistTensor> wabej;
-        autocc::SpinorbitalTensor<DistTensor> wabef;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > fae;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > fmi;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > fme;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > wmnij;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > wmbij;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > wmnie;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > wmnef;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > wmbej;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > wamef;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > wabej;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > wabef;
 
     public:
         enum
@@ -71,29 +69,29 @@ class Hamiltonian
 
         Hamiltonian(scf::MOIntegrals& moints, int copy = NONE);
 
-        autocc::SpinorbitalTensor<DistTensor>& getFAE()   { return fae; }
-        autocc::SpinorbitalTensor<DistTensor>& getFMI()   { return fmi; }
-        autocc::SpinorbitalTensor<DistTensor>& getFME()   { return fme; }
-        autocc::SpinorbitalTensor<DistTensor>& getWMNIJ() { return wmnij; }
-        autocc::SpinorbitalTensor<DistTensor>& getWMBIJ() { return wmbij; }
-        autocc::SpinorbitalTensor<DistTensor>& getWMNIE() { return wmnie; }
-        autocc::SpinorbitalTensor<DistTensor>& getWMNEF() { return wmnef; }
-        autocc::SpinorbitalTensor<DistTensor>& getWMBEJ() { return wmbej; }
-        autocc::SpinorbitalTensor<DistTensor>& getWAMEF() { return wamef; }
-        autocc::SpinorbitalTensor<DistTensor>& getWABEJ() { return wabej; }
-        autocc::SpinorbitalTensor<DistTensor>& getWABEF() { return wabef; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFAE()   { return fae; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFMI()   { return fmi; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFME()   { return fme; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWMNIJ() { return wmnij; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWMBIJ() { return wmbij; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWMNIE() { return wmnie; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWMNEF() { return wmnef; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWMBEJ() { return wmbej; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWAMEF() { return wamef; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWABEJ() { return wabej; }
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWABEF() { return wabef; }
 
-        const autocc::SpinorbitalTensor<DistTensor>& getFAE()   const { return fae; }
-        const autocc::SpinorbitalTensor<DistTensor>& getFMI()   const { return fmi; }
-        const autocc::SpinorbitalTensor<DistTensor>& getFME()   const { return fme; }
-        const autocc::SpinorbitalTensor<DistTensor>& getWMNIJ() const { return wmnij; }
-        const autocc::SpinorbitalTensor<DistTensor>& getWMBIJ() const { return wmbij; }
-        const autocc::SpinorbitalTensor<DistTensor>& getWMNIE() const { return wmnie; }
-        const autocc::SpinorbitalTensor<DistTensor>& getWMNEF() const { return wmnef; }
-        const autocc::SpinorbitalTensor<DistTensor>& getWMBEJ() const { return wmbej; }
-        const autocc::SpinorbitalTensor<DistTensor>& getWAMEF() const { return wamef; }
-        const autocc::SpinorbitalTensor<DistTensor>& getWABEJ() const { return wabej; }
-        const autocc::SpinorbitalTensor<DistTensor>& getWABEF() const { return wabef; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFAE()   const { return fae; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFMI()   const { return fmi; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFME()   const { return fme; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWMNIJ() const { return wmnij; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWMBIJ() const { return wmbij; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWMNIE() const { return wmnie; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWMNEF() const { return wmnef; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWMBEJ() const { return wmbej; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWAMEF() const { return wamef; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWABEJ() const { return wabej; }
+        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getWABEF() const { return wabef; }
 };
 
 }

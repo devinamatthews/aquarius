@@ -107,6 +107,7 @@ class Context
 
     protected:
         context_t* context;
+        const Shell *a, *b, *c, *d;
 
     public:
         Context();
@@ -142,6 +143,13 @@ class Context
 
         void calcNAI(const double alpha, const double beta,
                      const Shell& a, const Shell& b, const Center centers[], const int ncenters);
+
+        const Shell& getA() const;
+        const Shell& getB() const;
+        const Shell& getC() const;
+        const Shell& getD() const;
+
+
 };
 
 class Element

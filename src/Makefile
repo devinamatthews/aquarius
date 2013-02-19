@@ -9,3 +9,4 @@ input_SUBDIRS = input
 aquarius_SUBDIRS = main
 cc_SUBDIRS = cc
 memory_SUBDIRS = memory
+tensor_SUBDIRS = tensor

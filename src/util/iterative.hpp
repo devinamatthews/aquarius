@@ -26,6 +26,7 @@
 #define _AQUARIUS_UTIL_ITERATIVE_HPP_
 
 #include <limits>
+#include <string>
 
 #include "input/config.hpp"
 
@@ -34,10 +35,14 @@ namespace aquarius
 
 class Iterative
 {
+    public:
+        enum ConvergenceType {MAX_ABS, RMSD, MAD};
+
     protected:
         double energy;
         double conv;
         double convtol;
+        ConvergenceType convtype;
         int iter;
         int maxiter;
 
@@ -49,7 +54,23 @@ class Iterative
           conv(std::numeric_limits<double>::infinity()),
           convtol(config.get<double>("convergence")),
           iter(0),
-          maxiter(config.get<int>("max_iterations")) {}
+          maxiter(config.get<int>("max_iterations"))
+        {
+            std::string sconv = config.get<std::string>("conv_type");
+
+            if (sconv == "MAXE")
+            {
+                convtype = MAX_ABS;
+            }
+            else if (sconv == "RMSE")
+            {
+                convtype = RMSD;
+            }
+            else if (sconv == "MAE")
+            {
+                convtype = MAD;
+            }
+        }
 
         virtual ~Iterative() {}
 

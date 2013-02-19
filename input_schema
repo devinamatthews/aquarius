@@ -47,9 +47,9 @@ scf?
 			MAE
 	diis?
 		start?
-			int 1
+			int 8
 		order?
-			int 0
+			int 6
 		jacobi?
 			bool false
 
@@ -58,11 +58,16 @@ cc?
 		double 1e-9
 	max_iterations?
 		int 150
+	conv_type?
+		enum
+			MAXE
+			RMSE
+			MAE
 	diis?
 		start?
 			int 1
 		order?
-			int 0
+			int 5
 		jacobi?
 			bool false
 

@@ -27,8 +27,7 @@
 #include <cfloat>
 
 using namespace std;
-using namespace libtensor;
-using namespace aquarius::autocc;
+using namespace aquarius::tensor;
 using namespace aquarius::time;
 using namespace aquarius::scf;
 using namespace aquarius::input;
@@ -39,7 +38,7 @@ namespace cc
 {
 
 CCSDT::CCSDT(const Config& config, MOIntegrals& moints)
-: Iterative(config), moints(moints),
+: Distributed<double>(moints.ctf), Iterative(config), moints(moints),
   T1("a,i"), E1("a,i"), D1("a,i"), Z1("a,i"),
   T2("ab,ij"), E2("ab,ij"), D2("ab,ij"), Z2("ab,ij"),
   T3("abc,ijk"), E3("abc,ijk"), D3("abc,ijk"), Z3("abc,ijk")
@@ -67,55 +66,53 @@ CCSDT::CCSDT(const Config& config, MOIntegrals& moints)
     int shapeNANNAN[] = {NS, AS, NS, NS, AS, NS};
     int shapeAANAAN[] = {AS, AS, NS, AS, AS, NS};
 
-    DistWorld *dw = moints.getFAB().getSpinCase(0).dw;
+    T1.addSpinCase(new DistTensor<double>(ctf, 2, sizeAI, shapeNN, false), "A,I", "AI");
+    T1.addSpinCase(new DistTensor<double>(ctf, 2, sizeai, shapeNN, false), "a,i", "ai");
 
-    T1.addSpinCase(new DistTensor(2, sizeAI, shapeNN, dw, false), "A,I", "AI");
-    T1.addSpinCase(new DistTensor(2, sizeai, shapeNN, dw, false), "a,i", "ai");
+    E1.addSpinCase(new DistTensor<double>(ctf, 2, sizeAI, shapeNN, false), "A,I", "AI");
+    E1.addSpinCase(new DistTensor<double>(ctf, 2, sizeai, shapeNN, false), "a,i", "ai");
 
-    E1.addSpinCase(new DistTensor(2, sizeAI, shapeNN, dw, false), "A,I", "AI");
-    E1.addSpinCase(new DistTensor(2, sizeai, shapeNN, dw, false), "a,i", "ai");
+    D1.addSpinCase(new DistTensor<double>(ctf, 2, sizeAI, shapeNN, false), "A,I", "AI");
+    D1.addSpinCase(new DistTensor<double>(ctf, 2, sizeai, shapeNN, false), "a,i", "ai");
 
-    D1.addSpinCase(new DistTensor(2, sizeAI, shapeNN, dw, false), "A,I", "AI");
-    D1.addSpinCase(new DistTensor(2, sizeai, shapeNN, dw, false), "a,i", "ai");
+    Z1.addSpinCase(new DistTensor<double>(ctf, 2, sizeAI, shapeNN, false), "A,I", "AI");
+    Z1.addSpinCase(new DistTensor<double>(ctf, 2, sizeai, shapeNN, false), "a,i", "ai");
 
-    Z1.addSpinCase(new DistTensor(2, sizeAI, shapeNN, dw, false), "A,I", "AI");
-    Z1.addSpinCase(new DistTensor(2, sizeai, shapeNN, dw, false), "a,i", "ai");
+    T2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAAII, shapeANAN, false), "AB,IJ", "ABIJ");
+    T2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAaIi, shapeNNNN, false), "Ab,Ij", "AbIj");
+    T2.addSpinCase(new DistTensor<double>(ctf, 4, sizeaaii, shapeANAN, false), "ab,ij", "abij");
 
-    T2.addSpinCase(new DistTensor(4, sizeAAII, shapeANAN, dw, false), "AB,IJ", "ABIJ");
-    T2.addSpinCase(new DistTensor(4, sizeAaIi, shapeNNNN, dw, false), "Ab,Ij", "AbIj");
-    T2.addSpinCase(new DistTensor(4, sizeaaii, shapeANAN, dw, false), "ab,ij", "abij");
+    E2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAAII, shapeANAN, false), "AB,IJ", "ABIJ");
+    E2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAaIi, shapeNNNN, false), "Ab,Ij", "AbIj");
+    E2.addSpinCase(new DistTensor<double>(ctf, 4, sizeaaii, shapeANAN, false), "ab,ij", "abij");
 
-    E2.addSpinCase(new DistTensor(4, sizeAAII, shapeANAN, dw, false), "AB,IJ", "ABIJ");
-    E2.addSpinCase(new DistTensor(4, sizeAaIi, shapeNNNN, dw, false), "Ab,Ij", "AbIj");
-    E2.addSpinCase(new DistTensor(4, sizeaaii, shapeANAN, dw, false), "ab,ij", "abij");
+    D2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAAII, shapeANAN, false), "AB,IJ", "ABIJ");
+    D2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAaIi, shapeNNNN, false), "Ab,Ij", "AbIj");
+    D2.addSpinCase(new DistTensor<double>(ctf, 4, sizeaaii, shapeANAN, false), "ab,ij", "abij");
 
-    D2.addSpinCase(new DistTensor(4, sizeAAII, shapeANAN, dw, false), "AB,IJ", "ABIJ");
-    D2.addSpinCase(new DistTensor(4, sizeAaIi, shapeNNNN, dw, false), "Ab,Ij", "AbIj");
-    D2.addSpinCase(new DistTensor(4, sizeaaii, shapeANAN, dw, false), "ab,ij", "abij");
+    Z2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAAII, shapeANAN, false), "AB,IJ", "ABIJ");
+    Z2.addSpinCase(new DistTensor<double>(ctf, 4, sizeAaIi, shapeNNNN, false), "Ab,Ij", "AbIj");
+    Z2.addSpinCase(new DistTensor<double>(ctf, 4, sizeaaii, shapeANAN, false), "ab,ij", "abij");
 
-    Z2.addSpinCase(new DistTensor(4, sizeAAII, shapeANAN, dw, false), "AB,IJ", "ABIJ");
-    Z2.addSpinCase(new DistTensor(4, sizeAaIi, shapeNNNN, dw, false), "Ab,Ij", "AbIj");
-    Z2.addSpinCase(new DistTensor(4, sizeaaii, shapeANAN, dw, false), "ab,ij", "abij");
+    T3.addSpinCase(new DistTensor<double>(ctf, 6, sizeAAAIII, shapeAANAAN, true), "ABC,IJK", "ABCIJK");
+    T3.addSpinCase(new DistTensor<double>(ctf, 6, sizeAAaIIi, shapeANNANN, true), "ABc,IJk", "ABcIJk");
+    T3.addSpinCase(new DistTensor<double>(ctf, 6, sizeAaaIii, shapeNANNAN, true), "Abc,Ijk", "AbcIjk");
+    T3.addSpinCase(new DistTensor<double>(ctf, 6, sizeaaaiii, shapeAANAAN, true), "abc,ijk", "abcijk");
 
-    T3.addSpinCase(new DistTensor(6, sizeAAAIII, shapeAANAAN, dw, true), "ABC,IJK", "ABCIJK");
-    T3.addSpinCase(new DistTensor(6, sizeAAaIIi, shapeANNANN, dw, true), "ABc,IJk", "ABcIJk");
-    T3.addSpinCase(new DistTensor(6, sizeAaaIii, shapeNANNAN, dw, true), "Abc,Ijk", "AbcIjk");
-    T3.addSpinCase(new DistTensor(6, sizeaaaiii, shapeAANAAN, dw, true), "abc,ijk", "abcijk");
+    E3.addSpinCase(new DistTensor<double>(ctf, 6, sizeAAAIII, shapeAANAAN, false), "ABC,IJK", "ABCIJK");
+    E3.addSpinCase(new DistTensor<double>(ctf, 6, sizeAAaIIi, shapeANNANN, false), "ABc,IJk", "ABcIJk");
+    E3.addSpinCase(new DistTensor<double>(ctf, 6, sizeAaaIii, shapeNANNAN, false), "Abc,Ijk", "AbcIjk");
+    E3.addSpinCase(new DistTensor<double>(ctf, 6, sizeaaaiii, shapeAANAAN, false), "abc,ijk", "abcijk");
 
-    E3.addSpinCase(new DistTensor(6, sizeAAAIII, shapeAANAAN, dw, false), "ABC,IJK", "ABCIJK");
-    E3.addSpinCase(new DistTensor(6, sizeAAaIIi, shapeANNANN, dw, false), "ABc,IJk", "ABcIJk");
-    E3.addSpinCase(new DistTensor(6, sizeAaaIii, shapeNANNAN, dw, false), "Abc,Ijk", "AbcIjk");
-    E3.addSpinCase(new DistTensor(6, sizeaaaiii, shapeAANAAN, dw, false), "abc,ijk", "abcijk");
+    D3.addSpinCase(new DistTensor<double>(ctf, 6, sizeAAAIII, shapeAANAAN, false), "ABC,IJK", "ABCIJK");
+    D3.addSpinCase(new DistTensor<double>(ctf, 6, sizeAAaIIi, shapeANNANN, false), "ABc,IJk", "ABcIJk");
+    D3.addSpinCase(new DistTensor<double>(ctf, 6, sizeAaaIii, shapeNANNAN, false), "Abc,Ijk", "AbcIjk");
+    D3.addSpinCase(new DistTensor<double>(ctf, 6, sizeaaaiii, shapeAANAAN, false), "abc,ijk", "abcijk");
 
-    D3.addSpinCase(new DistTensor(6, sizeAAAIII, shapeAANAAN, dw, false), "ABC,IJK", "ABCIJK");
-    D3.addSpinCase(new DistTensor(6, sizeAAaIIi, shapeANNANN, dw, false), "ABc,IJk", "ABcIJk");
-    D3.addSpinCase(new DistTensor(6, sizeAaaIii, shapeNANNAN, dw, false), "Abc,Ijk", "AbcIjk");
-    D3.addSpinCase(new DistTensor(6, sizeaaaiii, shapeAANAAN, dw, false), "abc,ijk", "abcijk");
-
-    Z3.addSpinCase(new DistTensor(6, sizeAAAIII, shapeAANAAN, dw, false), "ABC,IJK", "ABCIJK");
-    Z3.addSpinCase(new DistTensor(6, sizeAAaIIi, shapeANNANN, dw, false), "ABc,IJk", "ABcIJk");
-    Z3.addSpinCase(new DistTensor(6, sizeAaaIii, shapeNANNAN, dw, false), "Abc,Ijk", "AbcIjk");
-    Z3.addSpinCase(new DistTensor(6, sizeaaaiii, shapeAANAAN, dw, false), "abc,ijk", "abcijk");
+    Z3.addSpinCase(new DistTensor<double>(ctf, 6, sizeAAAIII, shapeAANAAN, false), "ABC,IJK", "ABCIJK");
+    Z3.addSpinCase(new DistTensor<double>(ctf, 6, sizeAAaIIi, shapeANNANN, false), "ABc,IJk", "ABcIJk");
+    Z3.addSpinCase(new DistTensor<double>(ctf, 6, sizeAaaIii, shapeNANNAN, false), "Abc,Ijk", "AbcIjk");
+    Z3.addSpinCase(new DistTensor<double>(ctf, 6, sizeaaaiii, shapeAANAAN, false), "abc,ijk", "abcijk");
 
     D1["ai"]  = moints.getFIJ()["ii"];
     D1["ai"] -= moints.getFAB()["aa"];
@@ -132,49 +129,49 @@ CCSDT::CCSDT(const Config& config, MOIntegrals& moints)
     D3["abcijk"] -= moints.getFAB()["bb"];
     D3["abcijk"] -= moints.getFAB()["cc"];
 
-    int size;
+    int64_t size;
     double * data;
-    data = D1.getSpinCase(0).getRawData(&size);
+    data = D1.getSpinCase(0).getRawData(size);
     for (int i=0; i<size; i++){
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
     }
-    data = D1.getSpinCase(1).getRawData(&size);
+    data = D1.getSpinCase(1).getRawData(size);
     for (int i=0; i<size; i++){
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
     }
-    data = D2.getSpinCase(0).getRawData(&size);
+    data = D2.getSpinCase(0).getRawData(size);
     for (int i=0; i<size; i++){
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
     }
-    data = D2.getSpinCase(1).getRawData(&size);
+    data = D2.getSpinCase(1).getRawData(size);
     for (int i=0; i<size; i++){
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
     }
-    data = D2.getSpinCase(2).getRawData(&size);
+    data = D2.getSpinCase(2).getRawData(size);
     for (int i=0; i<size; i++){
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
     }
-    data = D3.getSpinCase(0).getRawData(&size);
+    data = D3.getSpinCase(0).getRawData(size);
     for (int i=0; i<size; i++){
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
     }
-    data = D3.getSpinCase(1).getRawData(&size);
+    data = D3.getSpinCase(1).getRawData(size);
     for (int i=0; i<size; i++){
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
     }
-    data = D3.getSpinCase(2).getRawData(&size);
+    data = D3.getSpinCase(2).getRawData(size);
     for (int i=0; i<size; i++){
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
     }
-    data = D3.getSpinCase(3).getRawData(&size);
+    data = D3.getSpinCase(3).getRawData(size);
     for (int i=0; i<size; i++){
       if (fabs(data[i]) > DBL_MIN)
         data[i] = 1./data[i];
@@ -183,7 +180,7 @@ CCSDT::CCSDT(const Config& config, MOIntegrals& moints)
     T1["ai"] = moints.getFAI()["ai"]*D1["ai"];
     T2["abij"] = moints.getVABIJ()["abij"]*D2["abij"];
 
-    SpinorbitalTensor<DistTensor> Tau(T2);
+    SpinorbitalTensor< DistTensor<double> > Tau(T2);
     Tau["abij"] += 0.5*T1["ai"]*T1["bj"];
 
     energy = 0.25*scalar(moints.getVABIJ()["efmn"]*Tau["efmn"]);
@@ -208,17 +205,17 @@ void CCSDT::_iterate()
                           Hamiltonian::WMBIJ|
                           Hamiltonian::WMBEJ);
 
-    SpinorbitalTensor<DistTensor>& FME = H.getFME();
-    SpinorbitalTensor<DistTensor>& FAE = H.getFAE();
-    SpinorbitalTensor<DistTensor>& FMI = H.getFMI();
-    SpinorbitalTensor<DistTensor>& WMNEF = H.getWMNEF();
-    SpinorbitalTensor<DistTensor>& WAMEF = H.getWAMEF();
-    SpinorbitalTensor<DistTensor>& WABEJ = H.getWABEJ();
-    SpinorbitalTensor<DistTensor>& WABEF = H.getWABEF();
-    SpinorbitalTensor<DistTensor>& WMNIJ = H.getWMNIJ();
-    SpinorbitalTensor<DistTensor>& WMNIE = H.getWMNIE();
-    SpinorbitalTensor<DistTensor>& WMBIJ = H.getWMBIJ();
-    SpinorbitalTensor<DistTensor>& WMBEJ = H.getWMBEJ();
+    SpinorbitalTensor< DistTensor<double> >& FME = H.getFME();
+    SpinorbitalTensor< DistTensor<double> >& FAE = H.getFAE();
+    SpinorbitalTensor< DistTensor<double> >& FMI = H.getFMI();
+    SpinorbitalTensor< DistTensor<double> >& WMNEF = H.getWMNEF();
+    SpinorbitalTensor< DistTensor<double> >& WAMEF = H.getWAMEF();
+    SpinorbitalTensor< DistTensor<double> >& WABEJ = H.getWABEJ();
+    SpinorbitalTensor< DistTensor<double> >& WABEF = H.getWABEF();
+    SpinorbitalTensor< DistTensor<double> >& WMNIJ = H.getWMNIJ();
+    SpinorbitalTensor< DistTensor<double> >& WMNIE = H.getWMNIE();
+    SpinorbitalTensor< DistTensor<double> >& WMBIJ = H.getWMBIJ();
+    SpinorbitalTensor< DistTensor<double> >& WMBEJ = H.getWMBEJ();
 
     //FAE["aa"] = 0.0;
     //FMI["ii"] = 0.0;
@@ -226,7 +223,7 @@ void CCSDT::_iterate()
     FAE = 0.0;
     FMI = 0.0;
 
-    SpinorbitalTensor<DistTensor> Tau(T2);
+    SpinorbitalTensor< DistTensor<double> > Tau(T2);
     Tau["abij"] += 0.5*T1["ai"]*T1["bj"];
 
     /**************************************************************************

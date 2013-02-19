@@ -29,10 +29,9 @@
 
 #include "mpi.h"
 
-#include "tensor.hpp"
-#include "dist_tensor.hpp"
 #include "elemental.hpp"
 
+#include "tensor/dist_tensor.hpp"
 #include "slide/slide.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
@@ -51,22 +50,19 @@ namespace scf
 
 class CholeskyUHF : public UHF
 {
-    public:
-        enum ConvergenceType {MAX_ABS, RMSD, MAD};
+    friend class CholeskyMOIntegrals;
 
     protected:
         const CholeskyIntegrals& chol;
-        DistTensor *J;
-        DistTensor *JD;
-        //DistTensor *L_occ;
-        //DistTensor *LD_occ;
-        DistTensor *La_occ, *Lb_occ;
-        DistTensor *LDa_occ, *LDb_occ;
+        tensor::DistTensor<double> *J;
+        tensor::DistTensor<double> *JD;
+        tensor::DistTensor<double> *La_occ, *Lb_occ;
+        tensor::DistTensor<double> *LDa_occ, *LDb_occ;
 
         void buildFock();
 
     public:
-        CholeskyUHF(DistWorld* dw, const CholeskyIntegrals& chol, const input::Config& config);
+        CholeskyUHF(const CholeskyIntegrals& chol, const input::Config& config);
 
         ~CholeskyUHF();
 };

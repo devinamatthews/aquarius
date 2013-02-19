@@ -25,6 +25,7 @@
 #include "scf.hpp"
 
 #include <algorithm>
+#include <vector>
 #include <limits>
 
 using namespace std;
@@ -33,25 +34,24 @@ using namespace MPI;
 using namespace aquarius::slide;
 using namespace aquarius::input;
 using namespace aquarius::diis;
+using namespace aquarius::tensor;
 
 namespace aquarius
 {
 namespace scf
 {
 
-UHF::UHF(DistWorld* dw, const Molecule& molecule, const Config& config)
+UHF::UHF(tCTF_World<double>& ctf, const Molecule& molecule, const Config& config)
 : Iterative(config),
+  Distributed<double>(ctf),
   molecule(molecule),
   norb(molecule.getNumOrbitals()),
   nalpha(molecule.getNumAlphaElectrons()),
   nbeta(molecule.getNumBetaElectrons()),
-  diis_jacobi(config.get<bool>("diis.jacobi")),
   damping(config.get<double>("damping")),
   Ea(norb),
   Eb(norb),
   diis(config.get("diis"), 2),
-  dw(dw),
-  comm(dw->comm),
   grid(comm),
   C_elem(norb, norb, grid),
   S_elem(norb, norb, grid),
@@ -60,42 +60,27 @@ UHF::UHF(DistWorld* dw, const Molecule& molecule, const Config& config)
 {
     energy = molecule.getNuclearRepulsion();
 
-    string conv = config.get<string>("conv_type");
-
-    if (conv == "MAXE")
-    {
-        convtype = MAX_ABS;
-    }
-    else if (conv == "RMSE")
-    {
-        convtype = RMSD;
-    }
-    else if (conv == "MAE")
-    {
-        convtype = MAD;
-    }
-
     int shapeNN[] = {NS,NS};
 
     int sizenn[] = {norb,norb};
-    Fa = new DistTensor(2, sizenn, shapeNN, dw);
-    Fb = new DistTensor(2, sizenn, shapeNN, dw);
-    dF = new DistTensor(2, sizenn, shapeNN, dw);
+    Fa = new DistTensor<double>(ctf, 2, sizenn, shapeNN, false);
+    Fb = new DistTensor<double>(ctf, 2, sizenn, shapeNN, false);
+    dF = new DistTensor<double>(ctf, 2, sizenn, shapeNN, false);
     int sizenO[] = {norb,nalpha};
     int sizeno[] = {norb,nbeta};
-    Ca_occ = new DistTensor(2, sizenO, shapeNN, dw);
-    Cb_occ = new DistTensor(2, sizeno, shapeNN, dw);
+    Ca_occ = new DistTensor<double>(ctf, 2, sizenO, shapeNN, false);
+    Cb_occ = new DistTensor<double>(ctf, 2, sizeno, shapeNN, false);
     int sizenV[] = {norb,norb-nalpha};
     int sizenv[] = {norb,norb-nbeta};
-    Ca_vrt = new DistTensor(2, sizenV, shapeNN, dw);
-    Cb_vrt = new DistTensor(2, sizenv, shapeNN, dw);
-    Da = new DistTensor(2, sizenn, shapeNN, dw);
-    Db = new DistTensor(2, sizenn, shapeNN, dw);
-    dDa = new DistTensor(2, sizenn, shapeNN, dw);
-    dDb = new DistTensor(2, sizenn, shapeNN, dw);
-    S = new DistTensor(2, sizenn, shapeNN, dw);
-    Smhalf = new DistTensor(2, sizenn, shapeNN, dw);
-    H = new DistTensor(2, sizenn, shapeNN, dw);
+    Ca_vrt = new DistTensor<double>(ctf, 2, sizenV, shapeNN, false);
+    Cb_vrt = new DistTensor<double>(ctf, 2, sizenv, shapeNN, false);
+    Da = new DistTensor<double>(ctf, 2, sizenn, shapeNN, true);
+    Db = new DistTensor<double>(ctf, 2, sizenn, shapeNN, true);
+    dDa = new DistTensor<double>(ctf, 2, sizenn, shapeNN, false);
+    dDb = new DistTensor<double>(ctf, 2, sizenn, shapeNN, false);
+    S = new DistTensor<double>(ctf, 2, sizenn, shapeNN, false);
+    Smhalf = new DistTensor<double>(ctf, 2, sizenn, shapeNN, false);
+    H = new DistTensor<double>(ctf, 2, sizenn, shapeNN, false);
 
     getOverlap();
     get1eHamiltonian();
@@ -139,10 +124,10 @@ void UHF::getOverlap()
                 context.calcOVI(1.0, 0.0, *i, *j);
 
                 size_t nint = context.getNumIntegrals();
-                double* ints = new double[nint];
-                idx2_t* idxs = new idx2_t[nint];
+                vector<double> ints(nint);
+                vector<idx2_t> idxs(nint);
 
-                size_t nproc = context.process1eInts(nint, ints, idxs, -1.0);
+                size_t nproc = context.process1eInts(nint, ints.data(), idxs.data(), -1.0);
                 for (int i = 0;i < nproc;i++)
                 {
                     //printf("%d %d %25.15f\n", idxs[i].i+1, idxs[i].j+1, ints[i]);
@@ -153,9 +138,6 @@ void UHF::getOverlap()
                         pairs.push_back(kv_pair(idxs[i].j*norb+idxs[i].i, ints[i]));
                     }
                 }
-
-                delete[] ints;
-                delete[] idxs;
             }
 
             block++;
@@ -236,10 +218,10 @@ void UHF::get1eHamiltonian()
                 context.calcNAI(1.0, 1.0, *i, *j, centers.data(), centers.size());
 
                 size_t nint = context.getNumIntegrals();
-                double* ints = new double[nint];
-                idx2_t* idxs = new idx2_t[nint];
+                vector<double> ints(nint);
+                vector<idx2_t> idxs(nint);
 
-                size_t nproc = context.process1eInts(nint, ints, idxs, -1.0);
+                size_t nproc = context.process1eInts(nint, ints.data(), idxs.data(), -1.0);
                 for (int i = 0;i < nproc;i++)
                 {
                     //printf("%d %d %25.15f\n", idxs[i].i+1, idxs[i].j+1, ints[i]);
@@ -250,9 +232,6 @@ void UHF::get1eHamiltonian()
                         pairs.push_back(kv_pair(idxs[i].j*norb+idxs[i].i, ints[i]));
                     }
                 }
-
-                delete[] ints;
-                delete[] idxs;
             }
 
             block++;
@@ -380,7 +359,7 @@ void UHF::diagonalizeFock()
     //cout << endl;
 }
 
-void UHF::fixPhase(DistTensor& C)
+void UHF::fixPhase(DistTensor<double>& C)
 {
     int rank = comm.Get_rank();
     int np = comm.Get_size();
@@ -439,10 +418,10 @@ void UHF::_iterate()
     {
         case MAX_ABS:
             conv = max(dDa->reduce(CTF_OP_MAXABS), dDb->reduce(CTF_OP_MAXABS));
-        break;
+            break;
         case RMSD:
             conv = sqrt((dDa->reduce(CTF_OP_SQNRM2)+dDb->reduce(CTF_OP_SQNRM2))/(2*norb*norb));
-        break;
+            break;
         case MAD:
             conv = (dDa->reduce(CTF_OP_SUMABS)+dDb->reduce(CTF_OP_SUMABS))/(2*norb*norb);
             break;
@@ -467,8 +446,8 @@ void UHF::DIISExtrap()
      * This is so that the inner product <R_i|R_j> is what we expect it to be.
      */
     {
-        DistTensor tmp1(*Fa);
-        DistTensor tmp2(*Fa);
+        DistTensor<double> tmp1(*Fa);
+        DistTensor<double> tmp2(*Fa);
 
          tmp1["ab"]  =     (*Fa)["ac"]*    (*Da)["cb"];
          tmp2["ab"]  =      tmp1["ac"]*     (*S)["cb"];
@@ -485,10 +464,10 @@ void UHF::DIISExtrap()
         (*dF)["ab"] +=      tmp1["ac"]*(*Smhalf)["cb"];
     }
 
-    vector<DistTensor*> Fab(2);
+    vector<DistTensor<double>*> Fab(2);
     Fab[0] = Fa;
     Fab[1] = Fb;
-    diis.extrapolate(Fab, vector<DistTensor*>(1, dF));
+    diis.extrapolate(Fab, vector<DistTensor<double>*>(1, dF));
 }
 
 void UHF::calcEnergy()
@@ -532,8 +511,8 @@ double UHF::getS2() const
     int sizeab[] = {nalpha,nbeta};
     int sizean[] = {nalpha,norb};
 
-    DistTensor Delta(2, sizeab, shapeNN, dw);
-    DistTensor tmp(2, sizean, shapeNN, dw);
+    DistTensor<double> Delta(ctf, 2, sizeab, shapeNN, false);
+    DistTensor<double> tmp(ctf, 2, sizean, shapeNN, false);
 
     double ndiff = abs(nalpha-nbeta);
     int nmin = min(nalpha, nbeta);
@@ -543,19 +522,19 @@ double UHF::getS2() const
     tmp["ai"] = (*Ca_occ)["ja"]*(*S)["ij"];
     Delta["ab"] = tmp["ai"]*(*Cb_occ)["ib"];
 
-    S2 -= scalar(Delta["ab"]*Delta["ab"]);
+    S2 -= scalar(Delta*Delta);
 
-    return S2;
+    return fabs(S2);
 }
 
 double UHF::getAvgNumAlpha() const
 {
-    return scalar((*S)["ab"]*(*Da)["ab"]);
+    return scalar((*S)*(*Da));
 }
 
 double UHF::getAvgNumBeta() const
 {
-    return scalar((*S)["ab"]*(*Db)["ab"]);
+    return scalar((*S)*(*Db));
 }
 
 }

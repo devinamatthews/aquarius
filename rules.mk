@@ -1,12 +1,13 @@
 all: $(DEFAULT_COMPONENTS)
 
-ALL_COMPONENTS = aquarius slide scf autocc input time cc memory
+ALL_COMPONENTS = aquarius slide scf autocc input time cc memory tensor
 
+tensor: memory
 slide: memory
-cc: scf input autocc time memory
+cc: scf input autocc time memory tensor
 input: slide
-scf: input slide autocc memory
-aquarius: cc input scf slide autocc time memory
+scf: input slide autocc memory tensor
+aquarius: cc input scf slide autocc time memory tensor
 
 LOWER_NO_UNDERSCORE = 1
 LOWER_UNDERSCORE = 2
