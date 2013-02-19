@@ -86,6 +86,9 @@ class DIIS
 
         void extrapolate(const std::vector<T*>& x, const std::vector<U*>& dx)
         {
+            assert(x.size() == nx);
+            assert(dx.size() == ndx);
+
             if (nextrap <= 1) return;
 
             for (int i = 0;i < nx;i++) assert(x[i] != NULL);

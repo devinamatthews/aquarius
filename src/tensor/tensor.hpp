@@ -402,9 +402,6 @@ double scalar(const IndexedTensorMult<Derived>& other);
 template <class Derived>
 class IndexedTensor
 {
-    friend double scalar<>(const IndexedTensor<Derived>& other);
-    friend double scalar<>(const IndexedTensorMult<Derived>& other);
-
     friend class IndexableTensor<Derived>;
     friend class IndexedTensorMult<Derived>;
 
@@ -436,7 +433,7 @@ class IndexedTensor
         return IndexedTensor<Derived>(d, idx.data())*factor;
     }
 
-    protected:
+    public:
         double factor_;
         char* idx_;
         Derived& tensor_;
@@ -456,7 +453,6 @@ class IndexedTensor
             strcpy(idx_, other.idx_);
         }
 
-    public:
         ~IndexedTensor()
         {
             delete[] idx_;
@@ -552,9 +548,6 @@ class IndexedTensor
 template <class Derived>
 class IndexedTensorMult
 {
-    friend double scalar<>(const IndexedTensor<Derived>& other);
-    friend double scalar<>(const IndexedTensorMult<Derived>& other);
-
     friend class IndexableTensor<Derived>;
     friend class IndexedTensor<Derived>;
 
@@ -571,7 +564,7 @@ class IndexedTensorMult
     private:
         const IndexedTensorMult& operator=(const IndexedTensorMult& other);
 
-    protected:
+    public:
         double factor_;
         const IndexedTensor<Derived> A_;
         const IndexedTensor<Derived> B_;
@@ -582,7 +575,6 @@ class IndexedTensorMult
         IndexedTensorMult(const IndexedTensorMult<Derived>& other)
         : factor_(other.factor_), A_(other.A_), B_(other.B_) {}
 
-    public:
         /**********************************************************************
          *
          * Unary negation
