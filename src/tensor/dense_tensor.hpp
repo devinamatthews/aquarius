@@ -253,7 +253,7 @@ class DenseTensor : public LocalTensor<DenseTensor>
 };
 
 template<>
-double scalar(const IndexedTensor<DenseTensor>& other)
+inline double scalar(const IndexedTensor<DenseTensor>& other)
 {
     double res;
     DenseTensor dt(0, (int*)NULL, &res);
@@ -262,7 +262,7 @@ double scalar(const IndexedTensor<DenseTensor>& other)
 }
 
 template<>
-double scalar(const IndexedTensorMult<DenseTensor>& other)
+inline double scalar(const IndexedTensorMult<DenseTensor>& other)
 {
     double res;
     DenseTensor dt(0, (int*)NULL, &res);

@@ -217,7 +217,7 @@ class PackedTensor : public LocalTensor<PackedTensor>
 };
 
 template<>
-double scalar(const IndexedTensor<PackedTensor>& other)
+inline double scalar(const IndexedTensor<PackedTensor>& other)
 {
     double res;
     PackedTensor dt(0, (int*)NULL, (int*)NULL, &res);
@@ -226,7 +226,7 @@ double scalar(const IndexedTensor<PackedTensor>& other)
 }
 
 template<>
-double scalar(const IndexedTensorMult<PackedTensor>& other)
+inline double scalar(const IndexedTensorMult<PackedTensor>& other)
 {
     double res;
     PackedTensor dt(0, (int*)NULL, (int*)NULL, &res);
