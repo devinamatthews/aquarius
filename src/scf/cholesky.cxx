@@ -138,7 +138,7 @@ void CholeskyIntegrals::decompose()
         if (converged) break;
 
         double* maxes = new double[nproc];
-        comm.Allgather(&local_max, 1, DOUBLE, maxes, nproc, DOUBLE);
+        comm.Allgather(&local_max, 1, DOUBLE, maxes, 1, DOUBLE);
 
         int pmax = 0;
         double global_max = 0;

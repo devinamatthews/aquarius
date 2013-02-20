@@ -226,7 +226,7 @@ void pqrs_integrals::collect(Intracomm& comm, const bool rles)
     }
 
     int *rscountall = SAFE_MALLOC(int, nrs*nproc);
-    comm.Allgather(rscount, nrs, INT, rscountall, nrs*nproc, INT);
+    comm.Allgather(rscount, nrs, INT, rscountall, nrs, INT);
 
     FREE(rscount);
 
