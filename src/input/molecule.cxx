@@ -22,9 +22,10 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
+#include "util/math.hpp"
+
 #include "molecule.hpp"
 #include "basis.hpp"
-#include "math.hpp"
 
 #include <map>
 #include <string>

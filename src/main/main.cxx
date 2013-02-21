@@ -64,10 +64,10 @@ int main(int argc, char **argv)
         //chol.test();
 
         PRINT("UHF-SCF\n\n");
-        PRINT("It.         SCF Energy     Residual\n");
+        PRINT("It.            SCF Energy     Residual\n");
         for (int i = 0;scf.iterate();i++)
         {
-            PRINT("%3d %18.15f %12.6e\n", i+1, scf.getEnergy(), scf.getConvergence());
+            PRINT("%3d % 21.15f %12.6e\n", i+1, scf.getEnergy(), scf.getConvergence());
         }
 
         PRINT("\n");
@@ -80,16 +80,25 @@ int main(int argc, char **argv)
         CholeskyMOIntegrals moints(scf);
         CCSD ccsd(config.get("cc"), moints);
 
-        PRINT("UHF-MP2 Energy: %18.15f\n\n", ccsd.getEnergy());
+        PRINT("UHF-MP2 Energy: %.15f\n", ccsd.getEnergy());
 
-        PRINT("UHF-CCSD\n\n");
-        PRINT("It. Correlation Energy     Residual\n");
+        PRINT("\nUHF-CCSD\n\n");
+        PRINT("It.   Correlation Energy     Residual\n");
         for (int i = 0;ccsd.iterate();i++)
         {
-            PRINT("%3d %18.15f %12.6e\n", i+1, ccsd.getEnergy(), ccsd.getConvergence());
+            PRINT("%3d % 20.15f %12.6e\n", i+1, ccsd.getEnergy(), ccsd.getConvergence());
         }
 
-        PRINT("\nFinal Energy: %18.15f\n", scf.getEnergy()+ccsd.getEnergy());
+        LambdaCCSD lambda(config.get("cc"), ccsd);
+
+        PRINT("\nUHF-Lambda-CCSD\n\n");
+        PRINT("It.   Correlation Energy     Residual\n");
+        for (int i = 0;lambda.iterate();i++)
+        {
+            PRINT("%3d % 20.15f %12.6e\n", i+1, lambda.getEnergy(), lambda.getConvergence());
+        }
+
+        PRINT("\nFinal Energy: %.15f\n", scf.getEnergy()+ccsd.getEnergy());
     }
 
     elem::Finalize();

@@ -32,6 +32,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "util/util.h"
+
 /*
  * Symmetry types
  */

@@ -54,6 +54,8 @@ class CCD : public Iterative, public Distributed<double>
 
 class CCSD : public Iterative, public Distributed<double>
 {
+    friend class LambdaCCSD;
+
     protected:
         scf::MOIntegrals& moints;
         tensor::SpinorbitalTensor< tensor::DistTensor<double> > T1, E1, D1, Z1;
@@ -62,6 +64,22 @@ class CCSD : public Iterative, public Distributed<double>
 
     public:
         CCSD(const input::Config& config, scf::MOIntegrals& moints);
+
+        void _iterate();
+};
+
+class LambdaCCSD : public Iterative, public Distributed<double>
+{
+    protected:
+        scf::MOIntegrals& moints;
+        CCSD& ccsd;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > L1, E1, D1, Z1;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > L2, E2, D2, Z2;
+        Hamiltonian H;
+        diis::DIIS< tensor::SpinorbitalTensor< tensor::DistTensor<double> > > diis;
+
+    public:
+        LambdaCCSD(const input::Config& config, CCSD& ccsd);
 
         void _iterate();
 };

@@ -1,7 +1,7 @@
 include ../../config.mk
 include ../../rules.mk
 
-tensor: $(libdir)/libtensor.a
+libs: $(libdir)/libtensor.a
 $(libdir)/libtensor.a: \
 tensor_densify.o \
 tensor_mult_dense.o \
@@ -19,4 +19,5 @@ tensor_symmetrize.o \
 tensor_unpack.o \
 tensor_slice_dense.o \
 tensor_slice.o \
-util.o
+util.o \
+symmetry.o

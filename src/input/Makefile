@@ -1,5 +1,5 @@
 include ../../config.mk
 include ../../rules.mk
 
-input: $(libdir)/libinput.a
-$(libdir)/libinput.a: basis.o config.o math.o molecule.o
+libs: $(libdir)/libinput.a
+$(libdir)/libinput.a: basis.o config.o molecule.o

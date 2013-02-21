@@ -30,7 +30,9 @@
 
 #include "mpi.h"
 
+#ifdef USE_ELEMENTAL
 #include "elemental.hpp"
+#endif
 
 #include "tensor/dist_tensor.hpp"
 #include "slide/slide.hpp"
@@ -60,18 +62,19 @@ class UHF : public Iterative, public Distributed<double>
         diis::DIIS< tensor::DistTensor<double> > diis;
         tensor::DistTensor<double> *Fa, *Fb;
         tensor::DistTensor<double> *dF;
-        tensor::DistTensor<double> *Ca, *Cb;
         tensor::DistTensor<double> *Ca_occ, *Cb_occ;
         tensor::DistTensor<double> *Ca_vrt, *Cb_vrt;
         tensor::DistTensor<double> *Da, *Db;
         tensor::DistTensor<double> *dDa, *dDb;
         tensor::DistTensor<double> *S, *Smhalf;
         tensor::DistTensor<double> *H;
+        #ifdef USE_ELEMENTAL
         elem::Grid grid;
         elem::DistMatrix<double> C_elem;
         elem::DistMatrix<double> S_elem;
         elem::DistMatrix<double> F_elem;
         elem::DistMatrix<double,elem::VR,elem::STAR> E_elem;
+        #endif
 
         void getOverlap();
 

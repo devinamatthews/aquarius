@@ -1,13 +1,8 @@
 all: $(DEFAULT_COMPONENTS)
 
-ALL_COMPONENTS = aquarius slide scf autocc input time cc memory tensor
+ALL_COMPONENTS = libs bins
 
-tensor: memory
-slide: memory
-cc: scf input autocc time memory tensor
-input: slide
-scf: input slide autocc memory tensor
-aquarius: cc input scf slide autocc time memory tensor
+bins: libs
 
 LOWER_NO_UNDERSCORE = 1
 LOWER_UNDERSCORE = 2

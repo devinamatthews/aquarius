@@ -29,12 +29,15 @@
 #include <limits>
 
 using namespace std;
-using namespace elem;
 using namespace MPI;
 using namespace aquarius::slide;
 using namespace aquarius::input;
 using namespace aquarius::diis;
 using namespace aquarius::tensor;
+
+#ifdef USE_ELEMENTAL
+using namespace elem;
+#endif
 
 namespace aquarius
 {
@@ -51,12 +54,14 @@ UHF::UHF(tCTF_World<double>& ctf, const Molecule& molecule, const Config& config
   damping(config.get<double>("damping")),
   Ea(norb),
   Eb(norb),
-  diis(config.get("diis"), 2),
-  grid(comm),
+  diis(config.get("diis"), 2)
+  #ifdef USE_ELEMENTAL
+  ,grid(comm),
   C_elem(norb, norb, grid),
   S_elem(norb, norb, grid),
   F_elem(norb, norb, grid),
   E_elem(norb, 1   , grid)
+  #endif
 {
     energy = molecule.getNuclearRepulsion();
 
@@ -148,6 +153,8 @@ void UHF::getOverlap()
 
     pairs.clear();
 
+    #ifdef USE_ELEMENTAL
+
     int cshift = S_elem.ColShift();
     int rshift = S_elem.RowShift();
     int cstride = S_elem.ColStride();
@@ -189,6 +196,48 @@ void UHF::getOverlap()
     }
 
     Smhalf->writeRemoteData(pairs.size(), pairs.data());
+
+    #else
+
+    int64_t size;
+    double *s;
+    vector<double> work(3*norb);
+    vector<double> smhalf(norb*norb);
+
+    S->getAllData(size, s);
+    assert(size == norb*norb);
+
+    int info = dsyev('V', 'U', norb, s, norb, Ea.data(), work.data(), 3*norb);
+    assert(info == 0);
+
+    fill(smhalf.begin(), smhalf.end(), 0.0);
+    for (int i = 0;i < norb;i++)
+    {
+        dger(norb, norb, 1/sqrt(Ea[i]), s+i*norb, 1, s+i*norb, 1, smhalf.data(), norb);
+    }
+
+    free(s);
+
+    if (comm.Get_rank() == 0)
+    {
+        vector<kv_pair> pairs;
+
+        for (int i = 0;i < norb;i++)
+        {
+            for (int j = 0;j < norb;j++)
+            {
+                pairs.push_back(kv_pair(i+j*norb, smhalf[i+j*norb]));
+            }
+        }
+
+        Smhalf->writeRemoteData(norb*norb, pairs.data());
+    }
+    else
+    {
+        Smhalf->writeRemoteData(0, NULL);
+    }
+
+    #endif
 }
 
 void UHF::get1eHamiltonian()
@@ -244,6 +293,8 @@ void UHF::get1eHamiltonian()
 void UHF::diagonalizeFock()
 {
     vector<kv_pair> pairs;
+
+    #ifdef USE_ELEMENTAL
 
     int cshift = S_elem.ColShift();
     int rshift = S_elem.RowShift();
@@ -348,15 +399,115 @@ void UHF::diagonalizeFock()
         Cb_vrt->writeRemoteData(pairs_vrt.size(), pairs_vrt.data());
     }
 
+    #else
+
+    int64_t size;
+    int info;
+    double *fock, *s;
+    vector<double> work(3*norb);
+
+    S->getAllData(size, s);
+    assert(size == norb*norb);
+    Fa->getAllData(size, fock);
+    assert(size == norb*norb);
+    info = dsygv(1, 'V', 'U', norb, fock, norb, s, norb, Ea.data(), work.data(), 3*norb);
+    assert(info == 0);
+
+    if (comm.Get_rank() == 0)
+    {
+        for (int i = 0;i < nalpha;i++)
+        {
+            for (int p = 0;p < norb;p++)
+            {
+                pairs.push_back(kv_pair(p+i*norb, fock[p+i*norb]));
+            }
+        }
+
+        Ca_occ->writeRemoteData(norb*nalpha, pairs.data());
+        pairs.clear();
+
+        for (int i = 0;i < norb-nalpha;i++)
+        {
+            for (int p = 0;p < norb;p++)
+            {
+                pairs.push_back(kv_pair(p+i*norb, fock[p+(i+nalpha)*norb]));
+            }
+        }
+
+        Ca_vrt->writeRemoteData(norb*(norb-nalpha), pairs.data());
+        pairs.clear();
+    }
+    else
+    {
+        Ca_occ->writeRemoteData(0, NULL);
+        Ca_vrt->writeRemoteData(0, NULL);
+    }
+
+    free(fock);
+    free(s);
+
+    S->getAllData(size, s);
+    assert(size == norb*norb);
+    Fb->getAllData(size, fock);
+    assert(size == norb*norb);
+    info = dsygv(1, 'V', 'U', norb, fock, norb, s, norb, Eb.data(), work.data(), 3*norb);
+    assert(info == 0);
+
+    if (comm.Get_rank() == 0)
+    {
+        for (int i = 0;i < nbeta;i++)
+        {
+            for (int p = 0;p < norb;p++)
+            {
+                pairs.push_back(kv_pair(p+i*norb, fock[p+i*norb]));
+            }
+        }
+
+        Cb_occ->writeRemoteData(norb*nbeta, pairs.data());
+        pairs.clear();
+
+        for (int i = 0;i < norb-nbeta;i++)
+        {
+            for (int p = 0;p < norb;p++)
+            {
+                pairs.push_back(kv_pair(p+i*norb, fock[p+(i+nbeta)*norb]));
+            }
+        }
+
+        Cb_vrt->writeRemoteData(norb*(norb-nbeta), pairs.data());
+    }
+    else
+    {
+        Cb_occ->writeRemoteData(0, NULL);
+        Cb_vrt->writeRemoteData(0, NULL);
+    }
+
+    free(fock);
+    free(s);
+
+    #endif
+
     fixPhase(*Ca_occ);
     fixPhase(*Cb_occ);
     fixPhase(*Ca_vrt);
     fixPhase(*Cb_vrt);
 
-    //cout << "Eigenvalues" << endl;
-    //for (int i = 0;i < norb;i++)
-    //    cout << i << ' ' << Ea[i] << ' ' << Eb[i] << endl;
-    //cout << endl;
+    /*
+    cout << "Eigenvalues" << endl;
+    for (int i = 0;i < norb;i++)
+        cout << i << ' ' << Ea[i] << ' ' << Eb[i] << endl;
+    cout << endl;
+
+    DistTensor<double> test1(*Ca_occ);
+    test1 -= *Cb_occ;
+    test1.print(stdout);
+
+    DistTensor<double> test2(*Ca_vrt);
+    test2 -= *Cb_vrt;
+    test2.print(stdout);
+
+    exit(1);
+    */
 }
 
 void UHF::fixPhase(DistTensor<double>& C)
@@ -365,7 +516,7 @@ void UHF::fixPhase(DistTensor<double>& C)
     int np = comm.Get_size();
     int nr = C.getLengths()[1];
 
-    vector<kv_pair> pairs(norb);
+    vector<kv_pair> pairs(norb, kv_pair(0,0));
 
     for (int b = 0;b*np < nr;b++)
     {
