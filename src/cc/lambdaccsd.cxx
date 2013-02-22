@@ -40,8 +40,8 @@ namespace cc
 
 LambdaCCSD::LambdaCCSD(const Config& config, CCSD& ccsd)
 : Distributed<double>(ccsd.ctf), Iterative(config), moints(ccsd.moints), ccsd(ccsd),
-  L1("i,a"), E1("i,a"), D1("i,a"), Z1("i,a"),
-  L2("ij,ab"), E2("ij,ab"), D2("ij,ab"), Z2("ij,ab"),
+  L1("i,a"), E1("i,a"), D1("i,a"), D1real("i,a"), Z1("i,a"),
+  L2("ij,ab"), E2("ij,ab"), D2("ij,ab"), D2real("ij,ab"), Z2("ij,ab"),
   H(moints, Hamiltonian::FAE|
             Hamiltonian::FMI|
             Hamiltonian::FME|
@@ -76,6 +76,9 @@ LambdaCCSD::LambdaCCSD(const Config& config, CCSD& ccsd)
     D1.addSpinCase(new DistTensor<double>(ctf, 2, sizeIA, shapeNN, false), "I,A", "IA");
     D1.addSpinCase(new DistTensor<double>(ctf, 2, sizeia, shapeNN, false), "i,a", "ia");
 
+    D1real.addSpinCase(new DistTensor<double>(ctf, 2, sizeIA, shapeNN, false), "I,A", "IA");
+    D1real.addSpinCase(new DistTensor<double>(ctf, 2, sizeia, shapeNN, false), "i,a", "ia");
+
     Z1.addSpinCase(new DistTensor<double>(ctf, 2, sizeIA, shapeNN, false), "I,A", "IA");
     Z1.addSpinCase(new DistTensor<double>(ctf, 2, sizeia, shapeNN, false), "i,a", "ia");
 
@@ -91,6 +94,10 @@ LambdaCCSD::LambdaCCSD(const Config& config, CCSD& ccsd)
     D2.addSpinCase(new DistTensor<double>(ctf, 4, sizeIiAa, shapeNNNN, false), "Ij,Ab", "IjAb");
     D2.addSpinCase(new DistTensor<double>(ctf, 4, sizeiiaa, shapeANAN, false), "ij,ab", "ijab");
 
+    D2real.addSpinCase(new DistTensor<double>(ctf, 4, sizeIIAA, shapeANAN, false), "IJ,AB", "IJAB");
+    D2real.addSpinCase(new DistTensor<double>(ctf, 4, sizeIiAa, shapeNNNN, false), "Ij,Ab", "IjAb");
+    D2real.addSpinCase(new DistTensor<double>(ctf, 4, sizeiiaa, shapeANAN, false), "ij,ab", "ijab");
+
     Z2.addSpinCase(new DistTensor<double>(ctf, 4, sizeIIAA, shapeANAN, false), "IJ,AB", "IJAB");
     Z2.addSpinCase(new DistTensor<double>(ctf, 4, sizeIiAa, shapeNNNN, false), "Ij,Ab", "IjAb");
     Z2.addSpinCase(new DistTensor<double>(ctf, 4, sizeiiaa, shapeANAN, false), "ij,ab", "ijab");
@@ -102,6 +109,9 @@ LambdaCCSD::LambdaCCSD(const Config& config, CCSD& ccsd)
     D2["ijab"] += moints.getFIJ()["jj"];
     D2["ijab"] -= moints.getFAB()["aa"];
     D2["ijab"] -= moints.getFAB()["bb"];
+
+    D1real = D1;
+    D2real = D2;
 
     int64_t size;
     double * data;
@@ -345,15 +355,12 @@ void LambdaCCSD::_iterate()
 
     PROFILE_SECTION(calc_EN)
 
-    E1["ia"]     = Z1["ia"]*D1["ia"];
-    E2["ijab"]   = Z2["ijab"]*D2["ijab"];
+    SpinorbitalTensor< DistTensor<double> > L1H(Z1);
+    SpinorbitalTensor< DistTensor<double> > L2H(Z2);
 
-    SpinorbitalTensor< DistTensor<double> > L1H(L1);
-    SpinorbitalTensor< DistTensor<double> > L2H(L2);
-
-    L1H["ia"] -= L1["ia"]*D1["ia"];
+    L1H["ia"] -= L1["ia"]*D1real["ia"];
     L1H["ia"] += L1["ia"]*ccsd.getEnergy();
-    L2H["ijab"] -= L2["ijab"]*D2["ijab"];
+    L2H["ijab"] -= L2["ijab"]*D2real["ijab"];
     L2H["ijab"] += L2["ijab"]*ccsd.getEnergy();
 
     double LL = 1 + scalar(L1*L1) + 0.25*scalar(L2*L2);
@@ -361,8 +368,10 @@ void LambdaCCSD::_iterate()
 
     energy = LHL/LL;
 
+    E1["ia"]     = Z1["ia"]*D1["ia"];
     E1["ia"]    -= L1["ia"];
     L1["ia"]    += E1["ia"];
+    E2["ijab"]   = Z2["ijab"]*D2["ijab"];
     E2["ijab"]  -= L2["ijab"];
     L2["ijab"]  += E2["ijab"];
 
@@ -382,7 +391,7 @@ void LambdaCCSD::_iterate()
     vector<SpinorbitalTensor< DistTensor<double> >*> E(2);
     E[0] = &E1;
     E[1] = &E2;
-    //diis.extrapolate(L, E);
+    diis.extrapolate(L, E);
 
     PROFILE_STOP
 }

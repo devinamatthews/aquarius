@@ -73,8 +73,8 @@ class LambdaCCSD : public Iterative, public Distributed<double>
     protected:
         scf::MOIntegrals& moints;
         CCSD& ccsd;
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> > L1, E1, D1, Z1;
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> > L2, E2, D2, Z2;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > L1, E1, D1, D1real, Z1;
+        tensor::SpinorbitalTensor< tensor::DistTensor<double> > L2, E2, D2, D2real, Z2;
         Hamiltonian H;
         diis::DIIS< tensor::SpinorbitalTensor< tensor::DistTensor<double> > > diis;
 
