@@ -158,14 +158,14 @@ LambdaCCSD::LambdaCCSD(const Config& config, CCSD& ccsd)
     FMI["mi"] += WMNIE["mnif"]*T1["fn"];
     PROFILE_STOP
 
-    PROFILE_SECTION(calc_WMNIE)
-    WMNIE["mnie"] += WMNEF["mnfe"]*T1["fi"];
-    PROFILE_STOP
-
     PROFILE_SECTION(calc_FAE)
     FAE["ae"] = -0.5*WMNEF["mnfe"]*T2["famn"];
     FAE["ae"] -= FME["me"]*T1["am"];
     FAE["ae"] += WABEJ["efan"]*T1["fn"];
+    PROFILE_STOP
+
+    PROFILE_SECTION(calc_WMNIE)
+    WMNIE["mnie"] += WMNEF["mnfe"]*T1["fi"];
     PROFILE_STOP
 
     PROFILE_SECTION(calc_WIJKL)
@@ -182,20 +182,16 @@ LambdaCCSD::LambdaCCSD(const Config& config, CCSD& ccsd)
     PROFILE_STOP
 
     PROFILE_SECTION(calc_WMBEJ)
-    WMBEJ["maei"] += 0.5*WMNEF["mnef"]*T2["afin"];
+    WMBEJ["maei"] += WMNEF["mnef"]*T2["afin"];
     WMBEJ["maei"] += WABEJ["feam"]*T1["fi"];
-    WMBEJ["maei"] -= WMNIE["nmie"]*T1["an"];
-    WMBEJ["maei"] *= 2;
-    WMBEJ["maei"] += moints.getVAIBJ()["amei"];
-    WMBEJ["maei"] -= WAMEF["amfe"]*T1["fi"];
-    WMBEJ["maei"] += 1.5*WMNIE["nmie"]*T1["an"];
+    WMBEJ["maei"] -= 0.5*WMNIE["nmie"]*T1["an"];
     PROFILE_STOP
 
     PROFILE_SECTION(calc_WABCI)
-    WABEJ["abej"] += WAMEF["amef"]*T2["fbmj"];
     WABEJ["abej"] += 0.5*WMNIE["nmje"]*T2["abmn"];
-    WABEJ["abej"] += WABEF["abef"]*T1["fj"];
     WABEJ["abej"] -= WMBEJ["mbej"]*T1["am"];
+    WABEJ["abej"] += WAMEF["amef"]*T2["fbmj"];
+    WABEJ["abej"] += WABEF["abef"]*T1["fj"];
     WABEJ["abej"] -= FME["me"]*T2["abmj"];
     PROFILE_STOP
 
@@ -204,16 +200,16 @@ LambdaCCSD::LambdaCCSD(const Config& config, CCSD& ccsd)
     PROFILE_STOP
 
     PROFILE_SECTION(calc_WABCD)
-    WABEF["abef"] -= WAMEF["amef"]*T1["bm"];
     WABEF["abef"] += 0.5*WMNEF["mnef"]*Tau["abmn"];
+    WABEF["abef"] -= WAMEF["amef"]*T1["bm"];
     PROFILE_STOP
 
     PROFILE_SECTION(calc_WAIBC)
     WAMEF["amef"] -= WMNEF["nmef"]*T1["an"];
     PROFILE_STOP
 
-    L1["ia"] = -H.getFME()["ia"]*D1["ia"];
-    L2["ijab"] = -H.getWMNEF()["ijab"]*D2["ijab"];
+    L1["ia"] = -FME["ia"]*D1["ia"];
+    L2["ijab"] = -WMNEF["ijab"]*D2["ijab"];
 }
 
 void LambdaCCSD::_iterate()
@@ -349,14 +345,28 @@ void LambdaCCSD::_iterate()
 
     PROFILE_SECTION(calc_EN)
 
-    E1["ai"]     = Z1["ai"]*D1["ai"];
-    E1["ai"]    -= L1["ai"];
-    L1["ai"]    += E1["ai"];
-    E2["abij"]   = Z2["abij"]*D2["abij"];
-    E2["abij"]  -= L2["abij"];
-    L2["abij"]  += E2["abij"];
+    E1["ia"]     = Z1["ia"]*D1["ia"];
+    E2["ijab"]   = Z2["ijab"]*D2["ijab"];
 
-    energy = ccsd.energy;
+    SpinorbitalTensor< DistTensor<double> > L1H(L1);
+    SpinorbitalTensor< DistTensor<double> > L2H(L2);
+
+    L1H["ia"] -= L1["ia"]*D1["ia"];
+    L1H["ia"] += L1["ia"]*ccsd.getEnergy();
+    L2H["ijab"] -= L2["ijab"]*D2["ijab"];
+    L2H["ijab"] += L2["ijab"]*ccsd.getEnergy();
+
+    double LL = 1 + scalar(L1*L1) + 0.25*scalar(L2*L2);
+    double LHL = ccsd.getEnergy() + scalar(L1H*L1) + 0.25*scalar(L2H*L2);
+
+    energy = LHL/LL;
+
+    E1["ia"]    -= L1["ia"];
+    L1["ia"]    += E1["ia"];
+    E2["ijab"]  -= L2["ijab"];
+    L2["ijab"]  += E2["ijab"];
+
+    //energy = ccsd.energy;
 
     conv =          E1.getSpinCase(0).reduce(CTF_OP_MAXABS);
     conv = max(conv,E1.getSpinCase(1).reduce(CTF_OP_MAXABS));
@@ -372,7 +382,7 @@ void LambdaCCSD::_iterate()
     vector<SpinorbitalTensor< DistTensor<double> >*> E(2);
     E[0] = &E1;
     E[1] = &E2;
-    diis.extrapolate(L, E);
+    //diis.extrapolate(L, E);
 
     PROFILE_STOP
 }

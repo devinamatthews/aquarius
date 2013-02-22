@@ -29,6 +29,7 @@
 #include "scf/choleskyscf.hpp"
 #include "scf/choleskymoints.hpp"
 #include "cc/cc.hpp"
+#include "time/time.hpp"
 
 #include "fenv.h"
 
@@ -39,6 +40,7 @@ using namespace aquarius::slide;
 using namespace aquarius::input;
 using namespace aquarius::scf;
 using namespace aquarius::cc;
+using namespace aquarius::time;
 
 int main(int argc, char **argv)
 {
@@ -70,11 +72,16 @@ int main(int argc, char **argv)
             PRINT("%3d % 21.15f %12.6e\n", i+1, scf.getEnergy(), scf.getConvergence());
         }
 
+        double s2 = scf.getS2();
+        double mult = scf.getMultiplicity();
+        double na = scf.getAvgNumAlpha();
+        double nb = scf.getAvgNumBeta();
+
         PRINT("\n");
-        PRINT("<S^2>     = %f\n", scf.getS2());
-        PRINT("<2S+1>    = %f\n", scf.getMultiplicity());
-        PRINT("<n_alpha> = %f\n", scf.getAvgNumAlpha());
-        PRINT("<n_beta>  = %f\n", scf.getAvgNumBeta());
+        PRINT("<S^2>     = %f\n", s2);
+        PRINT("<2S+1>    = %f\n", mult);
+        PRINT("<n_alpha> = %f\n", na);
+        PRINT("<n_beta>  = %f\n", nb);
         PRINT("\n");
 
         CholeskyMOIntegrals moints(scf);
@@ -98,7 +105,9 @@ int main(int argc, char **argv)
             PRINT("%3d % 20.15f %12.6e\n", i+1, lambda.getEnergy(), lambda.getConvergence());
         }
 
-        PRINT("\nFinal Energy: %.15f\n", scf.getEnergy()+ccsd.getEnergy());
+        PRINT("\nFinal Energy: %.15f\n\n", scf.getEnergy()+ccsd.getEnergy());
+
+        print_timers();
     }
 
     elem::Finalize();

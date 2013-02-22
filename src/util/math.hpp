@@ -59,6 +59,8 @@ class vec3
 
         const double& operator[](int i) const;
 
+        bool operator==(const vec3& other) const;
+
         operator double*();
 
         operator const double*() const;
@@ -121,6 +123,8 @@ class mat3x3
         column operator[](int i);
 
         const column operator[](int i) const;
+
+        bool operator==(const mat3x3& other) const;
 
         mat3x3 operator*(const mat3x3& other) const;
 

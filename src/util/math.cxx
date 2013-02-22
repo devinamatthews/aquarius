@@ -59,6 +59,13 @@ vec3::vec3(const vec3& other)
     v[2] = other[2];
 };
 
+bool vec3::operator==(const vec3& other) const
+{
+    return v[0] == other[0] &&
+           v[1] == other[1] &&
+           v[2] == other[2];
+}
+
 vec3& vec3::operator+=(const vec3& other)
 {
     v[0] += other[0];
@@ -250,6 +257,13 @@ mat3x3::column mat3x3::operator[](int i)
 const mat3x3::column mat3x3::operator[](int i) const
 {
     return column(m[0][i], m[1][i], m[2][i]);
+}
+
+bool mat3x3::operator==(const mat3x3& other) const
+{
+    return m[0][0] == other[0][0] && m[0][1] == other[0][1] && m[0][2] == other[0][2] &&
+           m[1][0] == other[1][0] && m[1][1] == other[1][1] && m[1][2] == other[1][2] &&
+           m[2][0] == other[2][0] && m[2][1] == other[2][1] && m[2][2] == other[2][2];
 }
 
 mat3x3 mat3x3::operator*(const mat3x3& other) const
