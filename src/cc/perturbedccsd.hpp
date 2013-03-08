@@ -105,6 +105,9 @@ class PerturbedCCSD : public Iterative, public op::ExcitationOperator<U,2>
             const tensor::SpinorbitalTensor< tensor::DistTensor<U> >& XIA = x.getIA();
             const tensor::SpinorbitalTensor< tensor::DistTensor<U> >& XIJ = x.getIJ();
 
+            TX[0] = 0;
+            X[0] = 0;
+
             XTIJ["mi"] += XIA["me"]*T[1]["ei"];
             XTAB["ae"] -= XIA["me"]*T[1]["am"];
 
@@ -180,6 +183,9 @@ class PerturbedCCSD : public Iterative, public op::ExcitationOperator<U,2>
             tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMNIE = xt.getIJKA();
             tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMBIJ = xt.getIAJK();
             tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WAMEI = xt.getAIBJ();
+
+            TX[0] = 0;
+            X[0] = 0;
 
             tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T[2]);
             Tau["abij"] += 0.5*T[1]["ai"]*T[1]["bj"];

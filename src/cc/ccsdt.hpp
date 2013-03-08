@@ -119,8 +119,8 @@ class CCSDT : public Iterative, public op::ExponentialOperator<U,3>
                 data[i] = 1./data[i];
             }
 
-            Z[0] = 1;
-            T[0] = 1;
+            Z[0] = 0;
+            T[0] = 0;
             T[1] = moints.getAI()*D[1];
             T[2] = moints.getABIJ()*D[2];
             T[3] = 0;
