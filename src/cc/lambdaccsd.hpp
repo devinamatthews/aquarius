@@ -47,10 +47,10 @@ template <typename U>
 class LambdaCCSD : public Iterative, public op::DeexcitationOperator<U,2>
 {
     protected:
+        op::DeexcitationOperator<U,2>& L;
+        op::DeexcitationOperator<U,2> Z, D, Dreal;
         op::TwoElectronOperator<U> H;
         const CCSD<U>& T;
-        op::DeexcitationOperator<U,2> D, Dreal, Z;
-        op::DeexcitationOperator<U,2>& L;
         convergence::DIIS< op::DeexcitationOperator<U,2> > diis;
 
     public:
@@ -204,11 +204,11 @@ class LambdaCCSD : public Iterative, public op::DeexcitationOperator<U,2>
             Z -= L;
             L += Z;
 
-            conv =          Z[1].getSpinCase(0).reduce(CTF_OP_MAXABS);
-            conv = max(conv,Z[1].getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = max(conv,Z[2].getSpinCase(0).reduce(CTF_OP_MAXABS));
-            conv = max(conv,Z[2].getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = max(conv,Z[2].getSpinCase(2).reduce(CTF_OP_MAXABS));
+            conv =               Z[1].getSpinCase(0).reduce(CTF_OP_MAXABS);
+            conv = std::max(conv,Z[1].getSpinCase(1).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z[2].getSpinCase(0).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z[2].getSpinCase(1).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z[2].getSpinCase(2).reduce(CTF_OP_MAXABS));
 
             diis.extrapolate(L, Z);
         }

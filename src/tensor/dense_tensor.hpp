@@ -88,7 +88,7 @@ class DenseTensor : public LocalTensor< DenseTensor<T>,T >
         }
         */
 
-        DenseTensor(const DenseTensor<T>& A, const CopyType type=CLONE)
+        DenseTensor(const DenseTensor<T>& A, const typename LocalTensor<DenseTensor<T>,T>::CopyType type=CLONE)
         : LocalTensor< DenseTensor<T>,T >(A, type) {}
 
         DenseTensor(const int ndim, const int *len, T* data, const bool zero=false)
@@ -262,7 +262,7 @@ template <typename T>
 inline double scalar(const IndexedTensor< DenseTensor<T>,T >& other)
 {
     T res;
-    DenseTensor dt(0, (int*)NULL, &res);
+    DenseTensor<T> dt(0, (int*)NULL, &res);
     dt[""] = other;
     return res;
 }
@@ -271,7 +271,7 @@ template <typename T>
 inline double scalar(const IndexedTensorMult< DenseTensor<T>,T >& other)
 {
     T res;
-    DenseTensor dt(0, (int*)NULL, &res);
+    DenseTensor<T> dt(0, (int*)NULL, &res);
     dt[""] = other;
     return res;
 }

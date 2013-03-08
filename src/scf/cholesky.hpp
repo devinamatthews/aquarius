@@ -111,8 +111,8 @@ class CholeskyIntegrals : public Distributed<T>
             int shapeSNN[] = {SY,NS,NS};
             int sizeffff[] = {nfunc,nfunc,nfunc,nfunc};
             int shapeNNNN[] = {NS,NS,NS,NS};
-            tensor::DistTensor<T> LD(ctf, 3, sizeffr, shapeSNN, false);
-            tensor::DistTensor<T> ints(ctf, 4, sizeffff, shapeNNNN, false);
+            tensor::DistTensor<T> LD(this->ctf, 3, sizeffr, shapeSNN, false);
+            tensor::DistTensor<T> ints(this->ctf, 4, sizeffff, shapeNNNN, false);
 
             context = new slide::Context();
 
@@ -156,7 +156,7 @@ class CholeskyIntegrals : public Distributed<T>
                                 }
                             }
 
-                            if (comm.Get_rank() == 0)
+                            if (this->comm.Get_rank() == 0)
                             {
                                 ints.getRemoteData(ni*nj*nk*nl, pairs);
 
@@ -191,7 +191,7 @@ class CholeskyIntegrals : public Distributed<T>
                 m += shells[i].getNFunc()*shells[i].getNContr();
             }
 
-            if (comm.Get_rank() == 0)
+            if (this->comm.Get_rank() == 0)
             {
                 err = sqrt(err / ndiag / ndiag);
                 printf("RMS error: %.15e\n\n", err);
@@ -251,9 +251,9 @@ class CholeskyIntegrals : public Distributed<T>
             int max_block_size = 0;
             for (int block = 0;block < nblock_local;block++)
             {
-                max_block_size = max(max_block_size, block_size[block]);
+                max_block_size = std::max(max_block_size, block_size[block]);
                 block_data[block] = new T[block_size[block]*ndiag];
-                fill(block_data[block], block_data[block]+block_size[block]*ndiag, 0.0);
+                std::fill(block_data[block], block_data[block]+block_size[block]*ndiag, 0.0);
             }
 
             this->comm.Allreduce(MPI::IN_PLACE, &max_block_size, 1, MPI::INT, MPI::MAX);
@@ -386,8 +386,8 @@ class CholeskyIntegrals : public Distributed<T>
 
                         int o = m + shells[i].getIdx()[0];
                         int p = n + shells[j].getIdx()[0];
-                        //key idx = max(o,p)*(max(o,p)+1)/2 + min(o,p);
-                        key idx = max(o,p)*nfunc + min(o,p);
+                        //key idx = std::max(o,p)*(std::max(o,p)+1)/2 + std::min(o,p);
+                        key idx = std::max(o,p)*nfunc + std::min(o,p);
                         //printf("%d %d %d %d\n", i, j, shells[i].getIdx()[0], shells[j].getIdx()[0]);
                         for (int r = 0;r < rank;r++)
                         {
@@ -485,7 +485,7 @@ class CholeskyIntegrals : public Distributed<T>
                     if (diag[cur].shelli == diag[end].shelli &&
                         diag[cur].shellj == diag[end].shellj)
                     {
-                        rotate(diag+(++cur), diag+end, diag+end+1);
+                        std::rotate(diag+(++cur), diag+end, diag+end+1);
                     }
                 }
 
@@ -737,9 +737,6 @@ class CholeskyIntegrals : public Distributed<T>
             if (!found) return;
 
             //printf("subblock: %d %d\n", l, diag[l].nblock);
-            int controff1 = shells[diag_j[0].shelli].getNContr() * shells[diag_j[0].shellj].getNContr();
-            int funcoff1 = shells[diag_j[0].shelli].getNFunc() * shells[diag_j[0].shellj].getNFunc();
-            int controff2 = shells[diag_i[0].shelli].getNContr() * shells[diag_i[0].shellj].getNContr();
 
             context->calcERI(1.0, 0.0, shells[diag_j[0].shelli], shells[diag_j[0].shellj],
                                       shells[diag_i[0].shelli], shells[diag_i[0].shellj]);

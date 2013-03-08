@@ -901,7 +901,7 @@ template <typename T>
 double scalar(const IndexedTensor< SpinorbitalTensor< DistTensor<T> >, T >& other)
 {
     DistTensor<T> dt(other.tensor_.getSpinCase(0).getCTF());
-    SpinorbitalTensor< DistTensor<T>, T > sodt(",");
+    SpinorbitalTensor< DistTensor<T> > sodt(",");
     sodt.addSpinCase(dt, ",", "");
     size_t n;
     T ret, *val;

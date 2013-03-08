@@ -146,11 +146,11 @@ class EOMEECCSD : public Iterative, public op::ExcitationOperator<U,2>
 
             energy = davidson.extrapolate(R, Z, D);
 
-            conv =          Z[1].getSpinCase(0).reduce(CTF_OP_MAXABS);
-            conv = max(conv,Z[1].getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = max(conv,Z[2].getSpinCase(0).reduce(CTF_OP_MAXABS));
-            conv = max(conv,Z[2].getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = max(conv,Z[2].getSpinCase(2).reduce(CTF_OP_MAXABS));
+            conv =               Z[1].getSpinCase(0).reduce(CTF_OP_MAXABS);
+            conv = std::max(conv,Z[1].getSpinCase(1).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z[2].getSpinCase(0).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z[2].getSpinCase(1).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z[2].getSpinCase(2).reduce(CTF_OP_MAXABS));
         }
 };
 

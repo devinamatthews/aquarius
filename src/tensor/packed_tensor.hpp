@@ -57,7 +57,7 @@ class PackedTensor : public LocalTensor<PackedTensor<T>,T>
             data_[0] = val;
         }
 
-        PackedTensor(const PackedTensor<T>& A, const CopyType type=CLONE)
+        PackedTensor(const PackedTensor<T>& A, const typename LocalTensor<PackedTensor<T>,T>::CopyType type=CLONE)
         : LocalTensor< PackedTensor<T>,T >(A, type)
         {
             sym_ = SAFE_MALLOC(int, ndim_);
@@ -224,7 +224,7 @@ template <typename T>
 inline T scalar(const IndexedTensor<PackedTensor<T>,T>& other)
 {
     T res;
-    PackedTensor dt(0, (int*)NULL, (int*)NULL, &res);
+    PackedTensor<T> dt(0, (int*)NULL, (int*)NULL, &res);
     dt[""] = other;
     return res;
 }
@@ -233,7 +233,7 @@ template <typename T>
 inline double scalar(const IndexedTensorMult< PackedTensor<T>,T >& other)
 {
     T res;
-    PackedTensor dt(0, (int*)NULL, (int*)NULL, &res);
+    PackedTensor<T> dt(0, (int*)NULL, (int*)NULL, &res);
     dt[""] = other;
     return res;
 }

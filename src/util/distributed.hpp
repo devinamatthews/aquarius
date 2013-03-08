@@ -63,12 +63,11 @@ template <typename T>
 class Distributed
 {
     public:
+        tCTF_World<T>& ctf;
         MPI::Intracomm comm;
         const MPI::Datatype type;
         const int rank;
         const int nproc;
-
-        tCTF_World<T>& ctf;
 
         Distributed(tCTF_World<T>& ctf)
         : ctf(ctf), comm(ctf.comm), type(MPI_TYPE_<T>::value()),

@@ -32,17 +32,17 @@
 
 #define PROFILE_FUNCTION \
 { \
-static int __timer = register_timer(__func__); \
-tic();
+static int __timer = time::register_timer(__func__); \
+time::tic();
 
 #define PROFILE_SECTION(name) \
 { \
-static int __timer = register_timer(#name); \
-tic();
+static int __timer = time::register_timer(#name); \
+time::tic();
 
 #define PROFILE_STOP \
-timespec __time = toc(); \
-inc_timer(__timer, __time); \
+timespec __time = time::toc(); \
+time::inc_timer(__timer, __time); \
 }
 
 #else

@@ -97,6 +97,8 @@ void reorder_from_indices(const int n, const int* idx1, const int* idx2, int* re
 
 int validate_tensor(const int ndim, const int* len, const int* ld, const int* sym);
 
+#ifndef __cplusplus
+
 void index_connectivity(const int ndim_A, const int* sym_A, const int* idx_A,
                         const int ndim_B, const int* sym_B, const int* idx_B,
                         bool G[ndim_A+ndim_B][ndim_A+ndim_B]);
@@ -105,7 +107,7 @@ int connected_components(const int n, const bool G[n][n], int cc[n], int len[n])
 
 int connected_component(const int n, const bool G[n][n], const int i, bool seen[n], int** cc);
 
-#ifdef __cplusplus
+#else
 }
 #endif
 

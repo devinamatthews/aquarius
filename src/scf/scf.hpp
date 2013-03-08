@@ -180,7 +180,7 @@ class UHF : public Iterative, public Distributed<T>
             tensor::DistTensor<T> tmp(this->ctf, 2, sizean, shapeNN, false);
 
             T ndiff = abs(nalpha-nbeta);
-            int nmin = min(nalpha, nbeta);
+            int nmin = std::min(nalpha, nbeta);
 
             T S2 = (ndiff/2)*(ndiff/2+1) + nmin;
 
