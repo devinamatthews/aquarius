@@ -191,8 +191,8 @@ void transpose(const int m, const int n, const double alpha, const double* A, co
  *
  * the sointegrals buffer is larger than aointegrals sinces of multiple irreps can be generated from one ao
  */
-void ao2so2(const shell_t* a, const shell_t* b, const int r, double* aointegrals, double* sointegrals);
-void ao2so4(const shell_t* a, const shell_t* b, const shell_t* c, const shell_t* d, const int r, const int t, const int st, double* aointegrals, double* sointegrals);
+void ao2so2(const shell_t* a, const shell_t* b, const size_t length, const int r, double* aointegrals, double* sointegrals);
+void ao2so4(const shell_t* a, const shell_t* b, const shell_t* c, const shell_t* d, const size_t length, const int r, const int t, const int st, double* aointegrals, double* sointegrals);
 void cart2spher2r(const shell_t* a, const shell_t* b, const int nprim, double* buf1, double* buf2);
 void cart2spher2l(const shell_t* a, const shell_t* b, const int nprim, double* buf1, double* buf2);
 void cart2spher4r(const shell_t* a, const shell_t* b, const shell_t* c, const shell_t* d, const int nprim, double* buf1, double* buf2);

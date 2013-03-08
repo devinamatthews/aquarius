@@ -19,5 +19,4 @@ tensor_symmetrize.o \
 tensor_unpack.o \
 tensor_slice_dense.o \
 tensor_slice.o \
-util.o \
-symmetry.o
+util.o

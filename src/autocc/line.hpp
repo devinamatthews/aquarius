@@ -56,8 +56,6 @@ class Manifold
 
         Manifold(const Manifold& other) : np(other.np), nh(other.nh) {}
 
-        Manifold(const char *s);
-
         Manifold(const std::string& s);
 
         Manifold(int ex) : np(ex), nh(ex) {}
@@ -110,7 +108,7 @@ class Line
 
         Line(unsigned int index, unsigned int type);
 
-        static std::vector<Line> parse(std::string s);
+        static std::vector<Line> parse(const std::string& s);
 
         //operator unsigned int() const;
 
@@ -121,6 +119,8 @@ class Line
         bool operator<(const Line& other) const;
 
         bool operator==(const Line& other) const;
+
+        bool operator!=(const Line& other) const;
 
         int getType() const;
 

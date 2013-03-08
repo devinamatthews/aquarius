@@ -35,16 +35,20 @@
 #include "tensor.h"
 #include "tensor.hpp"
 
-#define INHERIT_FROM_LOCAL_TENSOR(Derived)              \
-    friend class aquarius::tensor::LocalTensor< Derived >;                \
-    INHERIT_FROM_INDEXABLE_TENSOR(Derived)                        \
+#define INHERIT_FROM_LOCAL_TENSOR(Derived, T)              \
+    friend class aquarius::tensor::LocalTensor< Derived, T >;                \
+    INHERIT_FROM_INDEXABLE_TENSOR(Derived, T)                        \
     protected:                                          \
-        using aquarius::tensor::LocalTensor< Derived >::ld_;       \
-        using aquarius::tensor::LocalTensor< Derived >::size_;     \
-        using aquarius::tensor::LocalTensor< Derived >::data_;     \
+        using aquarius::tensor::LocalTensor< Derived, T >::len_;       \
+        using aquarius::tensor::LocalTensor< Derived, T >::ld_;       \
+        using aquarius::tensor::LocalTensor< Derived, T >::size_;     \
+        using aquarius::tensor::LocalTensor< Derived, T >::data_;     \
     public:                                             \
-        using aquarius::tensor::LocalTensor< Derived >::CopyType;  \
-        using aquarius::tensor::LocalTensor< Derived >::getSize;   \
+        using typename aquarius::tensor::LocalTensor< Derived, T >::CopyType;  \
+        using aquarius::tensor::LocalTensor< Derived, T >::CLONE;  \
+        using aquarius::tensor::LocalTensor< Derived, T >::REFERENCE;  \
+        using aquarius::tensor::LocalTensor< Derived, T >::REPLACE;  \
+        using aquarius::tensor::LocalTensor< Derived, T >::getSize;   \
     private:
 
 #define CHECK_RETURN_VALUE(ret) \
@@ -92,9 +96,9 @@ namespace tensor
 {
 
 template <class Derived, class T=double>
-class LocalTensor : public IndexableTensor<Derived>
+class LocalTensor : public IndexableTensor<Derived,T>
 {
-    INHERIT_FROM_INDEXABLE_TENSOR(Derived)
+    INHERIT_FROM_INDEXABLE_TENSOR(Derived,T)
 
     protected:
         int* len_;
@@ -107,7 +111,7 @@ class LocalTensor : public IndexableTensor<Derived>
         enum CopyType {CLONE, REFERENCE, REPLACE};
 
         LocalTensor(const Derived& A, const CopyType type=CLONE)
-        : IndexableTensor<Derived>(A.ndim_), size_(A.size_)
+        : IndexableTensor<Derived,T>(A.ndim_), size_(A.size_)
         {
             len_ = SAFE_MALLOC(int, ndim_);
             std::copy(A.len_, A.len_+ndim_, len_);
@@ -142,7 +146,7 @@ class LocalTensor : public IndexableTensor<Derived>
         }
 
         LocalTensor(const int ndim, const int *len, const int *ld, uint64_t size, T* data, const bool zero = false)
-        : IndexableTensor<Derived>(ndim), size_(size)
+        : IndexableTensor<Derived,T>(ndim), size_(size)
         {
             #ifdef VALIDATE_INPUTS
             if (validate_tensor(ndim,len,ld,NULL) != TENSOR_SUCCESS)
@@ -170,7 +174,7 @@ class LocalTensor : public IndexableTensor<Derived>
         }
 
         LocalTensor(int ndim, const int *len, const int *ld, uint64_t size, bool zero = true)
-        : IndexableTensor<Derived>(ndim), size_(size)
+        : IndexableTensor<Derived,T>(ndim), size_(size)
         {
             #ifdef VALIDATE_INPUTS
             if (validate_tensor(ndim,len,ld,NULL) != TENSOR_SUCCESS)
@@ -210,9 +214,23 @@ class LocalTensor : public IndexableTensor<Derived>
 
         uint64_t getSize() const { return size_; }
 
-        virtual Derived& operator=(const T val)
+        virtual Derived& operator*=(const Derived& other)
         {
-            std::fill(data_, data_+size_, val);
+            assert(size_ == other.size_);
+            for (uint64_t i = 0;i < size_;i++)
+            {
+                data_[i] *= other.data_[i];
+            }
+            return static_cast<Derived&>(*this);
+        }
+
+        virtual Derived& operator/=(const Derived& other)
+        {
+            assert(size_ == other.size_);
+            for (uint64_t i = 0;i < size_;i++)
+            {
+                data_[i] /= other.data_[i];
+            }
             return static_cast<Derived&>(*this);
         }
 

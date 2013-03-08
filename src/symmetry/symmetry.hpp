@@ -22,19 +22,17 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_TENSOR_SYMMETRY_HPP_
-#define _AQUARIUS_TENSOR_SYMMETRY_HPP_
+#ifndef _AQUARIUS_SYMMETRY_HPP_
+#define _AQUARIUS_SYMMETRY_HPP_
 
 #include <stdint.h>
 #include <cassert>
 
 #include "util/math.hpp"
 
-#include "tensor.hpp"
-
 namespace aquarius
 {
-namespace tensor
+namespace symmetry
 {
 
 class Representation;
@@ -119,6 +117,26 @@ class PointGroup
              */
             return this == &other;
         }
+
+        int getOrder() const { return order; }
+
+        int getNumIrreps() const { return nirrep; }
+
+        const char* getName() const { return name; }
+
+        const Representation* getIrreps() const { return irreps; }
+
+        const Representation& getIrrep(int i) const { return irreps[i]; }
+
+        const char * getIrrepName(int i) const { return irrep_names[i]; }
+
+        const mat3x3* getOps() const { return ops; }
+
+        const mat3x3& getOp(int i) const { return ops[i]; }
+
+        const char * getOpName(int i) const { return op_names[i]; }
+
+        const Representation& totallySymmetricIrrep() const { return irreps[0]; }
 };
 
 class Representation
@@ -207,13 +225,6 @@ class Representation
             bits |= other.bits;
             return *this;
         }
-};
-
-template <class Base>
-class SymmetryBlockedTensor : public IndexableTensor< SymmetryBlockedTensor<Base> >
-{
-    protected:
-        const PointGroup& pg;
 };
 
 }

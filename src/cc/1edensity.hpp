@@ -22,63 +22,53 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_UTIL_DISTRIBUTED_HPP_
-#define _AQUARIUS_UTIL_DISTRIBUTED_HPP_
+#ifndef _AQUARIUS_CC_1EDENSITY_HPP_
+#define _AQUARIUS_CC_1EDENSITY_HPP_
 
-#include <complex>
-
-#include "ctf.hpp"
+#include "util/distributed.hpp"
+#include "tensor/spinorbital.hpp"
+#include "tensor/dist_tensor.hpp"
+#include "scf/scf.hpp"
+#include "operator/excitationoperator.hpp"
+#include "operator/deexcitationoperator.hpp"
+#include "operator/1eoperator.hpp"
 
 namespace aquarius
 {
-
-template <typename T>
-struct MPI_TYPE_ {};
-
-template <>
-struct MPI_TYPE_<float>
+namespace cc
 {
-    static MPI::Datatype value() { return MPI::FLOAT; }
-};
 
-template <>
-struct MPI_TYPE_<double>
-{
-    static MPI::Datatype value() { return MPI::DOUBLE; }
-};
-
-template <>
-struct MPI_TYPE_< std::complex<float> >
-{
-    static MPI::Datatype value() { return MPI::COMPLEX; }
-};
-
-template <>
-struct MPI_TYPE_< std::complex<double> >
-{
-    static MPI::Datatype value() { return MPI::DOUBLE_COMPLEX; }
-};
-
-template <typename T>
-class Distributed
+template <typename U>
+class OneElectronDensity : public op::OneElectronOperator<U>
 {
     public:
-        MPI::Intracomm comm;
-        const MPI::Datatype type;
-        const int rank;
-        const int nproc;
+        OneElectronDensity(const scf::UHF<U>& uhf)
+        : op::OneElectronOperator<U>(uhf)
+        {
+            //TODO: SCF density
+            assert(0);
+        }
 
-        tCTF_World<T>& ctf;
+        OneElectronDensity(const DeexcitationOperator<U,2>& L, const ExponentialOperator<U,2>& T)
+        : op::OneElectronOperator<U>(L.getSCF())
+        {
+            this->ia["ijab"] = -L[1]["ia"];
 
-        Distributed(tCTF_World<T>& ctf)
-        : ctf(ctf), comm(ctf.comm), type(MPI_TYPE_<T>::value()),
-          rank(comm.Get_rank()), nproc(comm.Get_size()) {}
+            this->ab["ab"] = -0.5*T[2]["aemn"]*L[2]["mnbe"];
 
-        Distributed(const Distributed<T>& other)
-        : ctf(other.ctf), comm(ctf.comm), type(MPI_TYPE_<T>::value()),
-          rank(comm.Get_rank()), nproc(comm.Get_size()) {}
+            this->ij["ij"] = T[1]["ei"]*L[1]["je"];
+            this->ij["ij"] += 0.5*T[2]["efim"]*L[2]["jmef"];
+
+            this->ai["ai"] = T[1]["ai"];
+            this->ai["ai"] -= T[2]["aeim"]*L[1]["me"];
+            this->ai["ai"] += this->ij["mi"]*T[1]["am"];
+            this->ai["ai"] -= this->ab["ae"]*T[1]["ei"];
+
+            this->ab["ab"] -= T[1]["am"]*L[1]["mb"];
+        }
 };
 
+}
 }
 
 #endif

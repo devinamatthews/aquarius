@@ -35,16 +35,22 @@ namespace aquarius
 namespace tensor
 {
 
-class DenseTensor : public LocalTensor<DenseTensor>
-{
-    friend class PackedTensor;
-    friend class IndexedTensor<DenseTensor>;
+template <typename T> class PackedTensor;
 
-    INHERIT_FROM_LOCAL_TENSOR(DenseTensor)
+template <typename T>
+class DenseTensor : public LocalTensor< DenseTensor<T>,T >
+{
+    friend class PackedTensor<T>;
+    friend class IndexedTensor< DenseTensor<T>,T >;
+
+    INHERIT_FROM_LOCAL_TENSOR(DenseTensor<T>,T)
 
     public:
-        DenseTensor()
-        : LocalTensor<DenseTensor>(0, (int*)NULL, (int*)NULL, 1) {}
+        DenseTensor(const T val=0.0)
+        : LocalTensor< DenseTensor<T>,T >(0, (int*)NULL, (int*)NULL, 1)
+        {
+            data_[0] = val;
+        }
 
         /*
         DenseTensor(const PackedTensor& A)
@@ -82,20 +88,20 @@ class DenseTensor : public LocalTensor<DenseTensor>
         }
         */
 
-        DenseTensor(const DenseTensor& A, const CopyType type=CLONE)
-        : LocalTensor<DenseTensor>(A, type) {}
+        DenseTensor(const DenseTensor<T>& A, const CopyType type=CLONE)
+        : LocalTensor< DenseTensor<T>,T >(A, type) {}
 
-        DenseTensor(const int ndim, const int *len, double* data, const bool zero=false)
-        : LocalTensor<DenseTensor>(ndim, len, NULL, getSize(ndim, len, NULL), data, zero) {}
+        DenseTensor(const int ndim, const int *len, T* data, const bool zero=false)
+        : LocalTensor< DenseTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL), data, zero) {}
 
         DenseTensor(const int ndim, const int *len, const bool zero=true)
-        : LocalTensor<DenseTensor>(ndim, len, NULL, getSize(ndim, len, NULL), zero) {}
+        : LocalTensor< DenseTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL), zero) {}
 
-        DenseTensor(const int ndim, const int *len, const int *ld, double* data, const bool zero=false)
-        : LocalTensor<DenseTensor>(ndim, len, ld, getSize(ndim, len, ld), data, zero) {}
+        DenseTensor(const int ndim, const int *len, const int *ld, T* data, const bool zero=false)
+        : LocalTensor< DenseTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld), data, zero) {}
 
         DenseTensor(const int ndim, const int *len, const int *ld, const bool zero=true)
-        : LocalTensor<DenseTensor>(ndim, len, ld, getSize(ndim, len, ld), zero) {}
+        : LocalTensor< DenseTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld), zero) {}
 
         static uint64_t getSize(const int ndim, const int *len, const int *ld)
         {
@@ -185,9 +191,9 @@ class DenseTensor : public LocalTensor<DenseTensor>
              */
         }
 
-        void mult(const double alpha, const DenseTensor& A, const int* idx_A,
-                                                   const DenseTensor& B, const int* idx_B,
-                               const double beta,                        const int* idx_C)
+        void mult(const T alpha, const DenseTensor<T>& A, const int* idx_A,
+                                 const DenseTensor<T>& B, const int* idx_B,
+                  const T beta,                           const int* idx_C)
         {
             CHECK_RETURN_VALUE(
             tensor_mult_dense_(alpha, A.data_, A.ndim_, A.len_, A.ld_, idx_A,
@@ -195,15 +201,15 @@ class DenseTensor : public LocalTensor<DenseTensor>
                                beta,    data_,   ndim_,   len_,   ld_, idx_C));
         }
 
-        void sum(const double alpha, const DenseTensor& A, const int* idx_A,
-                              const double beta,                        const int* idx_B)
+        void sum(const T alpha, const DenseTensor<T>& A, const int* idx_A,
+                 const T beta,                           const int* idx_B)
         {
             CHECK_RETURN_VALUE(
             tensor_sum_dense_(alpha, A.data_, A.ndim_, A.len_, A.ld_, idx_A,
                               beta,    data_,   ndim_,   len_,   ld_, idx_B));
         }
 
-        void scale(const double alpha, const int* idx_A)
+        void scale(const T alpha, const int* idx_A)
         {
             CHECK_RETURN_VALUE(
             tensor_scale_dense_(alpha, data_, ndim_, len_, ld_, idx_A));
@@ -223,7 +229,7 @@ class DenseTensor : public LocalTensor<DenseTensor>
 
         const DenseTensor slice(const int* start, const int* len) const
         {
-            double* B;
+            T* B;
             int ndim_B;
             std::vector<int> len_B(ndim_);
             std::vector<int> ldb(ndim_);
@@ -238,7 +244,7 @@ class DenseTensor : public LocalTensor<DenseTensor>
 
         DenseTensor slice(const int* start, const int* len)
         {
-            double* B;
+            T* B;
             int ndim_B;
             std::vector<int> len_B(ndim_);
             std::vector<int> ldb(ndim_);
@@ -252,19 +258,19 @@ class DenseTensor : public LocalTensor<DenseTensor>
         }
 };
 
-template<>
-inline double scalar(const IndexedTensor<DenseTensor>& other)
+template <typename T>
+inline double scalar(const IndexedTensor< DenseTensor<T>,T >& other)
 {
-    double res;
+    T res;
     DenseTensor dt(0, (int*)NULL, &res);
     dt[""] = other;
     return res;
 }
 
-template<>
-inline double scalar(const IndexedTensorMult<DenseTensor>& other)
+template <typename T>
+inline double scalar(const IndexedTensorMult< DenseTensor<T>,T >& other)
 {
-    double res;
+    T res;
     DenseTensor dt(0, (int*)NULL, &res);
     dt[""] = other;
     return res;

@@ -35,7 +35,7 @@
 
 namespace aquarius
 {
-namespace diis
+namespace convergence
 {
 
 template<typename T, typename U = T>

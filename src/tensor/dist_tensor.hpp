@@ -157,9 +157,12 @@ int conv_idx(const int ndim_A, const T* cidx_A, int*& iidx_A,
 }
 
 template <typename T>
-class DistTensor : public IndexableTensor< DistTensor<T> >, public Distributed<T>
+class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed<T>
 {
-    INHERIT_FROM_INDEXABLE_TENSOR(DistTensor<T>)
+    INHERIT_FROM_INDEXABLE_TENSOR(DistTensor<T>,T)
+
+    private:
+        static tCTF_World<T>* global_ctf;
 
     protected:
         int tid;
@@ -169,8 +172,24 @@ class DistTensor : public IndexableTensor< DistTensor<T> >, public Distributed<T
     public:
         using Distributed<T>::ctf;
 
+        DistTensor(const T val)
+        : IndexableTensor< DistTensor<T>,T >(),
+          Distributed<T>(*(global_ctf == NULL ? new tCTF_World<T>(MPI_COMM_WORLD) : global_ctf))
+        {
+            global_ctf = &this->ctf;
+
+            len_ = SAFE_MALLOC(int, ndim_);
+            sym_ = SAFE_MALLOC(int, ndim_);
+
+            int ret = ctf.ctf->define_tensor(ndim_, len_, sym_, &tid);
+            assert(ret == DIST_TENSOR_SUCCESS);
+
+            tkv_pair<T> p(0, val);
+            writeRemoteData(1, &p);
+        }
+
         DistTensor(tCTF_World<T>& ctf)
-        : IndexableTensor< DistTensor<T> >(), Distributed<T>(ctf)
+        : IndexableTensor< DistTensor<T>,T >(), Distributed<T>(ctf)
         {
             len_ = SAFE_MALLOC(int, ndim_);
             sym_ = SAFE_MALLOC(int, ndim_);
@@ -182,7 +201,7 @@ class DistTensor : public IndexableTensor< DistTensor<T> >, public Distributed<T
         DistTensor(const DistTensor<T>& A,
                    const bool copy=true,
                    const bool zero=false)
-        : IndexableTensor< DistTensor<T> >(A.ndim_), Distributed<T>(A.ctf)
+        : IndexableTensor< DistTensor<T>,T >(A.ndim_), Distributed<T>(A.ctf)
         {
             len_ = SAFE_MALLOC(int, ndim_);
             sym_ = SAFE_MALLOC(int, ndim_);
@@ -207,7 +226,7 @@ class DistTensor : public IndexableTensor< DistTensor<T> >, public Distributed<T
         DistTensor(tCTF_World<T>& ctf,
                    const int ndim, const int *len, const int *sym,
                    const bool zero=true)
-        : IndexableTensor< DistTensor<T> >(ndim), Distributed<T>(ctf)
+        : IndexableTensor< DistTensor<T>,T >(ndim), Distributed<T>(ctf)
         {
             len_ = SAFE_MALLOC(int, ndim_);
             sym_ = SAFE_MALLOC(int, ndim_);
@@ -247,17 +266,17 @@ class DistTensor : public IndexableTensor< DistTensor<T> >, public Distributed<T
             return ctf;
         }
 
-        double* getRawData(int64_t& size)
+        T* getRawData(int64_t& size)
         {
-            double *data;
+            T *data;
             int ret = ctf.ctf->get_raw_data(tid, &data, &size);
             assert(ret == DIST_TENSOR_SUCCESS);
             return data;
         }
 
-        const double* getRawData(int64_t& size) const
+        const T* getRawData(int64_t& size) const
         {
-            double *data;
+            T *data;
             int ret = ctf.ctf->get_raw_data(tid, &data, &size);
             assert(ret == DIST_TENSOR_SUCCESS);
             return data;
@@ -281,7 +300,7 @@ class DistTensor : public IndexableTensor< DistTensor<T> >, public Distributed<T
             assert(ret == DIST_TENSOR_SUCCESS);
         }
 
-        void addRemoteData(int64_t npair, double alpha, double beta, tkv_pair<T>* pairs)
+        void addRemoteData(int64_t npair, T alpha, T beta, tkv_pair<T>* pairs)
         {
             int ret = ctf.ctf->write_tensor(tid, npair, alpha, beta, pairs);
             assert(ret == DIST_TENSOR_SUCCESS);
@@ -293,11 +312,31 @@ class DistTensor : public IndexableTensor< DistTensor<T> >, public Distributed<T
             assert(ret == DIST_TENSOR_SUCCESS);
         }
 
-        DistTensor<T>& operator=(const double val)
+        DistTensor<T>& operator*=(const DistTensor<T>& other)
         {
-            int64_t size;
-            double* raw_data = getRawData(size);
-            std::fill(raw_data, raw_data+size, val);
+            ctf.ctf->align(tid, other.tid);
+            int64_t size1, size2;
+            T* raw_data1 = getRawData(size1);
+            const T* raw_data2 = other.getRawData(size2);
+            assert(size1 == size2);
+            for (int64_t i = 0;i < size1;i++)
+            {
+                raw_data1[i] *= raw_data2[i];
+            }
+            return *this;
+        }
+
+        DistTensor<T>& operator/=(const DistTensor<T>& other)
+        {
+            ctf.ctf->align(tid, other.tid);
+            int64_t size1, size2;
+            T* raw_data1 = getRawData(size1);
+            const T* raw_data2 = other.getRawData(size2);
+            assert(size1 == size2);
+            for (int64_t i = 0;i < size1;i++)
+            {
+                raw_data1[i] /= raw_data2[i];
+            }
             return *this;
         }
 
@@ -370,7 +409,10 @@ class DistTensor : public IndexableTensor< DistTensor<T> >, public Distributed<T
 };
 
 template <typename T>
-double scalar(const IndexedTensor< DistTensor<T> >& other)
+tCTF_World<T>* DistTensor<T>::global_ctf = NULL;
+
+template <typename T>
+double scalar(const IndexedTensor< DistTensor<T>, T >& other)
 {
     DistTensor<T> dt(other.tensor_.ctf);
     int64_t n;
@@ -384,7 +426,7 @@ double scalar(const IndexedTensor< DistTensor<T> >& other)
 }
 
 template <typename T>
-double scalar(const IndexedTensorMult< DistTensor<T> >& other)
+double scalar(const IndexedTensorMult< DistTensor<T>, T >& other)
 {
     DistTensor<T> dt(other.A_.tensor_.ctf);
     int64_t n;

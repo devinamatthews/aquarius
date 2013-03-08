@@ -28,6 +28,8 @@
 #include "util/distributed.hpp"
 #include "tensor/dist_tensor.hpp"
 #include "tensor/spinorbital.hpp"
+#include "operator/2eoperator.hpp"
+
 #include "scf.hpp"
 
 namespace aquarius
@@ -35,71 +37,196 @@ namespace aquarius
 namespace scf
 {
 
-class MOIntegrals : public Distributed<double>
+template <typename T>
+class MOIntegrals : public op::TwoElectronOperator<T>
 {
     protected:
-        const scf::UHF& uhf;
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> > fab;
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> > fai;
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> > fij;
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> > ijkl;
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> > ijka;
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> > abij;
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> > aibj;
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> > abci;
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> > abcd;
-        tensor::DistTensor<double> *fAB_;
-        tensor::DistTensor<double> *fab_;
-        tensor::DistTensor<double> *fAI_;
-        tensor::DistTensor<double> *fai_;
-        tensor::DistTensor<double> *fIJ_;
-        tensor::DistTensor<double> *fij_;
-        tensor::DistTensor<double> *IJKL_;
-        tensor::DistTensor<double> *IjKl_;
-        tensor::DistTensor<double> *ijkl_;
-        tensor::DistTensor<double> *IJKA_;
-        tensor::DistTensor<double> *IjKa_;
-        tensor::DistTensor<double> *iJkA_;
-        tensor::DistTensor<double> *ijka_;
-        tensor::DistTensor<double> *ABIJ_;
-        tensor::DistTensor<double> *AbIj_;
-        tensor::DistTensor<double> *abij_;
-        tensor::DistTensor<double> *AIBJ_;
-        tensor::DistTensor<double> *AiBj_;
-        tensor::DistTensor<double> *aIbJ_;
-        tensor::DistTensor<double> *aibj_;
-        tensor::DistTensor<double> *ABCI_;
-        tensor::DistTensor<double> *AbCi_;
-        tensor::DistTensor<double> *aBcI_;
-        tensor::DistTensor<double> *abci_;
-        tensor::DistTensor<double> *ABCD_;
-        tensor::DistTensor<double> *AbCd_;
-        tensor::DistTensor<double> *abcd_;
+        tensor::DistTensor<T> *fAB_;
+        tensor::DistTensor<T> *fab_;
+        tensor::DistTensor<T> *fAI_;
+        tensor::DistTensor<T> *fai_;
+        tensor::DistTensor<T> *fIJ_;
+        tensor::DistTensor<T> *fij_;
+        tensor::DistTensor<T> *IJKL_;
+        tensor::DistTensor<T> *IjKl_;
+        tensor::DistTensor<T> *ijkl_;
+        tensor::DistTensor<T> *IJKA_;
+        tensor::DistTensor<T> *IjKa_;
+        tensor::DistTensor<T> *iJkA_;
+        tensor::DistTensor<T> *ijka_;
+        tensor::DistTensor<T> *ABIJ_;
+        tensor::DistTensor<T> *AbIj_;
+        tensor::DistTensor<T> *abij_;
+        tensor::DistTensor<T> *AIBJ_;
+        tensor::DistTensor<T> *AiBj_;
+        tensor::DistTensor<T> *aIbJ_;
+        tensor::DistTensor<T> *aibj_;
+        tensor::DistTensor<T> *ABCI_;
+        tensor::DistTensor<T> *AbCi_;
+        tensor::DistTensor<T> *aBcI_;
+        tensor::DistTensor<T> *abci_;
+        tensor::DistTensor<T> *ABCD_;
+        tensor::DistTensor<T> *AbCd_;
+        tensor::DistTensor<T> *abcd_;
 
-        MOIntegrals(const scf::UHF& uhf);
+        MOIntegrals(const scf::UHF<T>& uhf)
+        : op::TwoElectronOperator<T>(uhf)
+        {
+            int N = uhf.getMolecule().getNumOrbitals();
+            int nI = uhf.getMolecule().getNumAlphaElectrons();
+            int ni = uhf.getMolecule().getNumBetaElectrons();
+            int nA = N-nI;
+            int na = N-ni;
 
-    public:
-        const scf::UHF& getSCF() const { return uhf; }
+            int sizeAA[] = {nA, nA};
+            int sizeaa[] = {na, na};
+            int sizeAI[] = {nA, nI};
+            int sizeai[] = {na, ni};
+            int sizeII[] = {nI, nI};
+            int sizeii[] = {ni, ni};
 
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFAB()   { return  fab; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFAI()   { return  fai; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFIJ()   { return  fij; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVIJKL() { return ijkl; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVIJKA() { return ijka; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVABIJ() { return abij; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVAIBJ() { return aibj; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVABCI() { return abci; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVABCD() { return abcd; }
+            int sizeIIII[] = {nI, nI, nI, nI};
+            int sizeIiIi[] = {nI, ni, nI, ni};
+            int sizeiiii[] = {ni, ni, ni, ni};
+            int sizeIIIA[] = {nI, nI, nI, nA};
+            int sizeIiIa[] = {nI, ni, nI, na};
+            int sizeiIiA[] = {ni, nI, ni, nA};
+            int sizeiiia[] = {ni, ni, ni, na};
+            int sizeAAII[] = {nA, nA, nI, nI};
+            int sizeAaIi[] = {nA, na, nI, ni};
+            int sizeaaii[] = {na, na, ni, ni};
+            int sizeAIAI[] = {nA, nI, nA, nI};
+            int sizeAiAi[] = {nA, ni, nA, ni};
+            int sizeaIaI[] = {na, nI, na, nI};
+            int sizeaiai[] = {na, ni, na, ni};
+            int sizeAAAI[] = {nA, nA, nA, nI};
+            int sizeAaAi[] = {nA, na, nA, ni};
+            int sizeaAaI[] = {na, nA, na, nI};
+            int sizeaaai[] = {na, na, na, ni};
+            int sizeAAAA[] = {nA, nA, nA, nA};
+            int sizeAaAa[] = {nA, na, nA, na};
+            int sizeaaaa[] = {na, na, na, na};
 
-        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFAB() const   { return  fab; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFAI() const   { return  fai; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getFIJ() const   { return  fij; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVIJKL() const { return ijkl; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVIJKA() const { return ijka; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVABIJ() const { return abij; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVAIBJ() const { return aibj; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVABCI() const { return abci; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<double> >& getVABCD() const { return abcd; }
+            int shapeNN[] = {NS, NS};
+            int shapeNNNN[] = {NS, NS, NS, NS};
+            int shapeANNN[] = {AS, NS, NS, NS};
+            int shapeANAN[] = {AS, NS, AS, NS};
+
+            fAB_ = new tensor::DistTensor<T>(this->ctf, 2, sizeAA, shapeNN, true);
+            fab_ = new tensor::DistTensor<T>(this->ctf, 2, sizeaa, shapeNN, true);
+            fAI_ = new tensor::DistTensor<T>(this->ctf, 2, sizeAI, shapeNN, true);
+            fai_ = new tensor::DistTensor<T>(this->ctf, 2, sizeai, shapeNN, true);
+            fIJ_ = new tensor::DistTensor<T>(this->ctf, 2, sizeII, shapeNN, true);
+            fij_ = new tensor::DistTensor<T>(this->ctf, 2, sizeii, shapeNN, true);
+            IJKL_ = new tensor::DistTensor<T>(this->ctf, 4, sizeIIII, shapeANAN, false);
+            IjKl_ = new tensor::DistTensor<T>(this->ctf, 4, sizeIiIi, shapeNNNN, false);
+            ijkl_ = new tensor::DistTensor<T>(this->ctf, 4, sizeiiii, shapeANAN, false);
+            IJKA_ = new tensor::DistTensor<T>(this->ctf, 4, sizeIIIA, shapeANNN, false);
+            IjKa_ = new tensor::DistTensor<T>(this->ctf, 4, sizeIiIa, shapeNNNN, false);
+            iJkA_ = new tensor::DistTensor<T>(this->ctf, 4, sizeiIiA, shapeNNNN, false);
+            ijka_ = new tensor::DistTensor<T>(this->ctf, 4, sizeiiia, shapeANNN, false);
+            ABIJ_ = new tensor::DistTensor<T>(this->ctf, 4, sizeAAII, shapeANAN, false);
+            AbIj_ = new tensor::DistTensor<T>(this->ctf, 4, sizeAaIi, shapeNNNN, false);
+            abij_ = new tensor::DistTensor<T>(this->ctf, 4, sizeaaii, shapeANAN, false);
+            AIBJ_ = new tensor::DistTensor<T>(this->ctf, 4, sizeAIAI, shapeNNNN, false);
+            AiBj_ = new tensor::DistTensor<T>(this->ctf, 4, sizeAiAi, shapeNNNN, false);
+            aIbJ_ = new tensor::DistTensor<T>(this->ctf, 4, sizeaIaI, shapeNNNN, false);
+            aibj_ = new tensor::DistTensor<T>(this->ctf, 4, sizeaiai, shapeNNNN, false);
+            ABCI_ = new tensor::DistTensor<T>(this->ctf, 4, sizeAAAI, shapeANNN, false);
+            AbCi_ = new tensor::DistTensor<T>(this->ctf, 4, sizeAaAi, shapeNNNN, false);
+            aBcI_ = new tensor::DistTensor<T>(this->ctf, 4, sizeaAaI, shapeNNNN, false);
+            abci_ = new tensor::DistTensor<T>(this->ctf, 4, sizeaaai, shapeANNN, false);
+            ABCD_ = new tensor::DistTensor<T>(this->ctf, 4, sizeAAAA, shapeANAN, false);
+            AbCd_ = new tensor::DistTensor<T>(this->ctf, 4, sizeAaAa, shapeNNNN, false);
+            abcd_ = new tensor::DistTensor<T>(this->ctf, 4, sizeaaaa, shapeANAN, false);
+
+            this->ab.addSpinCase(fAB_, "A,B", "AB");
+            this->ab.addSpinCase(fab_, "a,b", "ab");
+
+            this->ai.addSpinCase(fAI_, "A,I", "AI");
+            this->ai.addSpinCase(fai_, "a,i", "ai");
+
+            this->ij.addSpinCase(fIJ_, "I,J", "IJ");
+            this->ij.addSpinCase(fij_, "i,j", "ij");
+
+            this->ijkl.addSpinCase(IJKL_, "IJ,KL", "IJKL");
+            this->ijkl.addSpinCase(IjKl_, "Ij,Kl", "IjKl");
+            this->ijkl.addSpinCase(ijkl_, "ij,kl", "ijkl");
+
+            this->ijka.addSpinCase(IJKA_, "IJ,KA", "IJKA");
+            this->ijka.addSpinCase(IjKa_, "Ij,Ka", "IjKa");
+            this->ijka.addSpinCase(iJkA_, "iJ,kA", "iJkA");
+            this->ijka.addSpinCase(ijka_, "ij,ka", "ijka");
+
+            this->abij.addSpinCase(ABIJ_, "AB,IJ", "ABIJ");
+            this->abij.addSpinCase(AbIj_, "Ab,Ij", "AbIj");
+            this->abij.addSpinCase(abij_, "ab,ij", "abij");
+
+            this->aibj.addSpinCase(AIBJ_, "AI,BJ", "AIBJ");
+            this->aibj.addSpinCase(AiBj_, "Ai,Bj", "AiBj");
+            this->aibj.addSpinCase(aIbJ_, "aI,bJ", "aIbJ");
+            this->aibj.addSpinCase(aibj_, "ai,bj", "aibj");
+            this->aibj.addSpinCase(*AbIj_, "Ai,bJ", "AbJi", -1.0);
+            this->aibj.addSpinCase(*AbIj_, "aI,Bj", "BaIj", -1.0);
+
+            this->abci.addSpinCase(ABCI_, "AB,CI", "ABCI");
+            this->abci.addSpinCase(AbCi_, "Ab,Ci", "AbCi");
+            this->abci.addSpinCase(aBcI_, "aB,cI", "aBcI");
+            this->abci.addSpinCase(abci_, "ab,ci", "abci");
+
+            this->abcd.addSpinCase(ABCD_, "AB,CD", "ABCD");
+            this->abcd.addSpinCase(AbCd_, "Ab,Cd", "AbCd");
+            this->abcd.addSpinCase(abcd_, "ab,cd", "abcd");
+
+            const T* ea = uhf.getAlphaEigenvalues();
+            const T* eb = uhf.getBetaEigenvalues();
+            int rank = this->comm.Get_rank();
+            int np = this->comm.Get_size();
+
+            {
+                std::vector< tkv_pair<T> > pairs;
+
+                for (int i = 0;i < nI;i++)
+                {
+                    if (i%np == rank) pairs.push_back(tkv_pair<T>(i+i*nI, ea[i]));
+                }
+
+                fIJ_->writeRemoteData(pairs.size(), pairs.data());
+            }
+
+            {
+                std::vector< tkv_pair<T> > pairs;
+
+                for (int i = 0;i < ni;i++)
+                {
+                    if (i%np == rank) pairs.push_back(tkv_pair<T>(i+i*ni, eb[i]));
+                }
+
+                fij_->writeRemoteData(pairs.size(), pairs.data());
+            }
+
+            {
+                std::vector< tkv_pair<T> > pairs;
+
+                for (int i = 0;i < nA;i++)
+                {
+                    if (i%np == rank) pairs.push_back(tkv_pair<T>(i+i*nA, ea[i+nI]));
+                }
+
+                fAB_->writeRemoteData(pairs.size(), pairs.data());
+            }
+
+            {
+                std::vector< tkv_pair<T> > pairs;
+
+                for (int i = 0;i < na;i++)
+                {
+                    if (i%np == rank) pairs.push_back(tkv_pair<T>(i+i*na, eb[i+ni]));
+                }
+
+                fab_->writeRemoteData(pairs.size(), pairs.data());
+            }
+        }
 };
 
 }

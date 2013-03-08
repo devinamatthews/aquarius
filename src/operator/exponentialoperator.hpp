@@ -22,63 +22,34 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_UTIL_DISTRIBUTED_HPP_
-#define _AQUARIUS_UTIL_DISTRIBUTED_HPP_
+#ifndef _AQUARIUS_OPERATOR_EXPONENTIALOPERATOR_HPP_
+#define _AQUARIUS_OPERATOR_EXPONENTIALOPERATOR_HPP_
 
-#include <complex>
+#include <exception>
 
-#include "ctf.hpp"
+#include "tensor/dist_tensor.hpp"
+#include "tensor/spinorbital.hpp"
+#include "tensor/util.h"
+#include "util/util.h"
+#include "util/distributed.hpp"
+#include "scf/scf.hpp"
+
+#include "excitationoperator.hpp"
 
 namespace aquarius
 {
-
-template <typename T>
-struct MPI_TYPE_ {};
-
-template <>
-struct MPI_TYPE_<float>
+namespace op
 {
-    static MPI::Datatype value() { return MPI::FLOAT; }
-};
 
-template <>
-struct MPI_TYPE_<double>
-{
-    static MPI::Datatype value() { return MPI::DOUBLE; }
-};
-
-template <>
-struct MPI_TYPE_< std::complex<float> >
-{
-    static MPI::Datatype value() { return MPI::COMPLEX; }
-};
-
-template <>
-struct MPI_TYPE_< std::complex<double> >
-{
-    static MPI::Datatype value() { return MPI::DOUBLE_COMPLEX; }
-};
-
-template <typename T>
-class Distributed
+template <typename T, int np, int nh=np>
+class ExponentialOperator : public ExcitationOperator<T,np,nh>
 {
     public:
-        MPI::Intracomm comm;
-        const MPI::Datatype type;
-        const int rank;
-        const int nproc;
-
-        tCTF_World<T>& ctf;
-
-        Distributed(tCTF_World<T>& ctf)
-        : ctf(ctf), comm(ctf.comm), type(MPI_TYPE_<T>::value()),
-          rank(comm.Get_rank()), nproc(comm.Get_size()) {}
-
-        Distributed(const Distributed<T>& other)
-        : ctf(other.ctf), comm(ctf.comm), type(MPI_TYPE_<T>::value()),
-          rank(comm.Get_rank()), nproc(comm.Get_size()) {}
+        ExponentialOperator(const scf::UHF<T>& uhf)
+        : ExcitationOperator<T,np,nh>(uhf) {}
 };
 
+}
 }
 
 #endif

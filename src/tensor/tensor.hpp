@@ -38,9 +38,9 @@ namespace aquarius
 namespace tensor
 {
 
-template <class Derived> class IndexableTensor;
-template <class Derived> class IndexedTensor;
-template <class Derived> class IndexedTensorMult;
+template <class Derived, class T> class IndexableTensor;
+template <class Derived, class T> class IndexedTensor;
+template <class Derived, class T> class IndexedTensorMult;
 
 class TensorError;
 class OutOfBoundsError;
@@ -54,31 +54,46 @@ class SymmetryMismatchError;
 class InvalidSymmetryError;
 class InvalidStartError;
 
-#define INHERIT_FROM_INDEXABLE_TENSOR(Derived) \
-    friend class aquarius::tensor::IndexableTensor< Derived >; \
+#define INHERIT_FROM_INDEXABLE_TENSOR(Derived,T) \
+    friend class aquarius::tensor::IndexableTensor< Derived, T >; \
     protected: \
-        using aquarius::tensor::IndexableTensor< Derived >::ndim_; \
+        using aquarius::tensor::IndexableTensor< Derived, T >::ndim_; \
     public: \
-        using aquarius::tensor::IndexableTensor< Derived >::mult; \
-        using aquarius::tensor::IndexableTensor< Derived >::sum; \
-        using aquarius::tensor::IndexableTensor< Derived >::scale; \
-        using aquarius::tensor::IndexableTensor< Derived >::operator=; \
-        using aquarius::tensor::IndexableTensor< Derived >::operator+=; \
-        using aquarius::tensor::IndexableTensor< Derived >::operator-=; \
+        using aquarius::tensor::IndexableTensor< Derived, T >::mult; \
+        using aquarius::tensor::IndexableTensor< Derived, T >::sum; \
+        using aquarius::tensor::IndexableTensor< Derived, T >::scale; \
+        using aquarius::tensor::IndexableTensor< Derived, T >::operator=; \
+        using aquarius::tensor::IndexableTensor< Derived, T >::operator+=; \
+        using aquarius::tensor::IndexableTensor< Derived, T >::operator-=; \
+        using aquarius::tensor::IndexableTensor< Derived, T >::operator*=; \
+        using aquarius::tensor::IndexableTensor< Derived, T >::operator/=; \
+        using typename aquarius::tensor::IndexableTensor< Derived, T >::dtype; \
         Derived & operator=(const Derived & other) \
         { \
-            static_cast< aquarius::tensor::IndexableTensor< Derived >* >(this)->operator=(other); \
+            static_cast< aquarius::tensor::IndexableTensor< Derived, T >* >(this)->operator=(other); \
             return *this; \
         } \
     private:
 
-template <class Derived>
+template <class Derived, typename T>
 class IndexableTensor
 {
+    friend IndexedTensor<Derived,T> operator*(const double factor, Derived& other)
+    {
+        return other*factor;
+    }
+
+    friend const IndexedTensor<Derived,T> operator*(const double factor, const Derived& other)
+    {
+        return other*factor;
+    }
+
     protected:
         int ndim_;
 
     public:
+        typedef T dtype;
+
         IndexableTensor(const int ndim = 0)
         : ndim_(ndim) {}
 
@@ -91,14 +106,14 @@ class IndexableTensor
          * Explicit indexing operations
          *
          *********************************************************************/
-        IndexedTensor<Derived> operator[](const char* idx)
+        IndexedTensor<Derived, T> operator[](const char* idx)
         {
-            return IndexedTensor<Derived>(*(Derived*)this, idx);
+            return IndexedTensor<Derived, T>(*(Derived*)this, idx);
         }
 
-        const IndexedTensor<Derived> operator[](const char* idx) const
+        const IndexedTensor<Derived, T> operator[](const char* idx) const
         {
-            return IndexedTensor<Derived>(*(Derived*)this, idx);
+            return IndexedTensor<Derived, T>(*(Derived*)this, idx);
         }
 
         /**********************************************************************
@@ -106,74 +121,147 @@ class IndexableTensor
          * Operators with scalars
          *
          *********************************************************************/
-        virtual Derived& operator=(const double val) = 0;
+        Derived& operator=(const T val)
+        {
+            Derived tensor(val);
 
-        Derived& operator*=(const double val)
+            std::vector<char> idx(ndim_+1);
+            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
+            idx[ndim_] = 0;
+
+            (*this)[idx.data()] = tensor[""];
+
+            return static_cast<Derived&>(*this);
+        }
+
+        Derived& operator+=(const T val)
+        {
+            Derived tensor(val);
+
+            std::vector<char> idx(ndim_+1);
+            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
+            idx[ndim_] = 0;
+
+            (*this)[idx.data()] += tensor[""];
+
+            return static_cast<Derived&>(*this);
+        }
+
+        Derived& operator-=(const T val)
+        {
+            Derived tensor(val);
+
+            std::vector<char> idx(ndim_+1);
+            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
+            idx[ndim_] = 0;
+
+            (*this)[idx.data()] -= tensor[""];
+
+            return static_cast<Derived&>(*this);
+        }
+
+        Derived& operator*=(const T val)
         {
             scale(val);
             return static_cast<Derived&>(*this);
         }
 
-        IndexedTensor<Derived> operator*(const double factor)
+        Derived& operator/=(const T val)
         {
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            return IndexedTensor<Derived>(*(Derived*)this, idx.data())*factor;
+            scale(1.0/val);
+            return static_cast<Derived&>(*this);
         }
 
-        const IndexedTensor<Derived> operator*(const double factor) const
+        IndexedTensor<Derived, T> operator*(const T factor)
         {
             std::vector<char> idx(ndim_+1);
             for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
             idx[ndim_] = 0;
 
-            return IndexedTensor<Derived>(*(Derived*)this, idx.data())*factor;
+            return (*this)[idx.data()]*factor;
+        }
+
+        const IndexedTensor<Derived, T> operator*(const T factor) const
+        {
+            std::vector<char> idx(ndim_+1);
+            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
+            idx[ndim_] = 0;
+
+            return (*this)[idx.data()]*factor;
+        }
+
+        IndexedTensor<Derived, T> operator-()
+        {
+            std::vector<char> idx(ndim_+1);
+            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
+            idx[ndim_] = 0;
+
+            return (*this)[idx.data()]*(-1);
+        }
+
+        const IndexedTensor<Derived, T> operator-() const
+        {
+            std::vector<char> idx(ndim_+1);
+            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
+            idx[ndim_] = 0;
+
+            return (*this)[idx.data()]*(-1);
         }
 
         /**********************************************************************
          *
-         * Implicitly indexed binary operations (inner product only)
+         * Implicitly indexed binary operations (inner product, trace, and weighting)
          *
          *********************************************************************/
-        Derived& operator=(const IndexedTensorMult<Derived>& other)
+        Derived& operator=(const IndexedTensorMult<Derived, T>& other)
         {
             #ifdef VALIDATE_INPUTS
-            if (ndim_ != 0) throw InvalidNdimError();
             if (strcmp(other.A_.idx_, other.B_.idx_) != 0) throw IndexMismatchError();
             #endif //VALIDATE_INPUTS
 
-            (*this)[""] = other;
+            std::vector<char> idx(ndim_+1);
+            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
+            idx[ndim_] = 0;
+
+            (*this)[idx.data()] = other;
 
             return static_cast<Derived&>(*this);
         }
 
-        Derived& operator+=(const IndexedTensorMult<Derived>& other)
+        Derived& operator+=(const IndexedTensorMult<Derived, T>& other)
         {
             #ifdef VALIDATE_INPUTS
             if (ndim_ != 0) throw InvalidNdimError();
             #endif //VALIDATE_INPUTS
 
-            (*this)[""] += other;
+            std::vector<char> idx(ndim_+1);
+            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
+            idx[ndim_] = 0;
+
+            (*this)[idx.data()] += other;
 
             return static_cast<Derived&>(*this);
         }
 
-        Derived& operator-=(const IndexedTensorMult<Derived>& other)
+        Derived& operator-=(const IndexedTensorMult<Derived, T>& other)
         {
             #ifdef VALIDATE_INPUTS
             if (ndim_ != 0) throw InvalidNdimError();
             #endif //VALIDATE_INPUTS
 
-            (*this)[""] -= other;
+            std::vector<char> idx(ndim_+1);
+            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
+            idx[ndim_] = 0;
+
+            (*this)[idx.data()] -= other;
 
             return static_cast<Derived&>(*this);
         }
 
         /**********************************************************************
          *
-         * Implicitly indexed unary operations (assignment and summation)
+         * Implicitly indexed unary operations (assignment, summation,
+         * multiplication, and division)
          *
          *********************************************************************/
         Derived& operator=(const Derived& other)
@@ -221,57 +309,61 @@ class IndexableTensor
             return static_cast<Derived&>(*this);
         }
 
-        Derived& operator=(const IndexedTensor<Derived>& other)
+        virtual Derived& operator*=(const Derived& other) = 0;
+
+        virtual Derived& operator/=(const Derived& other) = 0;
+
+        Derived& operator=(const IndexedTensor<Derived, T>& other)
         {
-            #ifdef VALIDATE_INPUTS
-            if (ndim_ != other.tensor_.ndim_) throw InvalidNdimError();
-            #endif //VALIDATE_INPUTS
+            //#ifdef VALIDATE_INPUTS
+            //if (ndim_ != other.tensor_.ndim_) throw InvalidNdimError();
+            //#endif //VALIDATE_INPUTS
 
             std::vector<char> idx(ndim_+1);
             for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
             idx[ndim_] = 0;
 
-            #ifdef VALIDATE_INPUTS
-            if (strcmp(idx.data(), other.idx_) != 0) throw IndexMismatchError();
-            #endif //VALIDATE_INPUTS
+            //#ifdef VALIDATE_INPUTS
+            //if (strcmp(idx.data(), other.idx_) != 0) throw IndexMismatchError();
+            //#endif //VALIDATE_INPUTS
 
             (*this)[idx.data()] = other;
 
             return static_cast<Derived&>(*this);
         }
 
-        Derived& operator+=(const IndexedTensor<Derived>& other)
+        Derived& operator+=(const IndexedTensor<Derived, T>& other)
         {
-            #ifdef VALIDATE_INPUTS
-            if (ndim_ != other.tensor_.ndim_) throw InvalidNdimError();
-            #endif //VALIDATE_INPUTS
+            //#ifdef VALIDATE_INPUTS
+            //if (ndim_ != other.tensor_.ndim_) throw InvalidNdimError();
+            //#endif //VALIDATE_INPUTS
 
             std::vector<char> idx(ndim_+1);
             for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
             idx[ndim_] = 0;
 
-            #ifdef VALIDATE_INPUTS
-            if (strcmp(idx.data(), other.idx_) != 0) throw IndexMismatchError();
-            #endif //VALIDATE_INPUTS
+            //#ifdef VALIDATE_INPUTS
+            //if (strcmp(idx.data(), other.idx_) != 0) throw IndexMismatchError();
+            //#endif //VALIDATE_INPUTS
 
             (*this)[idx.data()] += other;
 
             return static_cast<Derived&>(*this);
         }
 
-        Derived& operator-=(const IndexedTensor<Derived>& other)
+        Derived& operator-=(const IndexedTensor<Derived, T>& other)
         {
-            #ifdef VALIDATE_INPUTS
-            if (ndim_ != other.tensor_.ndim_) throw InvalidNdimError();
-            #endif //VALIDATE_INPUTS
+            //#ifdef VALIDATE_INPUTS
+            //if (ndim_ != other.tensor_.ndim_) throw InvalidNdimError();
+            //#endif //VALIDATE_INPUTS
 
             std::vector<char> idx(ndim_+1);
             for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
             idx[ndim_] = 0;
 
-            #ifdef VALIDATE_INPUTS
-            if (strcmp(idx.data(), other.idx_) != 0) throw IndexMismatchError();
-            #endif //VALIDATE_INPUTS
+            //#ifdef VALIDATE_INPUTS
+            //if (strcmp(idx.data(), other.idx_) != 0) throw IndexMismatchError();
+            //#endif //VALIDATE_INPUTS
 
             (*this)[idx.data()] -= other;
 
@@ -280,10 +372,10 @@ class IndexableTensor
 
         /**********************************************************************
          *
-         * Implicit dot product
+         * Implicit multiplication
          *
          *********************************************************************/
-        IndexedTensorMult<Derived> operator*(const Derived& other) const
+        IndexedTensorMult<Derived, T> operator*(const Derived& other) const
         {
             #ifdef VALIDATE_INPUTS
             if (ndim_ != other.ndim_) throw InvalidNdimError();
@@ -293,8 +385,8 @@ class IndexableTensor
             for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
             idx[ndim_] = 0;
 
-            IndexedTensorMult<Derived> itm(IndexedTensor<Derived>(*(Derived*)this, idx),
-                                           IndexedTensor<Derived>(other, idx));
+            IndexedTensorMult<Derived, T> itm(IndexedTensor<Derived, T>(*(Derived*)this, idx),
+                                              IndexedTensor<Derived, T>(other, idx));
 
             delete[] idx;
 
@@ -306,9 +398,9 @@ class IndexableTensor
          * Binary tensor operations (multiplication)
          *
          *********************************************************************/
-        void mult(const double alpha, const Derived& A, const char* idx_A,
-                                      const Derived& B, const char* idx_B,
-                  const double beta,                    const char* idx_C)
+        void mult(const T alpha, const Derived& A, const char* idx_A,
+                                 const Derived& B, const char* idx_B,
+                  const T beta,                    const char* idx_C)
         {
             int *idx_A_ = new int[A.ndim_];
             int *idx_B_ = new int[B.ndim_];
@@ -327,9 +419,9 @@ class IndexableTensor
             delete[] idx_C_;
         }
 
-        virtual void mult(const double alpha, const Derived& A, const int* idx_A,
-                                              const Derived& B, const int* idx_B,
-                          const double beta,                    const int* idx_C) = 0;
+        virtual void mult(const T alpha, const Derived& A, const int* idx_A,
+                                         const Derived& B, const int* idx_B,
+                          const T beta,                    const int* idx_C) = 0;
 
 
         /**********************************************************************
@@ -337,8 +429,8 @@ class IndexableTensor
          * Unary tensor operations (summation)
          *
          *********************************************************************/
-        void sum(const double alpha, const Derived& A, const char* idx_A,
-                 const double beta,                    const char* idx_B)
+        void sum(const T alpha, const Derived& A, const char* idx_A,
+                 const T beta,                    const char* idx_B)
         {
             int *idx_A_ = new int[A.ndim_];
             int *idx_B_ = new int[ndim_];
@@ -353,8 +445,8 @@ class IndexableTensor
             delete[] idx_B_;
         }
 
-        virtual void sum(const double alpha, const Derived& A, const int* idx_A,
-                         const double beta,                    const int* idx_B) = 0;
+        virtual void sum(const T alpha, const Derived& A, const int* idx_A,
+                         const T beta,                    const int* idx_B) = 0;
 
 
         /**********************************************************************
@@ -362,7 +454,7 @@ class IndexableTensor
          * Scalar operations
          *
          *********************************************************************/
-        void scale(const double alpha)
+        void scale(const T alpha)
         {
             int* idx = new int[ndim_];
             for (int i = 0;i < ndim_;i++) idx[i] = i;
@@ -372,7 +464,7 @@ class IndexableTensor
             delete[] idx;
         }
 
-        void scale(const double alpha, const char* idx_A)
+        void scale(const T alpha, const char* idx_A)
         {
             int *idx_A_ = new int[ndim_];
 
@@ -383,7 +475,7 @@ class IndexableTensor
             delete[] idx_A_;
         }
 
-        virtual void scale(const double alpha, const int* idx_A) = 0;
+        virtual void scale(const T alpha, const int* idx_A) = 0;
 };
 
 /**************************************************************************
@@ -391,50 +483,53 @@ class IndexableTensor
  * Tensor to scalar operations
  *
  *************************************************************************/
-inline double scalar(const double other) { return other; }
+template <typename T>
+T scalar(const T other) { return other; }
 
-template<class Derived>
-double scalar(const IndexedTensor<Derived>& other);
+template<class Derived, typename T>
+T scalar(const IndexedTensor<Derived,T>& other);
 
-template<class Derived>
-double scalar(const IndexedTensorMult<Derived>& other);
+template<class Derived, typename T>
+T scalar(const IndexedTensorMult<Derived,T>& other);
 
-template <class Derived>
+template <class Derived, typename T>
 class IndexedTensor
 {
-    friend class IndexableTensor<Derived>;
-    friend class IndexedTensorMult<Derived>;
+    friend class IndexableTensor<Derived,T>;
+    friend class IndexedTensorMult<Derived,T>;
 
     /**************************************************************************
      *
      * Reversed scalar operations
      *
      *************************************************************************/
-    friend IndexedTensor<Derived> operator*(const double factor, const IndexedTensor<Derived>& other)
+    friend IndexedTensor<Derived,T> operator*(const T factor, const IndexedTensor<Derived, T>& other)
     {
         return other*factor;
     }
 
-    friend IndexedTensor<Derived> operator*(const double factor, Derived& d)
+    /*
+    friend IndexedTensor<Derived,T> operator*(const T factor, Derived& d)
     {
         std::vector<char> idx(d.getDimension()+1);
         for (int i = 0;i < d.getDimension();i++) idx[i] = (char)(i+1);
         idx[d.getDimension()] = 0;
 
-        return IndexedTensor<Derived>(d, idx.data())*factor;
+        return IndexedTensor<Derived,T>(d, idx.data())*factor;
     }
 
-    friend const IndexedTensor<Derived> operator*(const double factor, const Derived& d)
+    friend const IndexedTensor<Derived,T> operator*(const T factor, const Derived& d)
     {
         std::vector<char> idx(d.getDimension()+1);
         for (int i = 0;i < d.getDimension();i++) idx[i] = (char)(i+1);
         idx[d.getDimension()] = 0;
 
-        return IndexedTensor<Derived>(d, idx.data())*factor;
+        return IndexedTensor<Derived,T>(d, idx.data())*factor;
     }
+    */
 
     public:
-        double factor_;
+        T factor_;
         char* idx_;
         Derived& tensor_;
 
@@ -446,7 +541,7 @@ class IndexedTensor
             strcpy(idx_, idx);
         }
 
-        IndexedTensor(const IndexedTensor<Derived>& other)
+        IndexedTensor(const IndexedTensor<Derived,T>& other)
         : factor_(other.factor_), tensor_(const_cast<Derived&>(other.tensor_))
         {
             idx_ = new char[tensor_.getDimension()+1];
@@ -463,10 +558,18 @@ class IndexedTensor
          * Unary negation
          *
          *********************************************************************/
-        IndexedTensor<Derived>& operator-()
+        IndexedTensor<Derived, T> operator-()
         {
-            factor_ = -factor_;
-            return *this;
+            IndexedTensor<Derived, T> ret(*this);
+            ret.factor_ = -ret.factor_;
+            return ret;
+        }
+
+        const IndexedTensor<Derived, T> operator-() const
+        {
+            IndexedTensor<Derived, T> ret(*this);
+            ret.factor_ = -ret.factor_;
+            return ret;
         }
 
         /**********************************************************************
@@ -474,29 +577,29 @@ class IndexedTensor
          * Unary tensor operations (summation)
          *
          *********************************************************************/
-        IndexedTensor<Derived>& operator=(const IndexedTensor<Derived>& other)
+        IndexedTensor<Derived, T>& operator=(const IndexedTensor<Derived, T>& other)
         {
-            tensor_.sum(other.factor_, other.tensor_, other.idx_, 0.0, idx_);
+            tensor_.sum(other.factor_, other.tensor_, other.idx_, (T)0.0, idx_);
             return *this;
         }
 
-        IndexedTensor<Derived>& operator+=(const IndexedTensor<Derived>& other)
+        IndexedTensor<Derived, T>& operator+=(const IndexedTensor<Derived, T>& other)
         {
             tensor_.sum(other.factor_, other.tensor_, other.idx_, factor_, idx_);
             return *this;
         }
 
-        IndexedTensor<Derived>& operator-=(const IndexedTensor<Derived>& other)
+        IndexedTensor<Derived, T>& operator-=(const IndexedTensor<Derived, T>& other)
         {
             tensor_.sum(-other.factor_, other.tensor_, other.idx_, factor_, idx_);
             return *this;
         }
 
-        IndexedTensor<Derived>& operator=(const IndexedTensorMult<Derived>& other)
+        IndexedTensor<Derived, T>& operator=(const IndexedTensorMult<Derived, T>& other)
         {
             tensor_.mult(other.factor_*other.A_.factor_*other.B_.factor_, other.A_.tensor_, other.A_.idx_,
                                                                           other.B_.tensor_, other.B_.idx_,
-                         0.0,                                                               idx_);
+                         (T)0.0,                                                            idx_);
             return *this;
         }
 
@@ -505,7 +608,7 @@ class IndexedTensor
          * Binary tensor operations (multiplication)
          *
          *********************************************************************/
-        IndexedTensor<Derived>& operator+=(const IndexedTensorMult<Derived>& other)
+        IndexedTensor<Derived, T>& operator+=(const IndexedTensorMult<Derived, T>& other)
         {
             tensor_.mult(other.factor_*other.A_.factor_*other.B_.factor_, other.A_.tensor_, other.A_.idx_,
                                                                           other.B_.tensor_, other.B_.idx_,
@@ -513,7 +616,7 @@ class IndexedTensor
             return *this;
         }
 
-        IndexedTensor<Derived>& operator-=(const IndexedTensorMult<Derived>& other)
+        IndexedTensor<Derived, T>& operator-=(const IndexedTensorMult<Derived, T>& other)
         {
             tensor_.mult(-other.factor_*other.A_.factor_*other.B_.factor_, other.A_.tensor_, other.A_.idx_,
                                                                            other.B_.tensor_, other.B_.idx_,
@@ -521,9 +624,27 @@ class IndexedTensor
             return *this;
         }
 
-        IndexedTensorMult<Derived> operator*(const IndexedTensor<Derived>& other) const
+        IndexedTensorMult<Derived, T> operator*(const IndexedTensor<Derived, T>& other) const
         {
-            return IndexedTensorMult<Derived>(*this, other);
+            return IndexedTensorMult<Derived, T>(*this, other);
+        }
+
+        IndexedTensorMult<Derived, T> operator*(const Derived& other) const
+        {
+            std::vector<char> idx(other.getDimension()+1);
+            for (int i = 0;i < other.getDimension();i++) idx[i] = (char)(i+1);
+            idx[other.getDimension()] = 0;
+
+            return IndexedTensorMult<Derived, T>(*this, other[idx.data()]);
+        }
+
+        friend IndexedTensorMult<Derived, T> operator*(const Derived& t1, const IndexedTensor<Derived, T>& t2)
+        {
+            std::vector<char> idx(t1.getDimension()+1);
+            for (int i = 0;i < t1.getDimension();i++) idx[i] = (char)(i+1);
+            idx[t1.getDimension()] = 0;
+
+            return IndexedTensorMult<Derived, T>(t1[idx.data()], t2);
         }
 
         /**********************************************************************
@@ -531,48 +652,76 @@ class IndexedTensor
          * Operations with scalars
          *
          *********************************************************************/
-        IndexedTensor<Derived> operator*(const double factor) const
+        IndexedTensor<Derived, T> operator*(const T factor)
         {
-            IndexedTensor<Derived> it(*this);
+            IndexedTensor<Derived, T> it(*this);
             it.factor_ *= factor;
             return it;
         }
 
-        IndexedTensor<Derived>& operator*=(const double factor)
+        const IndexedTensor<Derived, T> operator*(const T factor) const
+        {
+            IndexedTensor<Derived, T> it(*this);
+            it.factor_ *= factor;
+            return it;
+        }
+
+        IndexedTensor<Derived, T>& operator*=(const T factor)
         {
             tensor_.scale(factor, idx_);
             return *this;
         }
+
+        IndexedTensor<Derived, T>& operator=(const T val)
+        {
+            Derived tensor(val);
+            *this = tensor[""];
+            return *this;
+        }
+
+        IndexedTensor<Derived, T>& operator+=(const T val)
+        {
+            Derived tensor(val);
+            *this += tensor[""];
+            return *this;
+        }
+
+        IndexedTensor<Derived, T>& operator-=(const T val)
+        {
+            Derived tensor(val);
+            *this -= tensor[""];
+            return *this;
+        }
 };
 
-template <class Derived>
+template <class Derived, typename T>
 class IndexedTensorMult
 {
-    friend class IndexableTensor<Derived>;
-    friend class IndexedTensor<Derived>;
+    friend class IndexableTensor<Derived,T>;
+    friend class IndexedTensor<Derived,T>;
 
     /**************************************************************************
      *
      * Reversed scalar operations
      *
      *************************************************************************/
-    friend IndexedTensorMult<Derived> operator*(const double factor, const IndexedTensorMult<Derived>& other)
+    friend IndexedTensorMult<Derived,T> operator*(const T factor, const IndexedTensorMult<Derived, T>& other)
     {
         return other*factor;
     }
 
     private:
-        const IndexedTensorMult& operator=(const IndexedTensorMult& other);
+        const IndexedTensorMult& operator=(const IndexedTensorMult<Derived,T>& other);
 
     public:
-        double factor_;
-        const IndexedTensor<Derived> A_;
-        const IndexedTensor<Derived> B_;
+        T factor_;
+        const IndexedTensor<Derived,T> A_;
+        const IndexedTensor<Derived,T> B_;
 
-        IndexedTensorMult(const IndexedTensor<Derived>& A, const IndexedTensor<Derived>& B)
+        IndexedTensorMult(const IndexedTensor<Derived,T>& A, const IndexedTensor<Derived,T>& B)
         : factor_(1.0), A_(A), B_(B) {}
 
-        IndexedTensorMult(const IndexedTensorMult<Derived>& other)
+        IndexedTensorMult(const IndexedTensorMult<Derived,T>& other)
         : factor_(other.factor_), A_(other.A_), B_(other.B_) {}
 
         /**********************************************************************
@@ -580,7 +729,7 @@ class IndexedTensorMult
          * Unary negation
          *
          *********************************************************************/
-        IndexedTensorMult<Derived>& operator-()
+        IndexedTensorMult<Derived,T>& operator-()
         {
             factor_ = -factor_;
             return *this;
@@ -591,11 +740,10 @@ class IndexedTensorMult
          * Operations with scalars
          *
          *********************************************************************/
-        IndexedTensorMult<Derived> operator*(const double factor) const
+        IndexedTensorMult<Derived,T>& operator*(const T factor)
         {
-            IndexedTensorMult<Derived> itm(*this);
-            itm.factor_ *= factor;
-            return itm;
+            factor_ *= factor;
+            return *this;
         }
 };
 

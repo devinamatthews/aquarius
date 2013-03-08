@@ -32,6 +32,11 @@ void ishprim(const int la, const int lb, const int lc, const int ld,
              const double za, const double zb, const double zc, const double zd, double* integrals,
              double* xtable);
 
+// moment.c
+
+void momprim(const int la, const int lb, const double* posa, const double* posb, const double za, const double zb,
+             const int lc, const double* posc, double* integrals, double* table);
+
 // os.c
 
 int oseri(const int la, const int lb, const int lc, const int ld,

@@ -55,11 +55,14 @@ typedef float real;
 
 #if defined(__cplusplus)
 #include <complex>
+typedef std::complex<float> scomplex;
 typedef std::complex<double> dcomplex;
 #elif __STDC_VERSION__ == 199901L
 #include <complex.h>
+typedef float complex scomplex;
 typedef double complex dcomplex;
 #else
+typedef struct scomplex_ { float real,imag; } scomplex;
 typedef struct dcomplex_ { double real,imag; } dcomplex;
 #endif
 

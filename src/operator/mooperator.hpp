@@ -22,63 +22,34 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_UTIL_DISTRIBUTED_HPP_
-#define _AQUARIUS_UTIL_DISTRIBUTED_HPP_
+#ifndef _AQUARIUS_OPERATOR_MOOPERATOR_HPP_
+#define _AQUARIUS_OPERATOR_MOOPERATOR_HPP_
 
-#include <complex>
-
-#include "ctf.hpp"
+#include "scf/scf.hpp"
+#include "util/distributed.hpp"
 
 namespace aquarius
 {
+namespace op
+{
 
 template <typename T>
-struct MPI_TYPE_ {};
-
-template <>
-struct MPI_TYPE_<float>
+class MOOperator : public Distributed<T>
 {
-    static MPI::Datatype value() { return MPI::FLOAT; }
-};
+    protected:
+        const scf::UHF<T>& uhf;
 
-template <>
-struct MPI_TYPE_<double>
-{
-    static MPI::Datatype value() { return MPI::DOUBLE; }
-};
-
-template <>
-struct MPI_TYPE_< std::complex<float> >
-{
-    static MPI::Datatype value() { return MPI::COMPLEX; }
-};
-
-template <>
-struct MPI_TYPE_< std::complex<double> >
-{
-    static MPI::Datatype value() { return MPI::DOUBLE_COMPLEX; }
-};
-
-template <typename T>
-class Distributed
-{
     public:
-        MPI::Intracomm comm;
-        const MPI::Datatype type;
-        const int rank;
-        const int nproc;
+        MOOperator(const scf::UHF<T>& uhf)
+        : Distributed<T>(uhf), uhf(uhf) {}
 
-        tCTF_World<T>& ctf;
+        MOOperator(const MOOperator<T>& other)
+        : Distributed<T>(other), uhf(other.uhf) {}
 
-        Distributed(tCTF_World<T>& ctf)
-        : ctf(ctf), comm(ctf.comm), type(MPI_TYPE_<T>::value()),
-          rank(comm.Get_rank()), nproc(comm.Get_size()) {}
-
-        Distributed(const Distributed<T>& other)
-        : ctf(other.ctf), comm(ctf.comm), type(MPI_TYPE_<T>::value()),
-          rank(comm.Get_rank()), nproc(comm.Get_size()) {}
+        const scf::UHF<T>& getSCF() const { return uhf; }
 };
 
+}
 }
 
 #endif

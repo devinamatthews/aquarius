@@ -427,7 +427,7 @@ size_t SLIDE_calc_eri(context_t* context, const double alpha, const double beta,
                 transpose(aosize2, aosize4, coef, context->aobuf2, aosize2,
                 		                     0.0, context->aobuf1, aosize4);
 
-                ao2so4(a, b, c, d, r, t, st, context->aobuf1, context->integrals);
+                ao2so4(a, b, c, d, aosize4, r, t, st, context->aobuf1, context->integrals);
             }
         }
     }
@@ -560,7 +560,7 @@ size_t SLIDE_calc_ovi(context_t* context, const double alpha, const double beta,
         transpose(aosize2, aosize4, coef, context->aobuf2, aosize2,
         		                     0.0, context->aobuf1, aosize4);
 
-        ao2so2(a, b, r, context->aobuf1, context->integrals);
+        ao2so2(a, b, aosize4, r, context->aobuf1, context->integrals);
     }
 
     context->a = (shell_t*)a;
@@ -683,7 +683,7 @@ size_t SLIDE_calc_kei(context_t* context, const double alpha, const double beta,
         transpose(aosize2, aosize4, coef, context->aobuf2, aosize2,
         		                     0.0, context->aobuf1, aosize4);
 
-        ao2so2(a, b, r, context->aobuf1, context->integrals);
+        ao2so2(a, b, aosize4, r, context->aobuf1, context->integrals);
     }
 
     context->a = (shell_t*)a;
@@ -808,7 +808,7 @@ size_t SLIDE_calc_nai(context_t* context, const double alpha, const double beta,
         transpose(aosize2, aosize4, coef, context->aobuf2, aosize2,
         		                     0.0, context->aobuf1, aosize4);
 
-        ao2so2(a, b, r, context->aobuf1, context->integrals);
+        ao2so2(a, b, aosize4, r, context->aobuf1, context->integrals);
     }
 
     context->a = (shell_t*)a;
@@ -830,6 +830,128 @@ size_t SLIDE_calc_nai(context_t* context, const double alpha, const double beta,
                     if (dirprd[w][x] != SLIDE_IRREP_TOT_SYM) continue;
 
                     context->num_integrals += a->ncontr*b->ncontr;
+                }
+            }
+        }
+    }
+
+    release_workspaces(work);
+
+    return context->num_integrals;
+}
+
+size_t SLIDE_calc_moment(context_t* context, const double alpha, const double beta, const shell_t* a, const shell_t* b, const int L, const double *pos)
+{
+    int i, j, r, s;
+    int e, f, m;
+    int w, x;
+    size_t idx2;
+    size_t aosize1, aosize2, aosize3, aosize4, sosizemax;
+    int dcrr, lambdar;
+    double coef;
+    workspace_t work;
+    double pos0[3] = {0, 0, 0};
+
+    if (pos == NULL) pos = pos0;
+
+    dcrr = dcrindex[a->pos->stabilizer][b->pos->stabilizer];
+    lambdar = dcrdeg[a->pos->stabilizer][b->pos->stabilizer];
+
+    aosize1 = angmom[a->L]->ncart * angmom[b->L]->ncart * angmom[L]->ncart;
+    aosize2 = a->nfunc * b->nfunc;
+    aosize3 = a->nprim * b->nprim;
+    aosize4 = a->ncontr * b->ncontr * angmom[L]->ncart;
+
+    sosizemax = aosize2 * aosize4 * MAX(a->pos->degeneracy,b->pos->degeneracy);
+
+    if (context->aosize < aosize1*aosize3)
+    {
+        context->aosize = aosize1*aosize3;
+        if (context->aobuf1 != NULL) FREE(context->aobuf1);
+        if (context->aobuf1 != NULL) FREE(context->aobuf2);
+        context->aobuf1 = MALLOC(double, aosize1*aosize3);
+        context->aobuf2 = MALLOC(double, aosize1*aosize3);
+        /*
+         * It's okay to not free aobuf1 if only aobuf2 cannot be allocated
+         */
+        if (context->aobuf1 == NULL || context->aobuf2 == NULL) return 0;
+    }
+
+    if (context->sosize < sosizemax)
+    {
+        context->sosize = sosizemax;
+        if (context->integrals != NULL) FREE(context->integrals);
+        context->integrals = MALLOC(double, sosizemax);
+        /*
+         * Similarly, aobuf[12] need not be free'd here
+         */
+        if (context->integrals == NULL) return 0;
+    }
+
+    size_t worksize = (a->L+1)*(b->L+1)*(L+1);
+    if (reserve_workspaces(&work, worksize) == -1) return 0;
+
+    if (beta == 0.0)
+    {
+        zero(sosizemax, context->integrals, 1);
+    }
+    else if (beta != 1.0)
+    {
+        dscal(sosizemax, beta, context->integrals, 1);
+    }
+
+    coef = alpha * (double)order / (double)lambdar;
+
+    for (i = 0;i < staborder[dcrr];i++)
+    {
+        r = stabs[dcrr][i];
+
+#ifdef ENABLE_OPENMP
+#pragma omp parallel for schedule(dynamic) default(shared) private(e,f,m,atm,c,idx2)
+#endif //ENABLE_OPENMP
+        for (m = 0;m < a->nprim * b->nprim;m++)
+        {
+            f = m / a->nprim;
+            e = m - f * a->nprim;
+
+            idx2 = aosize1 * m;
+            zero(aosize1, &context->aobuf2[idx2], 1);
+
+            momprim(a->L, b->L, a->pos->centers[0], b->pos->centers[b->pos->centermap[r]],
+                    a->exponents[e], b->exponents[f], L, pos, &context->aobuf2[idx2],
+                    active_workspace(work));
+        }
+
+        // cbaqp -> srcba
+        prim2contr2r(a, b, aosize1, context->aobuf2, context->aobuf1);
+        // srcba -> jisrc
+        cart2spher2r(a, b, aosize4, context->aobuf1, context->aobuf2);
+
+        // jisrc -> srcji
+        transpose(aosize2, aosize4, coef, context->aobuf2, aosize2, 0.0, context->aobuf1, aosize4);
+
+        ao2so2(a, b, aosize4, r, context->aobuf1, context->integrals);
+    }
+
+    context->a = (shell_t*)a;
+    context->b = (shell_t*)b;
+    context->num_integrals = 0;
+    context->num_processed = 0;
+
+    for (j = 0;j < b->nfunc;j++)
+    {
+        for (i = 0;i < a->nfunc;i++)
+        {
+            for (s = 0;s < b->pos->degeneracy;s++)
+            {
+                for (r = 0;r < a->pos->degeneracy;r++)
+                {
+                    w = a->irreps[i][r];
+                    x = b->irreps[j][s];
+
+                    if (dirprd[w][x] != SLIDE_IRREP_TOT_SYM) continue;
+
+                    context->num_integrals += aosize4;
                 }
             }
         }

@@ -66,12 +66,6 @@ std::ostream& operator<<(std::ostream& out, const Manifold& m)
 const Manifold Manifold::MIN_VALUE = Manifold(0, 0);
 const Manifold Manifold::MAX_VALUE = Manifold(INT_MAX, INT_MAX);
 
-Manifold::Manifold(const char *_s)
-: np(0), nh(0)
-{
-    parse(string(_s));
-}
-
 Manifold::Manifold(const string& s)
 : np(0), nh(0)
 {
@@ -304,7 +298,7 @@ Line::Line(unsigned int index, unsigned int type)
     }
 }
 
-vector<Line> Line::parse(string s)
+vector<Line> Line::parse(const string& s)
 {
     vector<Line> v;
     if (s.find_first_of("0123456789") != string::npos)
@@ -347,6 +341,11 @@ bool Line::operator<(const Line& other) const
 bool Line::operator==(const Line& other) const
 {
     return index == other.index;
+}
+
+bool Line::operator!=(const Line& other) const
+{
+    return index != other.index;
 }
 
 int Line::getType() const

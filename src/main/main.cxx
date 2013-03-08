@@ -28,7 +28,9 @@
 #include "scf/cholesky.hpp"
 #include "scf/choleskyscf.hpp"
 #include "scf/choleskymoints.hpp"
-#include "cc/cc.hpp"
+#include "cc/ccsd.hpp"
+#include "cc/lambdaccsd.hpp"
+#include "cc/hbar.hpp"
 #include "time/time.hpp"
 
 #include "fenv.h"
@@ -60,8 +62,8 @@ int main(int argc, char **argv)
 
         Molecule mol(config);
 
-        CholeskyIntegrals chol(ctf, config.get("cholesky"), mol);
-        CholeskyUHF scf(chol, config.get("scf"));
+        CholeskyIntegrals<double> chol(ctf, config.get("cholesky"), mol);
+        CholeskyUHF<double> scf(config.get("scf"), chol);
 
         //chol.test();
 
@@ -78,14 +80,14 @@ int main(int argc, char **argv)
         double nb = scf.getAvgNumBeta();
 
         PRINT("\n");
-        PRINT("<S^2>     = %f\n", s2);
-        PRINT("<2S+1>    = %f\n", mult);
-        PRINT("<n_alpha> = %f\n", na);
-        PRINT("<n_beta>  = %f\n", nb);
+        PRINT("<0|S^2|0>     = %f\n", s2);
+        PRINT("<0|2S+1|0>    = %f\n", mult);
+        PRINT("<0|n_alpha|0> = %f\n", na);
+        PRINT("<0|n_beta|0>  = %f\n", nb);
         PRINT("\n");
 
-        CholeskyMOIntegrals moints(scf);
-        CCSD ccsd(config.get("cc"), moints);
+        CholeskyMOIntegrals<double> moints(scf);
+        CCSD<double> ccsd(config.get("cc"), moints);
 
         PRINT("UHF-MP2 Energy: %.15f\n", ccsd.getEnergy());
 
@@ -96,9 +98,18 @@ int main(int argc, char **argv)
             PRINT("%3d % 20.15f %12.6e\n", i+1, ccsd.getEnergy(), ccsd.getConvergence());
         }
 
-        LambdaCCSD lambda(config.get("cc"), ccsd);
+        s2 = ccsd.getProjectedS2();
+        mult = ccsd.getProjectedMultiplicity();
 
-        PRINT("\nUHF-Lambda-CCSD\n\n");
+        PRINT("\n");
+        PRINT("<0|S^2|CC>  = %f\n", s2);
+        PRINT("<0|2S+1|CC> = %f\n", mult);
+        PRINT("\n");
+
+        Hbar<double> H(moints, ccsd);
+        LambdaCCSD<double> lambda(config.get("cc"), H, ccsd);
+
+        PRINT("UHF-Lambda-CCSD\n\n");
         PRINT("It.   Correlation Energy     Residual\n");
         for (int i = 0;lambda.iterate();i++)
         {

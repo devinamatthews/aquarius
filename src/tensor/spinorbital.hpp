@@ -46,15 +46,15 @@ namespace tensor
 {
 
 template<class Base>
-class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
+class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base>, typename Base::dtype >
 {
-    INHERIT_FROM_INDEXABLE_TENSOR(SpinorbitalTensor<Base>)
+    INHERIT_FROM_INDEXABLE_TENSOR(SpinorbitalTensor<Base>, typename Base::dtype)
 
     protected:
         struct SpinCase
         {
             Base* tensor;
-            std::string logical;
+            std::vector<autocc::Line> logical;
             int nA, nE, nM, nI;
             std::vector<int> log_to_phys;
             bool isAlloced;
@@ -64,20 +64,34 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
             SpinCase(Base* tensor, bool isAlloced = true) : tensor(tensor), isAlloced(isAlloced) {}
         };
 
-        std::string logical;
+        std::vector<autocc::Line> logical;
         int nA, nE, nM, nI;
+        int spin;
         //double permFactor;
         std::vector<SpinCase> cases;
 
     public:
+        SpinorbitalTensor(const dtype val=0.0)
+        : IndexableTensor< SpinorbitalTensor<Base>, dtype >()
+        {
+            nA = 0;
+            nM = 0;
+            nE = 0;
+            nI = 0;
+            spin = 0;
+
+            addSpinCase(new Base(val), ",", "");
+        }
+
         SpinorbitalTensor(const SpinorbitalTensor<Base>& other)
-        : IndexableTensor< SpinorbitalTensor<Base> >(other.ndim_)
+        : IndexableTensor< SpinorbitalTensor<Base>, dtype >(other.ndim_)
         {
             logical = other.logical;
             nA = other.nA;
             nM = other.nM;
             nE = other.nE;
             nI = other.nI;
+            spin = other.spin;
 
             for (typename std::vector<SpinCase>::const_iterator sc = other.cases.begin();sc != other.cases.end();++sc)
             {
@@ -93,15 +107,43 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
             }
         }
 
-        SpinorbitalTensor(std::string logical)
-        : IndexableTensor< SpinorbitalTensor<Base> >(logical.size()-1)
+        SpinorbitalTensor(const autocc::Manifold& left, const autocc::Manifold& right, const int spin=0)
+        : IndexableTensor< SpinorbitalTensor<Base>, dtype >(left.np+left.nh+right.np+right.nh), spin(spin)
+        {
+            std::vector<autocc::Line> out_;
+            std::vector<autocc::Line> in_;
+
+            for (int i = 0;i <  left.np;i++) out_ += autocc::Line(i         , autocc::PARTICLE+autocc::EXTERNAL+autocc::ALPHA);
+            for (int i = 0;i < right.nh;i++) out_ += autocc::Line(i         , autocc::HOLE    +autocc::EXTERNAL+autocc::ALPHA);
+            for (int i = 0;i < right.np;i++)  in_ += autocc::Line(i+left.np , autocc::PARTICLE+autocc::EXTERNAL+autocc::ALPHA);
+            for (int i = 0;i <  left.nh;i++)  in_ += autocc::Line(i+right.nh, autocc::HOLE    +autocc::EXTERNAL+autocc::ALPHA);
+
+            this->logical = out_+in_;
+
+            std::vector<autocc::Line> out(out_);
+            std::vector<autocc::Line> in(in_);
+
+            sort(out.begin(), out.end());
+            sort(in.begin(), in.end());
+
+            //permFactor = relativeSign(out_, out) *
+            //             relativeSign(in_, in);
+
+            nA = count_if(out.begin(), out.end(), autocc::isParticle());
+            nM = count_if(out.begin(), out.end(), autocc::isHole());
+            nE = count_if(in.begin(), in.end(), autocc::isParticle());
+            nI = count_if(in.begin(), in.end(), autocc::isHole());
+        }
+
+        SpinorbitalTensor(const std::string& logical, const int spin=0)
+        : IndexableTensor< SpinorbitalTensor<Base>, dtype >(logical.size()-1), spin(spin)
         {
             int comma = logical.find(',');
             if (comma == std::string::npos) throw std::logic_error("index std::string is malformed: " + logical);
 
             if (logical != tolower(logical)) throw std::logic_error("spinorbital indices must be lowercase");
 
-            this->logical = logical.substr(0,comma) + logical.substr(comma+1);
+            this->logical = autocc::Line::parse(logical.substr(0,comma) + logical.substr(comma+1));
 
             std::vector<autocc::Line> out_ = autocc::Line::parse(logical.substr(0,comma));
             std::vector<autocc::Line> in_  = autocc::Line::parse(logical.substr(comma+1));
@@ -136,23 +178,100 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
 
         void addSpinCase(Base& tensor, std::string logical, std::string physical, double factor = 1.0, bool isAlloced = false)
         {
+            addSpinCase(tensor, autocc::Line::parse(logical), autocc::Line::parse(physical), factor, isAlloced);
+        }
+
+        void addSpinCase(Base* tensor, const autocc::Manifold& alpha_left,
+                         const autocc::Manifold& alpha_right, double factor = 1.0, bool isAlloced = true)
+        {
+            addSpinCase(*tensor, alpha_left, alpha_right, factor, isAlloced);
+        }
+
+        void addSpinCase(Base& tensor, const autocc::Manifold& alpha_left,
+                         const autocc::Manifold& alpha_right, double factor = 1.0, bool isAlloced = false)
+        {
+            std::vector<autocc::Line> logical;
+
+            for (int i = 0;i <     alpha_left.np;i++) logical += autocc::Line(i                  , autocc::PARTICLE+autocc::EXTERNAL+autocc::ALPHA);
+            for (int i = 0;i <  nA-alpha_left.np;i++) logical += autocc::Line(i+alpha_left.np    , autocc::PARTICLE+autocc::EXTERNAL+autocc::BETA);
+            for (int i = 0;i <    alpha_right.nh;i++) logical += autocc::Line(i                  , autocc::HOLE    +autocc::EXTERNAL+autocc::ALPHA);
+            for (int i = 0;i < nM-alpha_right.nh;i++) logical += autocc::Line(i+alpha_right.nh   , autocc::HOLE    +autocc::EXTERNAL+autocc::BETA);
+            for (int i = 0;i <    alpha_right.np;i++) logical += autocc::Line(i+nA               , autocc::PARTICLE+autocc::EXTERNAL+autocc::ALPHA);
+            for (int i = 0;i < nE-alpha_right.np;i++) logical += autocc::Line(i+nA+alpha_right.np, autocc::PARTICLE+autocc::EXTERNAL+autocc::BETA);
+            for (int i = 0;i <     alpha_left.nh;i++) logical += autocc::Line(i+nM               , autocc::HOLE    +autocc::EXTERNAL+autocc::ALPHA);
+            for (int i = 0;i <  nI-alpha_left.nh;i++) logical += autocc::Line(i+nM+alpha_left.nh , autocc::HOLE    +autocc::EXTERNAL+autocc::BETA);
+
+            addSpinCase(tensor, logical, logical, factor, isAlloced);
+        }
+
+        int getNumSpinCases()
+        {
+            return cases.size();
+        }
+
+        Base& getSpinCase(int sc)
+        {
+            return *(cases[sc].tensor);
+        }
+
+        const Base& getSpinCase(int sc) const
+        {
+            return *(cases[sc].tensor);
+        }
+
+        virtual SpinorbitalTensor<Base>& operator*=(const SpinorbitalTensor<Base>& other)
+        {
+            assert(logical == other.logical);
+
+            for (int i = 0;i < cases.size();i++)
+            {
+                *cases[i].tensor *= *other.cases[i].tensor;
+            }
+
+            return *this;
+        }
+
+        virtual SpinorbitalTensor<Base>& operator/=(const SpinorbitalTensor<Base>& other)
+        {
+            assert(logical == other.logical);
+
+            for (int i = 0;i < cases.size();i++)
+            {
+                *cases[i].tensor /= *other.cases[i].tensor;
+            }
+
+            return *this;
+        }
+
+        virtual SpinorbitalTensor<Base>& operator-=(const SpinorbitalTensor<Base>& other)
+        {
+            assert(logical == other.logical);
+
+            for (int i = 0;i < cases.size();i++)
+            {
+                *cases[i].tensor /= *other.cases[i].tensor;
+            }
+
+            return *this;
+        }
+
+    protected:
+        void addSpinCase(Base& tensor, std::vector<autocc::Line> logical, std::vector<autocc::Line> physical, double factor, bool isAlloced)
+        {
             SpinCase sc(tensor, isAlloced);
 
-            int comma = logical.find(',');
-            if (comma == std::string::npos) throw std::logic_error("index std::string is malformed: " + logical);
-
-            sc.logical = logical.substr(0,comma) + logical.substr(comma+1);
+            sc.logical = logical;
 
             if (this->logical.size() != sc.logical.size()) throw std::logic_error("wrong number of indices");
 
-            for (std::string::const_iterator l1 = sc.logical.begin(), l2 = this->logical.begin();l1 != sc.logical.end();++l1, ++l2)
+            for (std::vector<autocc::Line>::const_iterator l1 = sc.logical.begin(), l2 = this->logical.begin();l1 != sc.logical.end();++l1, ++l2)
             {
-                if (tolower(*l1) != tolower(*l2)) throw std::logic_error("UHF indices do not match spinorbital");
+                if (l1->toAlpha() != l2->toAlpha()) throw std::logic_error("UHF indices do not match spinorbital");
             }
 
-            std::vector<autocc::Line> out_ = autocc::Line::parse(logical.substr(0,comma));
-            std::vector<autocc::Line> in_  = autocc::Line::parse(logical.substr(comma+1));
-            std::vector<autocc::Line> phys = autocc::Line::parse(physical);
+            std::vector<autocc::Line> out_ = std::slice(logical, 0, nA+nM);
+            std::vector<autocc::Line> in_  = std::slice(logical, nA+nM, nA+nM+nE+nI);
+            std::vector<autocc::Line> phys = physical;
 
             std::vector<autocc::Line> out(out_);
             std::vector<autocc::Line> in(in_);
@@ -194,7 +313,7 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
 
                 sc.log_to_phys.push_back(std::find(phys.begin(), phys.end(), out[i])-phys.begin());
                 if (sc.log_to_phys.back() == phys.size())
-                    throw std::logic_error("logical index not found in physical map: " + logical[i]);
+                    throw std::logic_error("logical index not found in physical map: " + std::str(logical[i]));
             }
 
             for (int i = 0;i < in.size();i++)
@@ -207,7 +326,7 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
 
                 sc.log_to_phys.push_back(std::find(phys.begin(), phys.end(), in[i])-phys.begin());
                 if (sc.log_to_phys.back() == phys.size())
-                    throw std::logic_error("logical index not found in physical map: " + logical[i+out.size()]);
+                    throw std::logic_error("logical index not found in physical map: " + std::str(logical[i+out.size()]));
             }
 
             if (abs(sc.nA+sc.nM-sc.nE-sc.nI) > abs((int)(out.size()-in.size())))
@@ -215,37 +334,14 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
 
             cases.push_back(sc);
 
+            if (2*(sc.nA+sc.nI-sc.nE-sc.nM)-(nA+nI-nE-nM) != spin)
+                throw std::logic_error("spin is not compatible");
+
             //std::cout << "Adding spin case " << sc.nA << ' ' << sc.nM << ' ' << sc.nE << ' ' << sc.nI << std::endl;
         }
 
-        int getNumSpinCases()
-        {
-            return cases.size();
-        }
-
-        Base& getSpinCase(int sc)
-        {
-            return *(cases[sc].tensor);
-        }
-
-        const Base& getSpinCase(int sc) const
-        {
-            return *(cases[sc].tensor);
-        }
-
-        virtual SpinorbitalTensor<Base>& operator=(const double val)
-        {
-            for (typename std::vector<SpinCase>::iterator i = cases.begin();i != cases.end();++i)
-            {
-                i->tensor->operator=(val);
-            }
-
-            return *this;
-        }
-
-    protected:
-        static void matchTypes(const int nin_A, const int nout_A, const std::string& log_A, const int* idx_A,
-                               const int nin_B, const int nout_B, const std::string& log_B, const int* idx_B,
+        static void matchTypes(const int nin_A, const int nout_A, const std::vector<autocc::Line>& log_A, const int* idx_A,
+                               const int nin_B, const int nout_B, const std::vector<autocc::Line>& log_B, const int* idx_B,
                                std::vector<autocc::Line>& out_A, std::vector<autocc::Line>& in_A,
                                std::vector<autocc::Line>& pout_A, std::vector<autocc::Line>& hout_A,
                                std::vector<autocc::Line>& pin_A, std::vector<autocc::Line>& hin_A,
@@ -258,26 +354,26 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
                 {
                     if (idx_A[i] == idx_B[j])
                     {
-                        bool aisp = autocc::Line(log_A[i]).isParticle();
-                        bool bisp = autocc::Line(log_B[j]).isParticle();
+                        bool aisp = log_A[i].isParticle();
+                        bool bisp = log_B[j].isParticle();
                         if (aisp != bisp)
                             throw std::logic_error("types do not match");
-                        out_A[i] = autocc::Line(idx_A[i], autocc::Line(log_B[j]).getType());
-                        if (autocc::Line(log_B[j]).isParticle())
+                        out_A[i] = autocc::Line(idx_A[i], log_B[j].getType());
+                        if (log_B[j].isParticle())
                         {
-                            pin_A += autocc::Line(idx_A[i], autocc::Line(log_B[j]).getType());
+                            pin_A += autocc::Line(idx_A[i], log_B[j].getType());
                         }
                         else
                         {
-                            hin_A += autocc::Line(idx_A[i], autocc::Line(log_B[j]).getType());
+                            hin_A += autocc::Line(idx_A[i], log_B[j].getType());
                         }
                         break;
                     }
                 }
                 if (j == nout_B+nin_B)
                 {
-                    out_A[i] = autocc::Line(idx_A[i], autocc::Line(log_A[i]).getType());
-                    sum_A += autocc::Line(idx_A[i], autocc::Line(log_A[i]).getType());
+                    out_A[i] = autocc::Line(idx_A[i], log_A[i].getType());
+                    sum_A += autocc::Line(idx_A[i], log_A[i].getType());
                 }
             }
 
@@ -288,26 +384,26 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
                 {
                     if (idx_A[i] == idx_B[j])
                     {
-                        bool aisp = autocc::Line(log_A[i]).isParticle();
-                        bool bisp = autocc::Line(log_B[j]).isParticle();
+                        bool aisp = log_A[i].isParticle();
+                        bool bisp = log_B[j].isParticle();
                         if (aisp != bisp)
                             throw std::logic_error("types do not match");
-                        in_A[i-nout_A] = autocc::Line(idx_A[i], autocc::Line(log_B[j]).getType());
-                        if (autocc::Line(log_B[j]).isParticle())
+                        in_A[i-nout_A] = autocc::Line(idx_A[i], log_B[j].getType());
+                        if (log_B[j].isParticle())
                         {
-                            pout_A += autocc::Line(idx_A[i], autocc::Line(log_B[j]).getType());
+                            pout_A += autocc::Line(idx_A[i], log_B[j].getType());
                         }
                         else
                         {
-                            hout_A += autocc::Line(idx_A[i], autocc::Line(log_B[j]).getType());
+                            hout_A += autocc::Line(idx_A[i], log_B[j].getType());
                         }
                         break;
                     }
                 }
                 if (j == nout_B+nin_B)
                 {
-                    in_A[i-nout_A] = autocc::Line(idx_A[i], autocc::Line(log_A[i]).getType());
-                    sum_A += autocc::Line(idx_A[i], autocc::Line(log_A[i]).getType());
+                    in_A[i-nout_A] = autocc::Line(idx_A[i], log_A[i].getType());
+                    sum_A += autocc::Line(idx_A[i], log_A[i].getType());
                 }
             }
         }
@@ -372,8 +468,8 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
                         {
                             if (idx_A[i] == idx_B[j])
                             {
-                                bool aisp = autocc::Line(A.logical[i]).isParticle();
-                                bool bisp = autocc::Line(B.logical[j]).isParticle();
+                                bool aisp = A.logical[i].isParticle();
+                                bool bisp = B.logical[j].isParticle();
                                 if (aisp != bisp)
                                         throw std::logic_error("types do not match");
                                 sAout[i] = sBout[j];
@@ -383,8 +479,8 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
                         {
                             if (idx_A[i] == idx_B[j])
                             {
-                                bool aisp = autocc::Line(A.logical[i]).isParticle();
-                                bool bisp = autocc::Line(B.logical[j]).isParticle();
+                                bool aisp = A.logical[i].isParticle();
+                                bool bisp = B.logical[j].isParticle();
                                 if (aisp != bisp)
                                         throw std::logic_error("types do not match");
                                 sAout[i] = sBin[j-B.nA-B.nM];
@@ -398,8 +494,8 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
                         {
                             if (idx_A[i] == idx_B[j])
                             {
-                                bool aisp = autocc::Line(A.logical[i]).isParticle();
-                                bool bisp = autocc::Line(B.logical[j]).isParticle();
+                                bool aisp = A.logical[i].isParticle();
+                                bool bisp = B.logical[j].isParticle();
                                 if (aisp != bisp)
                                         throw std::logic_error("types do not match");
                                 sAin[i-A.nA-A.nM] = sBout[j];
@@ -409,8 +505,8 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
                         {
                             if (idx_A[i] == idx_B[j])
                             {
-                                bool aisp = autocc::Line(A.logical[i]).isParticle();
-                                bool bisp = autocc::Line(B.logical[j]).isParticle();
+                                bool aisp = A.logical[i].isParticle();
+                                bool bisp = B.logical[j].isParticle();
                                 if (aisp != bisp)
                                         throw std::logic_error("types do not match");
                                 sAin[i-A.nA-A.nM] = sBin[j-B.nA-B.nM];
@@ -421,12 +517,12 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
 
                 for (int i = 0;i < nA+nM;i++)
                 {
-                    sCout[i] = autocc::Line(idx_C[i], autocc::Line(scC->logical[i]).getType());
+                    sCout[i] = autocc::Line(idx_C[i], scC->logical[i].getType());
                 }
 
                 for (int i = 0;i < nE+nI;i++)
                 {
-                    sCin[i] = autocc::Line(idx_C[nA+nM+i], autocc::Line(scC->logical[nA+nM+i]).getType());
+                    sCin[i] = autocc::Line(idx_C[nA+nM+i], scC->logical[nA+nM+i].getType());
                 }
 
                 autocc::Fragment uhfsA("T", sAout, sAin);
@@ -646,12 +742,12 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
 
                 for (int i = 0;i < nA+nM;i++)
                 {
-                    sBout[i] = autocc::Line(idx_B[i], autocc::Line(scB->logical[i]).getType());
+                    sBout[i] = autocc::Line(idx_B[i], scB->logical[i].getType());
                 }
 
                 for (int i = 0;i < nE+nI;i++)
                 {
-                    sBin[i] = autocc::Line(idx_B[nA+nM+i], autocc::Line(scB->logical[nA+nM+i]).getType());
+                    sBin[i] = autocc::Line(idx_B[nA+nM+i], scB->logical[nA+nM+i].getType());
                 }
 
                 autocc::Fragment uhfsA("T", sAout, sAin);
@@ -760,12 +856,12 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
             {
                 for (int i = 0;i < nA+nM;i++)
                 {
-                    sAout[i] = autocc::Line(idx_A[i], autocc::Line(scA->logical[i]).getType());
+                    sAout[i] = autocc::Line(idx_A[i], scA->logical[i].getType());
                 }
 
                 for (int i = 0;i < nE+nI;i++)
                 {
-                    sAin[i] = autocc::Line(idx_A[nA+nM+i], autocc::Line(scA->logical[nA+nM+i]).getType());
+                    sAin[i] = autocc::Line(idx_A[nA+nM+i], scA->logical[nA+nM+i].getType());
                 }
 
                 autocc::Term t(autocc::Diagram::UHF);
@@ -802,13 +898,13 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base> >
 };
 
 template <typename T>
-double scalar(const IndexedTensor< SpinorbitalTensor< DistTensor<T> > >& other)
+double scalar(const IndexedTensor< SpinorbitalTensor< DistTensor<T> >, T >& other)
 {
     DistTensor<T> dt(other.tensor_.getSpinCase(0).getCTF());
-    SpinorbitalTensor< DistTensor<T> > sodt(",");
+    SpinorbitalTensor< DistTensor<T>, T > sodt(",");
     sodt.addSpinCase(dt, ",", "");
     size_t n;
-    double ret, *val;
+    T ret, *val;
     sodt[""] = other;
     dt.getAllData(n, val);
     assert(n==1);
@@ -818,13 +914,13 @@ double scalar(const IndexedTensor< SpinorbitalTensor< DistTensor<T> > >& other)
 }
 
 template <typename  T>
-double scalar(const IndexedTensorMult< SpinorbitalTensor< DistTensor<T> > >& other)
+double scalar(const IndexedTensorMult< SpinorbitalTensor< DistTensor<T> >, T >& other)
 {
     DistTensor<T> dt(other.A_.tensor_.getSpinCase(0).ctf);
     SpinorbitalTensor< DistTensor<T> > sodt(",");
     sodt.addSpinCase(dt, ",", "");
     int64_t n;
-    double ret, *val;
+    T ret, *val;
     sodt[""] = other;
     dt.getAllData(n, val);
     assert(n==1);

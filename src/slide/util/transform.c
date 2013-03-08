@@ -97,12 +97,10 @@ void transpose(const int m, const int n, const double alpha, const double* A, co
     }
 }
 
-void ao2so2(const shell_t* a, const shell_t* b, const int r, double* restrict aointegrals, double* restrict sointegrals)
+void ao2so2(const shell_t* a, const shell_t* b, const size_t length, const int r, double* restrict aointegrals, double* restrict sointegrals)
 {
-    int i, j, e, f, length, irrepe, irrepf;
+    int i, j, e, f, irrepe, irrepf;
     double fac;
-
-    length = a->ncontr*b->ncontr;
 
     for (j = 0;j < b->nfunc;j++)
     {
@@ -135,14 +133,13 @@ void ao2so2(const shell_t* a, const shell_t* b, const int r, double* restrict ao
     }
 }
 
-void ao2so4(const shell_t* a, const shell_t* b, const shell_t* c, const shell_t* d, const int r, const int t, const int st,
+void ao2so4(const shell_t* a, const shell_t* b, const shell_t* c, const shell_t* d, const size_t length,
+            const int r, const int t, const int st,
             double* restrict aointegrals, double* restrict sointegrals)
 {
     int i, j, k, l, e, f, g, h;
     double fac;
-    int length, irrepe, irrepf, irrepg, irreph;
-
-    length = a->ncontr*b->ncontr*c->ncontr*d->ncontr;
+    int irrepe, irrepf, irrepg, irreph;
 
     for (l = 0;l < d->nfunc;l++)
     {

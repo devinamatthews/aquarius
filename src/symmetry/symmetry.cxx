@@ -28,16 +28,14 @@
 
 namespace aquarius
 {
-namespace tensor
+namespace symmetry
 {
-
-#define PI 3.1415926535897932385
 
 mat3x3 Rotation(vec3 axis, double degrees)
 {
     axis.normalize();
-    double c = cos(degrees*PI/180);
-    double s = sin(degrees*PI/180);
+    double c = cos(degrees*M_PI/180);
+    double s = sin(degrees*M_PI/180);
     double x = axis[0];
     double y = axis[1];
     double z = axis[2];
@@ -234,13 +232,13 @@ static const char *c2_name = "C2";
 static const Representation c2_dirprd[] = {A1,A1,
                                            A2,A2};
 static const Representation c2_irreps[] = {A1,A2};
-static const char *c2_irrep_names[] = {"Ag","Au"};
+static const char *c2_irrep_names[] = {"A1","A2"};
 static const double c2_characters[] = { 1, 1,
                                         1,-1};
 static const int c2_irrep_degen[] = {1,1};
 static const mat3x3 c2_ops[] = {Identity(),
                                 C<2>(vec3(0,0,1))};
-static const char *c2_op_names[] = {"E", "C2"};
+static const char *c2_op_names[] = {"E", "C2z"};
 
 const PointGroup PointGroup::C2 = PointGroup(2, 2, c2_name, c2_dirprd, c2_irreps,
                                              c2_irrep_names, c2_characters, c2_irrep_degen,
@@ -268,6 +266,37 @@ const PointGroup PointGroup::C2 = PointGroup(2, 2, c2_name, c2_dirprd, c2_irreps
 /*
  * C2v
  */
+#define A1 Representation(PointGroup::C2v, 0x1)
+#define A2 Representation(PointGroup::C2v, 0x2)
+#define B1 Representation(PointGroup::C2v, 0x4)
+#define B2 Representation(PointGroup::C2v, 0x8)
+
+static const char *c2v_name = "C2v";
+static const Representation c2v_dirprd[] = {A1,A1,B1,B2,
+                                            A2,A2,B2,B1,
+                                            B1,B2,A1,A2,
+                                            B2,B1,A2,A1};
+static const Representation c2v_irreps[] = {A1,A2,B1,B2};
+static const char *c2v_irrep_names[] = {"A1","A2","B1","B2"};
+static const double c2v_characters[] = { 1, 1, 1, 1,
+                                         1, 1,-1,-1,
+                                         1,-1, 1,-1,
+                                         1,-1,-1, 1};
+static const int c2v_irrep_degen[] = {1,1,1,1};
+static const mat3x3 c2v_ops[] = {Identity(),
+                                 C<2>(vec3(0,0,1)),
+                                 Reflection(vec3(0,1,0)),
+                                 Reflection(vec3(1,0,0))};
+static const char *c2v_op_names[] = {"E", "C2z", "sxz", "syz"};
+
+const PointGroup PointGroup::C2v = PointGroup(4, 4, c2v_name, c2v_dirprd, c2v_irreps,
+                                              c2v_irrep_names, c2v_characters, c2v_irrep_degen,
+                                              c2v_ops, c2v_op_names);
+
+#undef A1
+#undef A2
+#undef B1
+#undef B2
 
 /*
  * C3v
@@ -288,6 +317,37 @@ const PointGroup PointGroup::C2 = PointGroup(2, 2, c2_name, c2_dirprd, c2_irreps
 /*
  * C2h
  */
+#define Ag Representation(PointGroup::C2h, 0x1)
+#define Bg Representation(PointGroup::C2h, 0x2)
+#define Au Representation(PointGroup::C2h, 0x4)
+#define Bu Representation(PointGroup::C2h, 0x8)
+
+static const char *c2h_name = "C2h";
+static const Representation c2h_dirprd[] = {Ag,Bg,Au,Bu,
+                                            Bg,Ag,Bu,Au,
+                                            Au,Bu,Ag,Bg,
+                                            Bu,Au,Bg,Ag};
+static const Representation c2h_irreps[] = {Ag,Bg,Au,Bu};
+static const char *c2h_irrep_names[] = {"Ag","Bg","Au","Bu"};
+static const double c2h_characters[] = { 1, 1, 1, 1,
+                                         1,-1, 1,-1,
+                                         1, 1,-1,-1,
+                                         1,-1,-1, 1};
+static const int c2h_irrep_degen[] = {1,1,1,1};
+static const mat3x3 c2h_ops[] = {Identity(),
+                                 C<2>(vec3(0,0,1)),
+                                 Inversion(),
+                                 Reflection(vec3(0,0,1))};
+static const char *c2h_op_names[] = {"E", "C2z", "i", "sxy"};
+
+const PointGroup PointGroup::C2h = PointGroup(4, 4, c2h_name, c2h_dirprd, c2h_irreps,
+                                              c2h_irrep_names, c2h_characters, c2h_irrep_degen,
+                                              c2h_ops, c2h_op_names);
+
+#undef Ag
+#undef Bg
+#undef Au
+#undef Bu
 
 /*
  * C3h
@@ -308,6 +368,37 @@ const PointGroup PointGroup::C2 = PointGroup(2, 2, c2_name, c2_dirprd, c2_irreps
 /*
  * D2
  */
+#define A  Representation(PointGroup::D2, 0x1)
+#define B1 Representation(PointGroup::D2, 0x2)
+#define B2 Representation(PointGroup::D2, 0x4)
+#define B3 Representation(PointGroup::D2, 0x8)
+
+static const char *d2_name = "D2";
+static const Representation d2_dirprd[] = {A ,B1,B2,B3,
+                                           B1,A ,B3,B2,
+                                           B2,B3,A ,B1,
+                                           B3,B2,B1,A };
+static const Representation d2_irreps[] = {A,B1,B2,B3};
+static const char *d2_irrep_names[] = {"A","B1","B2","B3"};
+static const double d2_characters[] = { 1, 1, 1, 1,
+                                        1, 1,-1,-1,
+                                        1,-1, 1,-1,
+                                        1,-1,-1, 1};
+static const int d2_irrep_degen[] = {1,1,1,1};
+static const mat3x3 d2_ops[] = {Identity(),
+                                C<2>(vec3(0,0,1)),
+                                C<2>(vec3(0,1,0)),
+                                C<2>(vec3(1,0,0))};
+static const char *d2_op_names[] = {"E", "C2z", "C2y", "C2x"};
+
+const PointGroup PointGroup::D2 = PointGroup(4, 4, d2_name, d2_dirprd, d2_irreps,
+                                             d2_irrep_names, d2_characters, d2_irrep_degen,
+                                             d2_ops, d2_op_names);
+
+#undef A
+#undef B1
+#undef B2
+#undef B3
 
 /*
  * D3
@@ -328,6 +419,57 @@ const PointGroup PointGroup::C2 = PointGroup(2, 2, c2_name, c2_dirprd, c2_irreps
 /*
  * D2h
  */
+#define Ag  Representation(PointGroup::D2h, 0x01)
+#define B1g Representation(PointGroup::D2h, 0x02)
+#define B2g Representation(PointGroup::D2h, 0x04)
+#define B3g Representation(PointGroup::D2h, 0x08)
+#define Au  Representation(PointGroup::D2h, 0x10)
+#define B1u Representation(PointGroup::D2h, 0x20)
+#define B2u Representation(PointGroup::D2h, 0x40)
+#define B3u Representation(PointGroup::D2h, 0x80)
+
+static const char *d2h_name = "D2h";
+static const Representation d2h_dirprd[] = {Ag ,B1g,B2g,B3g,Au ,B1u,B2u,B3u,
+                                            B1g,Ag ,B3g,B2g,B1u,Au ,B3u,B2u,
+                                            B2g,B3g,Ag ,B1g,B2u,B3u,Au ,B1u,
+                                            B3g,B2g,B1g,Ag ,B3u,B2u,B1u,Au ,
+                                            Au ,B1u,B2u,B3u,Ag ,B1g,B2g,B3g,
+                                            B1u,Au ,B3u,B2u,B1g,Ag ,B3g,B2g,
+                                            B2u,B3u,Au ,B1u,B2g,B3g,Ag ,B1g,
+                                            B3u,B2u,B1u,Au ,B3g,B2g,B1g,Ag };
+static const Representation d2h_irreps[] = {Ag, B1g,B2g,B3g,Au, B1u,B2u,B3u};
+static const char *d2h_irrep_names[] = {"Ag","B1g","B2g","B3g","Au","B1u","B2u","B3u"};
+static const double d2h_characters[] = { 1, 1, 1, 1, 1, 1, 1, 1,
+                                         1, 1,-1,-1, 1, 1,-1,-1,
+                                         1,-1, 1,-1, 1,-1, 1,-1,
+                                         1,-1,-1, 1, 1,-1,-1, 1,
+                                         1, 1, 1, 1,-1,-1,-1,-1,
+                                         1, 1,-1,-1,-1,-1, 1, 1,
+                                         1,-1, 1,-1,-1, 1,-1, 1,
+                                         1,-1,-1, 1,-1, 1, 1,-1};
+static const int d2h_irrep_degen[] = {1,1,1,1,1,1,1,1};
+static const mat3x3 d2h_ops[] = {Identity(),
+                                 C<2>(vec3(0,0,1)),
+                                 C<2>(vec3(0,1,0)),
+                                 C<2>(vec3(1,0,0)),
+                                 Inversion(),
+                                 Reflection(vec3(0,0,1)),
+                                 Reflection(vec3(0,1,0)),
+                                 Reflection(vec3(1,0,0))};
+static const char *d2h_op_names[] = {"E", "C2z", "C2y", "C2x", "i", "sxy", "sxz", "syz"};
+
+const PointGroup PointGroup::D2h = PointGroup(8, 8, d2h_name, d2h_dirprd, d2h_irreps,
+                                              d2h_irrep_names, d2h_characters, d2h_irrep_degen,
+                                              d2h_ops, d2h_op_names);
+
+#undef Ag
+#undef B1g
+#undef B2g
+#undef B3g
+#undef Au
+#undef B1u
+#undef B2u
+#undef B3u
 
 /*
  * D3h
