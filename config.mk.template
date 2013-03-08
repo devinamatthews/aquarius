@@ -7,7 +7,7 @@ BLAS_LIBS = -llapack -lblas
 ELEMENTAL_LIBS = -L$(ELEMENTAL)/lib -lelemental -lplcg -lpmrrr -llapack-addons
 CYCLOPSTF_LIBS = -L$(CYCLOPSTF)/lib -ldist_tensor -ltensor_interface -ltensor_reference -lcyclopstf
 
-DEFAULT_COMPONENTS = aquarius
+DEFAULT_COMPONENTS = bins
 
 DEFS = -D_POSIX_C_SOURCE=200112L
 CPPFLAGS = 
