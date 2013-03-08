@@ -52,7 +52,8 @@ class ExcitationOperator : public MOOperator<T>
 
     public:
         ExcitationOperator(const scf::UHF<T>& uhf, const int spin=0)
-        : MOOperator<T>(uhf), spin(spin), r(std::min(np,nh)+1, NULL)
+        : MOOperator<T>(uhf), spin(spin),
+          r(std::min(np,nh)+1, (tensor::SpinorbitalTensor< tensor::DistTensor<T> >*)NULL)
         {
             if (abs(spin%2) != (np+nh)%2 || abs(spin) > np+nh) throw std::logic_error("incompatible spin");
 

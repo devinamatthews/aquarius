@@ -71,8 +71,8 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base>, typen
         std::vector<SpinCase> cases;
 
     public:
-        SpinorbitalTensor(const dtype val=0.0)
-        : IndexableTensor< SpinorbitalTensor<Base>, dtype >()
+        SpinorbitalTensor(const typename Base::dtype val=0.0)
+        : IndexableTensor< SpinorbitalTensor<Base>, typename Base::dtype >()
         {
             nA = 0;
             nM = 0;
@@ -84,7 +84,7 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base>, typen
         }
 
         SpinorbitalTensor(const SpinorbitalTensor<Base>& other)
-        : IndexableTensor< SpinorbitalTensor<Base>, dtype >(other.ndim_)
+        : IndexableTensor< SpinorbitalTensor<Base>, typename Base::dtype >(other.ndim_)
         {
             logical = other.logical;
             nA = other.nA;
@@ -108,7 +108,7 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base>, typen
         }
 
         SpinorbitalTensor(const autocc::Manifold& left, const autocc::Manifold& right, const int spin=0)
-        : IndexableTensor< SpinorbitalTensor<Base>, dtype >(left.np+left.nh+right.np+right.nh), spin(spin)
+        : IndexableTensor< SpinorbitalTensor<Base>, typename Base::dtype >(left.np+left.nh+right.np+right.nh), spin(spin)
         {
             std::vector<autocc::Line> out_;
             std::vector<autocc::Line> in_;
@@ -136,7 +136,7 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base>, typen
         }
 
         SpinorbitalTensor(const std::string& logical, const int spin=0)
-        : IndexableTensor< SpinorbitalTensor<Base>, dtype >(logical.size()-1), spin(spin)
+        : IndexableTensor< SpinorbitalTensor<Base>, typename Base::dtype >(logical.size()-1), spin(spin)
         {
             int comma = logical.find(',');
             if (comma == std::string::npos) throw std::logic_error("index std::string is malformed: " + logical);
