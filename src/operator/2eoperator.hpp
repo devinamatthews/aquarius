@@ -67,7 +67,7 @@ class TwoElectronOperator : public OneElectronOperator<T>
         TwoElectronOperator(const scf::UHF<T>& uhf, const bool hermitian=true)
         : OneElectronOperator<T>(uhf, hermitian),
           ijkl("ij,kl"),
-          iajk("ai,jk"),
+          iajk("ia,jk"),
           ijka("ij,ka"),
           abij("ab,ij"),
           ijab("ij,ab"),
@@ -166,14 +166,14 @@ class TwoElectronOperator : public OneElectronOperator<T>
                 abci.addSpinCase(aibc.getSpinCase(0), "AB,CI", "ABCI");
                 abci.addSpinCase(aibc.getSpinCase(1), "Ab,Ci", "AbCi");
                 abci.addSpinCase(aibc.getSpinCase(2), "aB,cI", "aBcI");
-                abci.addSpinCase(aibc.getSpinCase(3), "aB,ci", "abci");
+                abci.addSpinCase(aibc.getSpinCase(3), "ab,ci", "abci");
             }
             else
             {
                 abci.addSpinCase(new tensor::DistTensor<T>(this->ctf, 4, sizeAAAI, shapeANNN, true), "AB,CI", "ABCI");
                 abci.addSpinCase(new tensor::DistTensor<T>(this->ctf, 4, sizeAaAi, shapeNNNN, true), "Ab,Ci", "AbCi");
                 abci.addSpinCase(new tensor::DistTensor<T>(this->ctf, 4, sizeaAaI, shapeNNNN, true), "aB,cI", "aBcI");
-                abci.addSpinCase(new tensor::DistTensor<T>(this->ctf, 4, sizeaaai, shapeANNN, true), "aB,ci", "abci");
+                abci.addSpinCase(new tensor::DistTensor<T>(this->ctf, 4, sizeaaai, shapeANNN, true), "ab,ci", "abci");
             }
 
             abcd.addSpinCase(new tensor::DistTensor<T>(this->ctf, 4, sizeAAAA, shapeANAN, true), "AB,CD", "ABCD");
@@ -187,7 +187,7 @@ class TwoElectronOperator : public OneElectronOperator<T>
         TwoElectronOperator(TwoElectronOperator<T>& other, int copy)
         : OneElectronOperator<T>(other, copy),
           ijkl("ij,kl"),
-          iajk("ai,jk"),
+          iajk("ia,jk"),
           ijka("ij,ka"),
           abij("ab,ij"),
           ijab("ij,ab"),
@@ -304,14 +304,14 @@ class TwoElectronOperator : public OneElectronOperator<T>
                 abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI().getSpinCase(0)), "AB,CI", "ABCI");
                 abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI().getSpinCase(1)), "Ab,Ci", "AbCi");
                 abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI().getSpinCase(2)), "aB,cI", "aBcI");
-                abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI().getSpinCase(3)), "aB,ci", "abci");
+                abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI().getSpinCase(3)), "ab,ci", "abci");
             }
             else
             {
                 abci.addSpinCase(other.getABCI().getSpinCase(0), "AB,CI", "ABCI");
                 abci.addSpinCase(other.getABCI().getSpinCase(1), "Ab,Ci", "AbCi");
                 abci.addSpinCase(other.getABCI().getSpinCase(2), "aB,cI", "aBcI");
-                abci.addSpinCase(other.getABCI().getSpinCase(3), "aB,ci", "abci");
+                abci.addSpinCase(other.getABCI().getSpinCase(3), "ab,ci", "abci");
             }
 
             if (copy&ABCD)

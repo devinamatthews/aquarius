@@ -123,7 +123,7 @@ class IndexableTensor
          *********************************************************************/
         Derived& operator=(const T val)
         {
-            Derived tensor(val);
+            Derived tensor(static_cast<Derived&>(*this), val);
 
             std::vector<char> idx(ndim_+1);
             for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
@@ -136,7 +136,7 @@ class IndexableTensor
 
         Derived& operator+=(const T val)
         {
-            Derived tensor(val);
+            Derived tensor(static_cast<Derived&>(*this), val);
 
             std::vector<char> idx(ndim_+1);
             for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
@@ -149,7 +149,7 @@ class IndexableTensor
 
         Derived& operator-=(const T val)
         {
-            Derived tensor(val);
+            Derived tensor(static_cast<Derived&>(*this), val);
 
             std::vector<char> idx(ndim_+1);
             for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
@@ -674,21 +674,21 @@ class IndexedTensor
 
         IndexedTensor<Derived, T>& operator=(const T val)
         {
-            Derived tensor(val);
+            Derived tensor(tensor_, val);
             *this = tensor[""];
             return *this;
         }
 
         IndexedTensor<Derived, T>& operator+=(const T val)
         {
-            Derived tensor(val);
+            Derived tensor(tensor_, val);
             *this += tensor[""];
             return *this;
         }
 
         IndexedTensor<Derived, T>& operator-=(const T val)
         {
-            Derived tensor(val);
+            Derived tensor(tensor_, val);
             *this -= tensor[""];
             return *this;
         }

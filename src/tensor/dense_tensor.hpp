@@ -46,8 +46,8 @@ class DenseTensor : public LocalTensor< DenseTensor<T>,T >
     INHERIT_FROM_LOCAL_TENSOR(DenseTensor<T>,T)
 
     public:
-        DenseTensor(const T val=0.0)
-        : LocalTensor< DenseTensor<T>,T >(0, (int*)NULL, (int*)NULL, 1)
+        DenseTensor(const DenseTensor& t, const T val)
+        : LocalTensor< DenseTensor<T>,T >(0, (int*)NULL, (int*)NULL, 1, false)
         {
             data_[0] = val;
         }

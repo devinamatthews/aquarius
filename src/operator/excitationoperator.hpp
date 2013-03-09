@@ -90,10 +90,10 @@ class ExcitationOperator : public MOOperator<T>
                     for (int j = 0;j < ha;j++,i++) len[i] = nI;
                     for (int j = 0;j < hb;j++,i++) len[i] = ni;
 
-                    sym[pa] = NS;
-                    sym[pa+pb] = NS;
-                    sym[pa+pb+ha] = NS;
-                    sym[pa+pb+ha+hb] = NS;
+                    if (pa > 0) sym[pa-1] = NS;
+                    if (pa+pb > 0) sym[pa+pb-1] = NS;
+                    if (pa+pb+ha > 0) sym[pa+pb+ha-1] = NS;
+                    if (pa+pb+ha+hb > 0) sym[pa+pb+ha+hb-1] = NS;
 
                     r[ex]->addSpinCase(new tensor::DistTensor<T>(uhf.ctf, ndim, len.data(), sym.data(), true),
                                        autocc::Manifold(pa, ha), 0);

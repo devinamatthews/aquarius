@@ -90,10 +90,10 @@ class DeexcitationOperator : public MOOperator<T>
                     for (int j = 0;j < pa;j++,i++) len[i] = nA;
                     for (int j = 0;j < pb;j++,i++) len[i] = na;
 
-                    sym[ha] = NS;
-                    sym[ha+hb] = NS;
-                    sym[ha+hb+pa] = NS;
-                    sym[ha+hb+pa+pb] = NS;
+                    if (pa > 0) sym[pa-1] = NS;
+                    if (pa+pb > 0) sym[pa+pb-1] = NS;
+                    if (pa+pb+ha > 0) sym[pa+pb+ha-1] = NS;
+                    if (pa+pb+ha+hb > 0) sym[pa+pb+ha+hb-1] = NS;
 
                     r[ex]->addSpinCase(new tensor::DistTensor<T>(uhf.ctf, ndim, len.data(), sym.data(), true),
                                        0, autocc::Manifold(pa, ha));

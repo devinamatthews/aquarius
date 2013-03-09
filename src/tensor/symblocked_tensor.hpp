@@ -43,7 +43,7 @@ namespace tensor
 template <class T>
 class SymmetryBlockedTensor : public IndexableTensor< SymmetryBlockedTensor<T> >, public Distributed<T>
 {
-    INHERIT_FROM_INDEXABLE_TENSOR(SymmetryBlockedTensor<T>);
+    INHERIT_FROM_INDEXABLE_TENSOR(SymmetryBlockedTensor<T>, T);
 
     protected:
         const symmetry::PointGroup& group_;

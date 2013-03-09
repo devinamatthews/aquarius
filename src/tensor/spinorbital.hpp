@@ -71,7 +71,7 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base>, typen
         std::vector<SpinCase> cases;
 
     public:
-        SpinorbitalTensor(const typename Base::dtype val=0.0)
+        SpinorbitalTensor(const SpinorbitalTensor<Base>& t, const typename Base::dtype val)
         : IndexableTensor< SpinorbitalTensor<Base>, typename Base::dtype >()
         {
             nA = 0;
@@ -80,7 +80,7 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base>, typen
             nI = 0;
             spin = 0;
 
-            addSpinCase(new Base(val), ",", "");
+            addSpinCase(new Base(t.getSpinCase(0), val), ",", "");
         }
 
         SpinorbitalTensor(const SpinorbitalTensor<Base>& other)
@@ -178,7 +178,8 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base>, typen
 
         void addSpinCase(Base& tensor, std::string logical, std::string physical, double factor = 1.0, bool isAlloced = false)
         {
-            addSpinCase(tensor, autocc::Line::parse(logical), autocc::Line::parse(physical), factor, isAlloced);
+            addSpinCase(tensor, autocc::Line::parse(logical.substr(0,nA+nM)+logical.substr(nA+nM+1,nE+nI)),
+                        autocc::Line::parse(physical), factor, isAlloced);
         }
 
         void addSpinCase(Base* tensor, const autocc::Manifold& alpha_left,
@@ -334,7 +335,7 @@ class SpinorbitalTensor : public IndexableTensor< SpinorbitalTensor<Base>, typen
 
             cases.push_back(sc);
 
-            if (2*(sc.nA+sc.nI-sc.nE-sc.nM)-(nA+nI-nE-nM) != spin)
+            if (2*(sc.nA+sc.nM-sc.nE-sc.nI)-(nA+nM-nE-nI) != spin)
                 throw std::logic_error("spin is not compatible");
 
             //std::cout << "Adding spin case " << sc.nA << ' ' << sc.nM << ' ' << sc.nE << ' ' << sc.nI << std::endl;

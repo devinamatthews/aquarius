@@ -170,7 +170,7 @@ class LocalTensor : public IndexableTensor<Derived,T>
 
             data_ = data;
             isAlloced = false;
-            if (zero) *this = (T)0;
+            if (zero) std::fill(data_, data_+size_, (T)0);
         }
 
         LocalTensor(int ndim, const int *len, const int *ld, uint64_t size, bool zero = true)
@@ -198,7 +198,7 @@ class LocalTensor : public IndexableTensor<Derived,T>
 
             data_ = SAFE_MALLOC(T, size_);
             isAlloced = true;
-            if (zero) *this = (T)0;
+            if (zero) std::fill(data_, data_+size_, (T)0);
         }
 
         ~LocalTensor()

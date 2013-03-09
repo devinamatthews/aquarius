@@ -49,8 +49,8 @@ class PackedTensor : public LocalTensor<PackedTensor<T>,T>
         int* sym_;
 
     public:
-        PackedTensor(const T val=0.0)
-        : LocalTensor<PackedTensor>(0, NULL, NULL, 1)
+        PackedTensor(const PackedTensor& t, const T val)
+        : LocalTensor<PackedTensor>(0, (int*)NULL, (int*)NULL, 1, false)
         {
             sym_ = SAFE_MALLOC(int, 1);
             sym_[0] = NS;

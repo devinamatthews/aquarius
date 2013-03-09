@@ -161,9 +161,6 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
 {
     INHERIT_FROM_INDEXABLE_TENSOR(DistTensor<T>,T)
 
-    private:
-        static tCTF_World<T>* global_ctf;
-
     protected:
         int tid;
         int *len_;
@@ -172,12 +169,10 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
     public:
         using Distributed<T>::ctf;
 
-        DistTensor(const T val)
+        DistTensor(const DistTensor& t, const T val)
         : IndexableTensor< DistTensor<T>,T >(),
-          Distributed<T>(*(global_ctf == NULL ? new tCTF_World<T>(MPI_COMM_WORLD) : global_ctf))
+          Distributed<T>(t.ctf)
         {
-            global_ctf = &this->ctf;
-
             len_ = SAFE_MALLOC(int, ndim_);
             sym_ = SAFE_MALLOC(int, ndim_);
 
@@ -219,7 +214,9 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
             }
             else if (zero)
             {
-                *this = 0.0;
+                int64_t size;
+                T* raw_data = getRawData(size);
+                std::fill(raw_data, raw_data+size, (T)0);
             }
         }
 
@@ -241,7 +238,12 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
             int ret = ctf.ctf->define_tensor(ndim, len, sym, &tid);
             assert(ret == DIST_TENSOR_SUCCESS);
 
-            if (zero) *this = 0.0;
+            if (zero)
+            {
+                int64_t size;
+                T* raw_data = getRawData(size);
+                std::fill(raw_data, raw_data+size, (T)0);
+            }
         }
 
         virtual ~DistTensor()
@@ -407,9 +409,6 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
             assert(ret == DIST_TENSOR_SUCCESS);
         }
 };
-
-template <typename T>
-tCTF_World<T>* DistTensor<T>::global_ctf = NULL;
 
 template <typename T>
 double scalar(const IndexedTensor< DistTensor<T>, T >& other)
