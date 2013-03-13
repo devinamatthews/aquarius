@@ -25,9 +25,7 @@
 #ifndef _AQUARIUS_OPERATOR_1EOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_1EOPERATOR_HPP_
 
-#include "tensor/dist_tensor.hpp"
 #include "tensor/spinorbital.hpp"
-#include "scf/scf.hpp"
 
 #include "mooperator.hpp"
 
@@ -91,8 +89,8 @@ class OneElectronOperator : public MOOperator<T>
 
             if (hermitian)
             {
-                ia.addSpinCase(ai.getSpinCase(0), "I,A", "AI");
-                ia.addSpinCase(ai.getSpinCase(1), "i,a", "ai");
+                ia.addSpinCase(ai(0), "I,A", "AI");
+                ia.addSpinCase(ai(1), "i,a", "ai");
             }
             else
             {
@@ -146,33 +144,33 @@ class OneElectronOperator : public MOOperator<T>
             ab.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeAA, shapeNN, true), "A,B", "AB");
             ab.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeaa, shapeNN, true), "a,b", "ab");
 
-            ab.getSpinCase(0)["AB"] = Aq["Aq"]*cA["qB"];
-            ab.getSpinCase(1)["ab"] = aq["aq"]*ca["qb"];
+            ab(0)["AB"] = Aq["Aq"]*cA["qB"];
+            ab(1)["ab"] = aq["aq"]*ca["qb"];
 
             ij.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeII, shapeNN, true), "I,J", "IJ");
             ij.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeii, shapeNN, true), "i,j", "ij");
 
-            ij.getSpinCase(0)["IJ"] = Iq["Iq"]*cI["qJ"];
-            ij.getSpinCase(1)["ij"] = iq["iq"]*ci["qj"];
+            ij(0)["IJ"] = Iq["Iq"]*cI["qJ"];
+            ij(1)["ij"] = iq["iq"]*ci["qj"];
 
             ai.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeAI, shapeNN, true), "A,I", "AI");
             ai.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeai, shapeNN, true), "a,i", "ai");
 
-            ai.getSpinCase(0)["AI"] = Aq["Aq"]*cI["qI"];
-            ai.getSpinCase(1)["ai"] = aq["aq"]*ci["qi"];
+            ai(0)["AI"] = Aq["Aq"]*cI["qI"];
+            ai(1)["ai"] = aq["aq"]*ci["qi"];
 
             if (hermitian)
             {
-                ia.addSpinCase(ai.getSpinCase(0), "I,A", "AI");
-                ia.addSpinCase(ai.getSpinCase(1), "i,a", "ai");
+                ia.addSpinCase(ai(0), "I,A", "AI");
+                ia.addSpinCase(ai(1), "i,a", "ai");
             }
             else
             {
                 ia.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeAI, shapeNN, true), "I,A", "AI");
                 ia.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeai, shapeNN, true), "i,a", "ai");
 
-                ia.getSpinCase(0)["IA"] = Iq["Iq"]*cA["qA"];
-                ia.getSpinCase(1)["ia"] = iq["iq"]*ca["qa"];
+                ia(0)["IA"] = Iq["Iq"]*cA["qA"];
+                ia(1)["ia"] = iq["iq"]*ca["qa"];
             }
         }
 
@@ -186,46 +184,46 @@ class OneElectronOperator : public MOOperator<T>
         {
             if (copy&AB)
             {
-                ab.addSpinCase(new tensor::DistTensor<T>(other.getAB().getSpinCase(0)), "A,B", "AB");
-                ab.addSpinCase(new tensor::DistTensor<T>(other.getAB().getSpinCase(1)), "a,b", "ab");
+                ab.addSpinCase(new tensor::DistTensor<T>(other.getAB()(0)), "A,B", "AB");
+                ab.addSpinCase(new tensor::DistTensor<T>(other.getAB()(1)), "a,b", "ab");
             }
             else
             {
-                ab.addSpinCase(other.getAB().getSpinCase(0), "A,B", "AB");
-                ab.addSpinCase(other.getAB().getSpinCase(1), "a,b", "ab");
+                ab.addSpinCase(other.getAB()(0), "A,B", "AB");
+                ab.addSpinCase(other.getAB()(1), "a,b", "ab");
             }
 
             if (copy&IJ)
             {
-                ij.addSpinCase(new tensor::DistTensor<T>(other.getIJ().getSpinCase(0)), "I,J", "IJ");
-                ij.addSpinCase(new tensor::DistTensor<T>(other.getIJ().getSpinCase(1)), "i,j", "ij");
+                ij.addSpinCase(new tensor::DistTensor<T>(other.getIJ()(0)), "I,J", "IJ");
+                ij.addSpinCase(new tensor::DistTensor<T>(other.getIJ()(1)), "i,j", "ij");
             }
             else
             {
-                ij.addSpinCase(other.getIJ().getSpinCase(0), "I,J", "IJ");
-                ij.addSpinCase(other.getIJ().getSpinCase(1), "i,j", "ij");
+                ij.addSpinCase(other.getIJ()(0), "I,J", "IJ");
+                ij.addSpinCase(other.getIJ()(1), "i,j", "ij");
             }
 
             if (copy&AI)
             {
-                ai.addSpinCase(new tensor::DistTensor<T>(other.getAI().getSpinCase(0)), "A,I", "AI");
-                ai.addSpinCase(new tensor::DistTensor<T>(other.getAI().getSpinCase(1)), "a,i", "ai");
+                ai.addSpinCase(new tensor::DistTensor<T>(other.getAI()(0)), "A,I", "AI");
+                ai.addSpinCase(new tensor::DistTensor<T>(other.getAI()(1)), "a,i", "ai");
             }
             else
             {
-                ai.addSpinCase(other.getAI().getSpinCase(0), "A,I", "AI");
-                ai.addSpinCase(other.getAI().getSpinCase(1), "a,i", "ai");
+                ai.addSpinCase(other.getAI()(0), "A,I", "AI");
+                ai.addSpinCase(other.getAI()(1), "a,i", "ai");
             }
 
             if (copy&IA)
             {
-                ia.addSpinCase(new tensor::DistTensor<T>(other.getIA().getSpinCase(0)), "I,A", "AI");
-                ia.addSpinCase(new tensor::DistTensor<T>(other.getIA().getSpinCase(1)), "i,a", "ai");
+                ia.addSpinCase(new tensor::DistTensor<T>(other.getIA()(0)), "I,A", "AI");
+                ia.addSpinCase(new tensor::DistTensor<T>(other.getIA()(1)), "i,a", "ai");
             }
             else
             {
-                ia.addSpinCase(other.getIA().getSpinCase(0), "I,A", "AI");
-                ia.addSpinCase(other.getIA().getSpinCase(1), "I,a", "ai");
+                ia.addSpinCase(other.getIA()(0), "I,A", "AI");
+                ia.addSpinCase(other.getIA()(1), "i,a", "ai");
             }
         }
 

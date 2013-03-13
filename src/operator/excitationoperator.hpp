@@ -25,14 +25,8 @@
 #ifndef _AQUARIUS_OPERATOR_EXCITATIONOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_EXCITATIONOPERATOR_HPP_
 
-#include <exception>
-
-#include "tensor/dist_tensor.hpp"
+#include "tensor/compositetensor.hpp"
 #include "tensor/spinorbital.hpp"
-#include "tensor/util.h"
-#include "util/util.h"
-#include "util/distributed.hpp"
-#include "scf/scf.hpp"
 
 #include "mooperator.hpp"
 
@@ -41,19 +35,32 @@ namespace aquarius
 namespace op
 {
 
-template <typename T, int np, int nh> class ScaledExcitationOperator;
-
 template <typename T, int np, int nh=np>
-class ExcitationOperator : public MOOperator<T>
+class ExcitationOperator
+: public MOOperator<T>,
+  public tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
+                                  tensor::SpinorbitalTensor< tensor::DistTensor<T> >, T >
 {
+    INHERIT_FROM_COMPOSITE_TENSOR(CONCAT(ExcitationOperator<T,np,nh>),
+                                  tensor::SpinorbitalTensor< tensor::DistTensor<T> >, T)
+
     protected:
         const int spin;
-        std::vector< tensor::SpinorbitalTensor< tensor::DistTensor<T> >* > r;
 
     public:
+        ExcitationOperator(const ExcitationOperator<T,np,nh>& other)
+        : tensor::Tensor<ExcitationOperator<T,np,nh>,T>(*this),
+          MOOperator<T>(other.uhf),
+          tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
+           tensor::SpinorbitalTensor< tensor::DistTensor<T> >, T >(other),
+          spin(other.spin) {}
+
         ExcitationOperator(const scf::UHF<T>& uhf, const int spin=0)
-        : MOOperator<T>(uhf), spin(spin),
-          r(std::min(np,nh)+1, (tensor::SpinorbitalTensor< tensor::DistTensor<T> >*)NULL)
+        : tensor::Tensor<ExcitationOperator<T,np,nh>,T>(*this),
+          MOOperator<T>(uhf),
+          tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
+           tensor::SpinorbitalTensor< tensor::DistTensor<T> >, T >(std::max(np,nh)+1),
+          spin(spin)
         {
             if (abs(spin%2) != (np+nh)%2 || abs(spin) > np+nh) throw std::logic_error("incompatible spin");
 
@@ -65,10 +72,12 @@ class ExcitationOperator : public MOOperator<T>
 
             for (int ex = 0;ex <= std::min(np,nh);ex++)
             {
+                int idx = ex+std::abs(np-nh);
+
                 int npex = (np > nh ? ex+np-nh : ex);
                 int nhex = (nh > np ? ex+nh-np : ex);
 
-                r[ex] = new tensor::SpinorbitalTensor< tensor::DistTensor<T> >(autocc::Manifold(npex,nhex), 0, spin);
+                tensors_[idx].tensor_ = new tensor::SpinorbitalTensor< tensor::DistTensor<T> >(autocc::Manifold(npex,nhex), 0, spin);
 
                 for (int pspin = std::max(-npex,spin-nhex);pspin <= std::min(npex,spin+nhex);pspin++)
                 {
@@ -95,148 +104,11 @@ class ExcitationOperator : public MOOperator<T>
                     if (pa+pb+ha > 0) sym[pa+pb+ha-1] = NS;
                     if (pa+pb+ha+hb > 0) sym[pa+pb+ha+hb-1] = NS;
 
-                    r[ex]->addSpinCase(new tensor::DistTensor<T>(uhf.ctf, ndim, len.data(), sym.data(), true),
-                                       autocc::Manifold(pa, ha), 0);
+                    tensors_[idx].tensor_->addSpinCase(new tensor::DistTensor<T>(uhf.ctf, ndim, len.data(), sym.data(), true),
+                                                       autocc::Manifold(pa, ha), 0);
                 }
             }
         }
-
-        T operator*(const ExcitationOperator<T,np,nh>& other) const
-        {
-            T res = (T)0;
-
-            for (int ex = 0;ex <= std::min(np,nh);ex++)
-            {
-                res += tensor::scalar((*r[ex])*(*other.r[ex]))/factorial(ex)/factorial(ex+abs(np-nh));
-            }
-
-            return res;
-        }
-
-        ExcitationOperator<T,np,nh>& operator=(const T other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] = other;
-            return *this;
-        }
-
-        ExcitationOperator<T,np,nh>& operator+=(const T other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] += other;
-            return *this;
-        }
-
-        ExcitationOperator<T,np,nh>& operator-=(const T other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] -= other;
-            return *this;
-        }
-
-        ExcitationOperator<T,np,nh>& operator*=(const T other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] *= other;
-            return *this;
-        }
-
-        ExcitationOperator<T,np,nh>& operator/=(const T other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] /= other;
-            return *this;
-        }
-
-        ExcitationOperator<T,np,nh>& operator=(const ExcitationOperator<T,np,nh>& other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] = *other.r[ex];
-            return *this;
-        }
-
-        ExcitationOperator<T,np,nh>& operator+=(const ExcitationOperator<T,np,nh>& other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] += *other.r[ex];
-            return *this;
-        }
-
-        ExcitationOperator<T,np,nh>& operator-=(const ExcitationOperator<T,np,nh>& other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] -= *other.r[ex];
-            return *this;
-        }
-
-        ExcitationOperator<T,np,nh>& operator*=(const ExcitationOperator<T,np,nh>& other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] *= *other.r[ex];
-            return *this;
-        }
-
-        ExcitationOperator<T,np,nh>& operator/=(const ExcitationOperator<T,np,nh>& other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] /= *other.r[ex];
-            return *this;
-        }
-
-        ExcitationOperator<T,np,nh>& operator=(const ScaledExcitationOperator<T,np,nh>& other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] = *other.op.r[ex]*other.factor;
-            return *this;
-        }
-
-        ExcitationOperator<T,np,nh>& operator+=(const ScaledExcitationOperator<T,np,nh>& other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] += *other.op.r[ex]*other.factor;
-            return *this;
-        }
-
-        ExcitationOperator<T,np,nh>& operator-=(const ScaledExcitationOperator<T,np,nh>& other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] -= *other.op.r[ex]*other.factor;
-            return *this;
-        }
-
-        ExcitationOperator<T,np,nh>& operator*=(const ScaledExcitationOperator<T,np,nh>& other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] *= *other.op.r[ex]*other.factor;
-            return *this;
-        }
-
-        ExcitationOperator<T,np,nh>& operator/=(const ScaledExcitationOperator<T,np,nh>& other)
-        {
-            for (int ex = 0;ex <= std::min(np,nh);ex++) *r[ex] /= *other.op.r[ex]*other.factor;
-            return *this;
-        }
-
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& operator[](int i)
-        {
-            assert(i >= abs(np-nh) && i <= std::max(np,nh));
-            return *r[i-abs(np-nh)];
-        }
-
-        const tensor::SpinorbitalTensor< tensor::DistTensor<T> >& operator[](int i) const
-        {
-            assert(i >= abs(np-nh) && i <= std::max(np,nh));
-            return *r[i-abs(np-nh)];
-        }
-
-        const ScaledExcitationOperator<T,np,nh> operator*(const T factor) const
-        {
-            return ScaledExcitationOperator<T,np,nh>(*this, factor);
-        }
-
-        friend ScaledExcitationOperator<T,np,nh> operator*(const T factor, const ExcitationOperator<T,np,nh>& other)
-        {
-            return ScaledExcitationOperator<T,np,nh>(other, factor);
-        }
-};
-
-template <typename T, int np, int nh>
-class ScaledExcitationOperator
-{
-    friend class ExcitationOperator<T,np,nh>;
-
-    protected:
-        const ExcitationOperator<T,np,nh>& op;
-        T factor;
-
-        ScaledExcitationOperator(const ExcitationOperator<T,np,nh>& op, T factor)
-        : op(op), factor(factor) {}
 };
 
 }

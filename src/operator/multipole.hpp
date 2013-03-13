@@ -25,13 +25,8 @@
 #ifndef _AQUARIUS_CC_MULTIPOLE_HPP_
 #define _AQUARIUS_CC_MULTIPOLE_HPP_
 
-#include <vector>
-
 #include "slide/slide.hpp"
-#include "input/molecule.hpp"
-#include "util/distributed.hpp"
 #include "scf/scf.hpp"
-#include "tensor/dist_tensor.hpp"
 
 #include "1eoperator.hpp"
 

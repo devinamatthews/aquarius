@@ -25,11 +25,6 @@
 #ifndef _AQUARIUS_SCF_AOINTS_HPP_
 #define _AQUARIUS_SCF_AOINTS_HPP_
 
-#include <vector>
-#include <cassert>
-
-#include "mpi.h"
-
 #include "util/distributed.hpp"
 #include "slide/slide.hpp"
 #include "input/molecule.hpp"

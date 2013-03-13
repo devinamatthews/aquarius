@@ -37,15 +37,16 @@ class CCD : public CCSD<U>
 {
     public:
         CCD(const input::Config& config, op::TwoElectronOperator<U>& moints)
-        : CCSD<T>(config, moints)
+        : tensor::Tensor<op::ExcitationOperator<U,2>,U>(*this),
+          CCSD<U>(config, moints)
         {
-            this->T[1] = 0;
+            this->T(1) = 0;
 
-            energy = 0.25*scalar(moints.getABIJ()*T[2]);
+            energy = 0.25*scalar(moints.getABIJ()*T(2));
 
-            conv =          conv,T[2].getSpinCase(0).reduce(CTF_OP_MAXABS);
-            conv = std::max(conv,T[2].getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,T[2].getSpinCase(2).reduce(CTF_OP_MAXABS));
+            conv =          conv,T(2).getSpinCase(0).reduce(CTF_OP_MAXABS);
+            conv = std::max(conv,T(2).getSpinCase(1).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,T(2).getSpinCase(2).reduce(CTF_OP_MAXABS));
         }
 
         void _iterate()
@@ -74,49 +75,49 @@ class CCD : public CCSD<U>
              * Intermediates
              */
             PROFILE_SECTION(calc_FMI)
-            FMI["mi"] += 0.5*WMNEF["mnef"]*T[2]["efin"];
+            FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_WIJKL)
-            WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*T[2]["efij"];
+            WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*T(2)["efij"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_FAE)
-            FAE["ae"] -= 0.5*WMNEF["mnef"]*T[2]["afmn"];
+            FAE["ae"] -= 0.5*WMNEF["mnef"]*T(2)["afmn"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_WMBEJ)
-            WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T[2]["afin"];
+            WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T(2)["afin"];
             PROFILE_STOP
             /*
              *************************************************************************/
 
             /**************************************************************************
              *
-             * T[1]->T[2] and T[2]->T[2]
+             * T(1)->T(2) and T(2)->T(2)
              */
             PROFILE_SECTION(calc_WMNEF)
-            Z[2]["abij"] = WMNEF["ijab"];
+            Z(2)["abij"] = WMNEF["ijab"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T2_IN_T2_FAE)
-            Z[2]["abij"] += FAE["af"]*T[2]["fbij"];
+            Z(2)["abij"] += FAE["af"]*T(2)["fbij"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T2_IN_T2_FMI)
-            Z[2]["abij"] -= FMI["ni"]*T[2]["abnj"];
+            Z(2)["abij"] -= FMI["ni"]*T(2)["abnj"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T2_IN_T2_ABCD)
-            Z[2]["abij"] += 0.5*WABEF["abef"]*T[2]["efij"];
+            Z(2)["abij"] += 0.5*WABEF["abef"]*T(2)["efij"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T2_IN_T2_IJKL)
-            Z[2]["abij"] += 0.5*WMNIJ["mnij"]*T[2]["abmn"];
+            Z(2)["abij"] += 0.5*WMNIJ["mnij"]*T(2)["abmn"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T2_IN_T2_RING)
-            Z[2]["abij"] -= WAMEI["amei"]*T[2]["ebmj"];
+            Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];
             PROFILE_STOP
             /*
              *************************************************************************/
@@ -127,13 +128,13 @@ class CCD : public CCSD<U>
             Z -= T;
             T += Z;
 
-            energy = 0.25*scalar(moints.getVABIJ()*T[2]);
+            energy = 0.25*scalar(moints.getVABIJ()*T(2));
 
-            conv =               Z[1].getSpinCase(0).reduce(CTF_OP_MAXABS);
-            conv = std::max(conv,Z[1].getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z[2].getSpinCase(0).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z[2].getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z[2].getSpinCase(2).reduce(CTF_OP_MAXABS));
+            conv =               Z(1).getSpinCase(0).reduce(CTF_OP_MAXABS);
+            conv = std::max(conv,Z(1).getSpinCase(1).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z(2).getSpinCase(0).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z(2).getSpinCase(1).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z(2).getSpinCase(2).reduce(CTF_OP_MAXABS));
 
             this->diis.extrapolate(T, Z);
 

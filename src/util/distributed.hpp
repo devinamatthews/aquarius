@@ -27,6 +27,9 @@
 
 #include <complex>
 
+#include "mpi.h"
+#include "elemental.hpp"
+
 #include "ctf.hpp"
 
 namespace aquarius

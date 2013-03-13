@@ -31,6 +31,150 @@ namespace aquarius
 namespace symmetry
 {
 
+PointGroup::PointGroup(int order, int nirrep, const char *name, const Representation *dirprd,
+                       const Representation *irreps, const char **irrep_names, const double *characters,
+                       const int *irrep_degen, const mat3x3 *ops, const char **op_names)
+: order(order), nirrep(nirrep), name(name), dirprd(dirprd), irreps(irreps), irrep_names(irrep_names),
+  characters(characters), irrep_degen(irrep_degen), ops(ops), op_names(op_names) {}
+
+bool PointGroup::operator==(const PointGroup& other) const
+{
+    /*
+     * Comparing pointers is sufficient since only the static instances are allowed
+     */
+    return this == &other;
+}
+
+int PointGroup::getOrder() const
+{
+    return order;
+}
+
+int PointGroup::getNumIrreps() const
+{
+    return nirrep;
+}
+
+const char* PointGroup::getName() const
+{
+    return name;
+}
+
+const Representation* PointGroup::getIrreps() const
+{
+    return irreps;
+}
+
+const Representation& PointGroup::getIrrep(int i) const
+{
+    return irreps[i];
+}
+
+const char * PointGroup::getIrrepName(int i) const
+{
+    return irrep_names[i];
+}
+
+const mat3x3* PointGroup::getOps() const
+{
+    return ops;
+}
+
+const mat3x3& PointGroup::getOp(int i) const
+{
+    return ops[i];
+}
+
+const char * PointGroup::getOpName(int i) const
+{
+    return op_names[i];
+}
+
+const Representation& PointGroup::totallySymmetricIrrep() const
+{
+    return irreps[0];
+}
+
+Representation::Representation(const PointGroup& group, uint_fast32_t bits)
+: group(group), bits(bits) {}
+
+Representation& Representation::operator=(const Representation& other)
+{
+    assert(group == other.group);
+    bits = other.bits;
+    return *this;
+}
+
+bool Representation::isReducible() const
+{
+    bool found = false;
+
+    uint_fast32_t mask = 1;
+    for (int i = 0;i < group.nirrep;i++)
+    {
+        if (mask&bits)
+        {
+            if (found) return true;
+            found = true;
+        }
+        mask <<= 1;
+    }
+
+    return false;
+}
+
+bool Representation::isTotallySymmetric() const
+{
+    return bits&1;
+}
+
+Representation Representation::operator*(const Representation& other) const
+{
+    return Representation(*this) *= other;
+}
+
+Representation& Representation::operator*=(const Representation& other)
+{
+    assert(group == other.group);
+
+    int n = group.nirrep;
+
+    uint_fast32_t oldbits = bits;
+    bits = 0;
+
+    uint_fast32_t maski = 1;
+    for (int i = 0;i < n;i++)
+    {
+        if (maski&oldbits)
+        {
+            uint_fast32_t maskj = 1;
+            for (int j = 0;j < n;j++)
+            {
+                if (maskj&other.bits)
+                {
+                    *this += group.dirprd[i*n+j];
+                }
+                maskj <<= 1;
+            }
+        }
+        maski <<= 1;
+    }
+
+    return *this;
+}
+
+Representation Representation::operator+(const Representation& other) const
+{
+    return Representation(*this) += other;
+}
+
+Representation& Representation::operator+=(const Representation& other)
+{
+    assert(group == other.group);
+    bits |= other.bits;
+    return *this;
+}
+
 mat3x3 Rotation(vec3 axis, double degrees)
 {
     axis.normalize();

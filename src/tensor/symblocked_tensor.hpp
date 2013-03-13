@@ -26,13 +26,16 @@
 #define _AQUARIUS_TENSOR_SYMBLOCKED_TENSOR_HPP_
 
 #include <vector>
-#include <iostream>
 #include <cassert>
+#include <string>
+#include <algorithm>
 
 #include "../src/dist_tensor/sym_indices.hxx"
 
-#include "stl_ext/stl_ext.hpp"
+#include "symmetry/symmetry.hpp"
+#include "util/distributed.hpp"
 
+#include "compositetensor.hpp"
 #include "dist_tensor.hpp"
 
 namespace aquarius
@@ -41,39 +44,35 @@ namespace tensor
 {
 
 template <class T>
-class SymmetryBlockedTensor : public IndexableTensor< SymmetryBlockedTensor<T> >, public Distributed<T>
+class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>, public Distributed<T>
 {
-    INHERIT_FROM_INDEXABLE_TENSOR(SymmetryBlockedTensor<T>, T);
+    INHERIT_FROM_INDEXABLE_COMPOSITE_TENSOR(SymmetryBlockedTensor<T>,DistTensor<T>,T)
 
     protected:
         const symmetry::PointGroup& group_;
         std::vector< std::vector<int> > len_;
         std::vector<int> sym_;
-        std::vector< DistTensor<T>* > tensors;
 
     public:
         SymmetryBlockedTensor(tCTF_World<T>& ctf, const symmetry::PointGroup& group)
-        : IndexableTensor< SymmetryBlockedTensor<T> >(), Distributed<T>(ctf),
-          group_(group), len_(), sym_(), tensors()
+        : Tensor<SymmetryBlockedTensor<T>,T>(*this),
+          IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(0, 0), Distributed<T>(ctf),
+          group_(group), len_(), sym_()
         {
-            tensors.resize(1, NULL);
-            tensors[0] = new DistTensor<T>(ctf);
+            tensors_.resize(1, NULL);
+            tensors_[0] = new DistTensor<T>(ctf);
         }
 
         SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other)
-        : IndexableTensor< SymmetryBlockedTensor<T> >(other.ndim_), Distributed(other.ctf),
-          group_(other.group_), len_(other.len_), sym_(other.sym_), tensors(other.tensors)
-        {
-            for (int i = 0;i < tensors.size();i++)
-            {
-                if (tensors[i] != NULL) tensors[i] = new DistTensor<T>(*tensors[i]);
-            }
-        }
+        : Tensor<SymmetryBlockedTensor<T>,T>(*this),
+          IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(other), Distributed<T>(other.ctf),
+          group_(other.group_), len_(other.len_), sym_(other.sym_) {}
 
         SymmetryBlockedTensor(tCTF_World<T>& ctf, const symmetry::PointGroup& group,
                               const int ndim, const int **len, const int *sym, const bool zero=true)
-        : IndexableTensor< SymmetryBlockedTensor<T> >(ndim), Distributed<T>(ctf),
-          group_(group), len_(ndim), sym_(ndim), tensors()
+        : Tensor<SymmetryBlockedTensor<T>,T>(*this),
+          IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(ndim, 0), Distributed<T>(ctf),
+          group_(group), len_(ndim), sym_(ndim)
         {
             int n = group.getNumIrreps();
             const symmetry::Representation* irreps = group.getIrreps();
@@ -90,11 +89,12 @@ class SymmetryBlockedTensor : public IndexableTensor< SymmetryBlockedTensor<T> >
                 sublen[i] = len_[i][0];
             }
 
-            tensors.resize(ntensors, NULL);
+            tensors_.resize(ntensors);
 
+            int t = 0;
             std::vector<int> idx(ndim_, 0);
             std::vector<symmetry::Representation> prod(ndim_+1, group.totallySymmetricIrrep());
-            for (bool done = false;!done;)
+            for (bool done = false;!done;t++)
             {
                 std::cout << idx << prod[0].isTotallySymmetric() << std::endl;
 
@@ -118,7 +118,7 @@ class SymmetryBlockedTensor : public IndexableTensor< SymmetryBlockedTensor<T> >
                         }
                     }
 
-                    if (ok) tensors[i] = new DistTensor<T>(ctf, ndim, sublen, subsym, zero);
+                    if (ok) tensors_[t].tensor_ = new DistTensor<T>(ctf, ndim, sublen, subsym, zero);
                 }
 
                 for (int i = 0;i < ndim_;i++)
@@ -151,23 +151,7 @@ class SymmetryBlockedTensor : public IndexableTensor< SymmetryBlockedTensor<T> >
             }
         }
 
-        ~SymmetryBlockedTensor()
-        {
-            for (int i = 0;i < tensors.size();i++)
-            {
-                if (tensors[i] != NULL) delete tensors[i];
-            }
-        }
-
-        virtual SymmetryBlockedTensor<T>& operator=(const double val)
-        {
-            for (int i = 0;i < tensors.size();i++)
-            {
-                if (tensors[i] != NULL) tensors[i] = val;
-            }
-
-            return *this;
-        }
+        virtual ~SymmetryBlockedTensor() {}
 
         static std::vector<int> getStrides(const std::vector<int> indices, const int ndim,
                                            const int len, const int* idx_A)
@@ -178,7 +162,7 @@ class SymmetryBlockedTensor : public IndexableTensor< SymmetryBlockedTensor<T> >
             stride_A[0] = 1;
             for (int i = 1;i < ndim;i++)
             {
-                stride_A[i] = stride_A[i-1]*n;
+                stride_A[i] = stride_A[i-1]*len;
             }
 
             for (int i = 0;i < indices.size();i++)
@@ -195,9 +179,9 @@ class SymmetryBlockedTensor : public IndexableTensor< SymmetryBlockedTensor<T> >
             return strides;
         }
 
-        virtual void mult(const double alpha, const SymmetryBlockedTensor<T>& A, const int* idx_A,
-                                              const SymmetryBlockedTensor<T>& B, const int* idx_B,
-                          const double beta,                                     const int* idx_C)
+        virtual void mult(const double alpha, bool conja, const IndexableTensor<SymmetryBlockedTensor<T>,T>& A, const int* idx_A,
+                                              bool conjb, const IndexableTensor<SymmetryBlockedTensor<T>,T>& B, const int* idx_B,
+                          const double beta,                                                                    const int* idx_C)
         {
             assert(group_ == A.group_);
             assert(group_ == B.group_);
@@ -205,14 +189,14 @@ class SymmetryBlockedTensor : public IndexableTensor< SymmetryBlockedTensor<T> >
             int n = group_.getNumIrreps();
 
             double f1 = align_symmetric_indices(A.ndim_, idx_A, A.sym_,
-                                               B.ndim_, idx_B, B.sym_,
-                                                 ndim_, idx_C,   sym_);
+                                                B.ndim_, idx_B, B.sym_,
+                                                  ndim_, idx_C,   sym_);
             f1 *= overcounting_factor(A.ndim_, idx_A, A.sym_,
                                       B.ndim_, idx_B, B.sym_,
                                         ndim_, idx_C,   sym_);
 
             std::vector<int> inds_AB(idx_A, idx_A+A.ndim_);
-            idx_AB.insert(idx_AB.end(), idx_B, idx_B+B.ndim_);
+            inds_AB.insert(inds_AB.end(), idx_B, idx_B+B.ndim_);
 
             std::vector<int> inds_C(idx_C, idx_C+ndim_);
 
@@ -240,17 +224,17 @@ class SymmetryBlockedTensor : public IndexableTensor< SymmetryBlockedTensor<T> >
                 std::vector<int> iAB(nAB, 0);
                 for (bool doneAB = false;!doneAB;)
                 {
-                    if (A.tensors[off_A] != NULL &&
-                        B.tensors[off_B] != NULL &&
-                          tensors[off_C] != NULL)
+                    if (A.tensors_[off_A] != NULL &&
+                        B.tensors_[off_B] != NULL &&
+                          tensors_[off_C] != NULL)
                     {
-                        double f2 = overcounting_factor(A.ndim_, idx_A, A.tensors[off_A]->sym_,
-                                                        B.ndim_, idx_B, B.tensors[off_B]->sym_,
-                                                          ndim_, idx_C,   tensors[off_C]->sym_);
+                        double f2 = overcounting_factor(A.ndim_, idx_A, A.tensors_[off_A]->sym_,
+                                                        B.ndim_, idx_B, B.tensors_[off_B]->sym_,
+                                                          ndim_, idx_C,   tensors_[off_C]->sym_);
 
-                        tensors[off_C]->mult(alpha*f1/f2, *A.tensors[off_A], idx_A,
-                                                          *B.tensors[off_B], idx_B,
-                                             beta_      ,                    idx_C);
+                        tensors_[off_C].tensor_->mult(alpha*f1/f2, conja, *A.tensors_[off_A].tensor_, idx_A,
+                                                                   conjb, *B.tensors_[off_B].tensor_, idx_B,
+                                                      beta_      ,                                    idx_C);
                     }
 
                     for (int i = 0;i < nAB;i++)
@@ -302,8 +286,8 @@ class SymmetryBlockedTensor : public IndexableTensor< SymmetryBlockedTensor<T> >
             }
         }
 
-        virtual void sum(const double alpha, const SymmetryBlockedTensor<T>& A, const int* idx_A,
-                         const double beta,                                     const int* idx_B)
+        virtual void sum(const double alpha, bool conja, const IndexableTensor<SymmetryBlockedTensor<T>,T>& A, const int* idx_A,
+                         const double beta,                                                                    const int* idx_B)
         {
             assert(group_ == A.group_);
 
@@ -336,11 +320,11 @@ class SymmetryBlockedTensor : public IndexableTensor< SymmetryBlockedTensor<T> >
                 std::vector<int> iA(nA, 0);
                 for (bool doneA = false;!doneA;)
                 {
-                    if (A.tensors[off_A] != NULL &&
-                          tensors[off_B] != NULL)
+                    if (A.tensors_[off_A] != NULL &&
+                          tensors_[off_B] != NULL)
                     {
-                        tensors[off_B]->sum(alpha*f, *A.tensors[off_A], idx_A,
-                                            beta_  ,                    idx_B);
+                        tensors_[off_B].tensor_->sum(alpha*f, conja, *A.tensors_[off_A].tensor_, idx_A,
+                                                     beta_  ,                                    idx_B);
                     }
 
                     for (int i = 0;i < nA;i++)
@@ -404,9 +388,9 @@ class SymmetryBlockedTensor : public IndexableTensor< SymmetryBlockedTensor<T> >
             std::vector<int> iA(nA, 0);
             for (bool doneA = false;!doneA;)
             {
-                if (tensors[off_A] != NULL)
+                if (tensors_[off_A] != NULL)
                 {
-                    tensors[off_A]->scale(alpha, idx_A);
+                    tensors_[off_A].tensor_->scale(alpha, idx_A);
                 }
 
                 for (int i = 0;i < nA;i++)

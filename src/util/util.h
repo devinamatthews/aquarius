@@ -30,6 +30,8 @@
 #include <math.h>
 #include <stdio.h>
 
+#define CONCAT(...) __VA_ARGS__
+
 #define ASSERT(x,...)               \
 if (!(x))                           \
 {                                   \

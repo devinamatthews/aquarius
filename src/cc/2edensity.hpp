@@ -25,13 +25,9 @@
 #ifndef _AQUARIUS_CC_DENSITY_HPP_
 #define _AQUARIUS_CC_DENSITY_HPP_
 
-#include "util/distributed.hpp"
-#include "tensor/spinorbital.hpp"
-#include "tensor/dist_tensor.hpp"
-#include "scf/scf.hpp"
 #include "operator/2eoperator.hpp"
 
-#include "lambdaccsd.hpp"
+#include "1edensity.hpp"
 
 namespace aquarius
 {
@@ -57,41 +53,41 @@ class TwoElectronDensity : public op::TwoElectronOperator<U>
         {
             tensor::SpinorbitalTensor< tensor::DistTensor<U> > aitmp(this->ai);
 
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T[2]);
-            Tau["abij"] += 0.5*T[1]["ai"]*T[1]["bj"];
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T(2));
+            Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
-            this->ijab["ijab"] = -L[2]["ijab"];
+            this->ijab["ijab"] = -L(2)["ijab"];
 
-            this->ijka["ijka"] = L[2]["ijea"]*T[1]["ek"];
+            this->ijka["ijka"] = L(2)["ijea"]*T(1)["ek"];
 
-            this->aibc["aibc"] = -L[2]["mibc"]*T[1]["am"];
+            this->aibc["aibc"] = -L(2)["mibc"]*T(1)["am"];
 
-            this->ijkl["ijkl"] = -0.5*L[2]["ijef"]*Tau["efkl"];
+            this->ijkl["ijkl"] = -0.5*L(2)["ijef"]*Tau["efkl"];
 
-            this->abcd["abcd"] = -0.5*L[2]["mncd"]*Tau["abmn"];
+            this->abcd["abcd"] = -0.5*L(2)["mncd"]*Tau["abmn"];
 
-            this->aibj["aibj"] = L[1]["ib"]*T[1]["aj"];
-            this->aibj["aibj"] += L[2]["imbe"]*T[2]["aejm"];
-            this->aibj["aibj"] -= this->ijka["mijb"]*T[1]["am"];
+            this->aibj["aibj"] = L(1)["ib"]*T(1)["aj"];
+            this->aibj["aibj"] += L(2)["imbe"]*T(2)["aejm"];
+            this->aibj["aibj"] -= this->ijka["mijb"]*T(1)["am"];
 
-            this->iajk["iajk"] = this->ij["ij"]*T[1]["ak"];
+            this->iajk["iajk"] = this->ij["ij"]*T(1)["ak"];
 
-            this->abci["abci"] = -L[1]["mc"]*T[2]["abmi"];
-            this->abci["abci"] += this->ab["ac"]*T[1]["bi"];
-            this->abci["abci"] += this->aibc["amce"]*T[2]["beim"];
+            this->abci["abci"] = -L(1)["mc"]*T(2)["abmi"];
+            this->abci["abci"] += this->ab["ac"]*T(1)["bi"];
+            this->abci["abci"] += this->aibc["amce"]*T(2)["beim"];
             this->abci["abci"] -= 0.5*this->ijka["nmic"]*Tau["abmn"];
 
             this->abij["abij"] = Tau["abij"];
             this->abij["abij"] += this->ijkl["mnij"]*Tau["abmn"];
-            this->abij["abij"] += this->ij["mi"]*T[2]["abmj"];
-            this->abij["abij"] -= this->ab["ae"]*T[2]["ebij"];
-            this->abij["abij"] -= this->aibj["amej"]*T[2]["ebmj"];
-            this->abij["abij"] += this->iajk["mbij"]*T[1]["am"];
-            aitmp["ai"] = -this->aibc["amef"]*T[2]["efim"];
-            this->abij["abij"] += aitmp["ai"]*T[1]["bj"];
+            this->abij["abij"] += this->ij["mi"]*T(2)["abmj"];
+            this->abij["abij"] -= this->ab["ae"]*T(2)["ebij"];
+            this->abij["abij"] -= this->aibj["amej"]*T(2)["ebmj"];
+            this->abij["abij"] += this->iajk["mbij"]*T(1)["am"];
+            aitmp["ai"] = -this->aibc["amef"]*T(2)["efim"];
+            this->abij["abij"] += aitmp["ai"]*T(1)["bj"];
 
-            this->iajk["iajk"] += L[1]["ie"]*T[2]["eajk"];
-            this->iajk["iajk"] += this->ijka["imje"]*T[2]["aekm"];
+            this->iajk["iajk"] += L(1)["ie"]*T(2)["eajk"];
+            this->iajk["iajk"] += this->ijka["imje"]*T(2)["aekm"];
             this->iajk["iajk"] += 0.5*this->aibc["aife"]*Tau["efjk"];
         }
 };

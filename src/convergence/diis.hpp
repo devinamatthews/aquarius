@@ -25,13 +25,23 @@
 #ifndef _AQUARIUS_DIIS_HPP_
 #define _AQUARIUS_DIIS_HPP_
 
-#include "tensor/tensor.hpp"
-#include "input/config.hpp"
-#include "util/lapack.h"
-
 #include <vector>
 #include <cassert>
 #include <algorithm>
+
+/*
+ * Use of tensor::scalar requires definitions now
+ */
+#include "tensor/tensor.hpp"
+#include "tensor/dist_tensor.hpp"
+#include "tensor/spinorbital.hpp"
+#include "tensor/compositetensor.hpp"
+#include "tensor/symblocked_tensor.hpp"
+#include "tensor/dense_tensor.hpp"
+#include "tensor/packed_tensor.hpp"
+
+#include "input/config.hpp"
+#include "util/lapack.h"
 
 namespace aquarius
 {

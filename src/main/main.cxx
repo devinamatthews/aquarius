@@ -25,15 +25,12 @@
 #include "input/config.hpp"
 #include "input/molecule.hpp"
 #include "scf/aoints.hpp"
-#include "scf/cholesky.hpp"
 #include "scf/choleskyscf.hpp"
 #include "scf/choleskymoints.hpp"
 #include "cc/ccsd.hpp"
 #include "cc/lambdaccsd.hpp"
 #include "cc/hbar.hpp"
 #include "time/time.hpp"
-
-#include "fenv.h"
 
 using namespace std;
 using namespace elem;
@@ -46,8 +43,6 @@ using namespace aquarius::time;
 
 int main(int argc, char **argv)
 {
-    //feenableexcept(FE_DIVBYZERO);
-
     MPI_Init(&argc, &argv);
     SLIDE::init();
     elem::Initialize(argc, argv);

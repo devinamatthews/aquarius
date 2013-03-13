@@ -5,13 +5,13 @@
  * modification, are permitted provided that the following
  * conditions are met:
  *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
+ *        notice,This list of conditions and the following disclaimer.
  *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
+ *        notice,This list of conditions and the following disclaimer in the
  *        documentation and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
  * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
@@ -22,25 +22,25 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUAQRIUS_TENSOR_HPP_
-#define _AQUAQRIUS_TENSOR_HPP_
+#ifndef _AQUARIUS_TENSOR_HPP_
+#define _AQUARIUS_TENSOR_HPP_
 
-#include <ostream>
-#include <iostream>
 #include <stdexcept>
-#include <vector>
-#include <cstdio>
-#include <stdint.h>
-#include <cstring>
+
+#include "stl_ext/stl_ext.hpp"
+#include "util/util.h"
+#include "util/fortran.h"
 
 namespace aquarius
 {
 namespace tensor
 {
 
-template <class Derived, class T> class IndexableTensor;
-template <class Derived, class T> class IndexedTensor;
-template <class Derived, class T> class IndexedTensorMult;
+template <class Derived, class T> class Tensor;
+template <class Derived, class T> class ScaledTensor;
+template <class Derived, class T> class InvertedTensor;
+template <class Derived, class T> class TensorMult;
+template <class Derived, class T> class TensorDiv;
 
 class TensorError;
 class OutOfBoundsError;
@@ -54,597 +54,564 @@ class SymmetryMismatchError;
 class InvalidSymmetryError;
 class InvalidStartError;
 
-#define INHERIT_FROM_INDEXABLE_TENSOR(Derived,T) \
-    friend class aquarius::tensor::IndexableTensor< Derived, T >; \
+#define INHERIT_FROM_TENSOR(Derived,T) \
     protected: \
-        using aquarius::tensor::IndexableTensor< Derived, T >::ndim_; \
+        using aquarius::tensor::Tensor< Derived,T >::derived; \
     public: \
-        using aquarius::tensor::IndexableTensor< Derived, T >::mult; \
-        using aquarius::tensor::IndexableTensor< Derived, T >::sum; \
-        using aquarius::tensor::IndexableTensor< Derived, T >::scale; \
-        using aquarius::tensor::IndexableTensor< Derived, T >::operator=; \
-        using aquarius::tensor::IndexableTensor< Derived, T >::operator+=; \
-        using aquarius::tensor::IndexableTensor< Derived, T >::operator-=; \
-        using aquarius::tensor::IndexableTensor< Derived, T >::operator*=; \
-        using aquarius::tensor::IndexableTensor< Derived, T >::operator/=; \
-        using typename aquarius::tensor::IndexableTensor< Derived, T >::dtype; \
+        using aquarius::tensor::Tensor< Derived,T >::operator=; \
+        using aquarius::tensor::Tensor< Derived,T >::operator+=; \
+        using aquarius::tensor::Tensor< Derived,T >::operator-=; \
+        using aquarius::tensor::Tensor< Derived,T >::operator*=; \
+        using aquarius::tensor::Tensor< Derived,T >::operator/=; \
+        using aquarius::tensor::Tensor< Derived,T >::operator*; \
+        using aquarius::tensor::Tensor< Derived,T >::operator/; \
         Derived & operator=(const Derived & other) \
         { \
-            static_cast< aquarius::tensor::IndexableTensor< Derived, T >* >(this)->operator=(other); \
+            static_cast< aquarius::tensor::Tensor< Derived,T >& >(*this).operator=(other); \
             return *this; \
         } \
     private:
 
 template <class Derived, typename T>
-class IndexableTensor
+class Tensor
 {
-    friend IndexedTensor<Derived,T> operator*(const double factor, Derived& other)
-    {
-        return other*factor;
-    }
-
-    friend const IndexedTensor<Derived,T> operator*(const double factor, const Derived& other)
-    {
-        return other*factor;
-    }
-
     protected:
-        int ndim_;
+        Derived& derived;
 
     public:
         typedef T dtype;
 
-        IndexableTensor(const int ndim = 0)
-        : ndim_(ndim) {}
+        Tensor(Derived& derived) : derived(derived) {}
 
-        virtual ~IndexableTensor() {}
+        virtual ~Tensor() {}
 
-        int getDimension() const { return ndim_; }
-
-        /**********************************************************************
-         *
-         * Explicit indexing operations
-         *
-         *********************************************************************/
-        IndexedTensor<Derived, T> operator[](const char* idx)
-        {
-            return IndexedTensor<Derived, T>(*(Derived*)this, idx);
-        }
-
-        const IndexedTensor<Derived, T> operator[](const char* idx) const
-        {
-            return IndexedTensor<Derived, T>(*(Derived*)this, idx);
-        }
+        const Derived& getDerived() const { return derived; }
 
         /**********************************************************************
          *
          * Operators with scalars
          *
          *********************************************************************/
-        Derived& operator=(const T val)
+        Tensor<Derived,T>& operator=(const T val)
         {
-            Derived tensor(static_cast<Derived&>(*this), val);
-
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            (*this)[idx.data()] = tensor[""];
-
-            return static_cast<Derived&>(*this);
+            sum(val, (T)0);
+            return *this;
         }
 
-        Derived& operator+=(const T val)
+        Tensor<Derived,T>& operator+=(const T val)
         {
-            Derived tensor(static_cast<Derived&>(*this), val);
-
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            (*this)[idx.data()] += tensor[""];
-
-            return static_cast<Derived&>(*this);
+            sum(val, (T)1);
+            return *this;
         }
 
-        Derived& operator-=(const T val)
+        Tensor<Derived,T>& operator-=(const T val)
         {
-            Derived tensor(static_cast<Derived&>(*this), val);
-
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            (*this)[idx.data()] -= tensor[""];
-
-            return static_cast<Derived&>(*this);
+            sum(-val, (T)1);
+            return *this;
         }
 
-        Derived& operator*=(const T val)
+        Tensor<Derived,T>& operator*=(const T val)
         {
-            scale(val);
-            return static_cast<Derived&>(*this);
+            mult(val);
+            return *this;
         }
 
-        Derived& operator/=(const T val)
+        Tensor<Derived,T>& operator/=(const T val)
         {
-            scale(1.0/val);
-            return static_cast<Derived&>(*this);
-        }
-
-        IndexedTensor<Derived, T> operator*(const T factor)
-        {
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            return (*this)[idx.data()]*factor;
-        }
-
-        const IndexedTensor<Derived, T> operator*(const T factor) const
-        {
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            return (*this)[idx.data()]*factor;
-        }
-
-        IndexedTensor<Derived, T> operator-()
-        {
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            return (*this)[idx.data()]*(-1);
-        }
-
-        const IndexedTensor<Derived, T> operator-() const
-        {
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            return (*this)[idx.data()]*(-1);
+            mult(1.0/val);
+            return *this;
         }
 
         /**********************************************************************
          *
-         * Implicitly indexed binary operations (inner product, trace, and weighting)
+         * Binary operations (multiplication and division)
          *
          *********************************************************************/
-        Derived& operator=(const IndexedTensorMult<Derived, T>& other)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator=(const TensorMult<cvDerived,T>& other)
         {
-            #ifdef VALIDATE_INPUTS
-            if (strcmp(other.A_.idx_, other.B_.idx_) != 0) throw IndexMismatchError();
-            #endif //VALIDATE_INPUTS
-
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            (*this)[idx.data()] = other;
-
-            return static_cast<Derived&>(*this);
+            mult(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)0);
+            return *this;
         }
 
-        Derived& operator+=(const IndexedTensorMult<Derived, T>& other)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator+=(const TensorMult<cvDerived,T>& other)
         {
-            #ifdef VALIDATE_INPUTS
-            if (ndim_ != 0) throw InvalidNdimError();
-            #endif //VALIDATE_INPUTS
-
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            (*this)[idx.data()] += other;
-
-            return static_cast<Derived&>(*this);
+            mult(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)1);
+            return *this;
         }
 
-        Derived& operator-=(const IndexedTensorMult<Derived, T>& other)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator-=(const TensorMult<cvDerived,T>& other)
         {
-            #ifdef VALIDATE_INPUTS
-            if (ndim_ != 0) throw InvalidNdimError();
-            #endif //VALIDATE_INPUTS
+            mult(-other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)1);
+            return *this;
+        }
 
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator=(const TensorDiv<cvDerived,T>& other)
+        {
+            div(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)0);
+            return *this;
+        }
 
-            (*this)[idx.data()] -= other;
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator+=(const TensorDiv<cvDerived,T>& other)
+        {
+            div(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)1);
+            return *this;
+        }
 
-            return static_cast<Derived&>(*this);
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator-=(const TensorDiv<cvDerived,T>& other)
+        {
+            div(-other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)1);
+            return *this;
         }
 
         /**********************************************************************
          *
-         * Implicitly indexed unary operations (assignment, summation,
-         * multiplication, and division)
+         * Unary operations (assignment, summation, multiplication, and division)
          *
          *********************************************************************/
-        Derived& operator=(const Derived& other)
+        Tensor<Derived,T>& operator=(const Tensor<Derived,T>& other)
         {
-            #ifdef VALIDATE_INPUTS
-            if (ndim_ != other.ndim_) throw InvalidNdimError();
-            #endif //VALIDATE_INPUTS
-
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            (*this)[idx.data()] = other[idx.data()];
-
-            return static_cast<Derived&>(*this);
+            sum((T)1, false, other, (T)0);
+            return *this;
         }
 
-        Derived& operator+=(const Derived& other)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator=(const Tensor<cvDerived,T>& other)
         {
-            #ifdef VALIDATE_INPUTS
-            if (ndim_ != other.ndim_) throw InvalidNdimError();
-            #endif //VALIDATE_INPUTS
-
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            (*this)[idx.data()] += other[idx.data()];
-
-            return static_cast<Derived&>(*this);
+            sum((T)1, false, other, (T)0);
+            return *this;
         }
 
-        Derived& operator-=(const Derived& other)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator+=(const Tensor<cvDerived,T>& other)
         {
-            #ifdef VALIDATE_INPUTS
-            if (ndim_ != other.ndim_) throw InvalidNdimError();
-            #endif //VALIDATE_INPUTS
-
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            (*this)[idx.data()] -= other[idx.data()];
-
-            return static_cast<Derived&>(*this);
+            sum((T)1, false, other, (T)1);
+            return *this;
         }
 
-        virtual Derived& operator*=(const Derived& other) = 0;
-
-        virtual Derived& operator/=(const Derived& other) = 0;
-
-        Derived& operator=(const IndexedTensor<Derived, T>& other)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator-=(const Tensor<cvDerived,T>& other)
         {
-            //#ifdef VALIDATE_INPUTS
-            //if (ndim_ != other.tensor_.ndim_) throw InvalidNdimError();
-            //#endif //VALIDATE_INPUTS
-
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            //#ifdef VALIDATE_INPUTS
-            //if (strcmp(idx.data(), other.idx_) != 0) throw IndexMismatchError();
-            //#endif //VALIDATE_INPUTS
-
-            (*this)[idx.data()] = other;
-
-            return static_cast<Derived&>(*this);
+            sum((T)(-1), false, other, (T)1);
+            return *this;
         }
 
-        Derived& operator+=(const IndexedTensor<Derived, T>& other)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator*=(const Tensor<cvDerived,T>& other)
         {
-            //#ifdef VALIDATE_INPUTS
-            //if (ndim_ != other.tensor_.ndim_) throw InvalidNdimError();
-            //#endif //VALIDATE_INPUTS
-
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
-
-            //#ifdef VALIDATE_INPUTS
-            //if (strcmp(idx.data(), other.idx_) != 0) throw IndexMismatchError();
-            //#endif //VALIDATE_INPUTS
-
-            (*this)[idx.data()] += other;
-
-            return static_cast<Derived&>(*this);
+            mult((T)1, false, *this, false, other, (T)0);
+            return *this;
         }
 
-        Derived& operator-=(const IndexedTensor<Derived, T>& other)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator/=(const Tensor<cvDerived,T>& other)
         {
-            //#ifdef VALIDATE_INPUTS
-            //if (ndim_ != other.tensor_.ndim_) throw InvalidNdimError();
-            //#endif //VALIDATE_INPUTS
+            div((T)1, false, *this, false, other, (T)0);
+            return *this;
+        }
 
-            std::vector<char> idx(ndim_+1);
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator=(const ScaledTensor<cvDerived,T>& other)
+        {
+            sum(other.factor_, other.conj_, other.tensor_, (T)0);
+            return *this;
+        }
 
-            //#ifdef VALIDATE_INPUTS
-            //if (strcmp(idx.data(), other.idx_) != 0) throw IndexMismatchError();
-            //#endif //VALIDATE_INPUTS
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator+=(const ScaledTensor<cvDerived,T>& other)
+        {
+            sum(other.factor_, other.conj_, other.tensor_, (T)1);
+            return *this;
+        }
 
-            (*this)[idx.data()] -= other;
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator-=(const ScaledTensor<cvDerived,T>& other)
+        {
+            sum(-other.factor_, other.conj_, other.tensor_, (T)1);
+            return *this;
+        }
 
-            return static_cast<Derived&>(*this);
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator*=(const ScaledTensor<cvDerived,T>& other)
+        {
+            mult(other.factor_, false, *this, other.conj_, other.tensor_, (T)0);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator/=(const ScaledTensor<cvDerived,T>& other)
+        {
+            div((T)1/other.factor_, false, *this, other.conj_, other.tensor_, (T)0);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator=(const InvertedTensor<cvDerived,T>& other)
+        {
+            invert(other.factor_, other.conj_, other.tensor_, (T)0);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator+=(const InvertedTensor<cvDerived,T>& other)
+        {
+            invert(other.factor_, other.conj_, other.tensor_, (T)1);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator-=(const InvertedTensor<cvDerived,T>& other)
+        {
+            invert(-other.factor_, other.conj_, other.tensor_, (T)0);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator*=(const InvertedTensor<cvDerived,T>& other)
+        {
+            div(other.factor_, false, *this, other.conj_, other.tensor_, (T)0);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(Tensor<Derived,T>&))
+        operator/=(const InvertedTensor<cvDerived,T>& other)
+        {
+            mult((T)1/other.factor_, false, *this, other.conj_, other.tensor_, (T)0);
+            return *this;
         }
 
         /**********************************************************************
          *
-         * Implicit multiplication
+         * Intermediate operations
          *
          *********************************************************************/
-        IndexedTensorMult<Derived, T> operator*(const Derived& other) const
+        friend ScaledTensor<Derived,T> operator*(const double factor, Tensor<Derived,T>& other)
         {
-            #ifdef VALIDATE_INPUTS
-            if (ndim_ != other.ndim_) throw InvalidNdimError();
-            #endif //VALIDATE_INPUTS
+            return ScaledTensor<Derived,T>(other.derived, factor);
+        }
 
-            char* idx = new char[ndim_+1];
-            for (int i = 0;i < ndim_;i++) idx[i] = (char)(i+1);
-            idx[ndim_] = 0;
+        friend ScaledTensor<const Derived,T> operator*(const double factor, const Tensor<Derived,T>& other)
+        {
+            return ScaledTensor<const Derived,T>(other.derived, factor);
+        }
 
-            IndexedTensorMult<Derived, T> itm(IndexedTensor<Derived, T>(*(Derived*)this, idx),
-                                              IndexedTensor<Derived, T>(other, idx));
+        ScaledTensor<Derived,T> operator*(const T factor)
+        {
+            return ScaledTensor<Derived,T>(derived, factor);
+        }
 
-            delete[] idx;
+        ScaledTensor<const Derived,T> operator*(const T factor) const
+        {
+            return ScaledTensor<const Derived,T>(derived, factor);
+        }
 
-            return itm;
+        friend InvertedTensor<Derived,T> operator/(const double factor, const Tensor<Derived,T>& other)
+        {
+            return InvertedTensor<Derived,T>(other.derived, factor);
+        }
+
+        ScaledTensor<Derived,T> operator/(const T factor)
+        {
+            return ScaledTensor<Derived,T>(derived, (T)1/factor);
+        }
+
+        ScaledTensor<const Derived,T> operator/(const T factor) const
+        {
+            return ScaledTensor<const Derived,T>(derived, (T)1/factor);
+        }
+
+        ScaledTensor<Derived,T> operator-()
+        {
+            return ScaledTensor<Derived,T>(derived, (T)(-1));
+        }
+
+        ScaledTensor<const Derived,T> operator-() const
+        {
+            return ScaledTensor<const Derived,T>(derived, (T)(-1));
+        }
+
+        friend ScaledTensor<const Derived,T> conj(const Tensor<Derived,T>& t)
+        {
+            return ScaledTensor<const Derived,T>(t.derived, (T)1, true);
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
+        operator*(const Tensor<cvDerived,T>& other) const
+        {
+            return TensorMult<Derived,T>(ScaledTensor<const Derived,T>(derived, (T)1),
+                                         ScaledTensor<const Derived,T>(other.derived, (T)1));
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
+        operator/(const Tensor<cvDerived,T>& other) const
+        {
+            return TensorDiv<Derived,T>(ScaledTensor<const Derived,T>(derived, (T)1),
+                                        ScaledTensor<const Derived,T>(other.derived, (T)1));
         }
 
         /**********************************************************************
          *
-         * Binary tensor operations (multiplication)
+         * Stubs
          *
          *********************************************************************/
-        void mult(const T alpha, const Derived& A, const char* idx_A,
-                                 const Derived& B, const char* idx_B,
-                  const T beta,                    const char* idx_C)
-        {
-            int *idx_A_ = new int[A.ndim_];
-            int *idx_B_ = new int[B.ndim_];
-            int *idx_C_ = new int[ndim_];
 
-            for (int i = 0;i < A.ndim_;i++) idx_A_[i] = idx_A[i];
-            for (int i = 0;i < B.ndim_;i++) idx_B_[i] = idx_B[i];
-            for (int i = 0;i < ndim_;i++)   idx_C_[i] = idx_C[i];
+        /*
+         * this = alpha*this + beta*A*B
+         */
+        virtual void mult(const T alpha, bool conja, const Tensor<Derived,T>& A,
+                                         bool conjb, const Tensor<Derived,T>& B, const T beta) = 0;
 
-            mult(alpha, A, idx_A_,
-                        B, idx_B_,
-                  beta,    idx_C_);
+        /*
+         * this = alpha*this
+         */
+        virtual void mult(const T alpha) = 0;
 
-            delete[] idx_A_;
-            delete[] idx_B_;
-            delete[] idx_C_;
-        }
+        /*
+         * this = alpha*this + beta*A/B
+         */
+        virtual void div(const T alpha, bool conja, const Tensor<Derived,T>& A,
+                                        bool conjb, const Tensor<Derived,T>& B, const T beta) = 0;
 
-        virtual void mult(const T alpha, const Derived& A, const int* idx_A,
-                                         const Derived& B, const int* idx_B,
-                          const T beta,                    const int* idx_C) = 0;
+        /*
+         * this = alpha*this + beta*A
+         */
+        virtual void sum(const T alpha, bool conja, const Tensor<Derived,T>& A, const T beta) = 0;
 
+        /*
+         * this = alpha*this + beta
+         */
+        virtual void sum(const T alpha, const T beta) = 0;
 
-        /**********************************************************************
-         *
-         * Unary tensor operations (summation)
-         *
-         *********************************************************************/
-        void sum(const T alpha, const Derived& A, const char* idx_A,
-                 const T beta,                    const char* idx_B)
-        {
-            int *idx_A_ = new int[A.ndim_];
-            int *idx_B_ = new int[ndim_];
-
-            for (int i = 0;i < A.ndim_;i++) idx_A_[i] = idx_A[i];
-            for (int i = 0;i < ndim_;i++) idx_B_[i] = idx_B[i];
-
-            sum(alpha, A, idx_A_,
-                 beta,    idx_B_);
-
-            delete[] idx_A_;
-            delete[] idx_B_;
-        }
-
-        virtual void sum(const T alpha, const Derived& A, const int* idx_A,
-                         const T beta,                    const int* idx_B) = 0;
-
-
-        /**********************************************************************
-         *
-         * Scalar operations
-         *
-         *********************************************************************/
-        void scale(const T alpha)
-        {
-            int* idx = new int[ndim_];
-            for (int i = 0;i < ndim_;i++) idx[i] = i;
-
-            scale(alpha, idx);
-
-            delete[] idx;
-        }
-
-        void scale(const T alpha, const char* idx_A)
-        {
-            int *idx_A_ = new int[ndim_];
-
-            for (int i = 0;i < ndim_;i++) idx_A_[i] = idx_A[i];
-
-            scale(alpha, idx_A_);
-
-            delete[] idx_A_;
-        }
-
-        virtual void scale(const T alpha, const int* idx_A) = 0;
+        /*
+         * this = alpha*this + beta/A
+         */
+        virtual void invert(const T alpha, bool conja, const Tensor<Derived,T>& A, const T beta) = 0;
 };
 
-/**************************************************************************
- *
- * Tensor to scalar operations
- *
- *************************************************************************/
-template <typename T>
-T scalar(const T other) { return other; }
-
-template<class Derived, typename T>
-T scalar(const IndexedTensor<Derived,T>& other);
-
-template<class Derived, typename T>
-T scalar(const IndexedTensorMult<Derived,T>& other);
-
 template <class Derived, typename T>
-class IndexedTensor
+class ScaledTensor
 {
-    friend class IndexableTensor<Derived,T>;
-    friend class IndexedTensorMult<Derived,T>;
-
-    /**************************************************************************
-     *
-     * Reversed scalar operations
-     *
-     *************************************************************************/
-    friend IndexedTensor<Derived,T> operator*(const T factor, const IndexedTensor<Derived, T>& other)
-    {
-        return other*factor;
-    }
-
-    /*
-    friend IndexedTensor<Derived,T> operator*(const T factor, Derived& d)
-    {
-        std::vector<char> idx(d.getDimension()+1);
-        for (int i = 0;i < d.getDimension();i++) idx[i] = (char)(i+1);
-        idx[d.getDimension()] = 0;
-
-        return IndexedTensor<Derived,T>(d, idx.data())*factor;
-    }
-
-    friend const IndexedTensor<Derived,T> operator*(const T factor, const Derived& d)
-    {
-        std::vector<char> idx(d.getDimension()+1);
-        for (int i = 0;i < d.getDimension();i++) idx[i] = (char)(i+1);
-        idx[d.getDimension()] = 0;
-
-        return IndexedTensor<Derived,T>(d, idx.data())*factor;
-    }
-    */
-
     public:
-        T factor_;
-        char* idx_;
         Derived& tensor_;
+        T factor_;
+        bool conj_;
 
-        IndexedTensor(const Derived& tensor, const char* idx)
-        : factor_(1.0), tensor_(const_cast<Derived&>(tensor))
-        {
-            if (strlen(idx) != tensor.getDimension()) throw InvalidNdimError();
-            idx_ = new char[tensor.getDimension()+1];
-            strcpy(idx_, idx);
-        }
+        template <typename cvDerived>
+        ScaledTensor(const ScaledTensor<cvDerived,T>& other)
+        : tensor_(other.tensor_), factor_(other.factor_), conj_(other.conj_) {}
 
-        IndexedTensor(const IndexedTensor<Derived,T>& other)
-        : factor_(other.factor_), tensor_(const_cast<Derived&>(other.tensor_))
-        {
-            idx_ = new char[tensor_.getDimension()+1];
-            strcpy(idx_, other.idx_);
-        }
-
-        ~IndexedTensor()
-        {
-            delete[] idx_;
-        }
+        ScaledTensor(Derived& tensor, const T factor, const bool conj=false)
+        : tensor_(tensor), factor_(factor), conj_(conj) {}
 
         /**********************************************************************
          *
-         * Unary negation
+         * Unary negation, conjugation
          *
          *********************************************************************/
-        IndexedTensor<Derived, T> operator-()
+        ScaledTensor<Derived,T> operator-() const
         {
-            IndexedTensor<Derived, T> ret(*this);
+            ScaledTensor<Derived,T> ret(*this);
             ret.factor_ = -ret.factor_;
             return ret;
         }
 
-        const IndexedTensor<Derived, T> operator-() const
+        friend ScaledTensor<const Derived,T> conj(const ScaledTensor<Derived,T>& st)
         {
-            IndexedTensor<Derived, T> ret(*this);
-            ret.factor_ = -ret.factor_;
+            ScaledTensor<Derived,T> ret(st);
+            ret.conj = !ret.conj;
             return ret;
         }
 
         /**********************************************************************
          *
-         * Unary tensor operations (summation)
+         * Unary tensor operations
          *
          *********************************************************************/
-        IndexedTensor<Derived, T>& operator=(const IndexedTensor<Derived, T>& other)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator=(const Tensor<cvDerived,T>& other)
         {
-            tensor_.sum(other.factor_, other.tensor_, other.idx_, (T)0.0, idx_);
+            tensor_.sum((T)1, false, other, (T)0);
             return *this;
         }
 
-        IndexedTensor<Derived, T>& operator+=(const IndexedTensor<Derived, T>& other)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator+=(const Tensor<cvDerived,T>& other)
         {
-            tensor_.sum(other.factor_, other.tensor_, other.idx_, factor_, idx_);
+            tensor_.sum((T)1, false, other, factor_);
             return *this;
         }
 
-        IndexedTensor<Derived, T>& operator-=(const IndexedTensor<Derived, T>& other)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator-=(const Tensor<cvDerived,T>& other)
         {
-            tensor_.sum(-other.factor_, other.tensor_, other.idx_, factor_, idx_);
+            tensor_.sum((T)(-1), false, other, factor_);
             return *this;
         }
 
-        IndexedTensor<Derived, T>& operator=(const IndexedTensorMult<Derived, T>& other)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator*=(const Tensor<cvDerived,T>& other)
         {
-            tensor_.mult(other.factor_*other.A_.factor_*other.B_.factor_, other.A_.tensor_, other.A_.idx_,
-                                                                          other.B_.tensor_, other.B_.idx_,
-                         (T)0.0,                                                            idx_);
+            tensor_.mult(factor_, false, tensor_, false, other, (T)0);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator/=(const Tensor<cvDerived,T>& other)
+        {
+            tensor_.div(factor_, false, tensor_, false, other, (T)0);
+            return *this;
+        }
+
+        ScaledTensor<Derived,T>& operator=(const ScaledTensor<Derived,T>& other)
+        {
+            tensor_.sum(other.factor_, other.conj_, other.tensor_, (T)0);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator=(const ScaledTensor<cvDerived,T>& other)
+        {
+            tensor_.sum(other.factor_, other.conj_, other.tensor_, (T)0);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator+=(const ScaledTensor<cvDerived,T>& other)
+        {
+            tensor_.sum(other.factor_, other.conj_, other.tensor_, factor_);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator-=(const ScaledTensor<cvDerived,T>& other)
+        {
+            tensor_.sum(-other.factor_, other.conj_, other.tensor_, factor_);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator*=(const ScaledTensor<cvDerived,T>& other)
+        {
+            tensor_.mult(factor_*other.factor_, false, tensor_, other.conj_, other.tensor_, (T)0);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator/=(const ScaledTensor<cvDerived,T>& other)
+        {
+            tensor_.div(factor_/other.factor_, false, tensor_, other.conj_, other.tensor_, (T)0);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator=(const InvertedTensor<cvDerived,T>& other)
+        {
+            tensor_.invert(other.factor_, other.conj_, other.tensor_, (T)0);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator+=(const InvertedTensor<cvDerived,T>& other)
+        {
+            tensor_.invert(other.factor_, other.conj_, other.tensor_, factor_);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator-=(const InvertedTensor<cvDerived,T>& other)
+        {
+            tensor_.invert(-other.factor_, other.conj_, other.tensor_, factor_);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator*=(const InvertedTensor<cvDerived,T>& other)
+        {
+            tensor_.div(factor_*other.factor_, false, tensor_, other.conj_, other.tensor_, (T)0);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator/=(const InvertedTensor<cvDerived,T>& other)
+        {
+            tensor_.mult(factor_/other.factor_, false, tensor_, other.conj_, other.tensor_, (T)0);
             return *this;
         }
 
         /**********************************************************************
          *
-         * Binary tensor operations (multiplication)
+         * Binary tensor operations
          *
          *********************************************************************/
-        IndexedTensor<Derived, T>& operator+=(const IndexedTensorMult<Derived, T>& other)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator=(const TensorMult<cvDerived,T>& other)
         {
-            tensor_.mult(other.factor_*other.A_.factor_*other.B_.factor_, other.A_.tensor_, other.A_.idx_,
-                                                                          other.B_.tensor_, other.B_.idx_,
-                         factor_,                                                           idx_);
+            tensor_.mult(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)0);
             return *this;
         }
 
-        IndexedTensor<Derived, T>& operator-=(const IndexedTensorMult<Derived, T>& other)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator+=(const TensorMult<cvDerived,T>& other)
         {
-            tensor_.mult(-other.factor_*other.A_.factor_*other.B_.factor_, other.A_.tensor_, other.A_.idx_,
-                                                                           other.B_.tensor_, other.B_.idx_,
-                         factor_,                                                            idx_);
+            tensor_.mult(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, factor_);
             return *this;
         }
 
-        IndexedTensorMult<Derived, T> operator*(const IndexedTensor<Derived, T>& other) const
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator-=(const TensorMult<cvDerived,T>& other)
         {
-            return IndexedTensorMult<Derived, T>(*this, other);
+            tensor_.mult(-other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, factor_);
+            return *this;
         }
 
-        IndexedTensorMult<Derived, T> operator*(const Derived& other) const
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator=(const TensorDiv<cvDerived,T>& other)
         {
-            std::vector<char> idx(other.getDimension()+1);
-            for (int i = 0;i < other.getDimension();i++) idx[i] = (char)(i+1);
-            idx[other.getDimension()] = 0;
-
-            return IndexedTensorMult<Derived, T>(*this, other[idx.data()]);
+            tensor_.div(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)0);
+            return *this;
         }
 
-        friend IndexedTensorMult<Derived, T> operator*(const Derived& t1, const IndexedTensor<Derived, T>& t2)
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator+=(const TensorDiv<cvDerived,T>& other)
         {
-            std::vector<char> idx(t1.getDimension()+1);
-            for (int i = 0;i < t1.getDimension();i++) idx[i] = (char)(i+1);
-            idx[t1.getDimension()] = 0;
+            tensor_.div(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, factor_);
+            return *this;
+        }
 
-            return IndexedTensorMult<Derived, T>(t1[idx.data()], t2);
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
+        operator-=(const TensorDiv<cvDerived,T>& other)
+        {
+            tensor_.div(-other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, factor_);
+            return *this;
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
+        operator*(const ScaledTensor<cvDerived,T>& other) const
+        {
+            return TensorMult<Derived,T>(*this, other);
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
+        operator*(const Tensor<cvDerived,T>& other) const
+        {
+            return TensorMult<Derived,T>(*this, ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorDiv<Derived,T>))
+        operator/(const ScaledTensor<cvDerived,T>& other) const
+        {
+            return TensorDiv<Derived,T>(*this, other);
+        }
+
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorDiv<Derived,T>))
+        operator/(const Tensor<cvDerived,T>& other) const
+        {
+            return TensorDiv<Derived,T>(*this, ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
         }
 
         /**********************************************************************
@@ -652,87 +619,106 @@ class IndexedTensor
          * Operations with scalars
          *
          *********************************************************************/
-        IndexedTensor<Derived, T> operator*(const T factor)
+        ScaledTensor<Derived,T> operator*(const T factor) const
         {
-            IndexedTensor<Derived, T> it(*this);
+            ScaledTensor<Derived,T> it(*this);
             it.factor_ *= factor;
             return it;
         }
 
-        const IndexedTensor<Derived, T> operator*(const T factor) const
+        friend ScaledTensor<Derived,T> operator*(const T factor, const ScaledTensor<Derived,T>& other)
         {
-            IndexedTensor<Derived, T> it(*this);
-            it.factor_ *= factor;
+            return other*factor;
+        }
+
+        ScaledTensor<Derived,T> operator/(const T factor) const
+        {
+            ScaledTensor<Derived,T> it(*this);
+            it.factor_ /= factor;
             return it;
         }
 
-        IndexedTensor<Derived, T>& operator*=(const T factor)
+        friend InvertedTensor<Derived,T> operator/(const T factor, const ScaledTensor<Derived,T>& other)
         {
-            tensor_.scale(factor, idx_);
+            return InvertedTensor<Derived,T>(other.tensor_, factor/other.factor_);
+        }
+
+        ScaledTensor<Derived,T>& operator=(const T val)
+        {
+            tensor_.sum(val, (T)0);
             return *this;
         }
 
-        IndexedTensor<Derived, T>& operator=(const T val)
+        ScaledTensor<Derived,T>& operator+=(const T val)
         {
-            Derived tensor(tensor_, val);
-            *this = tensor[""];
+            tensor_.sum(val, factor_);
             return *this;
         }
 
-        IndexedTensor<Derived, T>& operator+=(const T val)
+        ScaledTensor<Derived,T>& operator-=(const T val)
         {
-            Derived tensor(tensor_, val);
-            *this += tensor[""];
+            tensor_.sum(-val, factor_);
             return *this;
         }
 
-        IndexedTensor<Derived, T>& operator-=(const T val)
+        ScaledTensor<Derived,T>& operator*=(const T val)
         {
-            Derived tensor(tensor_, val);
-            *this -= tensor[""];
+            tensor_.mult(val);
+            return *this;
+        }
+
+        ScaledTensor<Derived,T>& operator/=(const T val)
+        {
+            tensor_.mult((T)1/val);
             return *this;
         }
 };
 
-template <class Derived, typename T>
-class IndexedTensorMult
+template <class Derived1, class Derived2, class T>
+typename std::enable_if<std::is_same<const Derived1, const Derived2>::value,TensorMult<Derived1,T> >::type
+operator*(const Tensor<Derived1,T>& t1, const ScaledTensor<Derived2,T>& t2)
 {
-    friend class IndexableTensor<Derived,T>;
-    friend class IndexedTensor<Derived,T>;
+    return TensorMult<Derived1,T>(ScaledTensor<const Derived1,T>(t1.getDerived(), (T)1), t2);
+}
 
-    /**************************************************************************
-     *
-     * Reversed scalar operations
-     *
-     *************************************************************************/
-    friend IndexedTensorMult<Derived,T> operator*(const T factor, const IndexedTensorMult<Derived, T>& other)
-    {
-        return other*factor;
-    }
+template <class Derived1, class Derived2, class T>
+typename std::enable_if<std::is_same<const Derived1, const Derived2>::value,TensorDiv<Derived1,T> >::type
+operator/(const Tensor<Derived1,T>& t1, const ScaledTensor<Derived2,T>& t2)
+{
+    return TensorDiv<Derived1,T>(ScaledTensor<const Derived1,T>(t1.getDerived(), (T)1), t2);
+}
 
+template <class Derived, typename T>
+class InvertedTensor
+{
     private:
-        const IndexedTensorMult& operator=(const IndexedTensorMult<Derived,T>& other);
+        const InvertedTensor& operator=(const InvertedTensor<Derived,T>& other);
 
     public:
+        Derived& tensor_;
         T factor_;
-        const IndexedTensor<Derived,T> A_;
-        const IndexedTensor<Derived,T> B_;
+        bool conj_;
 
-        IndexedTensorMult(const IndexedTensor<Derived,T>& A, const IndexedTensor<Derived,T>& B)
-        : factor_(1.0), A_(A), B_(B) {}
-
-        IndexedTensorMult(const IndexedTensorMult<Derived,T>& other)
-        : factor_(other.factor_), A_(other.A_), B_(other.B_) {}
+        InvertedTensor(Derived& tensor, const T factor, const bool conj=false)
+        : tensor_(tensor), factor_(factor), conj_(conj) {}
 
         /**********************************************************************
          *
-         * Unary negation
+         * Unary negation, conjugation
          *
          *********************************************************************/
-        IndexedTensorMult<Derived,T>& operator-()
+        InvertedTensor<Derived,T> operator-() const
         {
-            factor_ = -factor_;
+            InvertedTensor<Derived,T> ret(*this);
+            ret.factor_ = -ret.factor_;
             return *this;
+        }
+
+        friend InvertedTensor<Derived,T> conj(const InvertedTensor<Derived,T>& tm)
+        {
+            InvertedTensor<Derived,T> ret(tm);
+            ret.conj_ = !ret.conj_;
+            return ret;
         }
 
         /**********************************************************************
@@ -740,10 +726,143 @@ class IndexedTensorMult
          * Operations with scalars
          *
          *********************************************************************/
-        IndexedTensorMult<Derived,T>& operator*(const T factor)
+        InvertedTensor<Derived,T> operator*(const T factor) const
         {
-            factor_ *= factor;
+            InvertedTensor<Derived,T> ret(*this);
+            ret.factor_ *= factor;
+            return ret;
+        }
+
+        InvertedTensor<Derived,T> operator/(const T factor) const
+        {
+            InvertedTensor<Derived,T> ret(*this);
+            ret.factor_ /= factor;
+            return ret;
+        }
+
+        friend InvertedTensor<Derived,T> operator*(const T factor, const InvertedTensor<Derived,T>& other)
+        {
+            return other*factor;
+        }
+};
+
+template <class Derived, typename T>
+class TensorMult
+{
+    private:
+        const TensorMult& operator=(const TensorMult<Derived,T>& other);
+
+    public:
+        ScaledTensor<const Derived,T> A_;
+        ScaledTensor<const Derived,T> B_;
+        T factor_;
+
+        template <class Derived1, class Derived2>
+        TensorMult(const ScaledTensor<Derived1,T>& A, const ScaledTensor<Derived2,T>& B)
+        : A_(A), B_(B), factor_(A_.factor_*B_.factor_) {}
+
+        /**********************************************************************
+         *
+         * Unary negation, conjugation
+         *
+         *********************************************************************/
+        TensorMult<Derived,T> operator-() const
+        {
+            TensorMult<Derived,T> ret(*this);
+            ret.factor_ = -ret.factor_;
             return *this;
+        }
+
+        friend TensorMult<Derived,T> conj(const TensorMult<Derived,T>& tm)
+        {
+            TensorMult<Derived,T> ret(tm);
+            ret.A_.conj_ = !ret.A_.conj_;
+            ret.B_.conj_ = !ret.B_.conj_;
+            return ret;
+        }
+
+        /**********************************************************************
+         *
+         * Operations with scalars
+         *
+         *********************************************************************/
+        TensorMult<Derived,T> operator*(const T factor) const
+        {
+            TensorMult<Derived,T> ret(*this);
+            ret.factor_ *= factor;
+            return ret;
+        }
+
+        TensorMult<Derived,T> operator/(const T factor) const
+        {
+            TensorMult<Derived,T> ret(*this);
+            ret.factor_ /= factor;
+            return ret;
+        }
+
+        friend TensorMult<Derived,T> operator*(const T factor, const TensorMult<Derived,T>& other)
+        {
+            return other*factor;
+        }
+};
+
+template <class Derived, typename T>
+class TensorDiv
+{
+    private:
+        const TensorDiv& operator=(const TensorDiv<Derived,T>& other);
+
+    public:
+        ScaledTensor<const Derived,T> A_;
+        ScaledTensor<const Derived,T> B_;
+        T factor_;
+
+        template <class Derived1, class Derived2>
+        TensorDiv(const ScaledTensor<Derived1,T>& A, const ScaledTensor<Derived2,T>& B)
+        : A_(A), B_(B), factor_(A_.factor_/B_.factor_) {}
+
+        /**********************************************************************
+         *
+         * Unary negation, conjugation
+         *
+         *********************************************************************/
+        TensorDiv<Derived,T> operator-() const
+        {
+            TensorDiv<Derived,T> ret(*this);
+            ret.factor_ = -ret.factor_;
+            return *this;
+        }
+
+        friend TensorDiv<Derived,T> conj(const TensorDiv<Derived,T>& tm)
+        {
+            TensorDiv<Derived,T> ret(tm);
+            ret.A_.conj_ = !ret.A_.conj_;
+            ret.B_.conj_ = !ret.B_.conj_;
+            return ret;
+        }
+
+        /**********************************************************************
+         *
+         * Operations with scalars
+         *
+         *********************************************************************/
+        TensorDiv<Derived,T> operator*(const T factor) const
+        {
+            TensorDiv<Derived,T> ret(*this);
+            ret.factor_ *= factor;
+            return ret;
+        }
+
+        TensorDiv<Derived,T> operator/(const T factor) const
+        {
+            TensorDiv<Derived,T> ret(*this);
+            ret.factor_ /= factor;
+            return ret;
+        }
+
+        friend TensorDiv<Derived,T> operator*(const T factor, const TensorDiv<Derived,T>& other)
+        {
+            return other*factor;
         }
 };
 

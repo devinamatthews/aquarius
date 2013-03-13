@@ -46,11 +46,15 @@ template<typename T> std::ostream& operator<<(std::ostream& os, const std::vecto
     return os;
 }
 
+#ifndef CPLUSPLUS11
+
 template<typename I1, typename I2, typename Pred>
 I2 copy_if(I1 begin, I1 end, I2 result, Pred pred)
 {
     return remove_copy_if(begin, end, result, not1(pred));
 }
+
+#endif
 
 template<typename T> std::string str(const T& t)
 {
@@ -236,7 +240,7 @@ template<typename T, typename U> std::vector<T>& mask(std::vector<T>& v, const s
     {
         if (*i3)
         {
-            using namespace std;
+            using std::swap;
             swap(*i1, *i2);
             ++i1;
         }
@@ -363,6 +367,42 @@ inline std::string tolower(const std::string& S)
     return s;
 }
 
+inline float conj(float v) { return v; }
+inline double conj(double v) { return v; }
+
 }
+
+#if defined(CPLUSPLUS11)
+
+#include <type_traits>
+
+#elif defined(BOOST)
+
+#include <boost/type_traits.hpp>
+
+namespace std
+{
+    using namespace boost;
+}
+
+#define enable_if enable_if_c
+
+#else
+
+#error "type_traits not available"
+
+#endif
+
+#define ENABLE_IF_CONST(const_type,return_type) \
+template <typename _IsConst = const_type > \
+typename std::enable_if<std::is_const<_IsConst>::value, return_type >::type
+
+#define ENABLE_IF_NON_CONST(const_type,return_type) \
+template <typename _IsConst = const_type > \
+typename std::enable_if<!std::is_const<_IsConst>::value, return_type >::type
+
+#define ENABLE_IF_SAME(old_type,new_type,return_type) \
+template <typename new_type > \
+typename std::enable_if<std::is_same<const old_type, const new_type >::value, return_type >::type
 
 #endif

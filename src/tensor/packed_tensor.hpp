@@ -25,8 +25,18 @@
 #ifndef _AQUARIUS_TENSOR_PACKED_TENSOR_HPP_
 #define _AQUARIUS_TENSOR_PACKED_TENSOR_HPP_
 
+#include <ostream>
+#include <iostream>
 #include <vector>
+#include <cstdio>
+#include <stdint.h>
+#include <cstring>
+#include <cassert>
+#include <string>
 #include <algorithm>
+#include <iomanip>
+
+#include "memory/memory.h"
 
 #include "local_tensor.hpp"
 
@@ -41,7 +51,6 @@ template <class T>
 class PackedTensor : public LocalTensor<PackedTensor<T>,T>
 {
     friend class DenseTensor<T>;
-    friend class IndexedTensor<PackedTensor<T>,T>;
 
     INHERIT_FROM_LOCAL_TENSOR(PackedTensor<T>,T)
 
@@ -50,22 +59,24 @@ class PackedTensor : public LocalTensor<PackedTensor<T>,T>
 
     public:
         PackedTensor(const PackedTensor& t, const T val)
-        : LocalTensor<PackedTensor>(0, (int*)NULL, (int*)NULL, 1, false)
+        : Tensor<PackedTensor<T>,T>(*this),
+          LocalTensor<PackedTensor,T>(t, val)
         {
             sym_ = SAFE_MALLOC(int, 1);
             sym_[0] = NS;
-            data_[0] = val;
         }
 
         PackedTensor(const PackedTensor<T>& A, const typename LocalTensor<PackedTensor<T>,T>::CopyType type=CLONE)
-        : LocalTensor< PackedTensor<T>,T >(A, type)
+        : Tensor<PackedTensor<T>,T>(*this),
+          LocalTensor< PackedTensor<T>,T >(A, type)
         {
             sym_ = SAFE_MALLOC(int, ndim_);
             std::copy(A.sym_, A.sym_+ndim_, sym_);
         }
 
         PackedTensor(const int ndim, const int *len, const int *sym, T* data, const bool zero=false)
-        : LocalTensor< PackedTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL, sym), data, zero)
+        : Tensor<PackedTensor<T>,T>(*this),
+          LocalTensor< PackedTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL, sym), data, zero)
         {
             #ifdef VALIDATE_INPUTS
             VALIDATE_TENSOR_THROW(ndim, len, NULL, sym);
@@ -76,7 +87,8 @@ class PackedTensor : public LocalTensor<PackedTensor<T>,T>
         }
 
         PackedTensor(const int ndim, const int *len, const int *sym, const bool zero=true)
-        : LocalTensor< PackedTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL, sym), zero)
+        : Tensor<PackedTensor<T>,T>(*this),
+          LocalTensor< PackedTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL, sym), zero)
         {
             #ifdef VALIDATE_INPUTS
             VALIDATE_TENSOR_THROW(ndim, len, NULL, sym);
@@ -87,7 +99,8 @@ class PackedTensor : public LocalTensor<PackedTensor<T>,T>
         }
 
         PackedTensor(const int ndim, const int *len, const int *ld, const int *sym, T* data, const bool zero=false)
-        : LocalTensor< PackedTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld, sym), data, zero)
+        : Tensor<PackedTensor<T>,T>(*this),
+          LocalTensor< PackedTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld, sym), data, zero)
         {
             #ifdef VALIDATE_INPUTS
             VALIDATE_TENSOR_THROW(ndim, len, ld, sym);
@@ -98,7 +111,8 @@ class PackedTensor : public LocalTensor<PackedTensor<T>,T>
         }
 
         PackedTensor(const int ndim, const int *len, const int *ld, const int *sym, const bool zero=true)
-        : LocalTensor< PackedTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld, sym), zero)
+        : Tensor<PackedTensor<T>,T>(*this),
+          LocalTensor< PackedTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld, sym), zero)
         {
             #ifdef VALIDATE_INPUTS
             VALIDATE_TENSOR_THROW(ndim, len, ld, sym);
@@ -146,28 +160,28 @@ class PackedTensor : public LocalTensor<PackedTensor<T>,T>
                 #endif //CHECK_BOUNDS
 
                 for (int i = 0;i < ndim_;i++) stream << idx[i];
-                stream << scientific << setprecision(15) << data_[k] << '\n';
+                stream << std::scientific << std::setprecision(15) << data_[k] << '\n';
 
                 done = !next_packed_indices(ndim_, len_, sym_, idx.data());
             }
         }
 
-        void mult(const T alpha, const PackedTensor<T>& A, const int* idx_A,
-                                 const PackedTensor<T>& B, const int* idx_B,
-                  const T beta,                            const int* idx_C)
+        void mult(const T alpha, bool conja, const IndexableTensor<PackedTensor<T>,T>& A, const int* idx_A,
+                                 bool conjb, const IndexableTensor<PackedTensor<T>,T>& B, const int* idx_B,
+                  const T beta,                                                           const int* idx_C)
         {
             CHECK_RETURN_VALUE(
-            tensor_mult_(alpha, A.data_, A.ndim_, A.len_, A.ld_, A.sym_, idx_A,
-                                B.data_, B.ndim_, B.len_, B.ld_, B.sym_, idx_B,
-                         beta,    data_,   ndim_,   len_,   ld_,   sym_, idx_C));
+            tensor_mult_(alpha,     A.data_,     A.ndim_,     A.len_,     A.ld_, A.sym_, idx_A,
+                                    B.data_,     B.ndim_,     B.len_,     B.ld_, B.sym_, idx_B,
+                         beta,  data_, ndim_, len_, ld_,   sym_, idx_C));
         }
 
-        void sum(const T alpha, const PackedTensor<T>& A, const int* idx_A,
-                 const T beta,                            const int* idx_B)
+        void sum(const T alpha, bool conja, const IndexableTensor<PackedTensor<T>,T>& A, const int* idx_A,
+                 const T beta,                                                           const int* idx_B)
         {
             CHECK_RETURN_VALUE(
-            tensor_sum_(alpha, A.data_, A.ndim_, A.len_, A.ld_, A.sym_, idx_A,
-                        beta,    data_,   ndim_,   len_,   ld_,   sym_, idx_B));
+            tensor_sum_(alpha,     A.data_,     A.ndim_,     A.len_,     A.ld_, A.sym_, idx_A,
+                        beta,  data_, ndim_, len_, ld_,   sym_, idx_B));
         }
 
         void scale(const T alpha, const int* idx_A)
@@ -198,45 +212,27 @@ class PackedTensor : public LocalTensor<PackedTensor<T>,T>
         }
         */
 
-        void resym(const T alpha, const PackedTensor<T>& A, const char* idx_A,
-                   const T beta,                             const char* idx_B)
+        void resym(const T alpha, const IndexableTensor<PackedTensor<T>,T>& A, const char* idx_A,
+                   const T beta,                                               const char* idx_B)
         {
             std::vector<int> idx_A_(A.ndim_);
             std::vector<int> idx_B_(ndim_);
 
-            for (int i = 0;i < A.ndim_;i++) idx_A_[i] = idx_A[i];
+            for (int i = 0;i <     A.ndim_;i++) idx_A_[i] = idx_A[i];
             for (int i = 0;i < ndim_;i++) idx_B_[i] = idx_B[i];
 
             resym(alpha, A, idx_A_.data(),
                    beta,    idx_B_.data());
         }
 
-        void resym(const T alpha, const PackedTensor<T>& A, const int* idx_A,
-                   const T beta,                            const int* idx_B)
+        void resym(const T alpha, const IndexableTensor<PackedTensor<T>,T>& A, const int* idx_A,
+                   const T beta,                                               const int* idx_B)
         {
             CHECK_RETURN_VALUE(
-            tensor_resym_(alpha, A.data_, A.ndim_, A.len_, A.ld_, A.sym_, idx_A,
-                          beta,    data_,   ndim_,   len_,   ld_,   sym_, idx_B));
+            tensor_resym_(alpha,     A.data_,     A.ndim_,     A.len_,     A.ld_, A.sym_, idx_A,
+                          beta,  data_, ndim_, len_, ld_,   sym_, idx_B));
         }
 };
-
-template <typename T>
-inline T scalar(const IndexedTensor<PackedTensor<T>,T>& other)
-{
-    T res;
-    PackedTensor<T> dt(0, (int*)NULL, (int*)NULL, &res);
-    dt[""] = other;
-    return res;
-}
-
-template <typename T>
-inline double scalar(const IndexedTensorMult< PackedTensor<T>,T >& other)
-{
-    T res;
-    PackedTensor<T> dt(0, (int*)NULL, (int*)NULL, &res);
-    dt[""] = other;
-    return res;
-}
 
 }
 }

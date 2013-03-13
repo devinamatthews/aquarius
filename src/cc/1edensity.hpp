@@ -25,10 +25,6 @@
 #ifndef _AQUARIUS_CC_1EDENSITY_HPP_
 #define _AQUARIUS_CC_1EDENSITY_HPP_
 
-#include "util/distributed.hpp"
-#include "tensor/spinorbital.hpp"
-#include "tensor/dist_tensor.hpp"
-#include "scf/scf.hpp"
 #include "operator/excitationoperator.hpp"
 #include "operator/deexcitationoperator.hpp"
 #include "operator/1eoperator.hpp"
@@ -52,19 +48,19 @@ class OneElectronDensity : public op::OneElectronOperator<U>
         OneElectronDensity(const DeexcitationOperator<U,2>& L, const ExponentialOperator<U,2>& T)
         : op::OneElectronOperator<U>(L.getSCF())
         {
-            this->ia["ijab"] = -L[1]["ia"];
+            this->ia["ijab"] = -L(1)["ia"];
 
-            this->ab["ab"] = -0.5*T[2]["aemn"]*L[2]["mnbe"];
+            this->ab["ab"] = -0.5*T(2)["aemn"]*L(2)["mnbe"];
 
-            this->ij["ij"] = T[1]["ei"]*L[1]["je"];
-            this->ij["ij"] += 0.5*T[2]["efim"]*L[2]["jmef"];
+            this->ij["ij"] = T(1)["ei"]*L(1)["je"];
+            this->ij["ij"] += 0.5*T(2)["efim"]*L(2)["jmef"];
 
-            this->ai["ai"] = T[1]["ai"];
-            this->ai["ai"] -= T[2]["aeim"]*L[1]["me"];
-            this->ai["ai"] += this->ij["mi"]*T[1]["am"];
-            this->ai["ai"] -= this->ab["ae"]*T[1]["ei"];
+            this->ai["ai"] = T(1)["ai"];
+            this->ai["ai"] -= T(2)["aeim"]*L(1)["me"];
+            this->ai["ai"] += this->ij["mi"]*T(1)["am"];
+            this->ai["ai"] -= this->ab["ae"]*T(1)["ei"];
 
-            this->ab["ab"] -= T[1]["am"]*L[1]["mb"];
+            this->ab["ab"] -= T(1)["am"]*L(1)["mb"];
         }
 };
 

@@ -25,15 +25,6 @@
 #ifndef _AQUARIUS_OPERATOR_EXPONENTIALOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_EXPONENTIALOPERATOR_HPP_
 
-#include <exception>
-
-#include "tensor/dist_tensor.hpp"
-#include "tensor/spinorbital.hpp"
-#include "tensor/util.h"
-#include "util/util.h"
-#include "util/distributed.hpp"
-#include "scf/scf.hpp"
-
 #include "excitationoperator.hpp"
 
 namespace aquarius
@@ -46,7 +37,8 @@ class ExponentialOperator : public ExcitationOperator<T,np,nh>
 {
     public:
         ExponentialOperator(const scf::UHF<T>& uhf)
-        : ExcitationOperator<T,np,nh>(uhf) {}
+        : tensor::Tensor<ExcitationOperator<T,np,nh>,T>(*this),
+          ExcitationOperator<T,np,nh>(uhf) {}
 };
 
 }

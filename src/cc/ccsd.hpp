@@ -25,16 +25,10 @@
 #ifndef _AQUARIUS_CC_CCSD_HPP_
 #define _AQUARIUS_CC_CCSD_HPP_
 
-#include <cfloat>
-
 #include "time/time.hpp"
-#include "tensor/spinorbital.hpp"
-#include "tensor/dist_tensor.hpp"
-#include "scf/moints.hpp"
 #include "util/iterative.hpp"
 #include "operator/2eoperator.hpp"
 #include "operator/exponentialoperator.hpp"
-#include "operator/excitationoperator.hpp"
 #include "convergence/diis.hpp"
 
 namespace aquarius
@@ -53,61 +47,36 @@ class CCSD : public Iterative, public op::ExponentialOperator<U,2>
 
     public:
         CCSD(const input::Config& config, op::TwoElectronOperator<U>& moints)
-        : Iterative(config), op::ExponentialOperator<U,2>(moints.getSCF()),
+        : tensor::Tensor<op::ExcitationOperator<U,2>,U>(*this),
+          Iterative(config), op::ExponentialOperator<U,2>(moints.getSCF()),
           T(*this), D(moints.getSCF()), Z(moints.getSCF()),
           moints(moints), diis(config.get("diis"))
         {
-            D[0] = 1;
-            D[1]["ai"]  = moints.getIJ()["ii"];
-            D[1]["ai"] -= moints.getAB()["aa"];
-            D[2]["abij"]  = moints.getIJ()["ii"];
-            D[2]["abij"] += moints.getIJ()["jj"];
-            D[2]["abij"] -= moints.getAB()["aa"];
-            D[2]["abij"] -= moints.getAB()["bb"];
+            D(0) = 1;
+            D(1)["ai"]  = moints.getIJ()["ii"];
+            D(1)["ai"] -= moints.getAB()["aa"];
+            D(2)["abij"]  = moints.getIJ()["ii"];
+            D(2)["abij"] += moints.getIJ()["jj"];
+            D(2)["abij"] -= moints.getAB()["aa"];
+            D(2)["abij"] -= moints.getAB()["bb"];
 
-            int64_t size;
-            U * data;
-            data = D[1].getSpinCase(0).getRawData(size);
-            for (int i=0; i<size; i++){
-              if (fabs(data[i]) > DBL_MIN)
-                data[i] = 1./data[i];
-            }
-            data = D[1].getSpinCase(1).getRawData(size);
-            for (int i=0; i<size; i++){
-              if (fabs(data[i]) > DBL_MIN)
-                data[i] = 1./data[i];
-            }
-            data = D[2].getSpinCase(0).getRawData(size);
-            for (int i=0; i<size; i++){
-              if (fabs(data[i]) > DBL_MIN)
-                data[i] = 1./data[i];
-            }
-            data = D[2].getSpinCase(1).getRawData(size);
-            for (int i=0; i<size; i++){
-              if (fabs(data[i]) > DBL_MIN)
-                data[i] = 1./data[i];
-            }
-            data = D[2].getSpinCase(2).getRawData(size);
-            for (int i=0; i<size; i++){
-              if (fabs(data[i]) > DBL_MIN)
-                data[i] = 1./data[i];
-            }
+            D = 1/D;
 
-            Z[0] = 0;
-            T[0] = 0;
-            T[1] = moints.getAI()*D[1];
-            T[2] = moints.getABIJ()*D[2];
+            Z(0) = 0;
+            T(0) = 0;
+            T(1) = moints.getAI()*D(1);
+            T(2) = moints.getABIJ()*D(2);
 
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T[2]);
-            Tau["abij"] += 0.5*T[1]["ai"]*T[1]["bj"];
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T(2));
+            Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
-            energy = scalar(moints.getAI()*T[1]) + 0.25*scalar(moints.getABIJ()*Tau);
+            energy = tensor::scalar(moints.getAI()*T(1)) + 0.25*tensor::scalar(moints.getABIJ()*Tau);
 
-            conv =          conv,T[1].getSpinCase(0).reduce(CTF_OP_MAXABS);
-            conv = std::max(conv,T[1].getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,T[2].getSpinCase(0).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,T[2].getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,T[2].getSpinCase(2).reduce(CTF_OP_MAXABS));
+            conv =          conv,T(1)(0).reduce(CTF_OP_MAXABS);
+            conv = std::max(conv,T(1)(1).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,T(2)(0).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,T(2)(1).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,T(2)(2).reduce(CTF_OP_MAXABS));
         }
 
         const op::TwoElectronOperator<U>& getMOIntegrals() const
@@ -140,125 +109,125 @@ class CCSD : public Iterative, public op::ExponentialOperator<U,2>
             FAE["aa"] = 0.0;
             FMI["ii"] = 0.0;
 
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T[2]);
-            Tau["abij"] += 0.5*T[1]["ai"]*T[1]["bj"];
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T(2));
+            Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
             /**************************************************************************
              *
-             * Intermediates for T[1]->T[1] and T[2]->T[1]
+             * Intermediates for T(1)->T(1) and T(2)->T(1)
              */
             PROFILE_SECTION(calc_FEM)
-            FME["me"] += WMNEF["mnef"]*T[1]["fn"];
+            FME["me"] += WMNEF["mnef"]*T(1)["fn"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_FMI)
-            FMI["mi"] += 0.5*WMNEF["mnef"]*T[2]["efin"];
-            FMI["mi"] += FME["me"]*T[1]["ei"];
-            FMI["mi"] += WMNIE["mnif"]*T[1]["fn"];
+            FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
+            FMI["mi"] += FME["me"]*T(1)["ei"];
+            FMI["mi"] += WMNIE["mnif"]*T(1)["fn"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_WIJKL)
             WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*Tau["efij"];
-            WMNIJ["mnij"] += WMNIE["mnie"]*T[1]["ej"];
+            WMNIJ["mnij"] += WMNIE["mnie"]*T(1)["ej"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_WMNIE)
-            WMNIE["mnie"] += WMNEF["mnfe"]*T[1]["fi"];
+            WMNIE["mnie"] += WMNEF["mnfe"]*T(1)["fi"];
             PROFILE_STOP
             /*
              *************************************************************************/
 
             /**************************************************************************
              *
-             * T[1]->T[1] and T[2]->T[1]
+             * T(1)->T(1) and T(2)->T(1)
              */
             PROFILE_SECTION(calc_FAI)
-            Z[1]["ai"] = moints.getAI()["ai"];
+            Z(1)["ai"] = moints.getAI()["ai"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T1_IN_T1_RING)
-            Z[1]["ai"] -= T[1]["em"]*WAMEI["amei"];
+            Z(1)["ai"] -= T(1)["em"]*WAMEI["amei"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T2_IN_T1_ABCI)
-            Z[1]["ai"] += 0.5*WAMEF["amef"]*Tau["efim"];
+            Z(1)["ai"] += 0.5*WAMEF["amef"]*Tau["efim"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T2_IN_T1_IJKA)
-            Z[1]["ai"] -= 0.5*WMNIE["mnie"]*T[2]["aemn"];
+            Z(1)["ai"] -= 0.5*WMNIE["mnie"]*T(2)["aemn"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T2_IN_T1_FME)
-            Z[1]["ai"] += T[2]["aeim"]*FME["me"];
+            Z(1)["ai"] += T(2)["aeim"]*FME["me"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T1_IN_T1_FAE)
-            Z[1]["ai"] += T[1]["ei"]*FAE["ae"];
+            Z(1)["ai"] += T(1)["ei"]*FAE["ae"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T1_IN_T1_FMI)
-            Z[1]["ai"] -= T[1]["am"]*FMI["mi"];
+            Z(1)["ai"] -= T(1)["am"]*FMI["mi"];
             PROFILE_STOP
             /*
              *************************************************************************/
 
             /**************************************************************************
              *
-             * Intermediates for T[1]->T[2] and T[2]->T[2]
+             * Intermediates for T(1)->T(2) and T(2)->T(2)
              */
             PROFILE_SECTION(calc_FAE)
-            FAE["ae"] -= 0.5*WMNEF["mnef"]*T[2]["afmn"];
-            FAE["ae"] -= FME["me"]*T[1]["am"];
-            FAE["ae"] += WAMEF["amef"]*T[1]["fm"];
+            FAE["ae"] -= 0.5*WMNEF["mnef"]*T(2)["afmn"];
+            FAE["ae"] -= FME["me"]*T(1)["am"];
+            FAE["ae"] += WAMEF["amef"]*T(1)["fm"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_WAIJK)
             WMBIJ["mbij"] += 0.5*WAMEF["bmfe"]*Tau["efij"];
-            WMBIJ["mbij"] -= WAMEI["bmej"]*T[1]["ei"];
+            WMBIJ["mbij"] -= WAMEI["bmej"]*T(1)["ei"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_WMBEJ)
-            WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T[2]["afin"];
-            WAMEI["amei"] -= WAMEF["amfe"]*T[1]["fi"];
-            WAMEI["amei"] += WMNIE["nmie"]*T[1]["an"];
+            WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T(2)["afin"];
+            WAMEI["amei"] -= WAMEF["amfe"]*T(1)["fi"];
+            WAMEI["amei"] += WMNIE["nmie"]*T(1)["an"];
             PROFILE_STOP
             /*
              *************************************************************************/
 
             /**************************************************************************
              *
-             * T[1]->T[2] and T[2]->T[2]
+             * T(1)->T(2) and T(2)->T(2)
              */
             PROFILE_SECTION(calc_WMNEF)
-            Z[2]["abij"] = WMNEF["ijab"];
+            Z(2)["abij"] = WMNEF["ijab"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T2_IN_T2_FAE)
-            Z[2]["abij"] += FAE["af"]*T[2]["fbij"];
+            Z(2)["abij"] += FAE["af"]*T(2)["fbij"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T2_IN_T2_FMI)
-            Z[2]["abij"] -= FMI["ni"]*T[2]["abnj"];
+            Z(2)["abij"] -= FMI["ni"]*T(2)["abnj"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T1_IN_T2_ABCI)
-            Z[2]["abij"] += WABEJ["abej"]*T[1]["ei"];
+            Z(2)["abij"] += WABEJ["abej"]*T(1)["ei"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T1_IN_T2_IJKA)
-            Z[2]["abij"] -= WMBIJ["mbij"]*T[1]["am"];
+            Z(2)["abij"] -= WMBIJ["mbij"]*T(1)["am"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T2_IN_T2_ABCD)
-            Z[2]["abij"] += 0.5*WABEF["abef"]*Tau["efij"];
+            Z(2)["abij"] += 0.5*WABEF["abef"]*Tau["efij"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T2_IN_T2_IJKL)
-            Z[2]["abij"] += 0.5*WMNIJ["mnij"]*Tau["abmn"];
+            Z(2)["abij"] += 0.5*WMNIJ["mnij"]*Tau["abmn"];
             PROFILE_STOP
 
             PROFILE_SECTION(calc_T2_IN_T2_RING)
-            Z[2]["abij"] -= WAMEI["amei"]*T[2]["ebmj"];
+            Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];
             PROFILE_STOP
             /*
              *************************************************************************/
@@ -269,15 +238,15 @@ class CCSD : public Iterative, public op::ExponentialOperator<U,2>
             Z -= T;
             T += Z;
 
-            Tau["abij"]  = T[2]["abij"];
-            Tau["abij"] += 0.5*T[1]["ai"]*T[1]["bj"];
-            energy = scalar(moints.getAI()*T[1]) + 0.25*scalar(moints.getABIJ()*Tau);
+            Tau["abij"]  = T(2)["abij"];
+            Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
+            energy = tensor::scalar(moints.getAI()*T(1)) + 0.25*tensor::scalar(moints.getABIJ()*Tau);
 
-            conv =               Z[1].getSpinCase(0).reduce(CTF_OP_MAXABS);
-            conv = std::max(conv,Z[1].getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z[2].getSpinCase(0).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z[2].getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z[2].getSpinCase(2).reduce(CTF_OP_MAXABS));
+            conv =               Z(1)(0).reduce(CTF_OP_MAXABS);
+            conv = std::max(conv,Z(1)(1).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z(2)(0).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z(2)(1).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z(2)(2).reduce(CTF_OP_MAXABS));
 
             diis.extrapolate(T, Z);
 
@@ -328,9 +297,9 @@ class CCSD : public Iterative, public op::ExponentialOperator<U,2>
             Dai["ai"] = DaI["aJ"]*DIj["Ji"];
             DAbIj["AbIj"] = DAi["Aj"]*DaI["bI"];
 
-            const tensor::DistTensor<U>& T1A = T[1].getSpinCase(0);
-            const tensor::DistTensor<U>& T1B = T[1].getSpinCase(1);
-            tensor::DistTensor<U> TauAB(T[2].getSpinCase(1));
+            const tensor::DistTensor<U>& T1A = T(1)(0);
+            const tensor::DistTensor<U>& T1B = T(1)(1);
+            tensor::DistTensor<U> TauAB(T(2)(1));
 
             TauAB["AbIj"] += T1A["AI"]*T1B["bj"];
 
@@ -340,7 +309,7 @@ class CCSD : public Iterative, public op::ExponentialOperator<U,2>
             S2 -= tensor::scalar(Dai*T1B);
             S2 -= tensor::scalar(DAbIj*TauAB);
 
-            return S2;
+            return fabs(S2);
         }
 
         double getProjectedMultiplicity() const

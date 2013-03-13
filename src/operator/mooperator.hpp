@@ -26,7 +26,6 @@
 #define _AQUARIUS_OPERATOR_MOOPERATOR_HPP_
 
 #include "scf/scf.hpp"
-#include "util/distributed.hpp"
 
 namespace aquarius
 {

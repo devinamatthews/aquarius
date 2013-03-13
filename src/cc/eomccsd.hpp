@@ -25,12 +25,9 @@
 #ifndef _AQUARIUS_CC_EOMCCSD_HPP_
 #define _AQUARIUS_CC_EOMCCSD_HPP_
 
-#include "input/config.hpp"
 #include "convergence/davidson.hpp"
 #include "operator/2eoperator.hpp"
-#include "operator/excitationoperator.hpp"
 
-#include "hbar.hpp"
 #include "ccsd.hpp"
 
 namespace aquarius
@@ -51,23 +48,24 @@ class EOMEECCSD : public Iterative, public op::ExcitationOperator<U,2>
     public:
         EOMEECCSD(const input::Config& config, const op::TwoElectronOperator<T>& H,
                   const op::ExponentialOperator<U,2>& T)
-        : Iterative(config), op::ExcitationOperator<U,2>(H.getSCF()), R(*this),
+        : tensor::Tensor<op::ExcitationOperator<U,2>,U>(*this),
+          Iterative(config), op::ExcitationOperator<U,2>(H.getSCF()), R(*this),
           Z(this->uhf), D(this->uhf), H(H), T(T), davidson(config.get("davidson"))
         {
-            D[0] = 1;
-            D[1]["ai"]  = H.getIJ()["ii"];
-            D[1]["ai"] -= H.getAB()["aa"];
-            D[1]["ai"] -= H.getAIBJ()["aiai"];
-            D[2]["abij"]  = H.getIJ()["ii"];
-            D[2]["abij"] += H.getIJ()["jj"];
-            D[2]["abij"] -= H.getAB()["aa"];
-            D[2]["abij"] -= H.getAB()["bb"];
-            D[2]["abij"] -= H.getAIBJ()["aiai"];
-            D[2]["abij"] -= H.getAIBJ()["bjbj"];
-            D[2]["abij"] += H.getABCD()["abab"];
-            D[2]["abij"] += H.getIJKL()["ijij"];
-            D[2]["abij"] -= H.getIJAB()["imab"]*T[2]["abim"];
-            D[2]["abij"] += H.getIJAB()["ijae"]*T[2]["aeij"];
+            D(0) = 1;
+            D(1)["ai"]  = H.getIJ()["ii"];
+            D(1)["ai"] -= H.getAB()["aa"];
+            D(1)["ai"] -= H.getAIBJ()["aiai"];
+            D(2)["abij"]  = H.getIJ()["ii"];
+            D(2)["abij"] += H.getIJ()["jj"];
+            D(2)["abij"] -= H.getAB()["aa"];
+            D(2)["abij"] -= H.getAB()["bb"];
+            D(2)["abij"] -= H.getAIBJ()["aiai"];
+            D(2)["abij"] -= H.getAIBJ()["bjbj"];
+            D(2)["abij"] += H.getABCD()["abab"];
+            D(2)["abij"] += H.getIJKL()["ijij"];
+            D(2)["abij"] -= H.getIJAB()["imab"]*T(2)["abim"];
+            D(2)["abij"] += H.getIJAB()["ijae"]*T(2)["aeij"];
 
             //TODO: guess
         }
@@ -94,63 +92,63 @@ class EOMEECCSD : public Iterative, public op::ExcitationOperator<U,2>
              *
              * X intermediates
              */
-            XMI["mi"]  = WMNIE["mnie"]*R[1]["en"];
-            XMI["mi"] += 0.5*WMNEF["mnef"]*R[2]["efin"];
+            XMI["mi"]  = WMNIE["mnie"]*R(1)["en"];
+            XMI["mi"] += 0.5*WMNEF["mnef"]*R(2)["efin"];
 
-            XAE["ae"]  = WAMEF["amef"]*R[1]["fm"];
-            XMI["ae"] -= 0.5*WMNEF["mnef"]*R[2]["afmn"];
+            XAE["ae"]  = WAMEF["amef"]*R(1)["fm"];
+            XMI["ae"] -= 0.5*WMNEF["mnef"]*R(2)["afmn"];
             /*
              *************************************************************************/
 
             /**************************************************************************
              *
-             * R[1]->R[1] and R[2]->R[1]
+             * R(1)->R(1) and R(2)->R(1)
              */
-            Z[1]["ai"]  = R[1]["ei"]*FAE["ae"];
+            Z(1)["ai"]  = R(1)["ei"]*FAE["ae"];
 
-            Z[1]["ai"] -= R[1]["am"]*FMI["mi"];
+            Z(1)["ai"] -= R(1)["am"]*FMI["mi"];
 
-            Z[1]["ai"] -= R[1]["em"]*WAMEI["amei"];
+            Z(1)["ai"] -= R(1)["em"]*WAMEI["amei"];
 
-            Z[1]["ai"] += R[2]["aeim"]*FME["me"];
+            Z(1)["ai"] += R(2)["aeim"]*FME["me"];
 
-            Z[1]["ai"] += 0.5*WAMEF["amef"]*R[2]["efim"];
+            Z(1)["ai"] += 0.5*WAMEF["amef"]*R(2)["efim"];
 
-            Z[1]["ai"] -= 0.5*WMNIE["mnie"]*R[2]["aemn"];
+            Z(1)["ai"] -= 0.5*WMNIE["mnie"]*R(2)["aemn"];
             /*
              *************************************************************************/
 
             /**************************************************************************
              *
-             * R[1]->R[2] and R[2]->R[2]
+             * R(1)->R(2) and R(2)->R(2)
              */
-            Z[2]["abij"]  = FAE["ae"]*R[2]["ebij"];
+            Z(2)["abij"]  = FAE["ae"]*R(2)["ebij"];
 
-            Z[2]["abij"] -= FMI["mi"]*R[2]["abmj"];
+            Z(2)["abij"] -= FMI["mi"]*R(2)["abmj"];
 
-            Z[2]["abij"] += XAE["ae"]*T[2]["ebij"];
+            Z(2)["abij"] += XAE["ae"]*T(2)["ebij"];
 
-            Z[2]["abij"] -= XMI["mi"]*T[2]["abmj"];
+            Z(2)["abij"] -= XMI["mi"]*T(2)["abmj"];
 
-            Z[2]["abij"] += WABEJ["abej"]*R[1]["ei"];
+            Z(2)["abij"] += WABEJ["abej"]*R(1)["ei"];
 
-            Z[2]["abij"] -= WMBIJ["mbij"]*R[1]["am"];
+            Z(2)["abij"] -= WMBIJ["mbij"]*R(1)["am"];
 
-            Z[2]["abij"] += 0.5*WABEF["abef"]*R[2]["efij"];
+            Z(2)["abij"] += 0.5*WABEF["abef"]*R(2)["efij"];
 
-            Z[2]["abij"] += 0.5*WMNIJ["mnij"]*R[2]["abmn"];
+            Z(2)["abij"] += 0.5*WMNIJ["mnij"]*R(2)["abmn"];
 
-            Z[2]["abij"] -= WAMEI["amei"]*R[2]["ebmj"];
+            Z(2)["abij"] -= WAMEI["amei"]*R(2)["ebmj"];
             /*
              *************************************************************************/
 
             energy = davidson.extrapolate(R, Z, D);
 
-            conv =               Z[1].getSpinCase(0).reduce(CTF_OP_MAXABS);
-            conv = std::max(conv,Z[1].getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z[2].getSpinCase(0).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z[2].getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z[2].getSpinCase(2).reduce(CTF_OP_MAXABS));
+            conv =               Z(1)(0).reduce(CTF_OP_MAXABS);
+            conv = std::max(conv,Z(1)(1).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z(2)(0).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z(2)(1).reduce(CTF_OP_MAXABS));
+            conv = std::max(conv,Z(2)(2).reduce(CTF_OP_MAXABS));
         }
 };
 

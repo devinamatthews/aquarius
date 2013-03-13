@@ -25,8 +25,6 @@
 #ifndef _AQUARIUS_SCF_AOMOINTS_HPP_
 #define _AQUARIUS_SCF_AOMOINTS_HPP_
 
-#include "mpi.h"
-
 #include "aoints.hpp"
 #include "aoscf.hpp"
 #include "moints.hpp"

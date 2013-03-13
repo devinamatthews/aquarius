@@ -26,15 +26,22 @@
 #define _AQUARIUS_TENSOR_DIST_TENSOR_HPP_
 
 #include <ostream>
+#include <iostream>
+#include <vector>
 #include <cstdio>
 #include <stdint.h>
+#include <cstring>
+#include <cassert>
+#include <string>
+#include <algorithm>
+#include <cfloat>
 
 #include "ctf.hpp"
 
-#include "util/distributed.hpp"
 #include "memory/memory.h"
+#include "util/distributed.hpp"
 
-#include "tensor.hpp"
+#include "indexabletensor.hpp"
 
 namespace aquarius
 {
@@ -170,7 +177,8 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
         using Distributed<T>::ctf;
 
         DistTensor(const DistTensor& t, const T val)
-        : IndexableTensor< DistTensor<T>,T >(),
+        : Tensor<DistTensor<T>,T>(*this),
+          IndexableTensor< DistTensor<T>,T >(),
           Distributed<T>(t.ctf)
         {
             len_ = SAFE_MALLOC(int, ndim_);
@@ -184,7 +192,8 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
         }
 
         DistTensor(tCTF_World<T>& ctf)
-        : IndexableTensor< DistTensor<T>,T >(), Distributed<T>(ctf)
+        : Tensor<DistTensor<T>,T>(*this),
+          IndexableTensor< DistTensor<T>,T >(), Distributed<T>(ctf)
         {
             len_ = SAFE_MALLOC(int, ndim_);
             sym_ = SAFE_MALLOC(int, ndim_);
@@ -196,7 +205,8 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
         DistTensor(const DistTensor<T>& A,
                    const bool copy=true,
                    const bool zero=false)
-        : IndexableTensor< DistTensor<T>,T >(A.ndim_), Distributed<T>(A.ctf)
+        : Tensor<DistTensor<T>,T>(*this),
+          IndexableTensor< DistTensor<T>,T >(A.ndim_), Distributed<T>(A.ctf)
         {
             len_ = SAFE_MALLOC(int, ndim_);
             sym_ = SAFE_MALLOC(int, ndim_);
@@ -223,7 +233,8 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
         DistTensor(tCTF_World<T>& ctf,
                    const int ndim, const int *len, const int *sym,
                    const bool zero=true)
-        : IndexableTensor< DistTensor<T>,T >(ndim), Distributed<T>(ctf)
+        : Tensor<DistTensor<T>,T>(*this),
+          IndexableTensor< DistTensor<T>,T >(ndim), Distributed<T>(ctf)
         {
             len_ = SAFE_MALLOC(int, ndim_);
             sym_ = SAFE_MALLOC(int, ndim_);
@@ -261,11 +272,6 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
         const int* getSymmetry() const
         {
             return sym_;
-        }
-
-        tCTF<T>& getCTF() const
-        {
-            return ctf;
         }
 
         T* getRawData(int64_t& size)
@@ -314,32 +320,97 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
             assert(ret == DIST_TENSOR_SUCCESS);
         }
 
-        DistTensor<T>& operator*=(const DistTensor<T>& other)
+        void div(const T alpha, bool conja, const Tensor<DistTensor<T>,T>& A_,
+                                bool conjb, const Tensor<DistTensor<T>,T>& B_, const T beta)
         {
-            ctf.ctf->align(tid, other.tid);
-            int64_t size1, size2;
-            T* raw_data1 = getRawData(size1);
-            const T* raw_data2 = other.getRawData(size2);
-            assert(size1 == size2);
-            for (int64_t i = 0;i < size1;i++)
+            const DistTensor<T>& A = A_.getDerived();
+            const DistTensor<T>& B = B_.getDerived();
+
+            ctf.ctf->align(A.tid, tid);
+            ctf.ctf->align(B.tid, tid);
+            int64_t size, size_A, size_B;
+            T* raw_data = getRawData(size);
+            const T* raw_data_A = A.getRawData(size_A);
+            const T* raw_data_B = B.getRawData(size_B);
+            assert(size == size_A);
+            assert(size == size_B);
+            if (conja)
             {
-                raw_data1[i] *= raw_data2[i];
+                if (conjb)
+                {
+                    for (int64_t i = 0;i < size;i++)
+                    {
+                        if (std::abs(raw_data_B[i]) > DBL_MIN)
+                        {
+                            raw_data[i] = beta*raw_data[i] + alpha*std::conj(raw_data_A[i])/std::conj(raw_data_B[i]);
+                        }
+                    }
+                }
+                else
+                {
+                    for (int64_t i = 0;i < size;i++)
+                    {
+                        if (std::abs(raw_data_B[i]) > DBL_MIN)
+                        {
+                            raw_data[i] = beta*raw_data[i] + alpha*std::conj(raw_data_A[i])/raw_data_B[i];
+                        }
+                    }
+                }
             }
-            return *this;
+            else
+            {
+                if (conjb)
+                {
+                    for (int64_t i = 0;i < size;i++)
+                    {
+                        if (std::abs(raw_data_B[i]) > DBL_MIN)
+                        {
+                            raw_data[i] = beta*raw_data[i] + alpha*raw_data_A[i]/std::conj(raw_data_B[i]);
+                        }
+                    }
+                }
+                else
+                {
+                    for (int64_t i = 0;i < size;i++)
+                    {
+                        if (std::abs(raw_data_B[i]) > DBL_MIN)
+                        {
+                            raw_data[i] = beta*raw_data[i] + alpha*raw_data_A[i]/raw_data_B[i];
+                        }
+                    }
+                }
+            }
         }
 
-        DistTensor<T>& operator/=(const DistTensor<T>& other)
+        void invert(const T alpha, bool conja, const Tensor<DistTensor<T>,T>& A_, const T beta)
         {
-            ctf.ctf->align(tid, other.tid);
-            int64_t size1, size2;
-            T* raw_data1 = getRawData(size1);
-            const T* raw_data2 = other.getRawData(size2);
-            assert(size1 == size2);
-            for (int64_t i = 0;i < size1;i++)
+            const DistTensor<T>& A = A_.getDerived();
+
+            ctf.ctf->align(tid, A.tid);
+            int64_t size, size_A;
+            T* raw_data = getRawData(size);
+            const T* raw_data_A = A.getRawData(size_A);
+            assert(size == size_A);
+            if (conja)
             {
-                raw_data1[i] /= raw_data2[i];
+                for (int64_t i = 0;i < size;i++)
+                {
+                    if (std::abs(raw_data_A[i]) > DBL_MIN)
+                    {
+                        raw_data[i] = beta*raw_data[i] + alpha/std::conj(raw_data_A[i]);
+                    }
+                }
             }
-            return *this;
+            else
+            {
+                for (int64_t i = 0;i < size;i++)
+                {
+                    if (std::abs(raw_data_A[i]) > DBL_MIN)
+                    {
+                        raw_data[i] = beta*raw_data[i] + alpha/raw_data_A[i];
+                    }
+                }
+            }
         }
 
         void print(FILE* fp) const
@@ -356,19 +427,22 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
             return ans;
         }
 
-        void mult(const double alpha, const DistTensor<T>& A, const int *idx_A,
-                                      const DistTensor<T>& B, const int *idx_B,
-                  const double  beta,                         const int *idx_C)
+        void mult(const double alpha, bool conja, const IndexableTensor<DistTensor<T>,T>& A_, const int *idx_A,
+                                      bool conjb, const IndexableTensor<DistTensor<T>,T>& B_, const int *idx_B,
+                  const double  beta,                                                         const int *idx_C)
         {
+            const DistTensor<T>& A = A_.getDerived();
+            const DistTensor<T>& B = B_.getDerived();
+
             int ret;
             CTF_ctr_type_t tp;
 
             tp.tid_A = A.tid;
             tp.tid_B = B.tid;
             tp.tid_C =   tid;
-            conv_idx(A.ndim_, idx_A, tp.idx_map_A,
-                     B.ndim_, idx_B, tp.idx_map_B,
-                       ndim_, idx_C, tp.idx_map_C);
+            conv_idx(    A.ndim_, idx_A, tp.idx_map_A,
+                         B.ndim_, idx_B, tp.idx_map_B,
+                     ndim_, idx_C, tp.idx_map_C);
 
             ret = ctf.ctf->contract(&tp, alpha, beta);
 
@@ -378,16 +452,18 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
             assert(ret == DIST_TENSOR_SUCCESS);
         }
 
-        void sum(const double alpha, const DistTensor<T>& A, const int *idx_A,
-                 const double  beta,                         const int *idx_B)
+        void sum(const double alpha, bool conja, const IndexableTensor<DistTensor<T>,T>& A_, const int *idx_A,
+                 const double  beta,                                                         const int *idx_B)
         {
+            const DistTensor<T>& A = A_.getDerived();
+
             int ret;
             CTF_sum_type_t st;
 
             st.tid_A = A.tid;
             st.tid_B =   tid;
-            conv_idx(A.ndim_, idx_A, st.idx_map_A,
-                       ndim_, idx_B, st.idx_map_B);
+            conv_idx(    A.ndim_, idx_A, st.idx_map_A,
+                     ndim_, idx_B, st.idx_map_B);
 
             ret = ctf.ctf->sum_tensors(&st, alpha, beta);
 
@@ -410,33 +486,22 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
         }
 };
 
-template <typename T>
-double scalar(const IndexedTensor< DistTensor<T>, T >& other)
+template <typename Derived, typename T>
+struct Scalar<IndexedTensorMult<Derived,T>, typename std::enable_if<std::is_base_of<DistTensor<T>,Derived>::value>::type>
 {
-    DistTensor<T> dt(other.tensor_.ctf);
-    int64_t n;
-    double ret, *val;
-    dt[""] = other;
-    dt.getAllData(n, val);
-    assert(n==1);
-    ret = val[0];
-    free(val);
-    return ret;
-}
-
-template <typename T>
-double scalar(const IndexedTensorMult< DistTensor<T>, T >& other)
-{
-    DistTensor<T> dt(other.A_.tensor_.ctf);
-    int64_t n;
-    double ret, *val;
-    dt[""] = other;
-    dt.getAllData(n, val);
-    assert(n==1);
-    ret = val[0];
-    free(val);
-    return ret;
-}
+    static T value(const IndexedTensorMult<Derived,T>& other)
+    {
+        DistTensor<T> dt(other.A_.tensor_.getDerived().ctf);
+        int64_t n;
+        double ret, *val;
+        dt[""] = other;
+        dt.getAllData(n, val);
+        assert(n==1);
+        ret = val[0];
+        free(val);
+        return ret;
+    }
+};
 
 }
 }

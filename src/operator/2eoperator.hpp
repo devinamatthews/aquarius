@@ -25,10 +25,6 @@
 #ifndef _AQUARIUS_OPERATOR_2EOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_2EOPERATOR_HPP_
 
-#include "tensor/dist_tensor.hpp"
-#include "tensor/spinorbital.hpp"
-#include "scf/scf.hpp"
-
 #include "1eoperator.hpp"
 
 namespace aquarius
@@ -119,10 +115,10 @@ class TwoElectronOperator : public OneElectronOperator<T>
 
             if (hermitian)
             {
-                ijka.addSpinCase(iajk.getSpinCase(0), "IJ,KA", "IJKA");
-                ijka.addSpinCase(iajk.getSpinCase(1), "Ij,Ka", "IjKa");
-                ijka.addSpinCase(iajk.getSpinCase(2), "iJ,kA", "iJkA");
-                ijka.addSpinCase(iajk.getSpinCase(3), "ij,ka", "ijka");
+                ijka.addSpinCase(iajk(0), "IJ,KA", "IJKA");
+                ijka.addSpinCase(iajk(1), "Ij,Ka", "IjKa");
+                ijka.addSpinCase(iajk(2), "iJ,kA", "iJkA");
+                ijka.addSpinCase(iajk(3), "ij,ka", "ijka");
             }
             else
             {
@@ -138,9 +134,9 @@ class TwoElectronOperator : public OneElectronOperator<T>
 
             if (hermitian)
             {
-                ijab.addSpinCase(abij.getSpinCase(0), "IJ,AB", "ABIJ");
-                ijab.addSpinCase(abij.getSpinCase(1), "Ij,Ab", "AbIj");
-                ijab.addSpinCase(abij.getSpinCase(2), "ij,ab", "abij");
+                ijab.addSpinCase(abij(0), "IJ,AB", "ABIJ");
+                ijab.addSpinCase(abij(1), "Ij,Ab", "AbIj");
+                ijab.addSpinCase(abij(2), "ij,ab", "abij");
             }
             else
             {
@@ -163,10 +159,10 @@ class TwoElectronOperator : public OneElectronOperator<T>
 
             if (hermitian)
             {
-                abci.addSpinCase(aibc.getSpinCase(0), "AB,CI", "ABCI");
-                abci.addSpinCase(aibc.getSpinCase(1), "Ab,Ci", "AbCi");
-                abci.addSpinCase(aibc.getSpinCase(2), "aB,cI", "aBcI");
-                abci.addSpinCase(aibc.getSpinCase(3), "ab,ci", "abci");
+                abci.addSpinCase(aibc(0), "AB,CI", "ABCI");
+                abci.addSpinCase(aibc(1), "Ab,Ci", "AbCi");
+                abci.addSpinCase(aibc(2), "aB,cI", "aBcI");
+                abci.addSpinCase(aibc(3), "ab,ci", "abci");
             }
             else
             {
@@ -198,133 +194,133 @@ class TwoElectronOperator : public OneElectronOperator<T>
         {
             if (copy&IJKL)
             {
-                ijkl.addSpinCase(new tensor::DistTensor<T>(other.getIJKL().getSpinCase(0)), "IJ,KL", "IJKL");
-                ijkl.addSpinCase(new tensor::DistTensor<T>(other.getIJKL().getSpinCase(1)), "Ij,Kl", "IjKl");
-                ijkl.addSpinCase(new tensor::DistTensor<T>(other.getIJKL().getSpinCase(2)), "ij,kl", "ijkl");
+                ijkl.addSpinCase(new tensor::DistTensor<T>(other.getIJKL()(0)), "IJ,KL", "IJKL");
+                ijkl.addSpinCase(new tensor::DistTensor<T>(other.getIJKL()(1)), "Ij,Kl", "IjKl");
+                ijkl.addSpinCase(new tensor::DistTensor<T>(other.getIJKL()(2)), "ij,kl", "ijkl");
             }
             else
             {
-                ijkl.addSpinCase(other.getIJKL().getSpinCase(0), "IJ,KL", "IJKL");
-                ijkl.addSpinCase(other.getIJKL().getSpinCase(1), "Ij,Kl", "IjKl");
-                ijkl.addSpinCase(other.getIJKL().getSpinCase(2), "ij,kl", "ijkl");
+                ijkl.addSpinCase(other.getIJKL()(0), "IJ,KL", "IJKL");
+                ijkl.addSpinCase(other.getIJKL()(1), "Ij,Kl", "IjKl");
+                ijkl.addSpinCase(other.getIJKL()(2), "ij,kl", "ijkl");
             }
 
             if (copy&IAJK)
             {
-                iajk.addSpinCase(new tensor::DistTensor<T>(other.getIAJK().getSpinCase(0)), "IA,JK", "JKIA");
-                iajk.addSpinCase(new tensor::DistTensor<T>(other.getIAJK().getSpinCase(1)), "Ia,Jk", "JkIa");
-                iajk.addSpinCase(new tensor::DistTensor<T>(other.getIAJK().getSpinCase(2)), "iA,jK", "jKiA");
-                iajk.addSpinCase(new tensor::DistTensor<T>(other.getIAJK().getSpinCase(3)), "ia,jk", "jkia");
+                iajk.addSpinCase(new tensor::DistTensor<T>(other.getIAJK()(0)), "IA,JK", "JKIA");
+                iajk.addSpinCase(new tensor::DistTensor<T>(other.getIAJK()(1)), "Ia,Jk", "JkIa");
+                iajk.addSpinCase(new tensor::DistTensor<T>(other.getIAJK()(2)), "iA,jK", "jKiA");
+                iajk.addSpinCase(new tensor::DistTensor<T>(other.getIAJK()(3)), "ia,jk", "jkia");
             }
             else
             {
-                iajk.addSpinCase(other.getIAJK().getSpinCase(0), "IA,JK", "JKIA");
-                iajk.addSpinCase(other.getIAJK().getSpinCase(1), "Ia,Jk", "JkIa");
-                iajk.addSpinCase(other.getIAJK().getSpinCase(2), "iA,jK", "jKiA");
-                iajk.addSpinCase(other.getIAJK().getSpinCase(3), "ia,jk", "jkia");
+                iajk.addSpinCase(other.getIAJK()(0), "IA,JK", "JKIA");
+                iajk.addSpinCase(other.getIAJK()(1), "Ia,Jk", "JkIa");
+                iajk.addSpinCase(other.getIAJK()(2), "iA,jK", "jKiA");
+                iajk.addSpinCase(other.getIAJK()(3), "ia,jk", "jkia");
             }
 
             if (copy&IAJK)
             {
-                ijka.addSpinCase(new tensor::DistTensor<T>(other.getIJKA().getSpinCase(0)), "IJ,KA", "IJKA");
-                ijka.addSpinCase(new tensor::DistTensor<T>(other.getIJKA().getSpinCase(1)), "Ij,Ka", "IjKa");
-                ijka.addSpinCase(new tensor::DistTensor<T>(other.getIJKA().getSpinCase(2)), "iJ,kA", "iJkA");
-                ijka.addSpinCase(new tensor::DistTensor<T>(other.getIJKA().getSpinCase(3)), "ij,ka", "ijka");
+                ijka.addSpinCase(new tensor::DistTensor<T>(other.getIJKA()(0)), "IJ,KA", "IJKA");
+                ijka.addSpinCase(new tensor::DistTensor<T>(other.getIJKA()(1)), "Ij,Ka", "IjKa");
+                ijka.addSpinCase(new tensor::DistTensor<T>(other.getIJKA()(2)), "iJ,kA", "iJkA");
+                ijka.addSpinCase(new tensor::DistTensor<T>(other.getIJKA()(3)), "ij,ka", "ijka");
             }
             else
             {
-                ijka.addSpinCase(other.getIJKA().getSpinCase(0), "IJ,KA", "IJKA");
-                ijka.addSpinCase(other.getIJKA().getSpinCase(1), "Ij,Ka", "IjKa");
-                ijka.addSpinCase(other.getIJKA().getSpinCase(2), "iJ,kA", "iJkA");
-                ijka.addSpinCase(other.getIJKA().getSpinCase(3), "ij,ka", "ijka");
+                ijka.addSpinCase(other.getIJKA()(0), "IJ,KA", "IJKA");
+                ijka.addSpinCase(other.getIJKA()(1), "Ij,Ka", "IjKa");
+                ijka.addSpinCase(other.getIJKA()(2), "iJ,kA", "iJkA");
+                ijka.addSpinCase(other.getIJKA()(3), "ij,ka", "ijka");
             }
 
             if (copy&ABIJ)
             {
-                abij.addSpinCase(new tensor::DistTensor<T>(other.getABIJ().getSpinCase(0)), "AB,IJ", "ABIJ");
-                abij.addSpinCase(new tensor::DistTensor<T>(other.getABIJ().getSpinCase(1)), "Ab,Ij", "AbIj");
-                abij.addSpinCase(new tensor::DistTensor<T>(other.getABIJ().getSpinCase(2)), "ab,ij", "abij");
+                abij.addSpinCase(new tensor::DistTensor<T>(other.getABIJ()(0)), "AB,IJ", "ABIJ");
+                abij.addSpinCase(new tensor::DistTensor<T>(other.getABIJ()(1)), "Ab,Ij", "AbIj");
+                abij.addSpinCase(new tensor::DistTensor<T>(other.getABIJ()(2)), "ab,ij", "abij");
             }
             else
             {
-                abij.addSpinCase(other.getABIJ().getSpinCase(0), "AB,IJ", "ABIJ");
-                abij.addSpinCase(other.getABIJ().getSpinCase(1), "Ab,Ij", "AbIj");
-                abij.addSpinCase(other.getABIJ().getSpinCase(2), "ab,ij", "abij");
+                abij.addSpinCase(other.getABIJ()(0), "AB,IJ", "ABIJ");
+                abij.addSpinCase(other.getABIJ()(1), "Ab,Ij", "AbIj");
+                abij.addSpinCase(other.getABIJ()(2), "ab,ij", "abij");
             }
 
             if (copy&IJAB)
             {
-                ijab.addSpinCase(new tensor::DistTensor<T>(other.getIJAB().getSpinCase(0)), "IJ,AB", "ABIJ");
-                ijab.addSpinCase(new tensor::DistTensor<T>(other.getIJAB().getSpinCase(1)), "Ij,Ab", "AbIj");
-                ijab.addSpinCase(new tensor::DistTensor<T>(other.getIJAB().getSpinCase(2)), "ij,ab", "abij");
+                ijab.addSpinCase(new tensor::DistTensor<T>(other.getIJAB()(0)), "IJ,AB", "ABIJ");
+                ijab.addSpinCase(new tensor::DistTensor<T>(other.getIJAB()(1)), "Ij,Ab", "AbIj");
+                ijab.addSpinCase(new tensor::DistTensor<T>(other.getIJAB()(2)), "ij,ab", "abij");
             }
             else
             {
-                ijab.addSpinCase(other.getIJAB().getSpinCase(0), "IJ,AB", "ABIJ");
-                ijab.addSpinCase(other.getIJAB().getSpinCase(1), "Ij,Ab", "AbIj");
-                ijab.addSpinCase(other.getIJAB().getSpinCase(2), "ij,ab", "abij");
+                ijab.addSpinCase(other.getIJAB()(0), "IJ,AB", "ABIJ");
+                ijab.addSpinCase(other.getIJAB()(1), "Ij,Ab", "AbIj");
+                ijab.addSpinCase(other.getIJAB()(2), "ij,ab", "abij");
             }
 
             if (copy&AIBJ)
             {
-                aibj.addSpinCase(new tensor::DistTensor<T>(other.getAIBJ().getSpinCase(0)), "AI,BJ", "AIBJ");
-                aibj.addSpinCase(new tensor::DistTensor<T>(other.getAIBJ().getSpinCase(1)), "Ai,Bj", "AiBj");
-                aibj.addSpinCase(new tensor::DistTensor<T>(other.getAIBJ().getSpinCase(2)), "aI,bJ", "aIbJ");
-                aibj.addSpinCase(new tensor::DistTensor<T>(other.getAIBJ().getSpinCase(3)), "ai,bj", "aibj");
-                aibj.addSpinCase(new tensor::DistTensor<T>(other.getABIJ().getSpinCase(1)), "aI,Bj", "BaIj", -1.0);
-                aibj.addSpinCase(new tensor::DistTensor<T>(other.getABIJ().getSpinCase(1)), "Ai,bJ", "AbJi", -1.0);
+                aibj.addSpinCase(new tensor::DistTensor<T>(other.getAIBJ()(0)), "AI,BJ", "AIBJ");
+                aibj.addSpinCase(new tensor::DistTensor<T>(other.getAIBJ()(1)), "Ai,Bj", "AiBj");
+                aibj.addSpinCase(new tensor::DistTensor<T>(other.getAIBJ()(2)), "aI,bJ", "aIbJ");
+                aibj.addSpinCase(new tensor::DistTensor<T>(other.getAIBJ()(3)), "ai,bj", "aibj");
+                aibj.addSpinCase(new tensor::DistTensor<T>(other.getABIJ()(1)), "aI,Bj", "BaIj", -1.0);
+                aibj.addSpinCase(new tensor::DistTensor<T>(other.getABIJ()(1)), "Ai,bJ", "AbJi", -1.0);
             }
             else
             {
-                aibj.addSpinCase(other.getAIBJ().getSpinCase(0), "AI,BJ", "AIBJ");
-                aibj.addSpinCase(other.getAIBJ().getSpinCase(1), "Ai,Bj", "AiBj");
-                aibj.addSpinCase(other.getAIBJ().getSpinCase(2), "aI,bJ", "aIbJ");
-                aibj.addSpinCase(other.getAIBJ().getSpinCase(3), "ai,bj", "aibj");
-                aibj.addSpinCase(other.getABIJ().getSpinCase(1), "aI,Bj", "BaIj", -1.0);
-                aibj.addSpinCase(other.getABIJ().getSpinCase(1), "Ai,bJ", "AbJi", -1.0);
+                aibj.addSpinCase(other.getAIBJ()(0), "AI,BJ", "AIBJ");
+                aibj.addSpinCase(other.getAIBJ()(1), "Ai,Bj", "AiBj");
+                aibj.addSpinCase(other.getAIBJ()(2), "aI,bJ", "aIbJ");
+                aibj.addSpinCase(other.getAIBJ()(3), "ai,bj", "aibj");
+                aibj.addSpinCase(other.getABIJ()(1), "aI,Bj", "BaIj", -1.0);
+                aibj.addSpinCase(other.getABIJ()(1), "Ai,bJ", "AbJi", -1.0);
             }
 
             if (copy&AIBC)
             {
-                aibc.addSpinCase(new tensor::DistTensor<T>(other.getAIBC().getSpinCase(0)), "AI,BC", "BCAI");
-                aibc.addSpinCase(new tensor::DistTensor<T>(other.getAIBC().getSpinCase(1)), "Ai,Bc", "BcAi");
-                aibc.addSpinCase(new tensor::DistTensor<T>(other.getAIBC().getSpinCase(2)), "aI,bC", "bCaI");
-                aibc.addSpinCase(new tensor::DistTensor<T>(other.getAIBC().getSpinCase(3)), "ai,bc", "bcai");
+                aibc.addSpinCase(new tensor::DistTensor<T>(other.getAIBC()(0)), "AI,BC", "BCAI");
+                aibc.addSpinCase(new tensor::DistTensor<T>(other.getAIBC()(1)), "Ai,Bc", "BcAi");
+                aibc.addSpinCase(new tensor::DistTensor<T>(other.getAIBC()(2)), "aI,bC", "bCaI");
+                aibc.addSpinCase(new tensor::DistTensor<T>(other.getAIBC()(3)), "ai,bc", "bcai");
             }
             else
             {
-                aibc.addSpinCase(other.getAIBC().getSpinCase(0), "AI,BC", "BCAI");
-                aibc.addSpinCase(other.getAIBC().getSpinCase(1), "Ai,Bc", "BcAi");
-                aibc.addSpinCase(other.getAIBC().getSpinCase(2), "aI,bC", "bCaI");
-                aibc.addSpinCase(other.getAIBC().getSpinCase(3), "ai,bc", "bcai");
+                aibc.addSpinCase(other.getAIBC()(0), "AI,BC", "BCAI");
+                aibc.addSpinCase(other.getAIBC()(1), "Ai,Bc", "BcAi");
+                aibc.addSpinCase(other.getAIBC()(2), "aI,bC", "bCaI");
+                aibc.addSpinCase(other.getAIBC()(3), "ai,bc", "bcai");
             }
 
             if (copy&ABCI)
             {
-                abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI().getSpinCase(0)), "AB,CI", "ABCI");
-                abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI().getSpinCase(1)), "Ab,Ci", "AbCi");
-                abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI().getSpinCase(2)), "aB,cI", "aBcI");
-                abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI().getSpinCase(3)), "ab,ci", "abci");
+                abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI()(0)), "AB,CI", "ABCI");
+                abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI()(1)), "Ab,Ci", "AbCi");
+                abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI()(2)), "aB,cI", "aBcI");
+                abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI()(3)), "ab,ci", "abci");
             }
             else
             {
-                abci.addSpinCase(other.getABCI().getSpinCase(0), "AB,CI", "ABCI");
-                abci.addSpinCase(other.getABCI().getSpinCase(1), "Ab,Ci", "AbCi");
-                abci.addSpinCase(other.getABCI().getSpinCase(2), "aB,cI", "aBcI");
-                abci.addSpinCase(other.getABCI().getSpinCase(3), "ab,ci", "abci");
+                abci.addSpinCase(other.getABCI()(0), "AB,CI", "ABCI");
+                abci.addSpinCase(other.getABCI()(1), "Ab,Ci", "AbCi");
+                abci.addSpinCase(other.getABCI()(2), "aB,cI", "aBcI");
+                abci.addSpinCase(other.getABCI()(3), "ab,ci", "abci");
             }
 
             if (copy&ABCD)
             {
-                abcd.addSpinCase(new tensor::DistTensor<T>(other.getABCD().getSpinCase(0)), "AB,CD", "ABCD");
-                abcd.addSpinCase(new tensor::DistTensor<T>(other.getABCD().getSpinCase(1)), "Ab,Cd", "AbCd");
-                abcd.addSpinCase(new tensor::DistTensor<T>(other.getABCD().getSpinCase(2)), "ab,cd", "abcd");
+                abcd.addSpinCase(new tensor::DistTensor<T>(other.getABCD()(0)), "AB,CD", "ABCD");
+                abcd.addSpinCase(new tensor::DistTensor<T>(other.getABCD()(1)), "Ab,Cd", "AbCd");
+                abcd.addSpinCase(new tensor::DistTensor<T>(other.getABCD()(2)), "ab,cd", "abcd");
             }
             else
             {
-                abcd.addSpinCase(other.getABCD().getSpinCase(0), "AB,CD", "ABCD");
-                abcd.addSpinCase(other.getABCD().getSpinCase(1), "Ab,Cd", "AbCd");
-                abcd.addSpinCase(other.getABCD().getSpinCase(2), "ab,cd", "abcd");
+                abcd.addSpinCase(other.getABCD()(0), "AB,CD", "ABCD");
+                abcd.addSpinCase(other.getABCD()(1), "Ab,Cd", "AbCd");
+                abcd.addSpinCase(other.getABCD()(2), "ab,cd", "abcd");
             }
         }
 

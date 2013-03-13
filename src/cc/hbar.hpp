@@ -25,8 +25,6 @@
 #ifndef _AQUARIUS_CC_HBAR_HPP_
 #define _AQUARIUS_CC_HBAR_HPP_
 
-#include "tensor/dist_tensor.hpp"
-#include "tensor/spinorbital.hpp"
 #include "operator/2eoperator.hpp"
 #include "operator/exponentialoperator.hpp"
 
@@ -42,49 +40,49 @@ class Hbar : public op::TwoElectronOperator<U>
         Hbar(const op::TwoElectronOperator<U>& moints, const op::ExponentialOperator<U,2>& T)
         : op::TwoElectronOperator<U>(const_cast<op::TwoElectronOperator<U>&>(moints), op::TwoElectronOperator<U>::ALL)
         {
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T[2]);
-            Tau["abij"] += 0.5*T[1]["ai"]*T[1]["bj"];
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T(2));
+            Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
             this->ai = 0;
             this->abij = 0;
 
-            this->ia["me"] = this->ijab["mnef"]*T[1]["fn"];
+            this->ia["me"] = this->ijab["mnef"]*T(1)["fn"];
 
-            this->ij["mi"] += 0.5*this->ijab["nmef"]*T[2]["efni"];
-            this->ij["mi"] += this->ia["me"]*T[1]["ei"];
-            this->ij["mi"] += this->ijka["mnif"]*T[1]["fn"];
+            this->ij["mi"] += 0.5*this->ijab["nmef"]*T(2)["efni"];
+            this->ij["mi"] += this->ia["me"]*T(1)["ei"];
+            this->ij["mi"] += this->ijka["mnif"]*T(1)["fn"];
 
-            this->ab["ae"] -= 0.5*this->ijab["mnfe"]*T[2]["famn"];
-            this->ab["ae"] -= this->ia["me"]*T[1]["am"];
-            this->ab["ae"] += this->aibc["anef"]*T[1]["fn"];
+            this->ab["ae"] -= 0.5*this->ijab["mnfe"]*T(2)["famn"];
+            this->ab["ae"] -= this->ia["me"]*T(1)["am"];
+            this->ab["ae"] += this->aibc["anef"]*T(1)["fn"];
 
             this->ijkl["mnij"] += 0.5*this->ijab["mnef"]*Tau["efij"];
-            this->ijkl["mnij"] += this->ijka["mnie"]*T[1]["ej"];
+            this->ijkl["mnij"] += this->ijka["mnie"]*T(1)["ej"];
 
-            this->ijka["mnie"] += this->ijab["mnfe"]*T[1]["fi"];
+            this->ijka["mnie"] += this->ijab["mnfe"]*T(1)["fi"];
 
             this->iajk["mbij"] += 0.5*this->aibc["bmfe"]*Tau["efij"];
-            this->iajk["mbij"] -= this->aibj["bmej"]*T[1]["ei"];
-            this->iajk["mbij"] += this->ijka["mnie"]*T[2]["bejn"];
-            this->iajk["mbij"] -= this->ijkl["mnij"]*T[1]["bn"];
-            this->iajk["mbij"] += this->ia["me"]*T[2]["ebij"];
+            this->iajk["mbij"] -= this->aibj["bmej"]*T(1)["ei"];
+            this->iajk["mbij"] += this->ijka["mnie"]*T(2)["bejn"];
+            this->iajk["mbij"] -= this->ijkl["mnij"]*T(1)["bn"];
+            this->iajk["mbij"] += this->ia["me"]*T(2)["ebij"];
 
-            this->aibj["amei"] -= this->ijab["mnef"]*T[2]["afin"];
-            this->aibj["amei"] -= this->aibc["amfe"]*T[1]["fi"];
-            this->aibj["amei"] += 0.5*this->ijka["nmie"]*T[1]["an"];
+            this->aibj["amei"] -= this->ijab["mnef"]*T(2)["afin"];
+            this->aibj["amei"] -= this->aibc["amfe"]*T(1)["fi"];
+            this->aibj["amei"] += 0.5*this->ijka["nmie"]*T(1)["an"];
 
-            this->abci["abej"] += 0.5*this->ijka["nmje"]*T[2]["abmn"];
-            this->abci["abej"] -= this->aibj["mbej"]*T[1]["am"];
-            this->abci["abej"] += this->aibc["amef"]*T[2]["fbmj"];
-            this->abci["abej"] += this->abcd["abef"]*T[1]["fj"];
-            this->abci["abej"] -= this->ia["me"]*T[2]["abmj"];
+            this->abci["abej"] += 0.5*this->ijka["nmje"]*T(2)["abmn"];
+            this->abci["abej"] -= this->aibj["amej"]*T(1)["bm"];
+            this->abci["abej"] += this->aibc["amef"]*T(2)["fbmj"];
+            this->abci["abej"] += this->abcd["abef"]*T(1)["fj"];
+            this->abci["abej"] -= this->ia["me"]*T(2)["abmj"];
 
-            this->aibj["amei"] += 0.5*this->ijka["nmie"]*T[1]["an"];
+            this->aibj["amei"] += 0.5*this->ijka["nmie"]*T(1)["an"];
 
             this->abcd["abef"] += 0.5*this->ijab["mnef"]*Tau["abmn"];
-            this->abcd["abef"] -= this->aibc["amef"]*T[1]["bm"];
+            this->abcd["abef"] -= this->aibc["amef"]*T(1)["bm"];
 
-            this->aibc["amef"] -= this->ijab["nmef"]*T[1]["an"];
+            this->aibc["amef"] -= this->ijab["nmef"]*T(1)["an"];
         }
 };
 

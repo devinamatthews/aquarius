@@ -25,21 +25,6 @@
 #ifndef _AQUARIUS_SCF_AOSCF_HPP_
 #define _AQUARIUS_SCF_AOSCF_HPP_
 
-#include <vector>
-
-#include "mpi.h"
-
-#include "elemental.hpp"
-
-#include "tensor/dist_tensor.hpp"
-#include "slide/slide.hpp"
-#include "input/molecule.hpp"
-#include "input/config.hpp"
-#include "convergence/diis.hpp"
-#include "util/util.h"
-#include "util/blas.h"
-#include "util/lapack.h"
-
 #include "scf.hpp"
 #include "cholesky.hpp"
 #include "aoints.hpp"

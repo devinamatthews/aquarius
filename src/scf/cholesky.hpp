@@ -25,17 +25,7 @@
 #ifndef _AQUARIUS_SCF_CHOLESKY_HPP_
 #define _AQUARIUS_SCF_CHOLESKY_HPP_
 
-#include <algorithm>
-#include <cmath>
-#include <cstdlib>
-#include <iostream>
-#include <cstdio>
-#include <vector>
-
-#include "mpi.h"
-
 #include "tensor/dist_tensor.hpp"
-#include "tensor/dense_tensor.hpp"
 #include "slide/slide.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"

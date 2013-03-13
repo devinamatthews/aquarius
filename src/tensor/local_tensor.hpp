@@ -25,31 +25,37 @@
 #ifndef _AQUARIUS_TENSOR_LOCAL_TENSOR_HPP_
 #define _AQUARIUS_TENSOR_LOCAL_TENSOR_HPP_
 
-#include <algorithm>
 #include <ostream>
-#include <iomanip>
+#include <iostream>
 #include <cstdio>
+#include <stdint.h>
+#include <cstring>
+#include <cassert>
+#include <string>
+#include <algorithm>
 
 #include "memory/memory.h"
 
 #include "tensor.h"
-#include "tensor.hpp"
+#include "indexabletensor.hpp"
 
-#define INHERIT_FROM_LOCAL_TENSOR(Derived, T)              \
-    friend class aquarius::tensor::LocalTensor< Derived, T >;                \
-    INHERIT_FROM_INDEXABLE_TENSOR(Derived, T)                        \
-    protected:                                          \
-        using aquarius::tensor::LocalTensor< Derived, T >::len_;       \
-        using aquarius::tensor::LocalTensor< Derived, T >::ld_;       \
-        using aquarius::tensor::LocalTensor< Derived, T >::size_;     \
-        using aquarius::tensor::LocalTensor< Derived, T >::data_;     \
-    public:                                             \
-        using typename aquarius::tensor::LocalTensor< Derived, T >::CopyType;  \
-        using aquarius::tensor::LocalTensor< Derived, T >::CLONE;  \
-        using aquarius::tensor::LocalTensor< Derived, T >::REFERENCE;  \
-        using aquarius::tensor::LocalTensor< Derived, T >::REPLACE;  \
-        using aquarius::tensor::LocalTensor< Derived, T >::getSize;   \
-    private:
+namespace aquarius
+{
+namespace tensor
+{
+
+#define INHERIT_FROM_LOCAL_TENSOR(Derived, T) \
+    protected: \
+        using aquarius::tensor::LocalTensor< Derived, T >::len_; \
+        using aquarius::tensor::LocalTensor< Derived, T >::ld_; \
+        using aquarius::tensor::LocalTensor< Derived, T >::size_; \
+        using aquarius::tensor::LocalTensor< Derived, T >::data_; \
+    public: \
+        using aquarius::tensor::LocalTensor< Derived, T >::CLONE; \
+        using aquarius::tensor::LocalTensor< Derived, T >::REFERENCE; \
+        using aquarius::tensor::LocalTensor< Derived, T >::REPLACE; \
+        using aquarius::tensor::LocalTensor< Derived, T >::getSize; \
+    INHERIT_FROM_INDEXABLE_TENSOR(Derived, T)
 
 #define CHECK_RETURN_VALUE(ret) \
 switch (ret) \
@@ -90,11 +96,6 @@ switch (ret) \
 
 #define VALIDATE_TENSOR_THROW(ndim,len,ld,sym) CHECK_RETURN_VALUE(validate_tensor(ndim,len,ld,sym));
 
-namespace aquarius
-{
-namespace tensor
-{
-
 template <class Derived, class T=double>
 class LocalTensor : public IndexableTensor<Derived,T>
 {
@@ -109,6 +110,17 @@ class LocalTensor : public IndexableTensor<Derived,T>
 
     public:
         enum CopyType {CLONE, REFERENCE, REPLACE};
+
+        LocalTensor(const LocalTensor& t, const T val)
+        : IndexableTensor<Derived,T>(0), size_(1)
+        {
+            len_ = SAFE_MALLOC(int, ndim_);
+            ld_ = NULL;
+            data_ = SAFE_MALLOC(T, size_);
+            isAlloced = true;
+
+            data_[0] = val;
+        }
 
         LocalTensor(const Derived& A, const CopyType type=CLONE)
         : IndexableTensor<Derived,T>(A.ndim_), size_(A.size_)
@@ -214,24 +226,83 @@ class LocalTensor : public IndexableTensor<Derived,T>
 
         uint64_t getSize() const { return size_; }
 
-        virtual Derived& operator*=(const Derived& other)
+        void div(const T alpha, bool conja, const Tensor<Derived,T>& A,
+                                bool conjb, const Tensor<Derived,T>& B, const T beta)
         {
-            assert(size_ == other.size_);
-            for (uint64_t i = 0;i < size_;i++)
+            assert(size_ == A.size_ && size_ == B.size_);
+
+            if (conja)
             {
-                data_[i] *= other.data_[i];
+                if (conjb)
+                {
+                    for (uint64_t i = 0;i < size_;i++)
+                    {
+                        if (std::abs(B.data[i]) > DBL_MIN)
+                        {
+                            data_[i] = beta*data_[i] + alpha*conj(A.data_[i])/conj(B.data_[i]);
+                        }
+                    }
+                }
+                else
+                {
+                    for (uint64_t i = 0;i < size_;i++)
+                    {
+                        if (std::abs(B.data[i]) > DBL_MIN)
+                        {
+                            data_[i] = beta*data_[i] + alpha*conj(A.data_[i])/B.data_[i];
+                        }
+                    }
+                }
             }
-            return static_cast<Derived&>(*this);
+            else
+            {
+                if (conjb)
+                {
+                    for (uint64_t i = 0;i < size_;i++)
+                    {
+                        if (std::abs(B.data[i]) > DBL_MIN)
+                        {
+                            data_[i] = beta*data_[i] + alpha*A.data_[i]/conj(B.data_[i]);
+                        }
+                    }
+                }
+                else
+                {
+                    for (uint64_t i = 0;i < size_;i++)
+                    {
+                        if (std::abs(B.data[i]) > DBL_MIN)
+                        {
+                            data_[i] = beta*data_[i] + alpha*A.data_[i]/B.data_[i];
+                        }
+                    }
+                }
+            }
         }
 
-        virtual Derived& operator/=(const Derived& other)
+        void invert(const T alpha, bool conja, const Tensor<Derived,T>& A, const T beta)
         {
-            assert(size_ == other.size_);
-            for (uint64_t i = 0;i < size_;i++)
+            assert(size_ == A.size_);
+
+            if (conja)
             {
-                data_[i] /= other.data_[i];
+                for (uint64_t i = 0;i < size_;i++)
+                {
+                    if (std::abs(A.data[i]) > DBL_MIN)
+                    {
+                        data_[i] = beta*data_[i] + alpha/conj(A.data_[i]);
+                    }
+                }
             }
-            return static_cast<Derived&>(*this);
+            else
+            {
+                for (uint64_t i = 0;i < size_;i++)
+                {
+                    if (std::abs(A.data[i]) > DBL_MIN)
+                    {
+                        data_[i] = beta*data_[i] + alpha/A.data_[i];
+                    }
+                }
+            }
         }
 
         virtual void print(FILE* fp) const = 0;
@@ -241,6 +312,17 @@ class LocalTensor : public IndexableTensor<Derived,T>
         T* getData() { return data_; };
 
         const T* getData() const { return data_; };
+};
+
+template <typename Derived, typename T>
+struct Scalar<IndexedTensorMult<Derived,T>, typename std::enable_if<std::is_base_of<LocalTensor<Derived,T>,Derived>::value>::type>
+{
+    static T value(const IndexedTensorMult<Derived,T>& other)
+    {
+        Derived dt(other, (T)0);
+        dt[""] = other;
+        return dt.getData()[0];
+    }
 };
 
 }

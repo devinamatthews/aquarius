@@ -105,38 +105,30 @@ class PointGroup
 
         PointGroup(int order, int nirrep, const char *name, const Representation *dirprd,
                    const Representation *irreps, const char **irrep_names, const double *characters,
-                   const int *irrep_degen, const mat3x3 *ops, const char **op_names)
-        : order(order), nirrep(nirrep), name(name), dirprd(dirprd), irreps(irreps), irrep_names(irrep_names),
-          characters(characters), irrep_degen(irrep_degen), ops(ops), op_names(op_names) {}
+                   const int *irrep_degen, const mat3x3 *ops, const char **op_names);
 
     public:
-        bool operator==(const PointGroup& other) const
-        {
-            /*
-             * Comparing pointers is sufficient since only the static instances are allowed
-             */
-            return this == &other;
-        }
+        bool operator==(const PointGroup& other) const;
 
-        int getOrder() const { return order; }
+        int getOrder() const;
 
-        int getNumIrreps() const { return nirrep; }
+        int getNumIrreps() const;
 
-        const char* getName() const { return name; }
+        const char* getName() const;
 
-        const Representation* getIrreps() const { return irreps; }
+        const Representation* getIrreps() const;
 
-        const Representation& getIrrep(int i) const { return irreps[i]; }
+        const Representation& getIrrep(int i) const;
 
-        const char * getIrrepName(int i) const { return irrep_names[i]; }
+        const char * getIrrepName(int i) const;
 
-        const mat3x3* getOps() const { return ops; }
+        const mat3x3* getOps() const;
 
-        const mat3x3& getOp(int i) const { return ops[i]; }
+        const mat3x3& getOp(int i) const;
 
-        const char * getOpName(int i) const { return op_names[i]; }
+        const char * getOpName(int i) const;
 
-        const Representation& totallySymmetricIrrep() const { return irreps[0]; }
+        const Representation& totallySymmetricIrrep() const;
 };
 
 class Representation
@@ -146,85 +138,21 @@ class Representation
         uint_fast32_t bits;
 
     public:
-        Representation(const PointGroup& group, uint_fast32_t bits)
-        : group(group), bits(bits) {}
+        Representation(const PointGroup& group, uint_fast32_t bits);
 
-        Representation& operator=(const Representation& other)
-        {
-            assert(group == other.group);
-            bits = other.bits;
-            return *this;
-        }
+        Representation& operator=(const Representation& other);
 
-        bool isReducible() const
-        {
-            bool found = false;
+        bool isReducible() const;
 
-            uint_fast32_t mask = 1;
-            for (int i = 0;i < group.nirrep;i++)
-            {
-                if (mask&bits)
-                {
-                    if (found) return true;
-                    found = true;
-                }
-                mask <<= 1;
-            }
+        bool isTotallySymmetric() const;
 
-            return false;
-        }
+        Representation operator*(const Representation& other) const;
 
-        bool isTotallySymmetric() const
-        {
-            return bits&1;
-        }
+        Representation& operator*=(const Representation& other);
 
-        Representation operator*(const Representation& other) const
-        {
-            return Representation(*this) *= other;
-        }
+        Representation operator+(const Representation& other) const;
 
-        Representation& operator*=(const Representation& other)
-        {
-            assert(group == other.group);
-
-            int n = group.nirrep;
-
-            uint_fast32_t oldbits = bits;
-            bits = 0;
-
-            uint_fast32_t maski = 1;
-            for (int i = 0;i < n;i++)
-            {
-                if (maski&oldbits)
-                {
-                    uint_fast32_t maskj = 1;
-                    for (int j = 0;j < n;j++)
-                    {
-                        if (maskj&other.bits)
-                        {
-                            *this += group.dirprd[i*n+j];
-                        }
-                        maskj <<= 1;
-                    }
-                }
-                maski <<= 1;
-            }
-
-            return *this;
-        }
-
-        Representation operator+(const Representation& other) const
-        {
-            return Representation(*this) += other;
-        }
-
-        Representation& operator+=(const Representation& other)
-        {
-            assert(group == other.group);
-            bits |= other.bits;
-            return *this;
-        }
+        Representation& operator+=(const Representation& other);
 };
 
 }
