@@ -37,14 +37,15 @@ namespace scf
 template <typename T>
 class AOUHF : public UHF<T>
 {
-    friend class AOMOIntegrals<T>;
-
-    protected:
+    public:
         const AOIntegrals<T>& ints;
 
+    protected:
+        using UHF<T>::norb;
+
     public:
-        AOUHF(tCTF_World<T>& ctf, const input::Config& config, const AOIntegrals& ints)
-        : UHF<T>(config, ctf, ints.getMolecule()), ints(ints) {}
+        AOUHF(const input::Config& config, const AOIntegrals<T>& ints)
+        : UHF<T>(ints.ctf, config, ints.molecule), ints(ints) {}
 
     protected:
         void buildFock()
@@ -56,9 +57,9 @@ class AOUHF : public UHF<T>
 
             if (this->rank == 0)
             {
-                H->getAllData(npair, focka);
+                this->H->getAllData(npair, focka);
                 assert(npair == norb*norb);
-                H->getAllData(npair, fockb);
+                this->H->getAllData(npair, fockb);
                 assert(npair == norb*norb);
             }
             else
@@ -69,13 +70,13 @@ class AOUHF : public UHF<T>
                 std::fill(fockb, fockb+norb*norb, 0.0);
             }
 
-            Da->getAllData(npair, densa);
+            this->Da->getAllData(npair, densa);
             assert(npair == norb*norb);
-            Db->getAllData(npair, densb);
+            this->Db->getAllData(npair, densb);
             assert(npair == norb*norb);
 
             size_t neris = ints.getNumInts();
-            const integral_t* eris = ints.getInts();
+            const integral_t<T>* eris = ints.getInts();
 
             for (size_t n = 0;n < neris;n++)
             {
@@ -104,8 +105,8 @@ class AOUHF : public UHF<T>
                 T e = eris[n].value;
                 if (i == j) e *= 0.5;
                 if (k == l) e *= 0.5;
-                if (min(i,j) == min(k,l) &&
-                    max(i,j) == max(k,l)) e *= 0.5;
+                if (std::min(i,j) == std::min(k,l) &&
+                    std::max(i,j) == std::max(k,l)) e *= 0.5;
 
                 /*
                  * Coulomb contribution: Fa(ab) += [Da(cd)+Db(cd)]*(ab|cd)
@@ -167,7 +168,7 @@ class AOUHF : public UHF<T>
                     pairs[p].k = p;
                 }
 
-                Fa->writeRemoteData(norb*norb, pairs);
+                this->Fa->writeRemoteData(norb*norb, pairs);
 
                 for (int p = 0;p < norb*norb;p++)
                 {
@@ -175,7 +176,7 @@ class AOUHF : public UHF<T>
                     pairs[p].k = p;
                 }
 
-                Fb->writeRemoteData(norb*norb, pairs);
+                this->Fb->writeRemoteData(norb*norb, pairs);
 
                 FREE(pairs);
             }
@@ -184,8 +185,8 @@ class AOUHF : public UHF<T>
                 this->comm.Reduce(focka, NULL, norb*norb, this->type, MPI::SUM, 0);
                 this->comm.Reduce(fockb, NULL, norb*norb, this->type, MPI::SUM, 0);
 
-                Fa->writeRemoteData(0, NULL);
-                Fb->writeRemoteData(0, NULL);
+                this->Fa->writeRemoteData(0, NULL);
+                this->Fb->writeRemoteData(0, NULL);
             }
 
             if (this->rank == 0)

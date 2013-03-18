@@ -57,8 +57,6 @@ namespace tensor
         using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::sum; \
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::div; \
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::invert; \
-        using aquarius::tensor::IndexableTensor< Derived, T >::mult; \
-        using aquarius::tensor::IndexableTensor< Derived, T >::sum; \
         using aquarius::tensor::IndexableTensor< Derived, T >::scale; \
     INHERIT_FROM_TENSOR(CONCAT(Derived),T)
 
@@ -255,6 +253,13 @@ class IndexableCompositeTensor : public IndexableTensor<Derived,T>, public Compo
             IndexableTensor<Derived,T>::mult(alpha, conja, A, conjb, B, beta);
         }
 
+        void mult(const T alpha, bool conja, const IndexableTensor<Derived,T>& A, const std::string& idx_A,
+                                 bool conjb, const IndexableTensor<Derived,T>& B, const std::string& idx_B,
+                  const T beta,                                                   const std::string& idx_C)
+        {
+            IndexableTensor<Derived,T>::mult(alpha, conja, A, idx_A, conjb, B, idx_B, beta, idx_C);
+        }
+
         void sum(const T alpha, const T beta)
         {
             IndexableTensor<Derived,T>::sum(alpha, beta);
@@ -263,6 +268,12 @@ class IndexableCompositeTensor : public IndexableTensor<Derived,T>, public Compo
         void sum(const T alpha, bool conja, const Tensor<Derived,T>& A, const T beta)
         {
             IndexableTensor<Derived,T>::sum(alpha, conja, A, beta);
+        }
+
+        void sum(const T alpha, bool conja, const IndexableTensor<Derived,T>& A, const std::string& idx_A,
+                 const T beta,                                                   const std::string& idx_B)
+        {
+            IndexableTensor<Derived,T>::sum(alpha, conja, A, idx_A, beta, idx_B);
         }
 };
 

@@ -37,9 +37,6 @@ namespace scf
 template <typename T>
 class AOMOIntegrals : public MOIntegrals<T>
 {
-    protected:
-        void doTransformation(const AOIntegrals<T>& ints);
-
     public:
         AOMOIntegrals(const AOUHF<T>& uhf)
         : MOIntegrals<T>(uhf)
@@ -48,6 +45,8 @@ class AOMOIntegrals : public MOIntegrals<T>
         }
 
     private:
+        using Distributed<T>::nproc;
+        using Distributed<T>::rank;
         enum Side {PQ, RS};
         enum Index {A, B};
 
@@ -85,7 +84,7 @@ class AOMOIntegrals : public MOIntegrals<T>
             pqrs_integrals(const AOIntegrals<T>& aoints)
             : Distributed<T>(aoints.ctf)
             {
-                ns = nr = nq = np = aoints.getMolecule().getNumOrbitals();
+                ns = nr = nq = np = aoints.molecule.getNumOrbitals();
 
                 size_t noldints = aoints.getNumInts();
                 const integral_t<T> *oldints = aoints.getInts();
@@ -95,7 +94,8 @@ class AOMOIntegrals : public MOIntegrals<T>
                 {
                     idx4_t idx = oldints[i].idx;
 
-                    if (idx.i != idx.k || idx.j != idx.l)
+                    if (!((idx.i == idx.k && idx.j == idx.l) ||
+                          (idx.i == idx.l && idx.j == idx.k)))
                     {
                         nints++;
                     }
@@ -112,35 +112,47 @@ class AOMOIntegrals : public MOIntegrals<T>
                     if (idx.i > idx.j) std::swap(idx.i, idx.j);
                     if (idx.k > idx.l) std::swap(idx.k, idx.l);
 
+                    assert(idx.i >= 0 && idx.i < np);
+                    assert(idx.j >= 0 && idx.j < nq);
+                    assert(idx.k >= 0 && idx.k < nr);
+                    assert(idx.l >= 0 && idx.l < ns);
+
+                    assert(j < nints);
                     ints[j++] = integral_t<T>(val, idx);
 
                     if (idx.i != idx.k || idx.j != idx.l)
                     {
                         std::swap(idx.i, idx.k);
                         std::swap(idx.j, idx.l);
+                        assert(j < nints);
                         ints[j++] = integral_t<T>(val, idx);
                     }
                 }
+                assert(j == nints);
             }
 
             pqrs_integrals(const abrs_integrals& abrs)
+            : Distributed<T>(abrs.ctf)
             {
-                np = abrs.na;
-                nq = abrs.nb;
-                nr = abrs.nr;
-                ns = abrs.ns;
+                np = abrs.nr;
+                nq = abrs.ns;
+                nr = abrs.na;
+                ns = abrs.nb;
 
                 nints = abrs.nints;
                 ints = SAFE_MALLOC(integral_t<T>, nints);
                 for (size_t ipqrs = 0, irs = 0;irs < abrs.nrs;irs++)
                 {
-                    int r = abrs.rs[irs].i;
-                    int s = abrs.rs[irs].j;
+                    int p = abrs.rs[irs].i;
+                    int q = abrs.rs[irs].j;
+                    assert(p >= 0 && p < np);
+                    assert(q >= 0 && q < nq);
 
-                    for (int q = 0;q < nq;q++)
+                    for (int s = 0;s < ns;s++)
                     {
-                        for (int p = 0;p < np;p++)
+                        for (int r = 0;r < nr;r++)
                         {
+                            assert(ipqrs < abrs.nints);
                             ints[ipqrs].idx.i = p;
                             ints[ipqrs].idx.j = q;
                             ints[ipqrs].idx.k = r;
@@ -155,22 +167,6 @@ class AOMOIntegrals : public MOIntegrals<T>
             void free()
             {
                 FREE(ints);
-            }
-
-            void transpose()
-            {
-                for (size_t ipqrs = 0;ipqrs < nints;ipqrs++)
-                {
-                    int p = ints[ipqrs].idx.i;
-                    int q = ints[ipqrs].idx.j;
-                    int r = ints[ipqrs].idx.k;
-                    int s = ints[ipqrs].idx.l;
-
-                    ints[ipqrs].idx.i = r;
-                    ints[ipqrs].idx.j = s;
-                    ints[ipqrs].idx.k = p;
-                    ints[ipqrs].idx.l = q;
-                }
             }
 
             /*
@@ -188,7 +184,7 @@ class AOMOIntegrals : public MOIntegrals<T>
                     nrs = nr*ns;
                 }
 
-                sort(ints, ints+nints, sortIntsByRS);
+                std::sort(ints, ints+nints, sortIntsByRS);
 
                 int *rscount = SAFE_MALLOC(int, nrs);
                 std::fill(rscount, rscount+nrs, 0);
@@ -197,17 +193,18 @@ class AOMOIntegrals : public MOIntegrals<T>
                 {
                     if (rles)
                     {
-                        rscount[ints[i].idx.k+ints[i].idx.l*(ints[i].idx.l-1)/2]++;
+                        assert(ints[i].idx.k+ints[i].idx.l*(ints[i].idx.l+1)/2 < nrs);
+                        rscount[ints[i].idx.k+ints[i].idx.l*(ints[i].idx.l+1)/2]++;
                     }
                     else
                     {
+                        assert(ints[i].idx.k+ints[i].idx.l*nr < nrs);
                         rscount[ints[i].idx.k+ints[i].idx.l*nr]++;
                     }
                 }
 
                 int *rscountall = SAFE_MALLOC(int, nrs*nproc);
                 this->comm.Allgather(rscount, nrs, MPI::INT, rscountall, nrs, MPI::INT);
-
                 FREE(rscount);
 
                 size_t nnewints = 0;
@@ -219,29 +216,34 @@ class AOMOIntegrals : public MOIntegrals<T>
                 sendoff[0] = 0;
                 std::fill(recvcount, recvcount+nproc, 0);
                 recvoff[0] = 0;
-                std::fill(rscount, rscount+nrs, 0);
                 for (int i = 0;i < nproc;i++)
                 {
                     for (int rs = (nrs*rank)/nproc;rs < (nrs*(rank+1))/nproc;rs++)
                     {
-                        recvcount[i] += rscountall[rs+nrs*i];
+                        assert(rs+nrs*i < nproc*nrs);
+                        recvcount[i] += rscountall[rs+nrs*i]*sizeof(integral_t<T>);
                     }
-                    if (i > 0) recvoff[i] = recvoff[i-1]+recvcount[i];
-                    nnewints += recvcount[i];
+                    if (i > 0) recvoff[i] = recvoff[i-1]+recvcount[i-1];
+                    nnewints += recvcount[i]/sizeof(integral_t<T>);
 
                     for (int rs = (nrs*i)/nproc;rs < (nrs*(i+1))/nproc;rs++)
                     {
-                        sendcount[i] += rscountall[rs+nrs*rank];
+                        assert(rs+nrs*rank < nproc*nrs);
+                        sendcount[i] += rscountall[rs+nrs*rank]*sizeof(integral_t<T>);
                     }
-                    if (i > 0) sendoff[i] = sendoff[i-1]+sendcount[i];
+                    if (i > 0) sendoff[i] = sendoff[i-1]+sendcount[i-1];
                 }
+                assert(recvoff[nproc-1]+recvcount[nproc-1] == nnewints*sizeof(integral_t<T>));
+                assert(sendoff[nproc-1]+sendcount[nproc-1] == nints*sizeof(integral_t<T>));
 
                 FREE(rscountall);
 
                 integral_t<T>* newints = SAFE_MALLOC(integral_t<T>, nnewints);
 
-                this->comm.Alltoallv(   ints, sendcount, sendoff, integral_t<T>::mpi_type,
-                                     newints, recvcount, recvoff, integral_t<T>::mpi_type);
+                //this->comm.Alltoallv(   ints, sendcount, sendoff, integral_t<T>::mpi_type(),
+                //                     newints, recvcount, recvoff, integral_t<T>::mpi_type());
+                this->comm.Alltoallv(   ints, sendcount, sendoff, MPI::BYTE,
+                                     newints, recvcount, recvoff, MPI::BYTE);
 
                 FREE(sendcount);
                 FREE(sendoff);
@@ -254,7 +256,7 @@ class AOMOIntegrals : public MOIntegrals<T>
             }
         };
 
-        struct abrs_integrals
+        struct abrs_integrals : Distributed<T>
         {
             int na, nb, nr, ns;
             size_t nints;
@@ -267,6 +269,7 @@ class AOMOIntegrals : public MOIntegrals<T>
              * that (pq|rs) = (qp|rs) and only p_i <= q_j is stored in the input
              */
             abrs_integrals(const pqrs_integrals& pqrs, const bool pleq)
+            : Distributed<T>(pqrs.ctf)
             {
                 na = pqrs.np;
                 nb = pqrs.nq;
@@ -283,28 +286,42 @@ class AOMOIntegrals : public MOIntegrals<T>
                 rs = SAFE_MALLOC(idx2_t, nrs);
                 nints = nrs*na*nb;
                 ints = SAFE_MALLOC(T, nints);
-                std::fill(ints, ints+nints, 0.0);
+                std::fill(ints, ints+nints, (T)0);
 
+                size_t ipqrs = 0, irs = 0, iabrs = 0;
                 rs[0].i = pqrs.ints[0].idx.k;
                 rs[0].j = pqrs.ints[0].idx.l;
-                for (size_t ipqrs = 1, irs = 1, iabrs = 0;ipqrs < pqrs.nints;ipqrs++)
+                assert(rs[0].i >= 0 && rs[0].i < nr);
+                assert(rs[0].j >= 0 && rs[0].j < ns);
+                for (;ipqrs < pqrs.nints;ipqrs++)
                 {
-                    if (pqrs.ints[ipqrs].idx.k != pqrs.ints[ipqrs-1].idx.k ||
-                        pqrs.ints[ipqrs].idx.l != pqrs.ints[ipqrs-1].idx.l)
+                    assert(ipqrs >= 0 && ipqrs < pqrs.nints);
+                    if (ipqrs > 0 &&
+                        (pqrs.ints[ipqrs].idx.k != pqrs.ints[ipqrs-1].idx.k ||
+                         pqrs.ints[ipqrs].idx.l != pqrs.ints[ipqrs-1].idx.l))
                     {
-                        rs[irs].i = pqrs.ints[ipqrs].idx.k;
-                        rs[irs].j = pqrs.ints[ipqrs].idx.l;
                         irs++;
                         iabrs += na*nb;
+                        assert(irs >= 0 && irs < nrs);
+                        rs[irs].i = pqrs.ints[ipqrs].idx.k;
+                        rs[irs].j = pqrs.ints[ipqrs].idx.l;
+                        assert(rs[irs].i >= 0 && rs[irs].i < nr);
+                        assert(rs[irs].j >= 0 && rs[irs].j < ns);
                     }
 
                     int p = pqrs.ints[ipqrs].idx.i;
                     int q = pqrs.ints[ipqrs].idx.j;
 
+                    assert(iabrs >= 0 && iabrs+na*nb <= nints);
+                    assert(p >= 0 && p < na);
+                    assert(q >= 0 && q < nb);
                     ints[iabrs+p+q*na] = pqrs.ints[ipqrs].value;
                     if (p != q && pleq)
                         ints[iabrs+q+p*na] = pqrs.ints[ipqrs].value;
                 }
+                assert(irs == nrs-1);
+                assert(iabrs == nints-na*nb);
+                assert(ipqrs == pqrs.nints);
             }
 
             /*
@@ -331,15 +348,15 @@ class AOMOIntegrals : public MOIntegrals<T>
                     {
                         if (trans == 'N')
                         {
-                            gemm<T>('T', 'N', nc, nb, na, 1.0,             C, ldc,
-                                                                    ints+iin,  na,
-                                                          0.0, out.ints+iout,  nc);
+                            gemm('T', 'N', nc, nb, na, 1.0,             C, ldc,
+                                                                 ints+iin,  na,
+                                                       0.0, out.ints+iout,  nc);
                         }
                         else
                         {
-                            gemm<T>('N', 'N', nc, nb, na, 1.0,             C, ldc,
-                                                                    ints+iin,  na,
-                                                          0.0, out.ints+iout,  nc);
+                            gemm('N', 'N', nc, nb, na, 1.0,             C, ldc,
+                                                                 ints+iin,  na,
+                                                       0.0, out.ints+iout,  nc);
                         }
 
                         iin += na*nb;
@@ -358,15 +375,15 @@ class AOMOIntegrals : public MOIntegrals<T>
                     {
                         if (trans == 'N')
                         {
-                            gemm<T>('N', 'N', na, nc, nb, 1.0,      ints+iin,  na,
-                                                                           C, ldc,
-                                                          0.0, out.ints+iout,  na);
+                            gemm('N', 'N', na, nc, nb, 1.0,      ints+iin,  na,
+                                                                        C, ldc,
+                                                       0.0, out.ints+iout,  na);
                         }
                         else
                         {
-                            gemm<T>('N', 'T', na, nc, nb, 1.0,      ints+iin,  na,
-                                                                           C, ldc,
-                                                          0.0, out.ints+iout,  na);
+                            gemm('N', 'T', na, nc, nb, 1.0,      ints+iin,  na,
+                                                                        C, ldc,
+                                                       0.0, out.ints+iout,  na);
                         }
 
                         iin += na*nb;
@@ -375,6 +392,176 @@ class AOMOIntegrals : public MOIntegrals<T>
                 }
 
                 return out;
+            }
+
+            void transcribe(tensor::DistTensor<T>& tensor, bool assymij, bool assymkl, bool reverse)
+            {
+                assert(nr*ns == nrs);
+
+                if (reverse)
+                {
+                    if (assymij) assert(ns == nb);
+                    if (assymkl) assert(nr == na);
+
+                    std::vector<tkv_pair<T> > pairs;
+
+                    /*
+                     * (ab|rs) -> <sb|ra>
+                     */
+                    for (size_t idx = 0,irs = 0;irs < nrs;irs++)
+                    {
+                        int r = rs[irs].i;
+                        int s = rs[irs].j;
+
+                        for (int b = 0;b < nb;b++)
+                        {
+                            for (int a = 0;a < na;a++)
+                            {
+                                if ((!assymij || s < b) && (!assymkl || r < a))
+                                    pairs.push_back(tkv_pair<T>(((a*nr+r)*nb+b)*ns+s, ints[idx]));
+                                idx++;
+                            }
+                        }
+                    }
+
+                    if (assymij) assert(tensor.getSymmetry()[0] == AS);
+                    if (assymkl) assert(tensor.getSymmetry()[2] == AS);
+                    assert(tensor.getLengths()[0] == ns);
+                    assert(tensor.getLengths()[1] == nb);
+                    assert(tensor.getLengths()[2] == nr);
+                    assert(tensor.getLengths()[3] == na);
+                    tensor.writeRemoteData(1, 0, pairs.size(), pairs.data());
+                    pairs.clear();
+
+                    if (assymij)
+                    {
+                        /*
+                         * -(ab|rs) -> <bs|ra>
+                         */
+                        for (size_t idx = 0,irs = 0;irs < nrs;irs++)
+                        {
+                            int r = rs[irs].i;
+                            int s = rs[irs].j;
+
+                            for (int b = 0;b < nb;b++)
+                            {
+                                for (int a = 0;a < na;a++)
+                                {
+                                    if (b < s && (!assymkl || r < a))
+                                        pairs.push_back(tkv_pair<T>(((a*nr+r)*ns+s)*nb+b, ints[idx]));
+                                    idx++;
+                                }
+                            }
+                        }
+
+                        tensor.writeRemoteData(-1, 1, pairs.size(), pairs.data());
+                    }
+                    else if (assymkl)
+                    {
+                        /*
+                         * -(ab|rs) -> <sb|ar>
+                         */
+                        for (size_t idx = 0,irs = 0;irs < nrs;irs++)
+                        {
+                            int r = rs[irs].i;
+                            int s = rs[irs].j;
+
+                            for (int b = 0;b < nb;b++)
+                            {
+                                for (int a = 0;a < na;a++)
+                                {
+                                    if (a < r)
+                                        pairs.push_back(tkv_pair<T>(((r*na+a)*nb+b)*ns+s, ints[idx]));
+                                    idx++;
+                                }
+                            }
+                        }
+
+                        tensor.writeRemoteData(-1, 1, pairs.size(), pairs.data());
+                    }
+                }
+                else
+                {
+                    if (assymij) assert(na == nr);
+                    if (assymkl) assert(nb == ns);
+
+                    std::vector<tkv_pair<T> > pairs;
+
+                    /*
+                     * (ab|rs) -> <ar|bs>
+                     */
+                    for (size_t idx = 0,irs = 0;irs < nrs;irs++)
+                    {
+                        int r = rs[irs].i;
+                        int s = rs[irs].j;
+
+                        for (int b = 0;b < nb;b++)
+                        {
+                            for (int a = 0;a < na;a++)
+                            {
+                                if ((!assymij || a < r) && (!assymkl || b < s))
+                                    pairs.push_back(tkv_pair<T>(((s*nb+b)*nr+r)*na+a, ints[idx]));
+                                idx++;
+                            }
+                        }
+                    }
+
+                    if (assymij) assert(tensor.getSymmetry()[0] == AS);
+                    if (assymkl) assert(tensor.getSymmetry()[2] == AS);
+                    assert(tensor.getLengths()[0] == na);
+                    assert(tensor.getLengths()[1] == nr);
+                    assert(tensor.getLengths()[2] == nb);
+                    assert(tensor.getLengths()[3] == ns);
+                    tensor.writeRemoteData(1, 0, pairs.size(), pairs.data());
+                    pairs.clear();
+
+                    if (assymij)
+                    {
+                        /*
+                         * -(ab|rs) -> <ra|bs>
+                         */
+                        for (size_t idx = 0,irs = 0;irs < nrs;irs++)
+                        {
+                            int r = rs[irs].i;
+                            int s = rs[irs].j;
+
+                            for (int b = 0;b < nb;b++)
+                            {
+                                for (int a = 0;a < na;a++)
+                                {
+                                    if (r < a && (!assymkl || b < s))
+                                        pairs.push_back(tkv_pair<T>(((s*nb+b)*na+a)*nr+r, ints[idx]));
+                                    idx++;
+                                }
+                            }
+                        }
+
+                        tensor.writeRemoteData(-1, 1, pairs.size(), pairs.data());
+                    }
+                    else if (assymkl)
+                    {
+                        /*
+                         * -(ab|rs) -> <ar|sb>
+                         */
+                        for (size_t idx = 0,irs = 0;irs < nrs;irs++)
+                        {
+                            int r = rs[irs].i;
+                            int s = rs[irs].j;
+
+                            for (int b = 0;b < nb;b++)
+                            {
+                                for (int a = 0;a < na;a++)
+                                {
+                                    if (s < b)
+                                        pairs.push_back(tkv_pair<T>(((b*ns+s)*nr+r)*na+a, ints[idx]));
+                                    idx++;
+                                }
+                            }
+                        }
+
+                        tensor.writeRemoteData(-1, 1, pairs.size(), pairs.data());
+                    }
+                }
             }
 
             void free()
@@ -387,18 +574,20 @@ class AOMOIntegrals : public MOIntegrals<T>
     protected:
         void doTransformation(const AOIntegrals<T>& ints)
         {
-            int N = uhf.getMolecule().getNumOrbitals();
-            int nI = uhf.getMolecule().getNumAlphaElectrons();
-            int ni = uhf.getMolecule().getNumBetaElectrons();
+            int N = this->uhf.getMolecule().getNumOrbitals();
+            int nI = this->uhf.getMolecule().getNumAlphaElectrons();
+            int ni = this->uhf.getMolecule().getNumBetaElectrons();
             int nA = N-nI;
             int na = N-ni;
 
             int sizeAAII[] = {nA, nA, nI, nI};
             int sizeaaii[] = {na, na, ni, ni};
+            //int sizeIIII[] = {nI, nI, nI, nI};
             int shapeNNNN[] = {NS, NS, NS, NS};
 
-            tensor::DistTensor<T> ABIJ__(ctf, 4, sizeAAII, shapeNNNN, false);
-            tensor::DistTensor<T> abij__(ctf, 4, sizeaaii, shapeNNNN, false);
+            tensor::DistTensor<T> ABIJ__(this->ctf, 4, sizeAAII, shapeNNNN, false);
+            tensor::DistTensor<T> abij__(this->ctf, 4, sizeaaii, shapeNNNN, false);
+            //tensor::DistTensor<T> IJKL__(this->ctf, 4, sizeIIII, shapeNNNN, false);
 
             int64_t npair;
             T *cA, *ca, *cI, *ci;
@@ -406,14 +595,58 @@ class AOMOIntegrals : public MOIntegrals<T>
             /*
              * Read transformation coefficients
              */
-            uhf.getCA().getAllData(npair, cA);
+            this->uhf.getCA().getAllData(npair, cA);
             assert(npair == N*nA);
-            uhf.getCa().getAllData(npair, ca);
+            this->uhf.getCa().getAllData(npair, ca);
             assert(npair == N*na);
-            uhf.getCI().getAllData(npair, cI);
+            this->uhf.getCI().getAllData(npair, cI);
             assert(npair == N*nI);
-            uhf.getCi().getAllData(npair, ci);
+            this->uhf.getCi().getAllData(npair, ci);
             assert(npair == N*ni);
+
+            printf("cA:\n");
+            for (int idx = 0,i = 0;i < nA;i++)
+            {
+                for (int j = 0;j < N;j++,idx++)
+                {
+                    printf("%f ", cA[idx]);
+                }
+                printf("\n");
+            }
+            printf("\n");
+
+            printf("ca:\n");
+            for (int idx = 0,i = 0;i < na;i++)
+            {
+                for (int j = 0;j < N;j++,idx++)
+                {
+                    printf("%f ", ca[idx]);
+                }
+                printf("\n");
+            }
+            printf("\n");
+
+            printf("cI:\n");
+            for (int idx = 0,i = 0;i < nI;i++)
+            {
+                for (int j = 0;j < N;j++,idx++)
+                {
+                    printf("%f ", cI[idx]);
+                }
+                printf("\n");
+            }
+            printf("\n");
+
+            printf("ci:\n");
+            for (int idx = 0,i = 0;i < ni;i++)
+            {
+                for (int j = 0;j < N;j++,idx++)
+                {
+                    printf("%f ", ci[idx]);
+                }
+                printf("\n");
+            }
+            printf("\n");
 
             /*
              * Resort integrals so that each node has (pq|r_k s_l) where pq
@@ -437,14 +670,14 @@ class AOMOIntegrals : public MOIntegrals<T>
              * Second quarter-transformation
              */
             abrs_integrals ABrs = PArs.transform(A, 'N', nA, cA, N);
-            abrs_integrals abrs = PArs.transform(A, 'N', na, ca, N);
-            abrs_integrals AIrs = PIrs.transform(A, 'N', nA, cA, N);
-            abrs_integrals airs = Pirs.transform(A, 'N', na, ca, N);
-            abrs_integrals IJrs = PIrs.transform(A, 'N', nI, cI, N);
-            abrs_integrals ijrs = Pirs.transform(A, 'N', ni, ci, N);
             PArs.free();
+            abrs_integrals abrs = Pars.transform(A, 'N', na, ca, N);
             Pars.free();
+            abrs_integrals AIrs = PIrs.transform(A, 'N', nA, cA, N);
+            abrs_integrals IJrs = PIrs.transform(A, 'N', nI, cI, N);
             PIrs.free();
+            abrs_integrals airs = Pirs.transform(A, 'N', na, ca, N);
+            abrs_integrals ijrs = Pirs.transform(A, 'N', ni, ci, N);
             Pirs.free();
 
             /*
@@ -452,133 +685,184 @@ class AOMOIntegrals : public MOIntegrals<T>
              */
             pqrs_integrals rsAB(ABrs);
             ABrs.free();
-            rsAB.transpose();
             rsAB.collect(false);
 
-            abrs_integrals RSAB(rsAB);
+            abrs_integrals RSAB(rsAB, true);
             rsAB.free();
             abrs_integrals RDAB = RSAB.transform(B, 'N', nA, cA, N);
             RSAB.free();
+
             abrs_integrals CDAB = RDAB.transform(A, 'N', nA, cA, N);
             RDAB.free();
-
-            /*
-             * TODO: get (AB|CD) to <AC|BD> and antisymmetrize
-             */
+            CDAB.transcribe(*this->ABCD_, true, true, false);
+            CDAB.free();
 
             /*
              * Make <Ab|Cd> and <ab||cd>
              */
             pqrs_integrals rsab(abrs);
             abrs.free();
-            rsab.transpose();
             rsab.collect(false);
 
-            abrs_integrals RSab(rsab);
+            abrs_integrals RSab(rsab, true);
             rsab.free();
             abrs_integrals RDab = RSab.transform(B, 'N', nA, cA, N);
             abrs_integrals Rdab = RSab.transform(B, 'N', na, ca, N);
             RSab.free();
+
             abrs_integrals CDab = RDab.transform(A, 'N', nA, cA, N);
-            abrs_integrals cdab = Rdab.transform(A, 'N', na, ca, N);
             RDab.free();
+            CDab.transcribe(*this->AbCd_, false, false, false);
+            CDab.free();
+
+            abrs_integrals cdab = Rdab.transform(A, 'N', na, ca, N);
             Rdab.free();
+            cdab.transcribe(*this->abcd_, true, true, false);
+            cdab.free();
 
             /*
              * Make <AB||CI>, <aB|cI>, and <AB|IJ>
              */
             pqrs_integrals rsAI(AIrs);
             AIrs.free();
-            rsAI.transpose();
             rsAI.collect(false);
 
-            abrs_integrals RSAI(rsAI);
+            abrs_integrals RSAI(rsAI, true);
             rsAI.free();
             abrs_integrals RCAI = RSAI.transform(B, 'N', nA, cA, N);
             abrs_integrals RcAI = RSAI.transform(B, 'N', na, ca, N);
             abrs_integrals RJAI = RSAI.transform(B, 'N', nI, cI, N);
             RSAI.free();
+
             abrs_integrals BCAI = RCAI.transform(A, 'N', nA, cA, N);
-            abrs_integrals bcAI = RcAI.transform(A, 'N', na, ca, N);
-            abrs_integrals BJAI = RJAI.transform(A, 'N', nA, cA, N);
             RCAI.free();
+            BCAI.transcribe(*this->ABCI_, true, false, false);
+            BCAI.free();
+
+            abrs_integrals bcAI = RcAI.transform(A, 'N', na, ca, N);
             RcAI.free();
+            bcAI.transcribe(*this->aBcI_, false, false, false);
+            bcAI.free();
+
+            abrs_integrals BJAI = RJAI.transform(A, 'N', nA, cA, N);
             RJAI.free();
+            BJAI.transcribe(ABIJ__, false, false, false);
+            BJAI.free();
 
             /*
              * Make <Ab|Ci>, <ab||ci>, <Ab|Ij>, and <ab|ij>
              */
             pqrs_integrals rsai(airs);
             airs.free();
-            rsai.transpose();
             rsai.collect(false);
 
-            abrs_integrals RSai(rsai);
+            abrs_integrals RSai(rsai, true);
             rsai.free();
             abrs_integrals RCai = RSai.transform(B, 'N', nA, cA, N);
             abrs_integrals Rcai = RSai.transform(B, 'N', na, ca, N);
             abrs_integrals RJai = RSai.transform(B, 'N', nI, cI, N);
             abrs_integrals Rjai = RSai.transform(B, 'N', ni, ci, N);
             RSai.free();
+
             abrs_integrals BCai = RCai.transform(A, 'N', nA, cA, N);
-            abrs_integrals bcai = Rcai.transform(A, 'N', na, ca, N);
-            abrs_integrals BJai = RJai.transform(A, 'N', nA, cA, N);
-            abrs_integrals bjai = Rjai.transform(A, 'N', na, ca, N);
             RCai.free();
+            BCai.transcribe(*this->AbCi_, false, false, false);
+            BCai.free();
+
+            abrs_integrals bcai = Rcai.transform(A, 'N', na, ca, N);
             Rcai.free();
+            bcai.transcribe(*this->abci_, true, false, false);
+            bcai.free();
+
+            abrs_integrals BJai = RJai.transform(A, 'N', nA, cA, N);
             RJai.free();
+            BJai.transcribe(*this->AbIj_, false, false, false);
+            BJai.free();
+
+            abrs_integrals bjai = Rjai.transform(A, 'N', na, ca, N);
             Rjai.free();
+            bjai.transcribe(abij__, false, false, false);
+            bjai.free();
 
             /*
              * Make <IJ||KL>, <IJ||KA>, <Ij|Ka>, <aI|bJ>, and <AI|BJ>
              */
             pqrs_integrals rsIJ(IJrs);
             IJrs.free();
-            rsIJ.transpose();
             rsIJ.collect(false);
 
-            abrs_integrals RSIJ(rsIJ);
+            abrs_integrals RSIJ(rsIJ, true);
             rsIJ.free();
             abrs_integrals RBIJ = RSIJ.transform(B, 'N', nA, cA, N);
             abrs_integrals RbIJ = RSIJ.transform(B, 'N', na, ca, N);
             abrs_integrals RLIJ = RSIJ.transform(B, 'N', nI, cI, N);
             abrs_integrals RlIJ = RSIJ.transform(B, 'N', ni, ci, N);
             RSIJ.free();
+
             abrs_integrals ABIJ = RBIJ.transform(A, 'N', nA, cA, N);
-            abrs_integrals abIJ = RbIJ.transform(A, 'N', na, ca, N);
-            abrs_integrals AKIJ = RLIJ.transform(A, 'N', nA, cA, N);
-            abrs_integrals akIJ = RlIJ.transform(A, 'N', na, ca, N);
-            abrs_integrals KLIJ = RLIJ.transform(A, 'N', nI, cI, N);
             RBIJ.free();
+            ABIJ.transcribe(*this->AIBJ_, false, false, false);
+            ABIJ.free();
+
+            abrs_integrals abIJ = RbIJ.transform(A, 'N', na, ca, N);
             RbIJ.free();
-            RLIJ.free();
+            abIJ.transcribe(*this->aIbJ_, false, false, false);
+            abIJ.free();
+
+            abrs_integrals akIJ = RlIJ.transform(A, 'N', na, ca, N);
             RlIJ.free();
+            akIJ.transcribe(*this->IjKa_, false, false, true);
+            akIJ.free();
+
+            abrs_integrals AKIJ = RLIJ.transform(A, 'N', nA, cA, N);
+            abrs_integrals KLIJ = RLIJ.transform(A, 'N', nI, cI, N);
+            RLIJ.free();
+            AKIJ.transcribe(*this->IJKA_, true, false, true);
+            AKIJ.free();
+            KLIJ.transcribe(*this->IJKL_, true, true, false);
+            KLIJ.free();
 
             /*
              * Make <Ij|Kl>, <ij||kl>, <iJ|kA>, <ij||ka>, <Ai|Bj>, and <ai|bj>
              */
             pqrs_integrals rsij(ijrs);
             ijrs.free();
-            rsij.transpose();
             rsij.collect(false);
 
-            abrs_integrals RSij(rsij);
+            abrs_integrals RSij(rsij, true);
             rsij.free();
             abrs_integrals RBij = RSij.transform(B, 'N', nA, cA, N);
             abrs_integrals Rbij = RSij.transform(B, 'N', na, ca, N);
             abrs_integrals RLij = RSij.transform(B, 'N', nI, cI, N);
             abrs_integrals Rlij = RSij.transform(B, 'N', ni, ci, N);
             RSij.free();
+
             abrs_integrals ABij = RBij.transform(A, 'N', nA, cA, N);
-            abrs_integrals abij = Rbij.transform(A, 'N', na, ca, N);
-            abrs_integrals AKij = RLij.transform(A, 'N', nA, cA, N);
-            abrs_integrals akij = Rlij.transform(A, 'N', na, ca, N);
-            abrs_integrals KLij = RLij.transform(A, 'N', nI, cI, N);
-            abrs_integrals klij = Rlij.transform(A, 'N', ni, ci, N);
             RBij.free();
+            ABij.transcribe(*this->AiBj_, false, false, false);
+            ABij.free();
+
+            abrs_integrals abij = Rbij.transform(A, 'N', na, ca, N);
             Rbij.free();
+            abij.transcribe(*this->aibj_, false, false, false);
+            abij.free();
+
+            abrs_integrals AKij = RLij.transform(A, 'N', nA, cA, N);
+            abrs_integrals KLij = RLij.transform(A, 'N', nI, cI, N);
             RLij.free();
+            AKij.transcribe(*this->iJkA_, false, false, true);
+            AKij.free();
+            KLij.transcribe(*this->IjKl_, false, false, false);
+            KLij.free();
+
+            abrs_integrals akij = Rlij.transform(A, 'N', na, ca, N);
+            abrs_integrals klij = Rlij.transform(A, 'N', ni, ci, N);
             Rlij.free();
+            akij.transcribe(*this->ijka_, true, false, true);
+            akij.free();
+            klij.transcribe(*this->ijkl_, true, true, false);
+            //klij.transcribe(IJKL__, false, false, false);
+            klij.free();
 
             /*
              * Make <AI||BJ> and <ai||bj>
@@ -592,10 +876,18 @@ class AOMOIntegrals : public MOIntegrals<T>
             (*this->ABIJ_)["ABIJ"] = 0.5*ABIJ__["ABIJ"];
             (*this->abij_)["abij"] = 0.5*abij__["abij"];
 
+            /*
+             * Make <aI|Bj> = -<Ba|Ij>
+             */
+            (*this->AibJ_)["AibJ"] -= (*this->AbIj_)["AbJi"];
+
             free(cA);
             free(ca);
             free(cI);
             free(ci);
+
+            //ABIJ__.print(stdout);
+            //IJKL__.print(stdout);
         }
 };
 

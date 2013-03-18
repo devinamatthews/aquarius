@@ -149,8 +149,16 @@ class TwoElectronOperator : public OneElectronOperator<T>
             aibj.addSpinCase(new tensor::DistTensor<T>(this->ctf, 4, sizeAiAi, shapeNNNN, true), "Ai,Bj", "AiBj");
             aibj.addSpinCase(new tensor::DistTensor<T>(this->ctf, 4, sizeaIaI, shapeNNNN, true), "aI,bJ", "aIbJ");
             aibj.addSpinCase(new tensor::DistTensor<T>(this->ctf, 4, sizeaiai, shapeNNNN, true), "ai,bj", "aibj");
-            aibj.addSpinCase(new tensor::DistTensor<T>(this->ctf, 4, sizeAaIi, shapeNNNN, true), "aI,Bj", "BaIj");
             aibj.addSpinCase(new tensor::DistTensor<T>(this->ctf, 4, sizeAaIi, shapeNNNN, true), "Ai,bJ", "AbJi");
+
+            if (hermitian)
+            {
+                aibj.addSpinCase(aibj(4), "aI,Bj", "BaIj");
+            }
+            else
+            {
+                aibj.addSpinCase(new tensor::DistTensor<T>(this->ctf, 4, sizeAaIi, shapeNNNN, true), "aI,Bj", "BaIj");
+            }
 
             aibc.addSpinCase(new tensor::DistTensor<T>(this->ctf, 4, sizeAAAI, shapeANNN, true), "AI,BC", "BCAI");
             aibc.addSpinCase(new tensor::DistTensor<T>(this->ctf, 4, sizeAaAi, shapeNNNN, true), "Ai,Bc", "BcAi");

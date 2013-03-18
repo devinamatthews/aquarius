@@ -49,7 +49,7 @@ class CholeskyUHF : public UHF<T>
 
     public:
         CholeskyUHF(const input::Config& config, const CholeskyIntegrals<T>& chol)
-        : UHF<T>(chol.ctf, config, chol.getMolecule()), chol(chol)
+        : UHF<T>(chol.ctf, config, chol.molecule), chol(chol)
         {
             int shapeN[] = {NS};
             int shapeNNN[] = {NS,NS,NS};

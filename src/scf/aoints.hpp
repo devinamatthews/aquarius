@@ -41,31 +41,40 @@ namespace scf
 template <typename T>
 struct integral_t
 {
-    static MPI::Datatype mpi_type;
     T value;
     idx4_t idx;
+
     integral_t(T value, idx4_t idx)
-    : value(value), idx(idx)
+    : value(value), idx(idx) {}
+
+    static MPI::Datatype mpi_type()
     {
-        if (mpi_type == MPI::DATATYPE_NULL)
+        static MPI::Datatype type_ = MPI::DATATYPE_NULL;
+
+        if (type_ == MPI::DATATYPE_NULL)
         {
             assert(sizeof(short) == sizeof(uint16_t));
             MPI::Datatype _types[] = {MPI_TYPE_<T>::value(), MPI::SHORT};
             int _counts[] = {1, 4};
             MPI::Aint _offsets[] = {0, 8};
-            mpi_type = MPI::Datatype::Create_struct(2, _counts, _offsets, _types);
+            type_ = MPI::Datatype::Create_struct(2, _counts, _offsets, _types);
+            type_.Commit();
         }
+
+        return type_;
     }
 };
 
 template <typename T>
 class AOIntegrals : public Distributed<T>
 {
+    public:
+        const input::Molecule& molecule;
+
     protected:
         slide::Context context;
         size_t num_ints;
         integral_t<T> *ints;
-        const input::Molecule& molecule;
 
     public:
         AOIntegrals(tCTF_World<T>& ctf, const input::Molecule& molecule)
@@ -74,6 +83,10 @@ class AOIntegrals : public Distributed<T>
             generateInts();
             loadBalance();
         }
+
+        size_t getNumInts() const { return num_ints; }
+
+        const integral_t<T>* getInts() const { return ints; }
 
     protected:
         void generateInts()

@@ -58,6 +58,7 @@ class MOIntegrals : public op::TwoElectronOperator<T>
         tensor::DistTensor<T> *AiBj_;
         tensor::DistTensor<T> *aIbJ_;
         tensor::DistTensor<T> *aibj_;
+        tensor::DistTensor<T> *AibJ_;
         tensor::DistTensor<T> *ABCI_;
         tensor::DistTensor<T> *AbCi_;
         tensor::DistTensor<T> *aBcI_;
@@ -67,7 +68,7 @@ class MOIntegrals : public op::TwoElectronOperator<T>
         tensor::DistTensor<T> *abcd_;
 
         MOIntegrals(const scf::UHF<T>& uhf)
-        : op::TwoElectronOperator<T>(uhf)
+        : op::TwoElectronOperator<T>(uhf, true)
         {
             int N = uhf.getMolecule().getNumOrbitals();
             int nI = uhf.getMolecule().getNumAlphaElectrons();
@@ -97,6 +98,7 @@ class MOIntegrals : public op::TwoElectronOperator<T>
             AiBj_ = &this->aibj(1);
             aIbJ_ = &this->aibj(2);
             aibj_ = &this->aibj(3);
+            AibJ_ = &this->aibj(4);
 
             ABIJ_ = &this->abij(0);
             AbIj_ = &this->abij(1);

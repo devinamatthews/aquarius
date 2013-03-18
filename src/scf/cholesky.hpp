@@ -41,6 +41,9 @@ namespace scf
 template <typename T>
 class CholeskyIntegrals : public Distributed<T>
 {
+    public:
+        const input::Molecule& molecule;
+
     protected:
         enum Status {TODO, ACTIVE, DONE};
         struct diag_elem_t
@@ -62,7 +65,6 @@ class CholeskyIntegrals : public Distributed<T>
         };
 
         int rank;
-        const input::Molecule& molecule;
         std::vector<slide::Shell> shells;
         T delta;
         T cond;
@@ -76,8 +78,8 @@ class CholeskyIntegrals : public Distributed<T>
     public:
         CholeskyIntegrals(tCTF_World<T>& ctf, const input::Config& config, const input::Molecule& molecule)
         : Distributed<T>(ctf),
-          rank(0),
           molecule(molecule),
+          rank(0),
           shells(molecule.getShellsBegin(),molecule.getShellsEnd()),
           delta(config.get<T>("delta")),
           cond(config.get<T>("cond_max"))
@@ -189,8 +191,6 @@ class CholeskyIntegrals : public Distributed<T>
 
             delete context;
         }
-
-        const input::Molecule& getMolecule() const { return molecule; }
 
         int getRank() const { return rank; }
 

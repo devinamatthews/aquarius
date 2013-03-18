@@ -308,6 +308,12 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
             assert(ret == DIST_TENSOR_SUCCESS);
         }
 
+        void writeRemoteData(double alpha, double beta, int64_t npair, tkv_pair<T>* pairs)
+        {
+            int ret = ctf.ctf->write_tensor(tid, npair, alpha, beta, pairs);
+            assert(ret == DIST_TENSOR_SUCCESS);
+        }
+
         void addRemoteData(int64_t npair, T alpha, T beta, tkv_pair<T>* pairs)
         {
             int ret = ctf.ctf->write_tensor(tid, npair, alpha, beta, pairs);
