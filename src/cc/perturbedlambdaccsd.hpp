@@ -22,10 +22,10 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_CC_LAMBDACCSD_HPP_
-#define _AQUARIUS_CC_LAMBDACCSD_HPP_
+#ifndef _AQUARIUS_CC_PERTURBEDLAMBDACCSD_HPP_
+#define _AQUARIUS_CC_PERTURBEDLAMBDACCSD_HPP_
 
-#include "operator/st2eoperator.hpp"
+#include "operator/2eoperator.hpp"
 #include "operator/deexcitationoperator.hpp"
 #include "operator/exponentialoperator.hpp"
 
@@ -35,36 +35,37 @@ namespace cc
 {
 
 /*
- * Solve the left-hand coupled cluster eigenvalue equation:
+ * Solve the frequency-dependent left-hand eigenfunction response equations:
  *
- *               _
- * <0|L|Phi><Phi|H    |Phi> = 0
- *                open
+ *     A             _                    _A
+ * <0|L (w)|Phi><Phi|H  + w|Phi> = - <0|L H    |Phi> = - <0|N|Phi>
+ *                    open                 open
  *
- *       _    -T   T       T
- * where X = e  X e  = (X e )
- *                           c
+ *       _    -T   T       T       _A   _    _  A
+ * where X = e  X e  = (X e )  and H  = A + (H T )
+ *                           c                    c
  *
- * Note that the left-hand eigenfunction L is solved for, and not the
- * traditional lambda operator /\, where L = (1-/\)
+ * As in LambdaCCSD, the full left-hand eigenfunction is used instead of lambda.
  */
 template <typename U>
-class LambdaCCSD : public Iterative, public op::DeexcitationOperator<U,2>
+class PerturbedLambdaCCSD : public Iterative, public op::DeexcitationOperator<U,2>
 {
     protected:
-        op::DeexcitationOperator<U,2>& L;
-        op::DeexcitationOperator<U,2> Z, D;
-        const op::STTwoElectronOperator<U,2>& H;
-        const op::ExponentialOperator<U,2>& T;
-        const double Ecc;
+        op::DeexcitationOperator<U,2>& LA;
+        op::DeexcitationOperator<U,2> Z, D, N;
+        op::STTwoElectronOperator<U,2> H;
+        U omega;
         convergence::DIIS< op::DeexcitationOperator<U,2> > diis;
 
     public:
-        LambdaCCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
-                   const op::ExponentialOperator<U,2>& T, const double Ecc)
-        : Iterative(config), op::DeexcitationOperator<U,2>(H.getSCF()), L(*this),
-          Z(this->uhf), D(this->uhf),
-          H(H), T(T), Ecc(Ecc), diis(config.get("diis"))
+        PerturbedLambdaCCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
+                            const op::DeexcitationOperator<U,2>& L,
+                            const op::PerturbedSTTwoElectronOperator<U,2>& A, const U omega=0)
+        : Iterative(config), op::DeexcitationOperator<U,2>(H.getSCF()), LA(*this),
+          Z(this->uhf), D(this->uhf), N(this->uhf),
+          H(const_cast<op::TwoElectronOperator<U>&>(H),
+            op::TwoElectronOperator<U>::AB|op::TwoElectronOperator<U>::IJ),
+          omega(omega), diis(config.get("diis"))
         {
             D(0) = 1;
             D(1)["ia"]  = H.getIJ()["ii"];
@@ -74,22 +75,27 @@ class LambdaCCSD : public Iterative, public op::DeexcitationOperator<U,2>
             D(2)["ijab"] -= H.getAB()["aa"];
             D(2)["ijab"] -= H.getAB()["bb"];
 
+            D -= omega;
             D = 1/D;
 
-            L(0) = 1;
-            L(1) = H.getIA()*D(1);
-            L(2) = H.getIJAB()*D(2);
+            N(1) = 0;
+            N(2) = 0;
+            A.contract(L, N);
+            N(0) = 0;
+
+            LA = N*D;
         }
 
         void _iterate()
         {
-            Z = 0;
+            Z = N;
             H.contract(L, Z);
 
             energy = Ecc + tensor::scalar(Z*conj(L))/tensor::scalar(L*conj(L));
 
-            Z *= D;
-            L += Z;
+             Z *= D;
+            //Z -= LA;
+            LA += Z;
 
             conv =               Z(1)(0).reduce(CTF_OP_MAXABS);
             conv = std::max(conv,Z(1)(1).reduce(CTF_OP_MAXABS));

@@ -22,22 +22,27 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_OPERATOR_EXPONENTIALOPERATOR_HPP_
-#define _AQUARIUS_OPERATOR_EXPONENTIALOPERATOR_HPP_
+#ifndef _AQUARIUS_TASK_UHFTASK_HPP_
+#define _AQUARIUS_TASK_UHFTASK_HPP_
 
-#include "excitationoperator.hpp"
+#include "task.hpp"
 
 namespace aquarius
 {
-namespace op
+namespace task
 {
 
-template <typename T, int np, int nh=np>
-class ExponentialOperator : public ExcitationOperator<T,np,nh>
+class UHFTask : public Task
 {
     public:
-        ExponentialOperator(const scf::UHF<T>& uhf)
-        : ExcitationOperator<T,np,nh>(uhf) {}
+        UHFTask()
+        {
+            requirements += make_pair("AO Integrals", new AOIntegralsResource());
+        }
+
+        virtual void configure(const input::Config& config) = 0;
+
+        virtual void run() = 0;
 };
 
 }

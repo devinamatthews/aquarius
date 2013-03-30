@@ -25,12 +25,16 @@
 #include "input/config.hpp"
 #include "input/molecule.hpp"
 #include "scf/aoints.hpp"
+#include "scf/aoscf.hpp"
+#include "scf/aomoints.hpp"
 #include "scf/choleskyscf.hpp"
 #include "scf/choleskymoints.hpp"
 #include "cc/ccsd.hpp"
+#include "cc/ccsdt.hpp"
 #include "cc/lambdaccsd.hpp"
-#include "cc/hbar.hpp"
+#include "operator/st2eoperator.hpp"
 #include "time/time.hpp"
+#include "tensor/dist_tensor.hpp"
 
 using namespace std;
 using namespace elem;
@@ -39,7 +43,9 @@ using namespace aquarius::slide;
 using namespace aquarius::input;
 using namespace aquarius::scf;
 using namespace aquarius::cc;
+using namespace aquarius::op;
 using namespace aquarius::time;
+using namespace aquarius::tensor;
 
 int main(int argc, char **argv)
 {
@@ -81,28 +87,53 @@ int main(int argc, char **argv)
         PRINT("<0|n_beta|0>  = %f\n", nb);
         PRINT("\n");
 
-        CholeskyMOIntegrals<double> moints(scf);
-        CCSD<double> ccsd(config.get("cc"), moints);
+        AOIntegrals<double> ao(ctf, mol);
+        AOUHF<double> aoscf(config.get("scf"), ao);
 
-        PRINT("UHF-MP2 Energy: %.15f\n", ccsd.getEnergy());
-
-        PRINT("\nUHF-CCSD\n\n");
-        PRINT("It.   Correlation Energy     Residual\n");
-        for (int i = 0;ccsd.iterate();i++)
+        PRINT("UHF-SCF\n\n");
+        PRINT("It.            SCF Energy     Residual\n");
+        for (int i = 0;aoscf.iterate();i++)
         {
-            PRINT("%3d % 20.15f %12.6e\n", i+1, ccsd.getEnergy(), ccsd.getConvergence());
+            PRINT("%3d % 21.15f %12.6e\n", i+1, aoscf.getEnergy(), aoscf.getConvergence());
         }
 
-        s2 = ccsd.getProjectedS2();
-        mult = ccsd.getProjectedMultiplicity();
+        s2 = aoscf.getS2();
+        mult = aoscf.getMultiplicity();
+        na = aoscf.getAvgNumAlpha();
+        nb = aoscf.getAvgNumBeta();
+
+        PRINT("\n");
+        PRINT("<0|S^2|0>     = %f\n", s2);
+        PRINT("<0|2S+1|0>    = %f\n", mult);
+        PRINT("<0|n_alpha|0> = %f\n", na);
+        PRINT("<0|n_beta|0>  = %f\n", nb);
+        PRINT("\n");
+
+        CholeskyMOIntegrals<double> moints(scf);
+        AOMOIntegrals<double> aomo(aoscf);
+
+        CCSDT<double> ccsdt(config.get("cc"), moints);
+
+        PRINT("UHF-MP2 Energy: %.15f\n", ccsdt.getEnergy());
+
+        PRINT("\nUHF-CCSDT\n\n");
+        PRINT("It.   Correlation Energy     Residual\n");
+        for (int i = 0;ccsdt.iterate();i++)
+        {
+            PRINT("%3d % 20.15f %12.6e\n", i+1, ccsdt.getEnergy(), ccsdt.getConvergence());
+        }
+
+        s2 = ccsdt.getProjectedS2();
+        mult = ccsdt.getProjectedMultiplicity();
 
         PRINT("\n");
         PRINT("<0|S^2|CC>  = %f\n", s2);
         PRINT("<0|2S+1|CC> = %f\n", mult);
         PRINT("\n");
 
-        Hbar<double> H(moints, ccsd);
-        LambdaCCSD<double> lambda(config.get("cc"), H, ccsd);
+        /*
+        STTwoElectronOperator<double,2> H(moints, ccsd);
+        LambdaCCSD<double> lambda(config.get("cc"), H, ccsd, ccsd.getEnergy());
 
         PRINT("UHF-Lambda-CCSD\n\n");
         PRINT("It.   Correlation Energy     Residual\n");
@@ -112,6 +143,7 @@ int main(int argc, char **argv)
         }
 
         PRINT("\nFinal Energy: %.15f\n\n", scf.getEnergy()+ccsd.getEnergy());
+        */
 
         print_timers();
     }

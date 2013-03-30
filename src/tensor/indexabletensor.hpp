@@ -49,23 +49,26 @@ template <class Derived, class T> class IndexedTensorMult;
         using aquarius::tensor::IndexableTensor< Derived, T >::mult; \
         using aquarius::tensor::IndexableTensor< Derived, T >::sum; \
         using aquarius::tensor::IndexableTensor< Derived, T >::scale; \
+        using aquarius::tensor::IndexableTensor< Derived, T >::dot; \
         using aquarius::tensor::IndexableTensor< Derived, T >::operator=; \
         using aquarius::tensor::IndexableTensor< Derived, T >::operator+=; \
         using aquarius::tensor::IndexableTensor< Derived, T >::operator-=; \
     INHERIT_FROM_TENSOR(CONCAT(Derived),T)
 
 template <class Derived, typename T>
-class IndexableTensor : virtual public Tensor<Derived,T>
+class IndexableTensorBase
 {
     protected:
-        using Tensor<Derived,T>::derived;
         int ndim_;
 
     public:
-        IndexableTensor(const int ndim = 0)
-        : Tensor<Derived,T>(*this), ndim_(ndim) {}
+        IndexableTensorBase(const int ndim = 0) : ndim_(ndim) {}
 
-        virtual ~IndexableTensor() {}
+        virtual ~IndexableTensorBase() {}
+
+        Derived& getDerived() { return static_cast<Derived&>(*this); }
+
+        const Derived& getDerived() const { return static_cast<const Derived&>(*this); }
 
         int getDimension() const { return ndim_; }
 
@@ -83,12 +86,12 @@ class IndexableTensor : virtual public Tensor<Derived,T>
          *********************************************************************/
         IndexedTensor<Derived,T> operator[](const std::string& idx)
         {
-            return IndexedTensor<Derived,T>(derived, idx);
+            return IndexedTensor<Derived,T>(getDerived(), idx);
         }
 
         IndexedTensor<const Derived,T> operator[](const std::string& idx) const
         {
-            return IndexedTensor<const Derived,T>(derived, idx);
+            return IndexedTensor<const Derived,T>(getDerived(), idx);
         }
 
         /**********************************************************************
@@ -96,25 +99,25 @@ class IndexableTensor : virtual public Tensor<Derived,T>
          * Implicitly indexed binary operations (inner product, trace, and weighting)
          *
          *********************************************************************/
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexableTensor<Derived,T>&))
+        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator=(const IndexedTensorMult<cvDerived,T>& other)
         {
             (*this)[implicit()] = other;
-            return *this;
+            return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexableTensor<Derived,T>&))
+        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator+=(const IndexedTensorMult<cvDerived,T>& other)
         {
             (*this)[implicit()] += other;
-            return *this;
+            return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexableTensor<Derived,T>&))
+        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator-=(const IndexedTensorMult<cvDerived,T>& other)
         {
             (*this)[implicit()] -= other;
-            return *this;
+            return getDerived();
         }
 
         /**********************************************************************
@@ -122,25 +125,25 @@ class IndexableTensor : virtual public Tensor<Derived,T>
          * Implicitly indexed unary operations (assignment and summation)
          *
          *********************************************************************/
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexableTensor<Derived,T>&))
+        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator=(const IndexedTensor<cvDerived,T>& other)
         {
             (*this)[implicit()] = other;
-            return *this;
+            return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexableTensor<Derived,T>&))
+        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator+=(const IndexedTensor<cvDerived,T>& other)
         {
             (*this)[implicit()] += other;
-            return *this;
+            return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexableTensor<Derived,T>&))
+        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator-=(const IndexedTensor<cvDerived,T>& other)
         {
             (*this)[implicit()] -= other;
-            return *this;
+            return getDerived();
         }
 
         /**********************************************************************
@@ -148,30 +151,9 @@ class IndexableTensor : virtual public Tensor<Derived,T>
          * Binary tensor operations (multiplication)
          *
          *********************************************************************/
-        void mult(const T alpha)
-        {
-            scale(alpha);
-        }
-
-        void mult(const T alpha, bool conja, const Tensor<Derived,T>& A_,
-                                 bool conjb, const Tensor<Derived,T>& B_,
-                  const T beta)
-        {
-            const Derived& A = A_.getDerived();
-            const Derived& B = B_.getDerived();
-
-            #ifdef VALIDATE_INPUTS
-            if (ndim_ != A.ndim_ || ndim_ != B_.ndim_) throw InvalidNdimError();
-            #endif //VALIDATE_INPUTS
-
-            mult(alpha, conja, A, A.implicit(),
-                        conjb, B, B.implicit(),
-                  beta,             implicit());
-        }
-
-        void mult(const T alpha, bool conja, const IndexableTensor<Derived,T>& A, const std::string& idx_A,
-                                 bool conjb, const IndexableTensor<Derived,T>& B, const std::string& idx_B,
-                  const T beta,                                                   const std::string& idx_C)
+        void mult(const T alpha, bool conja, const Derived& A, const std::string& idx_A,
+                                 bool conjb, const Derived& B, const std::string& idx_B,
+                  const T beta,                                const std::string& idx_C)
         {
             std::vector<int> idx_A_(A.ndim_);
             std::vector<int> idx_B_(B.ndim_);
@@ -186,9 +168,9 @@ class IndexableTensor : virtual public Tensor<Derived,T>
                   beta,           idx_C_.data());
         }
 
-        virtual void mult(const T alpha,  bool conja, const IndexableTensor<Derived,T>& A, const int* idx_A,
-                                          bool conjb, const IndexableTensor<Derived,T>& B, const int* idx_B,
-                          const T beta,                                                    const int* idx_C) = 0;
+        virtual void mult(const T alpha,  bool conja, const Derived& A, const int* idx_A,
+                                          bool conjb, const Derived& B, const int* idx_B,
+                          const T beta,                                 const int* idx_C) = 0;
 
 
         /**********************************************************************
@@ -196,26 +178,8 @@ class IndexableTensor : virtual public Tensor<Derived,T>
          * Unary tensor operations (summation)
          *
          *********************************************************************/
-        void sum(const T alpha, const T beta)
-        {
-            Derived tensor(derived, alpha);
-            beta*(*this)[implicit()] = tensor[""];
-        }
-
-        void sum(const T alpha, bool conja, const Tensor<Derived,T>& A_, const T beta)
-        {
-            const Derived& A = A_.getDerived();
-
-            #ifdef VALIDATE_INPUTS
-            if (ndim_ != A.ndim_) throw InvalidNdimError();
-            #endif //VALIDATE_INPUTS
-
-            sum(alpha, conja, A, A.implicit(),
-                 beta,             implicit());
-        }
-
-        void sum(const T alpha, bool conja, const IndexableTensor<Derived,T>& A, const std::string& idx_A,
-                 const T beta,                                                   const std::string& idx_B)
+        void sum(const T alpha, bool conja, const Derived& A, const std::string& idx_A,
+                 const T beta,                                const std::string& idx_B)
         {
             std::vector<int> idx_A_(A.ndim_);
             std::vector<int> idx_B_(ndim_);
@@ -227,9 +191,104 @@ class IndexableTensor : virtual public Tensor<Derived,T>
                  beta,           idx_B_.data());
         }
 
-        virtual void sum(const T alpha, bool conja, const IndexableTensor<Derived,T>& A, const int* idx_A,
-                         const T beta,                                                   const int* idx_B) = 0;
+        virtual void sum(const T alpha, bool conja, const Derived& A, const int* idx_A,
+                         const T beta,                                const int* idx_B) = 0;
 
+
+        /**********************************************************************
+         *
+         * Scalar operations
+         *
+         *********************************************************************/
+        void scale(const T alpha, const std::string& idx_A)
+        {
+            std::vector<int> idx_A_(ndim_);
+            for (int i = 0;i < ndim_;i++) idx_A_[i] = idx_A[i];
+            scale(alpha, idx_A_.data());
+        }
+
+        virtual void scale(const T alpha, const int* idx_A) = 0;
+
+        T dot(bool conja, const Derived& A, const std::string& idx_A,
+              bool conjb,                   const std::string& idx_B) const
+        {
+            std::vector<int> idx_A_(A.ndim_);
+            std::vector<int> idx_B_(ndim_);
+
+            for (int i = 0;i < A.ndim_;i++) idx_A_[i] = idx_A[i];
+            for (int i = 0;i < ndim_;i++) idx_B_[i] = idx_B[i];
+
+            return dot(conja, A, idx_A_.data(),
+                       conjb,    idx_B_.data());
+        }
+
+        virtual T dot(bool conja, const Derived& A, const int* idx_A,
+                      bool conjb,                   const int* idx_B) const = 0;
+};
+
+template <class Derived, typename T>
+class IndexableTensor : public IndexableTensorBase<Derived,T>, public Tensor<Derived,T>
+{
+    INHERIT_FROM_TENSOR(Derived,T)
+
+    protected:
+        using IndexableTensorBase<Derived,T>::ndim_;
+
+    public:
+        using IndexableTensorBase<Derived,T>::scale;
+        using IndexableTensorBase<Derived,T>::dot;
+        using IndexableTensorBase<Derived,T>::mult;
+        using IndexableTensorBase<Derived,T>::sum;
+        using IndexableTensorBase<Derived,T>::implicit;
+
+        IndexableTensor(const int ndim = 0)
+        : IndexableTensorBase<Derived,T>(ndim) {}
+
+        virtual ~IndexableTensor() {}
+
+        /**********************************************************************
+         *
+         * Binary tensor operations (multiplication)
+         *
+         *********************************************************************/
+        void mult(const T alpha)
+        {
+            scale(alpha);
+        }
+
+        void mult(const T alpha, bool conja, const Derived& A,
+                                 bool conjb, const Derived& B,
+                  const T beta)
+        {
+            #ifdef VALIDATE_INPUTS
+            if (ndim_ != A.ndim_ || ndim_ != B_.ndim_) throw InvalidNdimError();
+            #endif //VALIDATE_INPUTS
+
+            mult(alpha, conja, A, A.implicit(),
+                        conjb, B, B.implicit(),
+                  beta,             implicit());
+        }
+
+        /**********************************************************************
+         *
+         * Unary tensor operations (summation)
+         *
+         *********************************************************************/
+        void sum(const T alpha, const T beta)
+        {
+            Derived tensor(getDerived(), alpha);
+            beta*(*this)[implicit()] = tensor[""];
+        }
+
+        void sum(const T alpha, bool conja, const Derived& A, const T beta)
+        {
+            #ifdef VALIDATE_INPUTS
+            if (ndim_ != A.ndim_) throw InvalidNdimError();
+            #endif //VALIDATE_INPUTS
+
+            sum(alpha, conja, A, A.implicit(),
+                 beta,             implicit());
+        }
 
         /**********************************************************************
          *
@@ -241,14 +300,15 @@ class IndexableTensor : virtual public Tensor<Derived,T>
             scale(alpha, implicit());
         }
 
-        void scale(const T alpha, const std::string& idx_A)
+        T dot(bool conja, const Derived& A, bool conjb) const
         {
-            std::vector<int> idx_A_(ndim_);
-            for (int i = 0;i < ndim_;i++) idx_A_[i] = idx_A[i];
-            scale(alpha, idx_A_.data());
-        }
+            #ifdef VALIDATE_INPUTS
+            if (ndim_ != A.ndim_) throw InvalidNdimError();
+            #endif //VALIDATE_INPUTS
 
-        virtual void scale(const T alpha, const int* idx_A) = 0;
+            return dot(conja, A, A.implicit(),
+                       conjb,      implicit());
+        }
 };
 
 /**************************************************************************
@@ -256,67 +316,11 @@ class IndexableTensor : virtual public Tensor<Derived,T>
  * Tensor to scalar operations
  *
  *************************************************************************/
-template <class Derived, class foo=void> struct Scalar {};
-
-inline float scalar(float val) { return val; }
-inline double scalar(double val) { return val; }
-inline scomplex scalar(scomplex val) { return val; }
-inline dcomplex scalar(dcomplex val) { return val; }
-
 template <class Derived, typename T>
-struct Scalar<TensorMult<Derived,T>, typename std::enable_if<std::is_base_of<IndexableTensor<Derived,T>,Derived>::value>::type>
+T scalar(const IndexedTensorMult<Derived,T>& itm)
 {
-    static T value(const TensorMult<Derived,T>& other)
-    {
-        const Derived& A = other.A_.tensor_.getDerived();
-        const Derived& B = other.B_.tensor_.getDerived();
-
-        #ifdef VALIDATE_INPUTS
-        if (A.getDimension() != B.getDimension()) throw InvalidNdimError();
-        #endif //VALIDATE_INPUTS
-
-        std::string implicit(A.getDimension(),' ');
-        for (int i = 0;i < A.getDimension();i++) implicit[i] = (char)(i+1);
-
-        if (other.A_.conj_)
-        {
-            if (other.B_.conj_)
-            {
-                return scalar(conj(A[implicit])*
-                              conj(B[implicit]))*other.factor_;
-            }
-            else
-            {
-                return scalar(conj(A[implicit])*
-                                   B[implicit])*other.factor_;
-            }
-        }
-        else
-        {
-            if (other.B_.conj_)
-            {
-                return scalar(     A[implicit]*
-                              conj(B[implicit]))*other.factor_;
-            }
-            else
-            {
-                return scalar(A[implicit]*
-                              B[implicit])*other.factor_;
-            }
-        }
-    }
-};
-
-template <class Derived, class T>
-T scalar(const TensorMult<Derived,T>& d)
-{
-    return Scalar< TensorMult<Derived,T> >::value(d);
-}
-
-template <class Derived, class T>
-T scalar(const IndexedTensorMult<Derived,T>& d)
-{
-    return Scalar< IndexedTensorMult<Derived,T> >::value(d);
+    return itm.factor_*itm.B_.tensor_.dot(itm.A_.conj_, itm.A_.tensor_, itm.A_.idx_,
+                                          itm.B_.conj_,                 itm.B_.idx_);
 }
 
 template <class Derived, typename T>
@@ -495,7 +499,7 @@ class IndexedTensor
 
 template <class Derived1, class Derived2, class T>
 typename std::enable_if<std::is_same<const Derived1, const Derived2>::value,IndexedTensorMult<Derived1,T> >::type
-operator*(const IndexableTensor<Derived1,T>& t1, const IndexedTensor<Derived2,T>& t2)
+operator*(const IndexableTensorBase<Derived1,T>& t1, const IndexedTensor<Derived2,T>& t2)
 {
     return IndexedTensorMult<Derived1,T>(t1[t1.implicit()], t2);
 }
@@ -529,7 +533,7 @@ class IndexedTensorMult
 
         template <class Derived1, class Derived2>
         IndexedTensorMult(const IndexedTensor<Derived1,T>& A, const IndexedTensor<Derived2,T>& B)
-        : A_(A), B_(B), factor_(A_.factor_*B_.factor_)  {}
+        : A_(A), B_(B), factor_(A.factor_*B.factor_) {}
 
         /**********************************************************************
          *

@@ -56,13 +56,11 @@ class DenseTensor : public LocalTensor< DenseTensor<T>,T >
 
     public:
         DenseTensor(const DenseTensor& t, const T val)
-        : Tensor<DenseTensor<T>,T>(*this),
-          LocalTensor<DenseTensor<T>,T>(t, val) {}
+        : LocalTensor<DenseTensor<T>,T>(t, val) {}
 
         /*
         DenseTensor(const PackedTensor& A)
-        : Tensor<DenseTensor<T>,T>(*this),
-          LocalTensor<DenseTensor>(A.ndim_, A.len_, (int*)NULL, A.size_, (bool)false)
+        : LocalTensor<DenseTensor>(A.ndim_, A.len_, (int*)NULL, A.size_, (bool)false)
         {
             CHECK_RETURN_VALUE(
             tensor_densify(&ndim_, len_, A.sym_));
@@ -71,8 +69,7 @@ class DenseTensor : public LocalTensor< DenseTensor<T>,T >
         }
 
         DenseTensor(const PackedTensor& A, const CopyType type)
-        : Tensor<DenseTensor<T>,T>(*this),
-          LocalTensor<DenseTensor>(A.ndim_, A.len_, (int*)NULL, A.size_, (double*)NULL)
+        : LocalTensor<DenseTensor>(A.ndim_, A.len_, (int*)NULL, A.size_, (double*)NULL)
         {
             CHECK_RETURN_VALUE(
             tensor_densify(&ndim_, len_, A.sym_));
@@ -99,24 +96,19 @@ class DenseTensor : public LocalTensor< DenseTensor<T>,T >
 
         DenseTensor(const DenseTensor<T>& A,
                 const typename LocalTensor<DenseTensor<T>,T>::CopyType type=LocalTensor<DenseTensor<T>,T>::CLONE)
-        : Tensor<DenseTensor<T>,T>(*this),
-          LocalTensor< DenseTensor<T>,T >(A, type) {}
+        : LocalTensor< DenseTensor<T>,T >(A, type) {}
 
         DenseTensor(const int ndim, const int *len, T* data, const bool zero=false)
-        : Tensor<DenseTensor<T>,T>(*this),
-          LocalTensor< DenseTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL), data, zero) {}
+        : LocalTensor< DenseTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL), data, zero) {}
 
         DenseTensor(const int ndim, const int *len, const bool zero=true)
-        : Tensor<DenseTensor<T>,T>(*this),
-          LocalTensor< DenseTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL), zero) {}
+        : LocalTensor< DenseTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL), zero) {}
 
         DenseTensor(const int ndim, const int *len, const int *ld, T* data, const bool zero=false)
-        : Tensor<DenseTensor<T>,T>(*this),
-          LocalTensor< DenseTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld), data, zero) {}
+        : LocalTensor< DenseTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld), data, zero) {}
 
         DenseTensor(const int ndim, const int *len, const int *ld, const bool zero=true)
-        : Tensor<DenseTensor<T>,T>(*this),
-          LocalTensor< DenseTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld), zero) {}
+        : LocalTensor< DenseTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld), zero) {}
 
         static uint64_t getSize(const int ndim, const int *len, const int *ld)
         {

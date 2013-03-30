@@ -55,14 +55,12 @@ class AOUHF : public UHF<T>
 
             int64_t npair;
 
-            if (this->rank == 0)
-            {
-                this->H->getAllData(npair, focka);
-                assert(npair == norb*norb);
-                this->H->getAllData(npair, fockb);
-                assert(npair == norb*norb);
-            }
-            else
+            this->H->getAllData(npair, focka, 0);
+            assert(this->rank != 0 || npair == norb*norb);
+            this->H->getAllData(npair, fockb, 0);
+            assert(this->rank != 0 || npair == norb*norb);
+
+            if (this->rank != 0)
             {
                 focka = SAFE_MALLOC(T, norb*norb);
                 fockb = SAFE_MALLOC(T, norb*norb);

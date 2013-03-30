@@ -22,22 +22,39 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_OPERATOR_EXPONENTIALOPERATOR_HPP_
-#define _AQUARIUS_OPERATOR_EXPONENTIALOPERATOR_HPP_
+#ifndef _AQUARIUS_OPERATOR_ST1EOPERATOR_HPP_
+#define _AQUARIUS_OPERATOR_ST1EOPERATOR_HPP_
 
-#include "excitationoperator.hpp"
+#include "1eoperator.hpp"
+#include "exponentialoperator.hpp"
 
 namespace aquarius
 {
 namespace op
 {
 
-template <typename T, int np, int nh=np>
-class ExponentialOperator : public ExcitationOperator<T,np,nh>
+/*
+ *      _    -T   T       T
+ * Form X = e  X e  = (X e ) , up to one-electron terms
+ *                          c
+ */
+template <typename U, int nex> class STOneElectronOperator;
+
+template <typename U>
+class STOneElectronOperator<U,2> : public OneElectronOperator<U>
 {
     public:
-        ExponentialOperator(const scf::UHF<T>& uhf)
-        : ExcitationOperator<T,np,nh>(uhf) {}
+        STOneElectronOperator(const OneElectronOperator<U>& X, const ExponentialOperator<U,2>& T)
+        : OneElectronOperator<U>(const_cast<OneElectronOperator<U>&>(X), OneElectronOperator<U>::ALL)
+        {
+            this->ij["mi"] += this->ia["me"]*T(1)["ei"];
+
+            this->ai["ai"] += T(2)["aeim"]*this->ia["me"];
+            this->ai["ai"] += T(1)["ei"]*this->ab["ae"];
+            this->ai["ai"] -= T(1)["am"]*this->ij["mi"];
+
+            this->ab["ae"] -= this->ia["me"]*T(1)["am"];
+        }
 };
 
 }

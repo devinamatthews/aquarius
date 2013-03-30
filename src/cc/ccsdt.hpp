@@ -40,44 +40,41 @@ template <typename U>
 class CCSDT : public Iterative, public op::ExponentialOperator<U,3>
 {
     protected:
-        op::ExcitationOperator<U,3>& T;
+        op::ExponentialOperator<U,3>& T;
         op::ExcitationOperator<U,3> D, Z;
-        op::TwoElectronOperator<U>& moints;
+        op::TwoElectronOperator<U>& H;
         convergence::DIIS< op::ExcitationOperator<U,3> > diis;
 
     public:
-        CCSDT(const input::Config& config, op::TwoElectronOperator<U>& moints)
-        : tensor::Tensor<op::ExcitationOperator<U,3>,U>(*this),
-          Iterative(config), op::ExcitationOperator<U,3>(moints.getSCF(), false),
-          T(*this), D(moints.getSCF(), false), Z(moints.getSCF(), false),
-          moints(moints), diis(config.get("diis"))
+        CCSDT(const input::Config& config, op::TwoElectronOperator<U>& H)
+        : Iterative(config), op::ExponentialOperator<U,3>(H.getSCF()),
+          T(*this), D(H.getSCF()), Z(H.getSCF()), H(H), diis(config.get("diis"))
         {
             D(0) = 1;
-            D(1)["ai"]  = moints.getIJ()["ii"];
-            D(1)["ai"] -= moints.getAB()["aa"];
-            D(2)["abij"]  = moints.getIJ()["ii"];
-            D(2)["abij"] += moints.getIJ()["jj"];
-            D(2)["abij"] -= moints.getAB()["aa"];
-            D(2)["abij"] -= moints.getAB()["bb"];
-            D(3)["abcijk"]  = moints.getIJ()["ii"];
-            D(3)["abcijk"] -= moints.getIJ()["jj"];
-            D(3)["abcijk"] -= moints.getIJ()["kk"];
-            D(3)["abcijk"] += moints.getAB()["aa"];
-            D(3)["abcijk"] += moints.getAB()["bb"];
-            D(3)["abcijk"] += moints.getAB()["cc"];
+            D(1)["ai"]  = H.getIJ()["ii"];
+            D(1)["ai"] -= H.getAB()["aa"];
+            D(2)["abij"]  = H.getIJ()["ii"];
+            D(2)["abij"] += H.getIJ()["jj"];
+            D(2)["abij"] -= H.getAB()["aa"];
+            D(2)["abij"] -= H.getAB()["bb"];
+            D(3)["abcijk"]  = H.getIJ()["ii"];
+            D(3)["abcijk"] += H.getIJ()["jj"];
+            D(3)["abcijk"] += H.getIJ()["kk"];
+            D(3)["abcijk"] -= H.getAB()["aa"];
+            D(3)["abcijk"] -= H.getAB()["bb"];
+            D(3)["abcijk"] -= H.getAB()["cc"];
 
             D = 1/D;
 
-            Z(0) = 0;
             T(0) = 0;
-            T(1) = moints.getAI()*D(1);
-            T(2) = moints.getABIJ()*D(2);
+            T(1) = H.getAI()*D(1);
+            T(2) = H.getABIJ()*D(2);
             T(3) = 0;
 
             tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T(2));
             Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
-            energy = scalar(moints.getAI()*T(1)) + 0.25*scalar(moints.getABIJ()*Tau);
+            energy = scalar(H.getAI()*T(1)) + 0.25*scalar(H.getABIJ()*Tau);
 
             conv =          conv,T(1)(0).reduce(CTF_OP_MAXABS);
             conv = std::max(conv,T(1)(1).reduce(CTF_OP_MAXABS));
@@ -86,38 +83,40 @@ class CCSDT : public Iterative, public op::ExponentialOperator<U,3>
             conv = std::max(conv,T(2)(2).reduce(CTF_OP_MAXABS));
         }
 
-        const op::TwoElectronOperator<U>& getMOIntegrals() const
-        {
-            return moints;
-        }
-
         void _iterate()
         {
-            op::TwoElectronOperator H(moints, op::TwoElectronOperator::AB|
-                                              op::TwoElectronOperator::IJ|
-                                              op::TwoElectronOperator::IA|
-                                              op::TwoElectronOperator::AIBC|
-                                              op::TwoElectronOperator::ABCI|
-                                              op::TwoElectronOperator::ABCD|
-                                              op::TwoElectronOperator::IJKL|
-                                              op::TwoElectronOperator::IJKA|
-                                              op::TwoElectronOperator::IAJK|
-                                              op::TwoElectronOperator::AIBJ);
+            op::TwoElectronOperator<U> W(H, op::TwoElectronOperator<U>::AB|
+                                            op::TwoElectronOperator<U>::IJ|
+                                            op::TwoElectronOperator<U>::IA|
+                                            op::TwoElectronOperator<U>::AIBC|
+                                            op::TwoElectronOperator<U>::ABCI|
+                                            op::TwoElectronOperator<U>::ABCD|
+                                            op::TwoElectronOperator<U>::IJKL|
+                                            op::TwoElectronOperator<U>::IJKA|
+                                            op::TwoElectronOperator<U>::IAJK|
+                                            op::TwoElectronOperator<U>::AIBJ);
 
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FME = H.getIA();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FAE = H.getAB();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FMI = H.getIJ();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMNEF = H.getIJAB();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WAMEF = H.getAIBC();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WABEJ = H.getABCI();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WABEF = H.getABCD();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMNIJ = H.getIJKL();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMNIE = H.getIJKA();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMBIJ = H.getIAJK();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WAMEI = H.getAIBJ();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FAI = W.getAI();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FME = W.getIA();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FAE = W.getAB();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FMI = W.getIJ();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WABIJ = W.getABIJ();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMNEF = W.getIJAB();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WAMEF = W.getAIBC();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WABEJ = W.getABCI();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WABEF = W.getABCD();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMNIJ = W.getIJKL();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMNIE = W.getIJKA();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMBIJ = W.getIAJK();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WAMEI = W.getAIBJ();
 
             FAE["aa"] = 0.0;
             FMI["ii"] = 0.0;
+
+            Z(0) = 0;
+
+            //Z(1) = 0;
+            //Z(2) = 0;
 
             tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T(2));
             Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
@@ -126,19 +125,16 @@ class CCSDT : public Iterative, public op::ExponentialOperator<U,3>
              *
              * Intermediates for T(1)->T(1) and T(2)->T(1)
              */
-            PROFILE_SECTION(calc_FEM)
-            FME["me"] = WMNEF["mnef"]*T(1)["fn"];
-            PROFILE_STOP
+            FME["me"] += WMNEF["mnef"]*T(1)["fn"];
 
-            PROFILE_SECTION(calc_FMI)
-            FMI["mi"] = 0.5*WMNEF["nmef"]*T(2)["efni"];
+            FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
             FMI["mi"] += FME["me"]*T(1)["ei"];
             FMI["mi"] += WMNIE["mnif"]*T(1)["fn"];
-            PROFILE_STOP
 
-            PROFILE_SECTION(calc_WMNIE)
+            WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*Tau["efij"];
+            WMNIJ["mnij"] += WMNIE["mnie"]*T(1)["ej"];
+
             WMNIE["mnie"] += WMNEF["mnfe"]*T(1)["fi"];
-            PROFILE_STOP
             /*
              *************************************************************************/
 
@@ -146,33 +142,13 @@ class CCSDT : public Iterative, public op::ExponentialOperator<U,3>
              *
              * T(1)->T(1) and T(2)->T(1)
              */
-            PROFILE_SECTION(calc_FAI)
-            Z(1)["ai"] = moints.getAI()["ai"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(1)_IN_T(1)_RING)
+            Z(1)["ai"]  = FAI["ai"];
             Z(1)["ai"] -= T(1)["em"]*WAMEI["amei"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(2)_IN_T(1)_ABCI)
             Z(1)["ai"] += 0.5*WAMEF["amef"]*Tau["efim"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(2)_IN_T(1)_IJKA)
             Z(1)["ai"] -= 0.5*WMNIE["mnie"]*T(2)["aemn"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(2)_IN_T(1)_FME)
             Z(1)["ai"] += T(2)["aeim"]*FME["me"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(1)_IN_T(1)_FAE)
             Z(1)["ai"] += T(1)["ei"]*FAE["ae"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(1)_IN_T(1)_FMI)
             Z(1)["ai"] -= T(1)["am"]*FMI["mi"];
-            PROFILE_STOP
             /*
              *************************************************************************/
 
@@ -180,27 +156,16 @@ class CCSDT : public Iterative, public op::ExponentialOperator<U,3>
              *
              * Intermediates for T(1)->T(2) and T(2)->T(2)
              */
-            PROFILE_SECTION(calc_FAE)
-            FAE["ae"] = -0.5*WMNEF["mnfe"]*T(2)["famn"];
+            FAE["ae"] -= 0.5*WMNEF["mnef"]*T(2)["afmn"];
             FAE["ae"] -= FME["me"]*T(1)["am"];
-            FAE["ae"] += WABEJ["efan"]*T(1)["fn"];
-            PROFILE_STOP
+            FAE["ae"] += WAMEF["amef"]*T(1)["fm"];
 
-            PROFILE_SECTION(calc_WIJKL)
-            WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*Tau["efij"];
-            WMNIJ["mnij"] += WMNIE["mnie"]*T(1)["ej"];
-            PROFILE_STOP
+            WMBIJ["mbij"] += 0.5*WAMEF["bmfe"]*Tau["efij"];
+            WMBIJ["mbij"] -= WAMEI["bmej"]*T(1)["ei"];
 
-            PROFILE_SECTION(calc_WAIJK)
-            WMBIJ["mbij"] += 0.5*WABEJ["febm"]*Tau["efij"];
-            WMBIJ["mbij"] -= WAMEI["amej"]*T(1)["ei"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_WMBEJ)
             WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T(2)["afin"];
-            WAMEI["amei"] -= WABEJ["feam"]*T(1)["fi"];
+            WAMEI["amei"] -= WAMEF["amfe"]*T(1)["fi"];
             WAMEI["amei"] += WMNIE["nmie"]*T(1)["an"];
-            PROFILE_STOP
             /*
              *************************************************************************/
 
@@ -208,37 +173,14 @@ class CCSDT : public Iterative, public op::ExponentialOperator<U,3>
              *
              * T(1)->T(2) and T(2)->T(2)
              */
-            PROFILE_SECTION(calc_WMNEF)
-            Z(2)["abij"] = WMNEF["ijab"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(2)_IN_T(2)_FAE)
+            Z(2)["abij"]  = WABIJ["abij"];
             Z(2)["abij"] += FAE["af"]*T(2)["fbij"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(2)_IN_T(2)_FMI)
             Z(2)["abij"] -= FMI["ni"]*T(2)["abnj"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(1)_IN_T(2)_ABCI)
             Z(2)["abij"] += WABEJ["abej"]*T(1)["ei"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(1)_IN_T(2)_IJKA)
             Z(2)["abij"] -= WMBIJ["mbij"]*T(1)["am"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(2)_IN_T(2)_ABCD)
             Z(2)["abij"] += 0.5*WABEF["abef"]*Tau["efij"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(2)_IN_T(2)_IJKL)
             Z(2)["abij"] += 0.5*WMNIJ["mnij"]*Tau["abmn"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(2)_IN_T(2)_RING)
             Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];
-            PROFILE_STOP
             /*
              *************************************************************************/
 
@@ -246,40 +188,28 @@ class CCSDT : public Iterative, public op::ExponentialOperator<U,3>
              *
              * Intermediates for CCSDT
              */
-            PROFILE_SECTION(calc_WAIJK2)
-            WMBIJ["mbij"] += WMNIE["mnie"]*T(2)["bejn"];
-            WMBIJ["mbij"] -= WMNIJ["mnij"]*T(1)["bn"];
-            WMBIJ["mbij"] += FME["me"]*T(2)["ebij"];
+            //WMBIJ["mbij"] += WMNIE["mnie"]*T(2)["bejn"];
+            //WMBIJ["mbij"] -= WMNIJ["mnij"]*T(1)["bn"];
+            //WMBIJ["mbij"] += FME["me"]*T(2)["ebij"];
             //WMBIJ["mbij"] += 0.5*WMNEF["mnef"]*T(3)["efbinj"];
-            PROFILE_STOP
 
-            PROFILE_SECTION(calc_WMBEJ2)
-            WAMEI["amei"] *= 2;
-            WAMEI["amei"] -= moints.getAIBJ()["amei"];
-            WAMEI["amei"] += WAMEF["amfe"]*T(1)["fi"];
-            WAMEI["amei"] -= 1.5*WMNIE["nmie"]*T(1)["an"];
-            PROFILE_STOP
+            //WAMEI["amei"] *= 2;
+            //WAMEI["amei"] -= H.getAIBJ()["amei"];
+            //WAMEI["amei"] += WAMEF["amfe"]*T(1)["fi"];
+            //WAMEI["amei"] -= 1.5*WMNIE["nmie"]*T(1)["an"];
 
-            PROFILE_SECTION(calc_WABCI)
-            WABEJ["abej"] += WAMEF["amef"]*T(2)["fbmj"];
-            WABEJ["abej"] += 0.5*WMNIE["nmje"]*T(2)["abmn"];
-            WABEJ["abej"] += WABEF["abef"]*T(1)["fj"];
-            WABEJ["abej"] -= WAMEI["amej"]*T(1)["bm"];
+            //WABEJ["abej"] += WAMEF["amef"]*T(2)["fbmj"];
+            //WABEJ["abej"] += 0.5*WMNIE["nmje"]*T(2)["abmn"];
+            //WABEJ["abej"] += WABEF["abef"]*T(1)["fj"];
+            //WABEJ["abej"] -= WAMEI["amej"]*T(1)["bm"];
             //WABEJ["abej"] -= 0.5*WMNEF["mnef"]*T(3)["afbmnj"];
-            PROFILE_STOP
 
-            PROFILE_SECTION(calc_WMBEJ3)
-            WAMEI["amei"] += 0.5*WMNIE["nmie"]*T(1)["an"];
-            PROFILE_STOP
+            //WAMEI["amei"] += 0.5*WMNIE["nmie"]*T(1)["an"];
 
-            PROFILE_SECTION(calc_WABCD)
-            WABEF["abef"] -= WAMEF["amef"]*T(1)["bm"];
-            WABEF["abef"] += 0.5*WMNEF["mnef"]*Tau["abmn"];
-            PROFILE_STOP
+            //WABEF["abef"] -= WAMEF["amef"]*T(1)["bm"];
+            //WABEF["abef"] += 0.5*WMNEF["mnef"]*Tau["abmn"];
 
-            PROFILE_SECTION(calc_WAIBC)
-            WAMEF["amef"] -= WMNEF["nmef"]*T(1)["an"];
-            PROFILE_STOP
+            //WAMEF["amef"] -= WMNEF["nmef"]*T(1)["an"];
             /*
              *************************************************************************/
 
@@ -287,65 +217,74 @@ class CCSDT : public Iterative, public op::ExponentialOperator<U,3>
              *
              * CCSDT Iteration
              */
-            //PROFILE_SECTION(calc_T(2)_IN_T(3)_ABCI)
-            //Z(3)["abcijk"] = WABEJ["bcek"]*T(2)["aeij"];
-            //PROFILE_STOP
 
-            PROFILE_SECTION(calc_T(2)_IN_T(3)_IJKA)
-            //Z(3)["abcijk"] -= WAMIJ["cmkj"]*T(2)["abim"];
-            Z(3)["abcijk"] = moints.getIJKA()["jkmc"]*T(2)["abim"];
-            PROFILE_STOP
-
-            //PROFILE_SECTION(calc_T(3)_IN_T(2)_ABCI)
-            //Z(2)["abij"] += 0.5*WAMEF["bmef"]*T(3)["aefijm"];
-            //PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(3)_IN_T(2)_IJKA)
-            //Z(2)["abij"] -= 0.5*WMNIE["mnje"]*T(3)["abeimn"];
-            Z(2)["abij"] -= 0.5*moints.getIJKA()["mnje"]*T(3)["abeimn"];
-            PROFILE_STOP
+            //T(2)(0) = 0;
+            //T(2)(2) = 0;
+            //H.getIAJK()(0) = 0;
+            //H.getIAJK()(3) = 0;
 
             /*
-            PROFILE_SECTION(calc_T(3)_IN_T(2)_FME)
+            int len[] = {6,6,6,4,4,4};
+            int sym[] = {NS,NS,NS,NS,NS,NS};
+
+            tensor::DistTensor<U> Zskel(T(2)(1).ctf, 6, len, sym, true);
+
+            Zskel["abcijk"] -= H.getIAJK()(1)["jkmc"]*T(2)(1)["abim"];
+            Zskel["abcijk"] -= H.getIAJK()(1)["kjmb"]*T(2)(1)["acim"];
+            Zskel["abcijk"] -= H.getIAJK()(1)["ikmc"]*T(2)(1)["bajm"];
+            Zskel["abcijk"] -= H.getIAJK()(1)["ijmb"]*T(2)(1)["cakm"];
+            Zskel["abcijk"] -= H.getIAJK()(1)["jima"]*T(2)(1)["cbkm"];
+            Zskel["abcijk"] -= H.getIAJK()(1)["kima"]*T(2)(1)["bcjm"];
+
+            tensor::DistTensor<U> tmp(Zskel);
+            Zskel["abcijk"] -= tmp["abcikj"];
+            Zskel["abcijk"] -= tmp["abcjik"];
+            Zskel["abcijk"] -= tmp["abckji"];
+            Zskel["abcijk"] += tmp["abcjki"];
+            Zskel["abcijk"] += tmp["abckij"];
+            */
+
+            //Z(3)(1) = 0;
+            Z(3)["abcijk"] = -H.getIAJK()["mcjk"]*T(2)["abim"];
+            //Z(3)(1)["abcijk"] -= H.getIAJK()(1)["jkmc"]*T(2)(1)["abim"];
+            //Z(3)(1)["abcijk"] -= H.getIAJK()(1)["ikmc"]*T(2)(1)["abmj"];
+            //Z(3)(1)["abcijk"] -= H.getIAJK()(1)["kima"]*T(2)(1)["bcjm"];
+
+            //T(3)(0) = Zskel;
+            //T(3)(0).compare(stdout, Z(3)(0));
+            //Z(3)(0) -= T(3)(0);
+            //std::cout << Z(3)(0).reduce(CTF_OP_SQNRM2) << std::endl;
+
+            //Z(3)["abcijk"]  = WABEJ["bcek"]*T(2)["aeij"];
+            //Z(3)["abcijk"] -= WMBIJ["mcjk"]*T(2)["abim"];
+            //Z(3)["abcijk"] = -H.getIAJK()["mcjk"]*T(2)["abim"];
+            //Z(2)["abij"] += 0.5*WAMEF["bmef"]*T(3)["aefijm"];
+            //Z(2)["abij"] -= 0.5*WMNIE["mnje"]*T(3)["abeimn"];
+            Z(2)["abij"] -= 0.5*H.getIJKA()["mnje"]*T(3)["abeimn"];
+
+            /*
             Z(2)["abij"] += FME["me"]*T(3)["abeijm"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(3)_IN_T(1))
             Z(1)["ai"] += 0.25*WMNEF["mnef"]*T(3)["aefimn"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(3)_IN_T(3)_FAE)
             Z(3)["abcijk"] += FAE["ce"]*T(3)["abeijk"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(3)_IN_T(3)_FMI)
             Z(3)["abcijk"] -= FMI["mk"]*T(3)["abcijm"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(3)_IN_T(3)_ABCD)
             Z(3)["abcijk"] += 0.5*WABEF["abef"]*T(3)["efcijk"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(3)_IN_T(3)_IJKL)
             Z(3)["abcijk"] += 0.5*WMNIJ["mnij"]*T(3)["abcmnk"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T(3)_IN_T(3)_RING)
             Z(3)["abcijk"] -= WAMEI["amei"]*T(3)["ebcmjk"];
-            PROFILE_STOP
             */
             /*
              **************************************************************************/
-
-            PROFILE_SECTION(calc_EN)
 
             Z *= D;
             Z -= T;
             T += Z;
 
-            Tau["abij"]   = T(2)["abij"];
-            Tau["abij"]  += 0.5*T(1)["ai"]*T(1)["bj"];
-            energy = scalar(moints.getAI()*T(1)) + 0.25*scalar(moints.getABIJ()*Tau);
+            //T(2)(1).print(stdout);
+
+            //exit(0);
+
+            Tau["abij"]  = T(2)["abij"];
+            Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
+            energy = scalar(H.getAI()*T(1)) + 0.25*scalar(H.getABIJ()*Tau);
 
             conv =                Z(1)(0).reduce(CTF_OP_MAXABS);
             conv = std::max(conv, Z(1)(1).reduce(CTF_OP_MAXABS));
@@ -357,9 +296,17 @@ class CCSDT : public Iterative, public op::ExponentialOperator<U,3>
             conv = std::max(conv, Z(3)(2).reduce(CTF_OP_MAXABS));
             conv = std::max(conv, Z(3)(3).reduce(CTF_OP_MAXABS));
 
-            diis->extrapolate(T, Z);
+            diis.extrapolate(T, Z);
+        }
 
-            PROFILE_STOP
+        double getProjectedS2() const
+        {
+            return CCSD<U>::getProjectedS2(this->uhf, T(1), T(2));
+        }
+
+        double getProjectedMultiplicity() const
+        {
+            return CCSD<U>::getProjectedMultiplicity(this->uhf, T(1), T(2));
         }
 };
 

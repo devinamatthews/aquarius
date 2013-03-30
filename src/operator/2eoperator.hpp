@@ -36,15 +36,15 @@ template <typename T>
 class TwoElectronOperator : public OneElectronOperator<T>
 {
     protected:
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> > ijkl;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> > iajk;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> > ijka;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> > abij;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> > ijab;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> > aibj;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> > aibc;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> > abci;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> > abcd;
+        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& ijkl;
+        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& iajk;
+        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& ijka;
+        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& abij;
+        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& ijab;
+        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& aibj;
+        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& aibc;
+        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& abci;
+        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& abcd;
 
     public:
         enum
@@ -62,15 +62,15 @@ class TwoElectronOperator : public OneElectronOperator<T>
 
         TwoElectronOperator(const scf::UHF<T>& uhf, const bool hermitian=true)
         : OneElectronOperator<T>(uhf, hermitian),
-          ijkl("ij,kl"),
-          iajk("ia,jk"),
-          ijka("ij,ka"),
-          abij("ab,ij"),
-          ijab("ij,ab"),
-          aibj("ai,bj"),
-          aibc("ai,bc"),
-          abci("ab,ci"),
-          abcd("ab,cd")
+          ijkl(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,kl"))),
+          iajk(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ia,jk"))),
+          ijka(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ka"))),
+          abij(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ij"))),
+          ijab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ab"))),
+          aibj(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bj"))),
+          aibc(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bc"))),
+          abci(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ci"))),
+          abcd(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,cd")))
         {
             int N = uhf.getMolecule().getNumOrbitals();
             int nI = uhf.getMolecule().getNumAlphaElectrons();
@@ -188,17 +188,20 @@ class TwoElectronOperator : public OneElectronOperator<T>
         TwoElectronOperator(OneElectronOperator<T>& other, int copy)
         : OneElectronOperator<T>(other, copy) {}
 
+        TwoElectronOperator(const OneElectronOperator<T>& other)
+        : OneElectronOperator<T>(other) {}
+
         TwoElectronOperator(TwoElectronOperator<T>& other, int copy)
         : OneElectronOperator<T>(other, copy),
-          ijkl("ij,kl"),
-          iajk("ia,jk"),
-          ijka("ij,ka"),
-          abij("ab,ij"),
-          ijab("ij,ab"),
-          aibj("ai,bj"),
-          aibc("ai,bc"),
-          abci("ab,ci"),
-          abcd("ab,cd")
+          ijkl(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,kl"))),
+          iajk(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ia,jk"))),
+          ijka(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ka"))),
+          abij(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ij"))),
+          ijab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ab"))),
+          aibj(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bj"))),
+          aibc(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bc"))),
+          abci(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ci"))),
+          abcd(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,cd")))
         {
             if (copy&IJKL)
             {
@@ -330,6 +333,62 @@ class TwoElectronOperator : public OneElectronOperator<T>
                 abcd.addSpinCase(other.getABCD()(1), "Ab,Cd", "AbCd");
                 abcd.addSpinCase(other.getABCD()(2), "ab,cd", "abcd");
             }
+        }
+
+        TwoElectronOperator(const TwoElectronOperator<T>& other)
+        : OneElectronOperator<T>(other),
+          ijkl(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,kl"))),
+          iajk(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ia,jk"))),
+          ijka(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ka"))),
+          abij(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ij"))),
+          ijab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ab"))),
+          aibj(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bj"))),
+          aibc(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bc"))),
+          abci(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ci"))),
+          abcd(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,cd")))
+        {
+            ijkl.addSpinCase(new tensor::DistTensor<T>(other.getIJKL()(0)), "IJ,KL", "IJKL");
+            ijkl.addSpinCase(new tensor::DistTensor<T>(other.getIJKL()(1)), "Ij,Kl", "IjKl");
+            ijkl.addSpinCase(new tensor::DistTensor<T>(other.getIJKL()(2)), "ij,kl", "ijkl");
+
+            iajk.addSpinCase(new tensor::DistTensor<T>(other.getIAJK()(0)), "IA,JK", "JKIA");
+            iajk.addSpinCase(new tensor::DistTensor<T>(other.getIAJK()(1)), "Ia,Jk", "JkIa");
+            iajk.addSpinCase(new tensor::DistTensor<T>(other.getIAJK()(2)), "iA,jK", "jKiA");
+            iajk.addSpinCase(new tensor::DistTensor<T>(other.getIAJK()(3)), "ia,jk", "jkia");
+
+            ijka.addSpinCase(new tensor::DistTensor<T>(other.getIJKA()(0)), "IJ,KA", "IJKA");
+            ijka.addSpinCase(new tensor::DistTensor<T>(other.getIJKA()(1)), "Ij,Ka", "IjKa");
+            ijka.addSpinCase(new tensor::DistTensor<T>(other.getIJKA()(2)), "iJ,kA", "iJkA");
+            ijka.addSpinCase(new tensor::DistTensor<T>(other.getIJKA()(3)), "ij,ka", "ijka");
+
+            abij.addSpinCase(new tensor::DistTensor<T>(other.getABIJ()(0)), "AB,IJ", "ABIJ");
+            abij.addSpinCase(new tensor::DistTensor<T>(other.getABIJ()(1)), "Ab,Ij", "AbIj");
+            abij.addSpinCase(new tensor::DistTensor<T>(other.getABIJ()(2)), "ab,ij", "abij");
+
+            ijab.addSpinCase(new tensor::DistTensor<T>(other.getIJAB()(0)), "IJ,AB", "ABIJ");
+            ijab.addSpinCase(new tensor::DistTensor<T>(other.getIJAB()(1)), "Ij,Ab", "AbIj");
+            ijab.addSpinCase(new tensor::DistTensor<T>(other.getIJAB()(2)), "ij,ab", "abij");
+
+            aibj.addSpinCase(new tensor::DistTensor<T>(other.getAIBJ()(0)), "AI,BJ", "AIBJ");
+            aibj.addSpinCase(new tensor::DistTensor<T>(other.getAIBJ()(1)), "Ai,Bj", "AiBj");
+            aibj.addSpinCase(new tensor::DistTensor<T>(other.getAIBJ()(2)), "aI,bJ", "aIbJ");
+            aibj.addSpinCase(new tensor::DistTensor<T>(other.getAIBJ()(3)), "ai,bj", "aibj");
+            aibj.addSpinCase(new tensor::DistTensor<T>(other.getABIJ()(1)), "aI,Bj", "BaIj", -1.0);
+            aibj.addSpinCase(new tensor::DistTensor<T>(other.getABIJ()(1)), "Ai,bJ", "AbJi", -1.0);
+
+            aibc.addSpinCase(new tensor::DistTensor<T>(other.getAIBC()(0)), "AI,BC", "BCAI");
+            aibc.addSpinCase(new tensor::DistTensor<T>(other.getAIBC()(1)), "Ai,Bc", "BcAi");
+            aibc.addSpinCase(new tensor::DistTensor<T>(other.getAIBC()(2)), "aI,bC", "bCaI");
+            aibc.addSpinCase(new tensor::DistTensor<T>(other.getAIBC()(3)), "ai,bc", "bcai");
+
+            abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI()(0)), "AB,CI", "ABCI");
+            abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI()(1)), "Ab,Ci", "AbCi");
+            abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI()(2)), "aB,cI", "aBcI");
+            abci.addSpinCase(new tensor::DistTensor<T>(other.getABCI()(3)), "ab,ci", "abci");
+
+            abcd.addSpinCase(new tensor::DistTensor<T>(other.getABCD()(0)), "AB,CD", "ABCD");
+            abcd.addSpinCase(new tensor::DistTensor<T>(other.getABCD()(1)), "Ab,Cd", "AbCd");
+            abcd.addSpinCase(new tensor::DistTensor<T>(other.getABCD()(2)), "ab,cd", "abcd");
         }
 
         tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getIJKL() { return ijkl; }

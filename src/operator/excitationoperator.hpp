@@ -49,15 +49,13 @@ class ExcitationOperator
 
     public:
         ExcitationOperator(const ExcitationOperator<T,np,nh>& other)
-        : tensor::Tensor<ExcitationOperator<T,np,nh>,T>(*this),
-          MOOperator<T>(other.uhf),
+        : MOOperator<T>(other.uhf),
           tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
            tensor::SpinorbitalTensor< tensor::DistTensor<T> >, T >(other),
           spin(other.spin) {}
 
         ExcitationOperator(const scf::UHF<T>& uhf, const int spin=0)
-        : tensor::Tensor<ExcitationOperator<T,np,nh>,T>(*this),
-          MOOperator<T>(uhf),
+        : MOOperator<T>(uhf),
           tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
            tensor::SpinorbitalTensor< tensor::DistTensor<T> >, T >(std::max(np,nh)+1),
           spin(spin)
@@ -108,6 +106,18 @@ class ExcitationOperator
                                                        autocc::Manifold(pa, ha), 0);
                 }
             }
+        }
+
+        T dot(bool conja, const op::ExcitationOperator<T,np,nh>& A, bool conjb) const
+        {
+            T s = (T)0;
+
+            for (int i = 0;i <= std::min(np,nh);i++)
+            {
+                s += (*this)(i).dot(conja, A(i), conjb)/factorial(i)/factorial(i+std::abs(np-nh));
+            }
+
+            return s;
         }
 };
 

@@ -249,6 +249,19 @@ mat3x3::mat3x3(double m00, double m01, double m02,
     m[2][0] = m20; m[2][1] = m21; m[2][2] = m22;
 }
 
+const mat3x3 mat3x3::operator^(int p) const
+{
+    if (p < 0) throw logic_error("negative exponent");
+
+    mat3x3 ret(1,0,0,
+               0,1,0,
+               0,0,1);
+
+    for (;p > 0;p--) ret = ret*(*this);
+
+    return ret;
+}
+
 mat3x3::column mat3x3::operator[](int i)
 {
     return column(m[0][i], m[1][i], m[2][i]);

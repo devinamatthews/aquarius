@@ -60,66 +60,6 @@ class CholeskyMOIntegrals : public MOIntegrals<T>
             int na = N-ni;
             int R = chol.getRank();
 
-
-            int64_t npair;
-            T *pcA, *pca, *pcI, *pci;
-
-            /*
-             * Read transformation coefficients
-             */
-            this->uhf.getCA().getAllData(npair, pcA);
-            assert(npair == N*nA);
-            this->uhf.getCa().getAllData(npair, pca);
-            assert(npair == N*na);
-            this->uhf.getCI().getAllData(npair, pcI);
-            assert(npair == N*nI);
-            this->uhf.getCi().getAllData(npair, pci);
-            assert(npair == N*ni);
-
-            printf("cA:\n");
-            for (int idx = 0,i = 0;i < nA;i++)
-            {
-                for (int j = 0;j < N;j++,idx++)
-                {
-                    printf("%f ", pcA[idx]);
-                }
-                printf("\n");
-            }
-            printf("\n");
-
-            printf("ca:\n");
-            for (int idx = 0,i = 0;i < na;i++)
-            {
-                for (int j = 0;j < N;j++,idx++)
-                {
-                    printf("%f ", pca[idx]);
-                }
-                printf("\n");
-            }
-            printf("\n");
-
-            printf("cI:\n");
-            for (int idx = 0,i = 0;i < nI;i++)
-            {
-                for (int j = 0;j < N;j++,idx++)
-                {
-                    printf("%f ", pcI[idx]);
-                }
-                printf("\n");
-            }
-            printf("\n");
-
-            printf("ci:\n");
-            for (int idx = 0,i = 0;i < ni;i++)
-            {
-                for (int j = 0;j < N;j++,idx++)
-                {
-                    printf("%f ", pci[idx]);
-                }
-                printf("\n");
-            }
-            printf("\n");
-
             int sizeIIR[] = {nI, nI, R};
             int sizeiiR[] = {ni, ni, R};
             int sizeAAR[] = {nA, nA, R};

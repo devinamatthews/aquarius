@@ -312,17 +312,16 @@ class LocalTensor : public IndexableTensor<Derived,T>
         T* getData() { return data_; };
 
         const T* getData() const { return data_; };
-};
 
-template <typename Derived, typename T>
-struct Scalar<IndexedTensorMult<Derived,T>, typename std::enable_if<std::is_base_of<LocalTensor<Derived,T>,Derived>::value>::type>
-{
-    static T value(const IndexedTensorMult<Derived,T>& other)
-    {
-        Derived dt(other, (T)0);
-        dt[""] = other;
-        return dt.getData()[0];
-    }
+        T dot(bool conja, const Derived& A, const int* idx_A,
+              bool conjb,                   const int* idx_B) const
+        {
+            Derived dt(A, 0);
+            dt.mult(1, conja,            A, idx_A,
+                       conjb, getDerived(), idx_B,
+                    0,                       NULL);
+            return dt.getData()[0];
+        }
 };
 
 }

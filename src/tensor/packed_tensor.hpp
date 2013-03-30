@@ -59,24 +59,21 @@ class PackedTensor : public LocalTensor<PackedTensor<T>,T>
 
     public:
         PackedTensor(const PackedTensor& t, const T val)
-        : Tensor<PackedTensor<T>,T>(*this),
-          LocalTensor<PackedTensor,T>(t, val)
+        : LocalTensor<PackedTensor,T>(t, val)
         {
             sym_ = SAFE_MALLOC(int, 1);
             sym_[0] = NS;
         }
 
         PackedTensor(const PackedTensor<T>& A, const typename LocalTensor<PackedTensor<T>,T>::CopyType type=CLONE)
-        : Tensor<PackedTensor<T>,T>(*this),
-          LocalTensor< PackedTensor<T>,T >(A, type)
+        : LocalTensor< PackedTensor<T>,T >(A, type)
         {
             sym_ = SAFE_MALLOC(int, ndim_);
             std::copy(A.sym_, A.sym_+ndim_, sym_);
         }
 
         PackedTensor(const int ndim, const int *len, const int *sym, T* data, const bool zero=false)
-        : Tensor<PackedTensor<T>,T>(*this),
-          LocalTensor< PackedTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL, sym), data, zero)
+        : LocalTensor< PackedTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL, sym), data, zero)
         {
             #ifdef VALIDATE_INPUTS
             VALIDATE_TENSOR_THROW(ndim, len, NULL, sym);
@@ -87,8 +84,7 @@ class PackedTensor : public LocalTensor<PackedTensor<T>,T>
         }
 
         PackedTensor(const int ndim, const int *len, const int *sym, const bool zero=true)
-        : Tensor<PackedTensor<T>,T>(*this),
-          LocalTensor< PackedTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL, sym), zero)
+        : LocalTensor< PackedTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL, sym), zero)
         {
             #ifdef VALIDATE_INPUTS
             VALIDATE_TENSOR_THROW(ndim, len, NULL, sym);
@@ -99,8 +95,7 @@ class PackedTensor : public LocalTensor<PackedTensor<T>,T>
         }
 
         PackedTensor(const int ndim, const int *len, const int *ld, const int *sym, T* data, const bool zero=false)
-        : Tensor<PackedTensor<T>,T>(*this),
-          LocalTensor< PackedTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld, sym), data, zero)
+        : LocalTensor< PackedTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld, sym), data, zero)
         {
             #ifdef VALIDATE_INPUTS
             VALIDATE_TENSOR_THROW(ndim, len, ld, sym);
@@ -111,8 +106,7 @@ class PackedTensor : public LocalTensor<PackedTensor<T>,T>
         }
 
         PackedTensor(const int ndim, const int *len, const int *ld, const int *sym, const bool zero=true)
-        : Tensor<PackedTensor<T>,T>(*this),
-          LocalTensor< PackedTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld, sym), zero)
+        : LocalTensor< PackedTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld, sym), zero)
         {
             #ifdef VALIDATE_INPUTS
             VALIDATE_TENSOR_THROW(ndim, len, ld, sym);

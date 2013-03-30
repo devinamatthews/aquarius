@@ -120,6 +120,8 @@ class mat3x3
                double m10, double m11, double m12,
                double m20, double m21, double m22);
 
+        const mat3x3 operator^(int p) const;
+
         column operator[](int i);
 
         const column operator[](int i) const;

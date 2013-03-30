@@ -236,6 +236,8 @@ class AOMOIntegrals : public MOIntegrals<T>
                 assert(recvoff[nproc-1]+recvcount[nproc-1] == nnewints*sizeof(integral_t<T>));
                 assert(sendoff[nproc-1]+sendcount[nproc-1] == nints*sizeof(integral_t<T>));
 
+                assert(allsum((long)nints) == allsum((long)nnewints));
+
                 FREE(rscountall);
 
                 integral_t<T>* newints = SAFE_MALLOC(integral_t<T>, nnewints);
@@ -253,6 +255,8 @@ class AOMOIntegrals : public MOIntegrals<T>
                 nints = nnewints;
                 std::swap(ints, newints);
                 FREE(newints);
+
+                std::sort(ints, ints+nints, sortIntsByRS);
             }
         };
 
@@ -276,12 +280,14 @@ class AOMOIntegrals : public MOIntegrals<T>
                 nr = pqrs.nr;
                 ns = pqrs.ns;
 
-                nrs = 1;
+                nrs = (pqrs.nints > 0 ? 1 : 0);
                 for (size_t ipqrs = 1;ipqrs < pqrs.nints;ipqrs++)
                 {
                     if (pqrs.ints[ipqrs].idx.k != pqrs.ints[ipqrs-1].idx.k ||
                         pqrs.ints[ipqrs].idx.l != pqrs.ints[ipqrs-1].idx.l) nrs++;
                 }
+
+                assert(allsum((long)nrs) <= nr*ns);
 
                 rs = SAFE_MALLOC(idx2_t, nrs);
                 nints = nrs*na*nb;
@@ -289,10 +295,13 @@ class AOMOIntegrals : public MOIntegrals<T>
                 std::fill(ints, ints+nints, (T)0);
 
                 size_t ipqrs = 0, irs = 0, iabrs = 0;
-                rs[0].i = pqrs.ints[0].idx.k;
-                rs[0].j = pqrs.ints[0].idx.l;
-                assert(rs[0].i >= 0 && rs[0].i < nr);
-                assert(rs[0].j >= 0 && rs[0].j < ns);
+                if (nrs > 0)
+                {
+                    rs[0].i = pqrs.ints[0].idx.k;
+                    rs[0].j = pqrs.ints[0].idx.l;
+                    assert(rs[0].i >= 0 && rs[0].i < nr);
+                    assert(rs[0].j >= 0 && rs[0].j < ns);
+                }
                 for (;ipqrs < pqrs.nints;ipqrs++)
                 {
                     assert(ipqrs >= 0 && ipqrs < pqrs.nints);
@@ -319,8 +328,8 @@ class AOMOIntegrals : public MOIntegrals<T>
                     if (p != q && pleq)
                         ints[iabrs+q+p*na] = pqrs.ints[ipqrs].value;
                 }
-                assert(irs == nrs-1);
-                assert(iabrs == nints-na*nb);
+                assert(irs == nrs-1 || nrs == 0);
+                assert(iabrs == nints-na*nb || nrs == 0);
                 assert(ipqrs == pqrs.nints);
             }
 
@@ -341,6 +350,8 @@ class AOMOIntegrals : public MOIntegrals<T>
                     out.na = nc;
                     out.nints = nrs*nc*nb;
                     out.ints = SAFE_MALLOC(T, out.nints);
+
+                    if (nc == 0) return out;
 
                     size_t iin = 0;
                     size_t iout = 0;
@@ -369,6 +380,8 @@ class AOMOIntegrals : public MOIntegrals<T>
                     out.nints = nrs*na*nc;
                     out.ints = SAFE_MALLOC(T, out.nints);
 
+                    if (nc == 0) return out;
+
                     size_t iin = 0;
                     size_t iout = 0;
                     for (size_t irs = 0;irs < nrs;irs++)
@@ -396,7 +409,7 @@ class AOMOIntegrals : public MOIntegrals<T>
 
             void transcribe(tensor::DistTensor<T>& tensor, bool assymij, bool assymkl, bool reverse)
             {
-                assert(nr*ns == nrs);
+                assert(nr*ns == allsum((long)nrs));
 
                 if (reverse)
                 {
@@ -500,7 +513,9 @@ class AOMOIntegrals : public MOIntegrals<T>
                             for (int a = 0;a < na;a++)
                             {
                                 if ((!assymij || a < r) && (!assymkl || b < s))
+                                {
                                     pairs.push_back(tkv_pair<T>(((s*nb+b)*nr+r)*na+a, ints[idx]));
+                                }
                                 idx++;
                             }
                         }
@@ -582,12 +597,10 @@ class AOMOIntegrals : public MOIntegrals<T>
 
             int sizeAAII[] = {nA, nA, nI, nI};
             int sizeaaii[] = {na, na, ni, ni};
-            //int sizeIIII[] = {nI, nI, nI, nI};
             int shapeNNNN[] = {NS, NS, NS, NS};
 
             tensor::DistTensor<T> ABIJ__(this->ctf, 4, sizeAAII, shapeNNNN, false);
             tensor::DistTensor<T> abij__(this->ctf, 4, sizeaaii, shapeNNNN, false);
-            //tensor::DistTensor<T> IJKL__(this->ctf, 4, sizeIIII, shapeNNNN, false);
 
             int64_t npair;
             T *cA, *ca, *cI, *ci;
@@ -603,50 +616,6 @@ class AOMOIntegrals : public MOIntegrals<T>
             assert(npair == N*nI);
             this->uhf.getCi().getAllData(npair, ci);
             assert(npair == N*ni);
-
-            printf("cA:\n");
-            for (int idx = 0,i = 0;i < nA;i++)
-            {
-                for (int j = 0;j < N;j++,idx++)
-                {
-                    printf("%f ", cA[idx]);
-                }
-                printf("\n");
-            }
-            printf("\n");
-
-            printf("ca:\n");
-            for (int idx = 0,i = 0;i < na;i++)
-            {
-                for (int j = 0;j < N;j++,idx++)
-                {
-                    printf("%f ", ca[idx]);
-                }
-                printf("\n");
-            }
-            printf("\n");
-
-            printf("cI:\n");
-            for (int idx = 0,i = 0;i < nI;i++)
-            {
-                for (int j = 0;j < N;j++,idx++)
-                {
-                    printf("%f ", cI[idx]);
-                }
-                printf("\n");
-            }
-            printf("\n");
-
-            printf("ci:\n");
-            for (int idx = 0,i = 0;i < ni;i++)
-            {
-                for (int j = 0;j < N;j++,idx++)
-                {
-                    printf("%f ", ci[idx]);
-                }
-                printf("\n");
-            }
-            printf("\n");
 
             /*
              * Resort integrals so that each node has (pq|r_k s_l) where pq
@@ -861,7 +830,6 @@ class AOMOIntegrals : public MOIntegrals<T>
             akij.transcribe(*this->ijka_, true, false, true);
             akij.free();
             klij.transcribe(*this->ijkl_, true, true, false);
-            //klij.transcribe(IJKL__, false, false, false);
             klij.free();
 
             /*
@@ -873,21 +841,22 @@ class AOMOIntegrals : public MOIntegrals<T>
             /*
              * Make <AB||IJ> and <ab||ij>
              */
-            (*this->ABIJ_)["ABIJ"] = 0.5*ABIJ__["ABIJ"];
-            (*this->abij_)["abij"] = 0.5*abij__["abij"];
+            //(*this->ABIJ_)["ABIJ"] = 0.5*ABIJ__["ABIJ"];
+            //(*this->abij_)["abij"] = 0.5*abij__["abij"];
+            (*this->ABIJ_)["ABIJ"]  = ABIJ__["ABIJ"];
+            (*this->abij_)["abij"]  = abij__["abij"];
+            (*this->ABIJ_)["ABIJ"] -= ABIJ__["ABJI"];
+            (*this->abij_)["abij"] -= abij__["abji"];
 
             /*
              * Make <aI|Bj> = -<Ba|Ij>
              */
             (*this->AibJ_)["AibJ"] -= (*this->AbIj_)["AbJi"];
 
-            free(cA);
-            free(ca);
-            free(cI);
-            free(ci);
-
-            //ABIJ__.print(stdout);
-            //IJKL__.print(stdout);
+            if (nA > 0) free(cA);
+            if (na > 0) free(ca);
+            if (nI > 0) free(cI);
+            if (ni > 0) free(ci);
         }
 };
 

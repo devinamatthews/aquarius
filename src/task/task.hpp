@@ -22,22 +22,66 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_OPERATOR_EXPONENTIALOPERATOR_HPP_
-#define _AQUARIUS_OPERATOR_EXPONENTIALOPERATOR_HPP_
+#ifndef _AQUARIUS_TASK_HPP_
+#define _AQUARIUS_TASK_HPP_
 
-#include "excitationoperator.hpp"
+#include <map>
+#include <utility>
+#include <string>
+
+#include "input/config.hpp"
+#include "stl_ext/stl_ext.hpp"
 
 namespace aquarius
 {
-namespace op
+namespace task
 {
 
-template <typename T, int np, int nh=np>
-class ExponentialOperator : public ExcitationOperator<T,np,nh>
+class Resource
 {
     public:
-        ExponentialOperator(const scf::UHF<T>& uhf)
-        : ExcitationOperator<T,np,nh>(uhf) {}
+        virtual ~Resource() {};
+
+        virtual bool operator==(const Resource& other) = 0;
+
+        virtual Task* defaultProvider() = 0;
+};
+
+class Task
+{
+    protected:
+        std::map<std::string,Resource*> requirements;
+        std::map<std::string,Resource*> products;
+        bool hasRun_;
+        bool wasSuccessful_;
+
+    public:
+        Task() : hasRun_(false), wasSuccessful_(false) {}
+
+        virtual ~Task()
+        {
+            for (std::map<std::string,Resource*>::iterator i = requirements.begin();i != requirements.end();++i)
+            {
+                delete i->second;
+            }
+
+            for (std::map<std::string,Resource*>::iterator i = products.begin();i != products.end();++i)
+            {
+                delete i->second;
+            }
+        }
+
+        virtual void configure(const input::Config& config) = 0;
+
+        virtual void run() = 0;
+
+        bool hasRun() const { return hasRun_; }
+
+        bool wasSuccessful() const { return wasSuccessful_; }
+
+        const std::map<std::string,Resource*>& requires() const { return requirements; }
+
+        const std::map<std::string,Resource*>& provides() const { return products; }
 };
 
 }

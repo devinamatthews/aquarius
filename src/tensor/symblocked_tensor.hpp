@@ -55,8 +55,7 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
 
     public:
         SymmetryBlockedTensor(tCTF_World<T>& ctf, const symmetry::PointGroup& group)
-        : Tensor<SymmetryBlockedTensor<T>,T>(*this),
-          IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(0, 0), Distributed<T>(ctf),
+        : IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(0, 0), Distributed<T>(ctf),
           group_(group), len_(), sym_()
         {
             tensors_.resize(1, NULL);
@@ -64,14 +63,12 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
         }
 
         SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other)
-        : Tensor<SymmetryBlockedTensor<T>,T>(*this),
-          IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(other), Distributed<T>(other.ctf),
+        : IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(other), Distributed<T>(other.ctf),
           group_(other.group_), len_(other.len_), sym_(other.sym_) {}
 
         SymmetryBlockedTensor(tCTF_World<T>& ctf, const symmetry::PointGroup& group,
                               const int ndim, const int **len, const int *sym, const bool zero=true)
-        : Tensor<SymmetryBlockedTensor<T>,T>(*this),
-          IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(ndim, 0), Distributed<T>(ctf),
+        : IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(ndim, 0), Distributed<T>(ctf),
           group_(group), len_(ndim), sym_(ndim)
         {
             int n = group.getNumIrreps();

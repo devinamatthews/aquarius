@@ -38,29 +38,124 @@ template <typename U>
 class OneElectronDensity : public op::OneElectronOperator<U>
 {
     public:
+        /*
+         * Form the SCF density
+         */
         OneElectronDensity(const scf::UHF<U>& uhf)
         : op::OneElectronOperator<U>(uhf)
         {
-            //TODO: SCF density
+            //TODO
             assert(0);
         }
 
-        OneElectronDensity(const DeexcitationOperator<U,2>& L, const ExponentialOperator<U,2>& T)
-        : op::OneElectronOperator<U>(L.getSCF())
+        /*
+         * Form the unrelaxed CCSD density
+         */
+        OneElectronDensity(const op::ExponentialOperator<U,2>& T)
+        : op::OneElectronOperator<U>(T.uhf)
         {
-            this->ia["ijab"] = -L(1)["ia"];
-
-            this->ab["ab"] = -0.5*T(2)["aemn"]*L(2)["mnbe"];
-
-            this->ij["ij"] = T(1)["ei"]*L(1)["je"];
-            this->ij["ij"] += 0.5*T(2)["efim"]*L(2)["jmef"];
-
             this->ai["ai"] = T(1)["ai"];
-            this->ai["ai"] -= T(2)["aeim"]*L(1)["me"];
+        }
+
+        /*
+         * Form the partial perturbed CCSD Density
+         */
+        OneElectronDensity(const op::DeexcitationOperator<U,2>& L,
+                           const op::ExponentialOperator<U,2>& T,
+                           const op::ExcitationOperator<U,2>& TA)
+        : op::OneElectronOperator<U>(L.uhf)
+        {
+            op::OneElectronOperator<U> I(this->uhf);
+
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IIJ = I.getIJ();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IAB = I.getAB();
+
+            IAB["ab"] = 0.5*T(2)["aemn"]*L(2)["mnbe"];
+            IIJ["ij"] = 0.5*T(2)["efim"]*L(2)["jmef"];
+
+            this->ab["ab"] += TA(1)["am"]*L(1)["mb"];
+            this->ab["ab"] += 0.5*TA(2)["aemn"]*L(2)["mnbe"];
+
+            this->ij["ij"] -= TA(1)["ei"]*L(1)["je"];
+            this->ij["ij"] -= 0.5*TA(2)["efim"]*L(2)["jmef"];
+
+            this->ai["ai"] += TA(1)["ai"];
+            this->ai["ai"] += TA(2)["aeim"]*L(1)["me"];
+            this->ai["ai"] += this->ij["mi"]*T(1)["am"];
+            this->ai["ai"] -= this->ab["ae"]*T(1)["ei"];
+            this->ai["ai"] -= IIJ["mi"]*TA(1)["am"];
+            this->ai["ai"] -= IAB["ae"]*TA(1)["ei"];
+        }
+
+        /*
+         * Form the relaxed CCSD density
+         */
+        OneElectronDensity(const op::DeexcitationOperator<U,2>& L,
+                           const op::ExponentialOperator<U,2>& T)
+        : op::OneElectronOperator<U>(L.uhf)
+        {
+            this->ia["ia"] += L(1)["ia"];
+
+            this->ab["ab"] += 0.5*T(2)["aemn"]*L(2)["mnbe"];
+
+            this->ij["ij"] -= T(1)["ei"]*L(1)["je"];
+            this->ij["ij"] -= 0.5*T(2)["efim"]*L(2)["jmef"];
+
+            this->ai["ai"] += T(1)["ai"];
+            this->ai["ai"] += T(2)["aeim"]*L(1)["me"];
             this->ai["ai"] += this->ij["mi"]*T(1)["am"];
             this->ai["ai"] -= this->ab["ae"]*T(1)["ei"];
 
-            this->ab["ab"] -= T(1)["am"]*L(1)["mb"];
+            this->ab["ab"] += T(1)["am"]*L(1)["mb"];
+        }
+
+        /*
+         * Form the relaxed perturbed CCSD Density
+         */
+        OneElectronDensity(const op::DeexcitationOperator<U,2>& L,
+                           const op::DeexcitationOperator<U,2>& LA,
+                           const op::ExponentialOperator<U,2>& T,
+                           const op::ExcitationOperator<U,2>& TA)
+        : op::OneElectronOperator<U>(L.uhf)
+        {
+            op::OneElectronOperator<U> I(this->uhf);
+
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IIJ = I.getIJ();
+            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IAB = I.getAB();
+
+            this->ia["ia"] += LA(1)["ia"];
+
+            this->ab["ab"] += 0.5*T(2)["aemn"]*LA(2)["mnbe"];
+
+            this->ij["ij"] -= T(1)["ei"]*LA(1)["je"];
+            this->ij["ij"] -= 0.5*T(2)["efim"]*LA(2)["jmef"];
+
+            this->ai["ai"] += T(1)["ai"];
+            this->ai["ai"] += T(2)["aeim"]*LA(1)["me"];
+            this->ai["ai"] += this->ij["mi"]*T(1)["am"];
+            this->ai["ai"] -= this->ab["ae"]*T(1)["ei"];
+
+            this->ab["ab"] += T(1)["am"]*LA(1)["mb"];
+
+            IAB["ab"]  = TA(1)["am"]*L(1)["mb"];
+            IAB["ab"] += 0.5*TA(2)["aemn"]*L(2)["mnbe"];
+
+            this->ab["ab"] += IAB["ab"];
+            this->ij["ij"] -= IIJ["ij"];
+
+            IIJ["ij"]  = TA(1)["ei"]*L(1)["je"];
+            IIJ["ij"] += 0.5*TA(2)["efim"]*L(2)["jmef"];
+
+            this->ai["ai"] += TA(1)["ai"];
+            this->ai["ai"] += TA(2)["aeim"]*L(1)["me"];
+            this->ai["ai"] -= IIJ["mi"]*T(1)["am"];
+            this->ai["ai"] -= IAB["ae"]*T(1)["ei"];
+
+            IAB["ab"] = 0.5*T(2)["aemn"]*L(2)["mnbe"];
+            IIJ["ij"] = 0.5*T(2)["efim"]*L(2)["jmef"];
+
+            this->ai["ai"] -= IIJ["mi"]*TA(1)["am"];
+            this->ai["ai"] -= IAB["ae"]*TA(1)["ei"];
         }
 };
 

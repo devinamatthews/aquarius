@@ -22,8 +22,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_CC_MULTIPOLE_HPP_
-#define _AQUARIUS_CC_MULTIPOLE_HPP_
+#ifndef _AQUARIUS_OPERATOR_MULTIPOLE_HPP_
+#define _AQUARIUS_OPERATOR_MULTIPOLE_HPP_
 
 #include "slide/slide.hpp"
 #include "scf/scf.hpp"
@@ -36,15 +36,15 @@ namespace op
 {
 
 template <typename T>
-class Multipole : public Distributed<T>
+class Multipole : public MOOperator<T>, public tensor::CompositeTensor<Multipole<T>,OneElectronOperator<T>,T>
 {
     protected:
-        std::vector< std::vector< OneElectronOperator<T>* > > components;
         const int Lmin, Lmax;
 
     public:
-        Multipole(const scf::UHF<T>& uhf, const int Lmin, const int Lmax)
-        : Distributed<T>(uhf.ctf), components(Lmax+1-Lmin), Lmin(Lmin), Lmax(Lmax)
+        Multipole(const scf::UHF<T>& uhf, const int Lmin, const int Lmax=Lmin)
+        : MOOperator<T>(uhf), tensor::CompositeTensor<Multipole<T>,
+              OneElectronOperator<T>,T>((Lmax+1)*(Lmax+2)*(Lmax+3)/6-Lmin*(Lmin+1)*(Lmin+2)/6)
         {
             slide::Context context;
             const input::Molecule& m = uhf.getMolecule();
@@ -53,6 +53,7 @@ class Multipole : public Distributed<T>
             int sizeNN[] = {N, N};
             int shapeNN[] = {NS, NS};
 
+            int xyztot = 0;
             for (int L = Lmin;L <= Lmax;L++)
             {
                 std::vector< tensor::DistTensor<T>* > ao;
@@ -77,25 +78,14 @@ class Multipole : public Distributed<T>
                 for (int xyz = 0;xyz < (L+1)*(L+2)/2;xyz++)
                 {
                     ao[xyz]->writeRemoteData(pairs[xyz].size(), pairs[xyz].data());
-                    components[L-Lmin][xyz] = new OneElectronOperator(uhf, *ao[xyz]);
-                }
-            }
-        }
-
-        ~Multipole()
-        {
-            for (int i = 0;i < components.size();i++)
-            {
-                for (int j = 0;j < components[i].size();j++)
-                {
-                    delete components[i][j];
+                    this->tensors_[xyztot++].tensor_ = new OneElectronOperator<T>(uhf, *ao[xyz]);
                 }
             }
         }
 
         const OneElectronOperator<T>& operator()(const int L, const int xyz) const
         {
-            return *components[L-Lmin][xyz];
+            return (*this)(L*(L+1)*(L+2)/6+xyz);
         }
 
         const OneElectronOperator<T>& operator()(const int x, const int y, const int z) const

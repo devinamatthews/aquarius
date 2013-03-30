@@ -343,7 +343,7 @@ static const mat3x3 td_ops[] = {Identity(),
                                 Reflection(vec3( 0, 1, 1)),
                                 Reflection(vec3( 0, 1,-1))};
 static const char *td_op_names[] = {"E",
-                                    "C3+++", "C3+++^2", "C3+--", "C3+--^2", "C3-+-", "C3-+-^2", "C3--+", "C3--+^2",
+                                    "C3+++", "C3---", "C3+--", "C3-++", "C3-+-", "C3+-+", "C3--+", "C3++-",
                                     "C2x", "C2y", "C2z",
                                     "S4x", "S4x^3", "S4y", "S4y^3", "S4z", "S4z^3",
                                     "sx+y", "sx-y", "sx+z", "sx-z", "sy+z", "sy-z"};
@@ -361,10 +361,335 @@ const PointGroup PointGroup::Td = PointGroup(24, 5, td_name, td_dirprd, td_irrep
 /*
  * Oh
  */
+#define A1g Representation(PointGroup::Oh, 0x001)
+#define A2g Representation(PointGroup::Oh, 0x002)
+#define Eg  Representation(PointGroup::Oh, 0x004)
+#define T1g Representation(PointGroup::Oh, 0x008)
+#define T2g Representation(PointGroup::Oh, 0x010)
+#define A1u Representation(PointGroup::Oh, 0x020)
+#define A2u Representation(PointGroup::Oh, 0x040)
+#define Eu  Representation(PointGroup::Oh, 0x080)
+#define T1u Representation(PointGroup::Oh, 0x100)
+#define T2u Representation(PointGroup::Oh, 0x200)
+
+static const char *oh_name = "Oh";
+static const Representation oh_dirprd[] = {A1g, A2g,         Eg,            T1g,            T2g, A1u, A2u,         Eu,            T1u,            T2u,
+                                           A2g, A1g,         Eg,            T2g,            T1g, A2u, A1u,         Eu,            T2u,            T1u,
+                                            Eg,  Eg, A1g+A2g+Eg,        T1g+T2g,        T1g+T2g,  Eu,  Eu, A1u+A2u+Eu,        T1u+T2u,        T1u+T2u,
+                                           T1g, T2g,    T1g+T2g, A1g+Eg+T1g+T2g, A2g+Eg+T1g+T2g, T1u, T2u,    T1u+T2u, A1u+Eu+T1u+T2u, A2u+Eu+T1u+T2u,
+                                           T2g, T1g,    T1g+T2g, A2g+Eg+T1g+T2g, A1g+Eg+T1g+T2g, T2u, T1u,    T1u+T2u, A2u+Eu+T1u+T2u, A1u+Eu+T1u+T2u,
+                                           A1u, A2u,         Eu,            T1u,            T2u, A1g, A2g,         Eg,            T1g,            T2g,
+                                           A2u, A1u,         Eu,            T2u,            T1u, A2g, A1g,         Eg,            T2g,            T1g,
+                                            Eu,  Eu, A1u+A2u+Eu,        T1u+T2u,        T1u+T2u,  Eg,  Eg, A1g+A2g+Eg,        T1g+T2g,        T1g+T2g,
+                                           T1u, T2u,    T1u+T2u, A1u+Eu+T1u+T2u, A2u+Eu+T1u+T2u, T1g, T2g,    T1g+T2g, A1g+Eg+T1g+T2g, A2g+Eg+T1g+T2g,
+                                           T2u, T1u,    T1u+T2u, A2u+Eu+T1u+T2u, A1u+Eu+T1u+T2u, T2g, T1g,    T1g+T2g, A2g+Eg+T1g+T2g, A1g+Eg+T1g+T2g};
+static const Representation oh_irreps[] = {A1g,A2g,Eg,T1g,T2g,A1u,A2u,Eu,T1u,T2u};
+static const char *oh_irrep_names[] = {"A1g","A2g","Eg","T1g","T2g","A1u","A2u","Eu","T1u","T2u"};
+static const double oh_characters[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                        1, 1, 1, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1,
+                                        2,-1,-1,-1,-1,-1,-1,-1,-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1, 2, 2, 2, 0, 0, 0, 0, 0, 0,
+                                        3, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1, 1, 1, 1, 1, 1, 1,-1,-1,-1, 3, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+                                        3, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 3,-1,-1,-1,-1,-1,-1, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1, 1, 1, 1, 1, 1, 1,
+                                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+                                        1, 1, 1, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 1, 1,-1, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 1, 1, 1, 1, 1,
+                                        2,-1,-1,-1,-1,-1,-1,-1,-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2,-2, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,-2,-2,-2, 0, 0, 0, 0, 0, 0,
+                                        3, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1, 1, 1, 1, 1, 1, 1,-1,-1,-1,-3,-1,-1,-1,-1,-1,-1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                        3, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,-1,-1,-1,-1,-1,-1};
+static const int oh_irrep_degen[] = {1,1,2,3,3,1,1,2,3,3};
+static const mat3x3 oh_ops[] = {Identity(),
+                                C<3>(vec3( 1, 1, 1)),
+                                C<3>(vec3(-1,-1,-1)),
+                                C<3>(vec3( 1,-1,-1)),
+                                C<3>(vec3(-1, 1, 1)),
+                                C<3>(vec3(-1, 1,-1)),
+                                C<3>(vec3( 1,-1, 1)),
+                                C<3>(vec3(-1,-1, 1)),
+                                C<3>(vec3( 1, 1,-1)),
+                                C<2>(vec3( 1, 1, 0)),
+                                C<2>(vec3( 1, 0, 1)),
+                                C<2>(vec3( 0, 1, 1)),
+                                C<2>(vec3( 1,-1, 0)),
+                                C<2>(vec3( 1, 0,-1)),
+                                C<2>(vec3( 0, 1,-1)),
+                                C<4>(vec3( 1, 0, 0)),
+                                C<4>(vec3(-1, 0, 0)),
+                                C<4>(vec3( 0, 1, 0)),
+                                C<4>(vec3( 0,-1, 0)),
+                                C<4>(vec3( 0, 0, 1)),
+                                C<4>(vec3( 0, 0,-1)),
+                                C<2>(vec3( 1, 0, 0)),
+                                C<2>(vec3( 0, 1, 0)),
+                                C<2>(vec3( 0, 0, 1)),
+                                Inversion(),
+                                S<4>(vec3( 1, 0, 0)),
+                                S<4>(vec3(-1, 0, 0)),
+                                S<4>(vec3( 0, 1, 0)),
+                                S<4>(vec3( 0,-1, 0)),
+                                S<4>(vec3( 0, 0, 1)),
+                                S<4>(vec3( 0, 0,-1)),
+                                S<6>(vec3( 1, 1, 1)),
+                                S<6>(vec3(-1,-1,-1)),
+                                S<6>(vec3( 1,-1,-1)),
+                                S<6>(vec3(-1, 1, 1)),
+                                S<6>(vec3(-1, 1,-1)),
+                                S<6>(vec3( 1,-1, 1)),
+                                S<6>(vec3(-1,-1, 1)),
+                                S<6>(vec3( 1, 1,-1)),
+                                Reflection(vec3( 0, 0, 1)),
+                                Reflection(vec3( 0, 1, 0)),
+                                Reflection(vec3( 1, 0, 0)),
+                                Reflection(vec3( 1, 1, 0)),
+                                Reflection(vec3( 1,-1, 0)),
+                                Reflection(vec3( 1, 0, 1)),
+                                Reflection(vec3( 1, 0,-1)),
+                                Reflection(vec3( 0, 1, 1)),
+                                Reflection(vec3( 0, 1,-1))};
+static const char *oh_op_names[] = {"E",
+                                    "C3+++", "C3---", "C3+--", "C3-++", "C3-+-", "C3+-+", "C3--+", "C3++-",
+                                    "C2x+y", "C2x+z", "C2y+z", "C2x-y", "C2x-z", "C2y-z",
+                                    "C4x", "C4x^3", "C4y", "C4y^3", "C4z", "C4z^3",
+                                    "C2x", "C2y", "C2z",
+                                    "i",
+                                    "S4x", "S4x^3", "S4y", "S4y^3", "S4z", "S4z^3",
+                                    "S6+++", "S6---", "S6+--", "S6-++", "S6-+-", "S6+-+", "S6--+", "S6++-",
+                                    "sxy", "sxz", "syz",
+                                    "sx+y", "sx-y", "sx+z", "sx-z", "sy+z", "sy-z"};
+
+const PointGroup PointGroup::Oh = PointGroup(48, 10, oh_name, oh_dirprd, oh_irreps,
+                                             oh_irrep_names, oh_characters, oh_irrep_degen,
+                                             oh_ops, oh_op_names);
+
+#undef A1g
+#undef A2g
+#undef Eg
+#undef T1g
+#undef T2g
+#undef A1u
+#undef A2u
+#undef Eu
+#undef T1u
+#undef T2u
 
 /*
  * Ih
  */
+#define Ag  Representation(PointGroup::Ih, 0x001)
+#define T1g Representation(PointGroup::Ih, 0x002)
+#define T2g Representation(PointGroup::Ih, 0x004)
+#define Gg  Representation(PointGroup::Ih, 0x008)
+#define Hg  Representation(PointGroup::Ih, 0x010)
+#define Au  Representation(PointGroup::Ih, 0x020)
+#define T1u Representation(PointGroup::Ih, 0x040)
+#define T2u Representation(PointGroup::Ih, 0x080)
+#define Gu  Representation(PointGroup::Ih, 0x100)
+#define Hu  Representation(PointGroup::Ih, 0x200)
+
+#define e1 (2*cos(M_PI*0.4)) // also equals 1/phi = phi-1
+#define e2 (2*cos(M_PI*0.8)) // also equals -1/e1 = -phi
+
+#define avv 1.1071487177940904 // angle between vertices
+#define avf 0.6523581397843685 // angle between vertex and face center
+#define aff 0.7297276562269659 // angle between face centers
+                               // avv+aff+2*avf = pi
+
+#define a cos( avv)       // vector to vertex in yz plane
+#define b sin( avv)       //
+#define c cos( avf)       // vector to center of upper face in yz plane
+#define d sin(-avf)       //
+#define e cos( avf+aff)   // vector to center of upper-mid face in yz plane
+#define f sin(-avf-aff)   //
+#define g cos( avv/2)     // vector to midpoint of upper edge in yz plane
+#define h sin( avv/2)     //
+#define i cos( avf+aff/2) // vector to midpoint of upper edge perp. to yz plane
+#define j sin(-avf-aff/2) //
+
+static const char *ih_name = "Ih";
+static const Representation ih_dirprd[] = { Ag,           T1g,           T2g,               Gg,               Hg,  Au,           T1u,           T2u,               Gu,               Hu,
+                                           T1g,     Ag+T1g+Hg,         Gg+Hg,        T2g+Gg+Hg,    T1g+T2g+Gg+Hg, T1u,     Au+T1u+Hu,         Gu+Hu,        T2u+Gu+Hu,    T1u+T2u+Gu+Hu,
+                                           T2g,         Gg+Hg,     Ag+T2g+Hg,        T1g+Gg+Hg,    T1g+T2g+Gg+Hg, T2u,         Gu+Hu,     Au+T2u+Hu,        T1u+Gu+Hu,    T1u+T2u+Gu+Hu,
+                                            Gg,     T2g+Gg+Hg,     T1g+Gg+Hg, Ag+T1g+T2g+Gg+Hg,    T1g+T2g+Gg+Hg,  Gu,     T2u+Gu+Hu,     T1u+Gu+Hu, Au+T1u+T2u+Gu+Hu,    T1u+T2u+Gu+Hu,
+                                            Hg, T1g+T2g+Gg+Hg, T1g+T2g+Gg+Hg,    T1g+T2g+Gg+Hg, Ag+T1g+T2g+Gg+Hg,  Hu, T1u+T2u+Gu+Hu, T1u+T2u+Gu+Hu,    T1u+T2u+Gu+Hu, Au+T1u+T2u+Gu+Hu,
+                                            Au,           T1u,           T2u,               Gu,               Hu,  Ag,           T1g,           T2g,               Gg,               Hg,
+                                           T1u,     Au+T1u+Hu,         Gu+Hu,        T2u+Gu+Hu,    T1u+T2u+Gu+Hu, T1g,     Ag+T1g+Hg,         Gg+Hg,        T2g+Gg+Hg,    T1g+T2g+Gg+Hg,
+                                           T2u,         Gu+Hu,     Au+T2u+Hu,        T1u+Gu+Hu,    T1u+T2u+Gu+Hu, T2g,         Gg+Hg,     Ag+T2g+Hg,        T1g+Gg+Hg,    T1g+T2g+Gg+Hg,
+                                            Gu,     T2u+Gu+Hu,     T1u+Gu+Hu, Au+T1u+T2u+Gu+Hu,    T1u+T2u+Gu+Hu,  Gg,     T2g+Gg+Hg,     T1g+Gg+Hg, Ag+T1g+T2g+Gg+Hg,    T1g+T2g+Gg+Hg,
+                                            Hu, T1u+T2u+Gu+Hu, T1u+T2u+Gu+Hu,    T1u+T2u+Gu+Hu, Au+T1u+T2u+Gu+Hu,  Hg, T1g+T2g+Gg+Hg, T1g+T2g+Gg+Hg,    T1g+T2g+Gg+Hg, Ag+T1g+T2g+Gg+Hg};
+static const Representation ih_irreps[] = {Ag,T1g,T2g,Gg,Hg,Au,T1u,T2u,Gu,Hu};
+static const char *ih_irrep_names[] = {"Ag","T1g","T2g","Hg","Gg","Au","T1u","T2u","Hu","Gu"};
+static const double ih_characters[] = { 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                        3,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 3,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+                                        3,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 3,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+                                        4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        5,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                        1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+                                        3,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-3, e1, e1, e1, e1, e1, e1, e1, e1, e1, e1, e1, e1, e2, e2, e2, e2, e2, e2, e2, e2, e2, e2, e2, e2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                        3,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e1,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2,-e2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-3, e2, e2, e2, e2, e2, e2, e2, e2, e2, e2, e2, e2, e1, e1, e1, e1, e1, e1, e1, e1, e1, e1, e1, e1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                        4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,-4,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        5,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-5,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+static const int ih_irrep_degen[] = {1,3,3,4,5,1,3,3,4,5};
+static const mat3x3 ih_ops[] = {Identity(),
+                                C<5>(vec3( 0, 0, 1)),
+                                C<5>(vec3( 0, 0,-1)),
+                                C<5>(vec3( 0, b, a)),
+                                C<5>(vec3( 0,-b,-a)),
+                                C<5>(vec3( 0, b, a)*C<5>(vec3(0,0, 1))),
+                                C<5>(vec3( 0,-b,-a)*C<5>(vec3(0,0, 1))),
+                                C<5>(vec3( 0, b, a)*C<5>(vec3(0,0,-1))),
+                                C<5>(vec3( 0,-b,-a)*C<5>(vec3(0,0,-1))),
+                                C<5>(vec3( 0, b, a)*C<5>(vec3(0,0, 1))^2),
+                                C<5>(vec3( 0,-b,-a)*C<5>(vec3(0,0, 1))^2),
+                                C<5>(vec3( 0, b, a)*C<5>(vec3(0,0,-1))^2),
+                                C<5>(vec3( 0,-b,-a)*C<5>(vec3(0,0,-1))^2),
+                                C<5>(vec3( 0, 0, 1))^2,
+                                C<5>(vec3( 0, 0,-1))^2,
+                                C<5>(vec3( 0, b, a))^2,
+                                C<5>(vec3( 0,-b,-a))^2,
+                                C<5>(vec3( 0, b, a)*C<5>(vec3(0,0, 1)))^2,
+                                C<5>(vec3( 0,-b,-a)*C<5>(vec3(0,0, 1)))^2,
+                                C<5>(vec3( 0, b, a)*C<5>(vec3(0,0,-1)))^2,
+                                C<5>(vec3( 0,-b,-a)*C<5>(vec3(0,0,-1)))^2,
+                                C<5>(vec3( 0, b, a)*C<5>(vec3(0,0, 1))^2)^2,
+                                C<5>(vec3( 0,-b,-a)*C<5>(vec3(0,0, 1))^2)^2,
+                                C<5>(vec3( 0, b, a)*C<5>(vec3(0,0,-1))^2)^2,
+                                C<5>(vec3( 0,-b,-a)*C<5>(vec3(0,0,-1))^2)^2,
+                                C<3>(vec3( 0, d, c)),
+                                C<3>(vec3( 0,-d,-c)),
+                                C<3>(vec3( 0, d, c)*C<5>(vec3(0,0, 1))),
+                                C<3>(vec3( 0,-d,-c)*C<5>(vec3(0,0, 1))),
+                                C<3>(vec3( 0, d, c)*C<5>(vec3(0,0,-1))),
+                                C<3>(vec3( 0,-d,-c)*C<5>(vec3(0,0,-1))),
+                                C<3>(vec3( 0, d, c)*C<5>(vec3(0,0, 1))^2),
+                                C<3>(vec3( 0,-d,-c)*C<5>(vec3(0,0, 1))^2),
+                                C<3>(vec3( 0, d, c)*C<5>(vec3(0,0,-1))^2),
+                                C<3>(vec3( 0,-d,-c)*C<5>(vec3(0,0,-1))^2),
+                                C<3>(vec3( 0, f, e)),
+                                C<3>(vec3( 0,-f,-e)),
+                                C<3>(vec3( 0, f, e)*C<5>(vec3(0,0, 1))),
+                                C<3>(vec3( 0,-f,-e)*C<5>(vec3(0,0, 1))),
+                                C<3>(vec3( 0, f, e)*C<5>(vec3(0,0,-1))),
+                                C<3>(vec3( 0,-f,-e)*C<5>(vec3(0,0,-1))),
+                                C<3>(vec3( 0, f, e)*C<5>(vec3(0,0, 1))^2),
+                                C<3>(vec3( 0,-f,-e)*C<5>(vec3(0,0, 1))^2),
+                                C<3>(vec3( 0, f, e)*C<5>(vec3(0,0,-1))^2),
+                                C<3>(vec3( 0,-f,-e)*C<5>(vec3(0,0,-1))^2),
+                                C<2>(vec3( 0, h, g)),
+                                C<2>(vec3( 0, h, g)*C<5>(vec3(0,0, 1))),
+                                C<2>(vec3( 0, h, g)*C<5>(vec3(0,0,-1))),
+                                C<2>(vec3( 0, h, g)*C<5>(vec3(0,0, 1))^2),
+                                C<2>(vec3( 0, h, g)*C<5>(vec3(0,0,-1))^2),
+                                C<2>(vec3( 0, j, i)),
+                                C<2>(vec3( 0, j, i)*C<5>(vec3(0,0, 1))),
+                                C<2>(vec3( 0, j, i)*C<5>(vec3(0,0,-1))),
+                                C<2>(vec3( 0, j, i)*C<5>(vec3(0,0, 1))^2),
+                                C<2>(vec3( 0, j, i)*C<5>(vec3(0,0,-1))^2),
+                                C<2>(vec3( 0, 1, 0)*C<20>(vec3(0,0,1))),
+                                C<2>(vec3( 0, 1, 0)*C<20>(vec3(0,0,1))*C<5>(vec3(0,0, 1))),
+                                C<2>(vec3( 0, 1, 0)*C<20>(vec3(0,0,1))*C<5>(vec3(0,0,-1))),
+                                C<2>(vec3( 0, 1, 0)*C<20>(vec3(0,0,1))*C<5>(vec3(0,0, 1))^2),
+                                C<2>(vec3( 0, 1, 0)*C<20>(vec3(0,0,1))*C<5>(vec3(0,0,-1))^2),
+                                Inversion(),
+                                S<10>(vec3( 0, 0, 1)),
+                                S<10>(vec3( 0, 0,-1)),
+                                S<10>(vec3( 0, b, a)),
+                                S<10>(vec3( 0,-b,-a)),
+                                S<10>(vec3( 0, b, a)*C<5>(vec3(0,0, 1))),
+                                S<10>(vec3( 0,-b,-a)*C<5>(vec3(0,0, 1))),
+                                S<10>(vec3( 0, b, a)*C<5>(vec3(0,0,-1))),
+                                S<10>(vec3( 0,-b,-a)*C<5>(vec3(0,0,-1))),
+                                S<10>(vec3( 0, b, a)*C<5>(vec3(0,0, 1))^2),
+                                S<10>(vec3( 0,-b,-a)*C<5>(vec3(0,0, 1))^2),
+                                S<10>(vec3( 0, b, a)*C<5>(vec3(0,0,-1))^2),
+                                S<10>(vec3( 0,-b,-a)*C<5>(vec3(0,0,-1))^2),
+                                S<10>(vec3( 0, 0, 1))^3,
+                                S<10>(vec3( 0, 0,-1))^3,
+                                S<10>(vec3( 0, b, a))^3,
+                                S<10>(vec3( 0,-b,-a))^3,
+                                S<10>(vec3( 0, b, a)*C<5>(vec3(0,0, 1)))^3,
+                                S<10>(vec3( 0,-b,-a)*C<5>(vec3(0,0, 1)))^3,
+                                S<10>(vec3( 0, b, a)*C<5>(vec3(0,0,-1)))^3,
+                                S<10>(vec3( 0,-b,-a)*C<5>(vec3(0,0,-1)))^3,
+                                S<10>(vec3( 0, b, a)*C<5>(vec3(0,0, 1))^2)^3,
+                                S<10>(vec3( 0,-b,-a)*C<5>(vec3(0,0, 1))^2)^3,
+                                S<10>(vec3( 0, b, a)*C<5>(vec3(0,0,-1))^2)^3,
+                                S<10>(vec3( 0,-b,-a)*C<5>(vec3(0,0,-1))^2)^3,
+                                S<6>(vec3( 0, d, c)),
+                                S<6>(vec3( 0,-d,-c)),
+                                S<6>(vec3( 0, d, c)*C<5>(vec3(0,0, 1))),
+                                S<6>(vec3( 0,-d,-c)*C<5>(vec3(0,0, 1))),
+                                S<6>(vec3( 0, d, c)*C<5>(vec3(0,0,-1))),
+                                S<6>(vec3( 0,-d,-c)*C<5>(vec3(0,0,-1))),
+                                S<6>(vec3( 0, d, c)*C<5>(vec3(0,0, 1))^2),
+                                S<6>(vec3( 0,-d,-c)*C<5>(vec3(0,0, 1))^2),
+                                S<6>(vec3( 0, d, c)*C<5>(vec3(0,0,-1))^2),
+                                S<6>(vec3( 0,-d,-c)*C<5>(vec3(0,0,-1))^2),
+                                S<6>(vec3( 0, f, e)),
+                                S<6>(vec3( 0,-f,-e)),
+                                S<6>(vec3( 0, f, e)*C<5>(vec3(0,0, 1))),
+                                S<6>(vec3( 0,-f,-e)*C<5>(vec3(0,0, 1))),
+                                S<6>(vec3( 0, f, e)*C<5>(vec3(0,0,-1))),
+                                S<6>(vec3( 0,-f,-e)*C<5>(vec3(0,0,-1))),
+                                S<6>(vec3( 0, f, e)*C<5>(vec3(0,0, 1))^2),
+                                S<6>(vec3( 0,-f,-e)*C<5>(vec3(0,0, 1))^2),
+                                S<6>(vec3( 0, f, e)*C<5>(vec3(0,0,-1))^2),
+                                S<6>(vec3( 0,-f,-e)*C<5>(vec3(0,0,-1))^2),
+                                Reflection(vec3( 0, h, g)),
+                                Reflection(vec3( 0, h, g)*C<5>(vec3(0,0, 1))),
+                                Reflection(vec3( 0, h, g)*C<5>(vec3(0,0,-1))),
+                                Reflection(vec3( 0, h, g)*C<5>(vec3(0,0, 1))^2),
+                                Reflection(vec3( 0, h, g)*C<5>(vec3(0,0,-1))^2),
+                                Reflection(vec3( 0, j, i)),
+                                Reflection(vec3( 0, j, i)*C<5>(vec3(0,0, 1))),
+                                Reflection(vec3( 0, j, i)*C<5>(vec3(0,0,-1))),
+                                Reflection(vec3( 0, j, i)*C<5>(vec3(0,0, 1))^2),
+                                Reflection(vec3( 0, j, i)*C<5>(vec3(0,0,-1))^2),
+                                Reflection(vec3( 0, 1, 0)*C<20>(vec3(0,0,1))),
+                                Reflection(vec3( 0, 1, 0)*C<20>(vec3(0,0,1))*C<5>(vec3(0,0, 1))),
+                                Reflection(vec3( 0, 1, 0)*C<20>(vec3(0,0,1))*C<5>(vec3(0,0,-1))),
+                                Reflection(vec3( 0, 1, 0)*C<20>(vec3(0,0,1))*C<5>(vec3(0,0, 1))^2),
+                                Reflection(vec3( 0, 1, 0)*C<20>(vec3(0,0,1))*C<5>(vec3(0,0,-1))^2)};
+static const char *ih_op_names[] = {"E",
+                                    "C5", "C5", "C5", "C5", "C5", "C5", "C5", "C5", "C5", "C5", "C5", "C5",
+                                    "C5^2", "C5^2", "C5^2", "C5^2", "C5^2", "C5^2", "C5^2", "C5^2", "C5^2", "C5^2", "C5^2", "C5^2",
+                                    "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3",
+                                    "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2",
+                                    "i",
+                                    "S10", "S10", "S10", "S10", "S10", "S10", "S10", "S10", "S10", "S10", "S10", "S10",
+                                    "S10^3", "S10^3", "S10^3", "S10^3", "S10^3", "S10^3", "S10^3", "S10^3", "S10^3", "S10^3", "S10^3", "S10^3",
+                                    "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6",
+                                    "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg"};
+
+const PointGroup PointGroup::Ih = PointGroup(120, 10, ih_name, ih_dirprd, ih_irreps,
+                                             ih_irrep_names, ih_characters, ih_irrep_degen,
+                                             ih_ops, ih_op_names);
+
+#undef a
+#undef b
+#undef c
+#undef d
+#undef e
+#undef f
+#undef g
+#undef h
+#undef i
+#undef j
+
+#undef avv
+#undef avf
+#undef aff
+
+#undef e1
+#undef e2
+
+#undef Ag
+#undef T1g
+#undef T2g
+#undef Gg
+#undef Hg
+#undef Au
+#undef T1u
+#undef T2u
+#undef Gu
+#undef Hu
 
 /*
  * C2

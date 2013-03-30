@@ -71,8 +71,7 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
 
     public:
         SpinorbitalTensor(const SpinorbitalTensor<Base>& t, const T val)
-        : Tensor<SpinorbitalTensor<Base>,T>(*this),
-          IndexableCompositeTensor<SpinorbitalTensor<Base>,Base,T >(0, 0)
+        : IndexableCompositeTensor<SpinorbitalTensor<Base>,Base,T >(0, 0)
         {
             nA = 0;
             nM = 0;
@@ -84,8 +83,7 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
         }
 
         SpinorbitalTensor(const SpinorbitalTensor<Base>& other)
-        : Tensor<SpinorbitalTensor<Base>,T>(*this),
-          IndexableCompositeTensor<SpinorbitalTensor<Base>,Base,T>(other.ndim_, 0)
+        : IndexableCompositeTensor<SpinorbitalTensor<Base>,Base,T>(other.ndim_, 0)
         {
             logical = other.logical;
             nA = other.nA;
@@ -110,8 +108,7 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
         }
 
         SpinorbitalTensor(const autocc::Manifold& left, const autocc::Manifold& right, const int spin=0)
-        : Tensor<SpinorbitalTensor<Base>,T>(*this),
-          IndexableCompositeTensor<SpinorbitalTensor<Base>,Base,T>(left.np+left.nh+right.np+right.nh, 0), spin(spin)
+        : IndexableCompositeTensor<SpinorbitalTensor<Base>,Base,T>(left.np+left.nh+right.np+right.nh, 0), spin(spin)
         {
             std::vector<autocc::Line> out_;
             std::vector<autocc::Line> in_;
@@ -139,8 +136,7 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
         }
 
         SpinorbitalTensor(const std::string& logical, const int spin=0)
-        : Tensor<SpinorbitalTensor<Base>,T>(*this),
-          IndexableCompositeTensor<SpinorbitalTensor<Base>,Base,T>(logical.size()-1, 0), spin(spin)
+        : IndexableCompositeTensor<SpinorbitalTensor<Base>,Base,T>(logical.size()-1, 0), spin(spin)
         {
             int comma = logical.find(',');
             if (comma == std::string::npos) throw std::logic_error("index std::string is malformed: " + logical);
@@ -203,9 +199,9 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
             addSpinCase(tensor, logical, logical, factor, isAlloced);
         }
 
-        void mult(const T alpha, bool conja, const IndexableTensor<SpinorbitalTensor<Base>,T>& A_, const int* idx_A,
-                                 bool conjb, const IndexableTensor<SpinorbitalTensor<Base>,T>& B_, const int* idx_B,
-                  const T beta_,                                                                   const int* idx_C)
+        void mult(const T alpha, bool conja, const SpinorbitalTensor<Base>& A_, const int* idx_A,
+                                 bool conjb, const SpinorbitalTensor<Base>& B_, const int* idx_B,
+                  const T beta_,                                                const int* idx_C)
         {
             const SpinorbitalTensor<Base>& A = A_.getDerived();
             const SpinorbitalTensor<Base>& B = B_.getDerived();
@@ -214,13 +210,15 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
             int *idx_B_ = new int[B.ndim_];
             int *idx_C_ = new int[ndim_];
 
-            //std::cout << "summing " << A.logical << "[";
-            //for (int i = 0;i < A.ndim_;i++) std::cout << idx_A[i] << ' ';
-            //std::cout << "] " << B.logical << "[";
-            //for (int i = 0;i < B.ndim_;i++) std::cout << idx_B[i] << ' ';
-            //std::cout << "] " << logical << "[";
-            //for (int i = 0;i <   ndim_;i++) std::cout << idx_C[i] << ' ';
-            //std::cout << "]" << std::endl;
+            /*
+            std::cout << "contracting: " << alpha << " * " << A.logical << "[";
+            for (int i = 0;i < A.ndim_;i++) std::cout << idx_A[i] << ' ';
+            std::cout << "] " << B.logical << "[";
+            for (int i = 0;i < B.ndim_;i++) std::cout << idx_B[i] << ' ';
+            std::cout << "] -> " << beta_ << " " << logical << "[";
+            for (int i = 0;i <   ndim_;i++) std::cout << idx_C[i] << ' ';
+            std::cout << "]\n" << std::endl;
+            */
 
             std::vector<double> beta(cases.size(), beta_);
 
@@ -373,7 +371,7 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
                 d.fixorder(sum2);
 
                 /*
-                 * Remove autocc::Terms which are antisymmetrizations of same-spin groups
+                 * Remove terms which are antisymmetrizations of same-spin groups
                  */
                 std::vector<autocc::Term> terms = d.getTerms();
                 for (std::vector<autocc::Term>::iterator t1 = terms.begin();t1 != terms.end();++t1)
@@ -477,16 +475,16 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
                         lC[scC->log_to_phys[i]] = in_C[i-nA-nM];
                     }
 
+                    /*
                     //if (A.logical == "aijk")
                     //{
-                    //    std::cout << scA->log_to_phys << ' ' << scB->log_to_phys <<
-                    //            ' ' << scC->log_to_phys << std::endl;
-                    //std::cout << autocc::Fragment("A", lA, std::vector<autocc::Line>()) << ' ' <<
-                    //        autocc::Fragment("B", lB, std::vector<autocc::Line>()) << ' ' <<
-                    //        autocc::Fragment("C", lC, std::vector<autocc::Line>()) << ' ' <<
-                    //        alpha*diagFactor <<
-                    //        ' ' << beta[(int)(scC-cases.begin())] << std::endl;
+                        std::cout << scA->log_to_phys << ' ' << scB->log_to_phys <<
+                                ' ' << scC->log_to_phys << std::endl;
+                    std::cout << "A(" << lA << ") B(" << lB << ") C(" << lC << ") " <<
+                            alpha*scA->permFactor*scB->permFactor*scC->permFactor*diagFactor <<
+                            ' ' << beta[(int)(scC-cases.begin())] << std::endl << std::endl;
                     //}
+                    */
 
                     scC->tensor->mult(alpha*scA->permFactor*scB->permFactor*scC->permFactor*diagFactor,
                     //scC->tensor.mult(alpha*diagFactor,
@@ -502,8 +500,8 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
             delete[] idx_C_;
         }
 
-        void sum(const T alpha, bool conja, const IndexableTensor<SpinorbitalTensor<Base>,T>& A_, const int* idx_A,
-                 const T beta_,                                                                   const int* idx_B)
+        void sum(const T alpha, bool conja, const SpinorbitalTensor<Base>& A_, const int* idx_A,
+                 const T beta_,                                                const int* idx_B)
         {
             const SpinorbitalTensor<Base>& A = A_.getDerived();
 
@@ -696,8 +694,8 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
             delete[] idx_A_;
         }
 
-        void div(const T alpha, bool conja, const Tensor<SpinorbitalTensor<Base>,T>& A,
-                                bool conjb, const Tensor<SpinorbitalTensor<Base>,T>& B, const T beta)
+        void div(const T alpha, bool conja, const SpinorbitalTensor<Base>& A,
+                                bool conjb, const SpinorbitalTensor<Base>& B, const T beta)
         {
             #ifdef VALIDATE_INPUTS
             if (ndim_ != A.getDerived().ndim_ ||
@@ -726,7 +724,7 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
             }
         }
 
-        void invert(const T alpha, bool conja, const Tensor<SpinorbitalTensor<Base>,T>& A, const T beta)
+        void invert(const T alpha, bool conja, const SpinorbitalTensor<Base>& A, const T beta)
         {
             #ifdef VALIDATE_INPUTS
             if (ndim_ != A.getDerived().ndim_ ||
@@ -905,44 +903,19 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
                 }
             }
         }
-};
 
-template <typename T>
-struct Scalar<IndexedTensorMult<SpinorbitalTensor<DistTensor<T> >,T> >
-{
-    static T value(const IndexedTensorMult<SpinorbitalTensor<DistTensor<T> >,T>& other)
-    {
-        DistTensor<T> dt(other.A_.tensor_.getDerived()(0).ctf);
-        SpinorbitalTensor< DistTensor<T> > sodt(",");
-        sodt.addSpinCase(dt, ",", "");
-        int64_t n;
-        T ret, *val;
-        sodt[""] = other;
-        dt.getAllData(n, val);
-        assert(n==1);
-        ret = val[0];
-        free(val);
-        return ret;
-    }
-};
-
-template <typename T>
-struct Scalar<IndexedTensorMult<const SpinorbitalTensor<DistTensor<T> >,T> >
-{
-    static T value(const IndexedTensorMult<const SpinorbitalTensor<DistTensor<T> >,T>& other)
-    {
-        DistTensor<T> dt(other.A_.tensor_.getDerived()(0).ctf);
-        SpinorbitalTensor< DistTensor<T> > sodt(",");
-        sodt.addSpinCase(dt, ",", "");
-        int64_t n;
-        T ret, *val;
-        sodt[""] = other;
-        dt.getAllData(n, val);
-        assert(n==1);
-        ret = val[0];
-        free(val);
-        return ret;
-    }
+        T dot(bool conja, const SpinorbitalTensor<Base>& A, const int* idx_A,
+              bool conjb,                                   const int* idx_B) const
+        {
+            Base one(A(0), (T)1);
+            Base dt(A(0), (T)0);
+            SpinorbitalTensor< DistTensor<T> > sodt(",");
+            sodt.addSpinCase(dt, ",", "");
+            sodt.mult(1, conja,     A, idx_A,
+                         conjb, *this, idx_B,
+                      0,                NULL);
+            return scalar(dt*one);
+        }
 };
 
 }

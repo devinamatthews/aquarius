@@ -37,8 +37,7 @@ class CCD : public CCSD<U>
 {
     public:
         CCD(const input::Config& config, op::TwoElectronOperator<U>& moints)
-        : tensor::Tensor<op::ExcitationOperator<U,2>,U>(*this),
-          CCSD<U>(config, moints)
+        : CCSD<U>(config, moints)
         {
             this->T(1) = 0;
 

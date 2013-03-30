@@ -26,6 +26,8 @@
 #define _AQUARIUS_OPERATOR_1EOPERATOR_HPP_
 
 #include "tensor/spinorbital.hpp"
+#include "tensor/dist_tensor.hpp"
+#include "tensor/compositetensor.hpp"
 
 #include "mooperator.hpp"
 
@@ -35,14 +37,17 @@ namespace op
 {
 
 template <typename T>
-class OneElectronOperator : public MOOperator<T>
+class OneElectronOperator : public MOOperator<T>,
+    public tensor::CompositeTensor<OneElectronOperator<T>,tensor::SpinorbitalTensor<tensor::DistTensor<T> >,T>
 {
+    INHERIT_FROM_COMPOSITE_TENSOR(OneElectronOperator<T>,CONCAT(tensor::SpinorbitalTensor<tensor::DistTensor<T> >),T)
+
     protected:
         const bool hermitian;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> > ab;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> > ij;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> > ai;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> > ia;
+        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& ab;
+        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& ij;
+        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& ai;
+        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& ia;
 
     public:
         enum
@@ -58,10 +63,10 @@ class OneElectronOperator : public MOOperator<T>
         OneElectronOperator(const scf::UHF<T>& uhf, const bool hermitian=true)
         : MOOperator<T>(uhf),
           hermitian(hermitian),
-          ab("a,b"),
-          ij("i,j"),
-          ai("a,i"),
-          ia("i,a")
+          ab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("a,b"))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("i,j"))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("a,i"))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("i,a")))
         {
             int N = uhf.getMolecule().getNumOrbitals();
             int nI = uhf.getMolecule().getNumAlphaElectrons();
@@ -102,10 +107,10 @@ class OneElectronOperator : public MOOperator<T>
         OneElectronOperator(const scf::UHF<T>& uhf, const tensor::DistTensor<T>& ao, const bool hermitian=true)
         : MOOperator<T>(uhf),
           hermitian(hermitian),
-          ab("a,b"),
-          ij("i,j"),
-          ai("a,i"),
-          ia("i,a")
+          ab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("a,b"))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("i,j"))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("a,i"))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("i,a")))
         {
             const tensor::DistTensor<T>& cA = uhf.getCA();
             const tensor::DistTensor<T>& ca = uhf.getCa();
@@ -177,10 +182,10 @@ class OneElectronOperator : public MOOperator<T>
         OneElectronOperator(OneElectronOperator<T>& other, int copy)
         : MOOperator<T>(other),
           hermitian(copy == NONE && other.hermitian),
-          ab("a,b"),
-          ij("i,j"),
-          ai("a,i"),
-          ia("i,a")
+          ab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("a,b"))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("i,j"))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("a,i"))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("i,a")))
         {
             if (copy&AB)
             {
@@ -225,6 +230,27 @@ class OneElectronOperator : public MOOperator<T>
                 ia.addSpinCase(other.getIA()(0), "I,A", "AI");
                 ia.addSpinCase(other.getIA()(1), "i,a", "ai");
             }
+        }
+
+        OneElectronOperator(const OneElectronOperator<T>& other)
+        : MOOperator<T>(other),
+          hermitian(other.hermitian),
+          ab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("a,b"))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("i,j"))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("a,i"))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("i,a")))
+        {
+            ab.addSpinCase(new tensor::DistTensor<T>(other.getAB()(0)), "A,B", "AB");
+            ab.addSpinCase(new tensor::DistTensor<T>(other.getAB()(1)), "a,b", "ab");
+
+            ij.addSpinCase(new tensor::DistTensor<T>(other.getIJ()(0)), "I,J", "IJ");
+            ij.addSpinCase(new tensor::DistTensor<T>(other.getIJ()(1)), "i,j", "ij");
+
+            ai.addSpinCase(new tensor::DistTensor<T>(other.getAI()(0)), "A,I", "AI");
+            ai.addSpinCase(new tensor::DistTensor<T>(other.getAI()(1)), "a,i", "ai");
+
+            ia.addSpinCase(new tensor::DistTensor<T>(other.getIA()(0)), "I,A", "AI");
+            ia.addSpinCase(new tensor::DistTensor<T>(other.getIA()(1)), "i,a", "ai");
         }
 
         bool isHermitian() const { return hermitian; }

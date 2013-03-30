@@ -22,9 +22,10 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_CC_PERTURBEDCCSD_HPP_
-#define _AQUARIUS_CC_PERTURBEDCCSD_HPP_
+#ifndef _AQUARIUS_CC_EOMEECCSD_HPP_
+#define _AQUARIUS_CC_EOMEECCSD_HPP_
 
+#include "convergence/davidson.hpp"
 #include "operator/2eoperator.hpp"
 
 #include "ccsd.hpp"
@@ -34,90 +35,51 @@ namespace aquarius
 namespace cc
 {
 
-/*
- * Solve the frequency-dependent amplitude response equations:
- *
- *      _                A                _
- * <Phi|H  - w|Phi><Phi|T (w)|0> = - <Phi|A|0> = - <Phi|X|0>
- *       open
- *
- *       _    -T   T       T
- * where X = e  X e  = (X e )
- *                           c
- */
 template <typename U>
-class PerturbedCCSD : public Iterative, public op::ExcitationOperator<U,2>
+class EOMEECCSD : public Iterative, public op::ExcitationOperator<U,2>
 {
     protected:
+        op::ExcitationOperator<U,2>& R;
+        op::ExcitationOperator<U,2> Z, D;
         const op::STTwoElectronOperator<U,2>& H;
-        U omega;
-        op::ExcitationOperator<U,2>& TA;
-        op::ExcitationOperator<U,2> D, Z, X;
-        convergence::DIIS< op::ExcitationOperator<U,2> > diis;
+        const op::ExponentialOperator<U,2>& T;
+        convergence::Davidson< op::ExcitationOperator<U,2> > davidson;
 
     public:
-        PerturbedCCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
-                      const op::ExponentialOperator<U,2>& T, const OneElectronOperator<U>& A, const U omega=0)
-        : Iterative(config), op::ExcitationOperator<U,2>(ccsd.uhf),
-          H(H), omega(omega), TA(*this), D(this->uhf), Z(this->uhf), X(this->uhf),
-          diis(config.get("diis"))
+        EOMEECCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
+                  const op::ExponentialOperator<U,2>& T)
+        : Iterative(config), op::ExcitationOperator<U,2>(H.getSCF()), R(*this),
+          Z(this->uhf), D(this->uhf), H(H), T(T), davidson(config.get("davidson"))
         {
             D(0) = 1;
             D(1)["ai"]  = H.getIJ()["ii"];
             D(1)["ai"] -= H.getAB()["aa"];
+            //D(1)["ai"] -= H.getAIBJ()["aiai"];
             D(2)["abij"]  = H.getIJ()["ii"];
             D(2)["abij"] += H.getIJ()["jj"];
             D(2)["abij"] -= H.getAB()["aa"];
             D(2)["abij"] -= H.getAB()["bb"];
+            //D(2)["abij"] -= H.getAIBJ()["aiai"];
+            //D(2)["abij"] -= H.getAIBJ()["bjbj"];
+            //D(2)["abij"] += H.getABCD()["abab"];
+            //D(2)["abij"] += H.getIJKL()["ijij"];
+            //D(2)["abij"] -= H.getIJAB()["imab"]*T(2)["abim"];
+            //D(2)["abij"] += H.getIJAB()["ijae"]*T(2)["aeij"];
 
-            D += omega;
-            D = 1/D;
-
-            op::STExcitationOperator<U,2>::transform(A, T, X);
-            X(0) = 0;
-
-            TA = X*D;
-        }
-
-        PerturbedCCSD(const input::Config& config, const op::TwoElectronOperator& H,
-                      const CCSD<U>& T, const TwoElectronOperator<U>& A, const U omega=0)
-        : Iterative(config), op::ExcitationOperator<U,2>(ccsd.uhf),
-          H(H), omega(omega), TA(*this), D(this->uhf), Z(this->uhf), X(this->uhf),
-          diis(config.get("diis"))
-        {
-            D(0) = 1;
-            D(1)["ai"]  = H.getIJ()["ii"];
-            D(1)["ai"] -= H.getAB()["aa"];
-            D(2)["abij"]  = H.getIJ()["ii"];
-            D(2)["abij"] += H.getIJ()["jj"];
-            D(2)["abij"] -= H.getAB()["aa"];
-            D(2)["abij"] -= H.getAB()["bb"];
-
-            D += omega;
-            D = 1/D;
-
-            op::STExcitationOperator<U,2>::transform(A, T, X);
-            X(0) = 0;
-
-            TA = X*D;
+            //TODO: guess
         }
 
         void _iterate()
         {
-            Z = X;
-            H.contract(TA, Z);
+            H.contract(R, Z);
 
-             Z *=  D;
-            // Z -= TA;
-            TA +=  Z;
+            energy = davidson.extrapolate(R, Z, D);
 
             conv =               Z(1)(0).reduce(CTF_OP_MAXABS);
             conv = std::max(conv,Z(1)(1).reduce(CTF_OP_MAXABS));
             conv = std::max(conv,Z(2)(0).reduce(CTF_OP_MAXABS));
             conv = std::max(conv,Z(2)(1).reduce(CTF_OP_MAXABS));
             conv = std::max(conv,Z(2)(2).reduce(CTF_OP_MAXABS));
-
-            diis.extrapolate(TA, Z);
         }
 };
 
