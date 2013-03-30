@@ -48,7 +48,20 @@ namespace tensor
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::sum; \
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::invert; \
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::dot; \
-    INHERIT_FROM_TENSOR(CONCAT(Derived),T)
+        using aquarius::tensor::Tensor< Derived,T >::getDerived; \
+        using aquarius::tensor::Tensor< Derived,T >::operator=; \
+        using aquarius::tensor::Tensor< Derived,T >::operator+=; \
+        using aquarius::tensor::Tensor< Derived,T >::operator-=; \
+        using aquarius::tensor::Tensor< Derived,T >::operator*=; \
+        using aquarius::tensor::Tensor< Derived,T >::operator/=; \
+        using aquarius::tensor::Tensor< Derived,T >::operator*; \
+        using aquarius::tensor::Tensor< Derived,T >::operator/; \
+        Derived & operator=(const Derived & other) \
+        { \
+            sum((T)1, false, other, (T)0); \
+            return *this; \
+        } \
+    private:
 
 #define INHERIT_FROM_INDEXABLE_COMPOSITE_TENSOR(Derived,Base,T) \
     protected: \
@@ -62,24 +75,20 @@ namespace tensor
         using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::invert; \
         using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::scale; \
         using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::dot; \
-        using aquarius::tensor::IndexableTensorBase< Derived, T >::operator=; \
-        using aquarius::tensor::IndexableTensorBase< Derived, T >::operator+=; \
-        using aquarius::tensor::IndexableTensorBase< Derived, T >::operator-=; \
-    INHERIT_FROM_TENSOR(Derived,T)
-
-/*using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::mult; \
-using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::sum; \
-using aquarius::tensor::CompositeTensor< Derived, Base, T >::div; \
-using aquarius::tensor::CompositeTensor< Derived, Base, T >::invert; \
-using aquarius::tensor::CompositeTensor< Derived, Base, T >::operator(); \
-using aquarius::tensor::IndexableTensorBase< Derived, T >::scale; \
-using aquarius::tensor::Tensor< Derived, T >::operator=; \
-using aquarius::tensor::Tensor< Derived, T >::operator+=; \
-using aquarius::tensor::Tensor< Derived, T >::operator-=; \
-using aquarius::tensor::Tensor< Derived, T >::operator*=; \
-using aquarius::tensor::Tensor< Derived, T >::operator/=; \
-using aquarius::tensor::Tensor< Derived, T >::operator*; \
-using aquarius::tensor::Tensor< Derived, T >::operator/; \*/
+        using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::operator=; \
+        using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::operator+=; \
+        using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::operator-=; \
+        using aquarius::tensor::Tensor< Derived,T >::getDerived; \
+        using aquarius::tensor::Tensor< Derived,T >::operator*=; \
+        using aquarius::tensor::Tensor< Derived,T >::operator/=; \
+        using aquarius::tensor::Tensor< Derived,T >::operator*; \
+        using aquarius::tensor::Tensor< Derived,T >::operator/; \
+        Derived & operator=(const Derived & other) \
+        { \
+            sum((T)1, false, other, (T)0); \
+            return *this; \
+        } \
+    private:
 
 template <class Derived, class Base, class T>
 class CompositeTensor : public Tensor<Derived,T>
@@ -286,10 +295,15 @@ class CompositeTensor : public Tensor<Derived,T>
 template <class Derived, class Base, class T>
 class IndexableCompositeTensor : public IndexableTensorBase<Derived,T>, public CompositeTensor<Derived,Base,T>
 {
+    INHERIT_FROM_TENSOR(Derived,T)
+
     protected:
         using IndexableTensorBase<Derived,T>::ndim_;
 
     public:
+        using IndexableTensorBase< Derived, T >::operator=;
+        using IndexableTensorBase< Derived, T >::operator+=;
+        using IndexableTensorBase< Derived, T >::operator-=;
         using CompositeTensor<Derived,Base,T>::div;
         using CompositeTensor<Derived,Base,T>::invert;
         using IndexableTensorBase<Derived,T>::scale;

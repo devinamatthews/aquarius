@@ -53,7 +53,17 @@ template <class Derived, class T> class IndexedTensorMult;
         using aquarius::tensor::IndexableTensor< Derived, T >::operator=; \
         using aquarius::tensor::IndexableTensor< Derived, T >::operator+=; \
         using aquarius::tensor::IndexableTensor< Derived, T >::operator-=; \
-    INHERIT_FROM_TENSOR(CONCAT(Derived),T)
+        using aquarius::tensor::Tensor< Derived,T >::getDerived; \
+        using aquarius::tensor::Tensor< Derived,T >::operator*=; \
+        using aquarius::tensor::Tensor< Derived,T >::operator/=; \
+        using aquarius::tensor::Tensor< Derived,T >::operator*; \
+        using aquarius::tensor::Tensor< Derived,T >::operator/; \
+        Derived & operator=(const Derived & other) \
+        { \
+            sum((T)1, false, other, (T)0); \
+            return *this; \
+        } \
+    private:
 
 template <class Derived, typename T>
 class IndexableTensorBase

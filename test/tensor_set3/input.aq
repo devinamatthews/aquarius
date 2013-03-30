@@ -1,6 +1,6 @@
 molecule
 	atom O
-	multiplicity 3
+	multiplicity 1
 	basis
 		basis_set DZ
 
@@ -14,7 +14,7 @@ scf
 
 cc
 	diis
-		order 5
+		order 1
 	convergence 1e-10
 	max_iterations 100
 
