@@ -117,10 +117,13 @@ int main(int argc, char **argv)
         PRINT("UHF-MP2 Energy: %.15f\n", ccsdt.getEnergy());
 
         PRINT("\nUHF-CCSDT\n\n");
-        PRINT("It.   Correlation Energy     Residual\n");
+        PRINT("It.   Correlation Energy     Residual Walltime\n");
+        tic();
         for (int i = 0;ccsdt.iterate();i++)
         {
-            PRINT("%3d % 20.15f %12.6e\n", i+1, ccsdt.getEnergy(), ccsdt.getConvergence());
+            double dt = todouble(toc());
+            PRINT("%3d % 20.15f %12.6e %8.3f\n", i+1, ccsdt.getEnergy(), ccsdt.getConvergence(), dt);
+            tic();
         }
 
         s2 = ccsdt.getProjectedS2();
