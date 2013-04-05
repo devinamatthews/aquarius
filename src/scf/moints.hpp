@@ -59,6 +59,7 @@ class MOIntegrals : public op::TwoElectronOperator<T>
         tensor::DistTensor<T> *aIbJ_;
         tensor::DistTensor<T> *aibj_;
         tensor::DistTensor<T> *AibJ_;
+        tensor::DistTensor<T> *aIBj_;
         tensor::DistTensor<T> *ABCI_;
         tensor::DistTensor<T> *AbCi_;
         tensor::DistTensor<T> *aBcI_;
@@ -76,42 +77,43 @@ class MOIntegrals : public op::TwoElectronOperator<T>
             int nA = N-nI;
             int na = N-ni;
 
-            fAB_ = &this->ab(0);
-            fab_ = &this->ab(1);
+            fAB_ = &this->ab(1,0,1,0);
+            fab_ = &this->ab(0,0,0,0);
 
-            fAI_ = &this->ai(0);
-            fai_ = &this->ai(1);
+            fAI_ = &this->ai(1,0,0,1);
+            fai_ = &this->ai(0,0,0,0);
 
-            fIJ_ = &this->ij(0);
-            fij_ = &this->ij(1);
+            fIJ_ = &this->ij(0,1,0,1);
+            fij_ = &this->ij(0,0,0,0);
 
-            IJKL_ = &this->ijkl(0);
-            IjKl_ = &this->ijkl(1);
-            ijkl_ = &this->ijkl(2);
+            IJKL_ = &this->ijkl(0,2,0,2);
+            IjKl_ = &this->ijkl(0,1,0,1);
+            ijkl_ = &this->ijkl(0,0,0,0);
 
-            IJKA_ = &this->ijka(0);
-            IjKa_ = &this->ijka(1);
-            iJkA_ = &this->ijka(2);
-            ijka_ = &this->ijka(3);
+            IJKA_ = &this->ijka(0,2,1,1);
+            IjKa_ = &this->ijka(0,1,0,1);
+            iJkA_ = &this->ijka(0,1,1,0);
+            ijka_ = &this->ijka(0,0,0,0);
 
-            AIBJ_ = &this->aibj(0);
-            AiBj_ = &this->aibj(1);
-            aIbJ_ = &this->aibj(2);
-            aibj_ = &this->aibj(3);
-            AibJ_ = &this->aibj(4);
+            AIBJ_ = &this->aibj(1,1,1,1);
+            AiBj_ = &this->aibj(1,0,1,0);
+            aIbJ_ = &this->aibj(0,1,0,1);
+            aibj_ = &this->aibj(0,0,0,0);
+            AibJ_ = &this->aibj(1,0,0,1);
+            aIBj_ = &this->aibj(0,1,1,0);
 
-            ABIJ_ = &this->abij(0);
-            AbIj_ = &this->abij(1);
-            abij_ = &this->abij(2);
+            ABIJ_ = &this->abij(2,0,0,2);
+            AbIj_ = &this->abij(1,0,0,1);
+            abij_ = &this->abij(0,0,0,0);
 
-            ABCI_ = &this->abci(0);
-            AbCi_ = &this->abci(1);
-            aBcI_ = &this->abci(2);
-            abci_ = &this->abci(3);
+            ABCI_ = &this->abci(2,0,1,1);
+            AbCi_ = &this->abci(1,0,1,0);
+            aBcI_ = &this->abci(1,0,0,1);
+            abci_ = &this->abci(0,0,0,0);
 
-            ABCD_ = &this->abcd(0);
-            AbCd_ = &this->abcd(1);
-            abcd_ = &this->abcd(2);
+            ABCD_ = &this->abcd(2,0,2,0);
+            AbCd_ = &this->abcd(1,0,1,0);
+            abcd_ = &this->abcd(0,0,0,0);
 
             const T* ea = uhf.getAlphaEigenvalues();
             const T* eb = uhf.getBetaEigenvalues();

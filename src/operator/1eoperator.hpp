@@ -36,11 +36,11 @@ namespace aquarius
 namespace op
 {
 
-template <typename T>
-class OneElectronOperator : public MOOperator<T>,
-    public tensor::CompositeTensor<OneElectronOperator<T>,tensor::SpinorbitalTensor<tensor::DistTensor<T> >,T>
+template <typename T, typename Derived>
+class OneElectronOperatorBase : public MOOperator<T>,
+    public tensor::CompositeTensor<Derived,tensor::SpinorbitalTensor<tensor::DistTensor<T> >,T>
 {
-    INHERIT_FROM_COMPOSITE_TENSOR(OneElectronOperator<T>,CONCAT(tensor::SpinorbitalTensor<tensor::DistTensor<T> >),T)
+    INHERIT_FROM_COMPOSITE_TENSOR(Derived,CONCAT(tensor::SpinorbitalTensor<tensor::DistTensor<T> >),T)
 
     protected:
         const bool hermitian;
@@ -60,7 +60,7 @@ class OneElectronOperator : public MOOperator<T>,
             ALL  = 0xffffffff
         };
 
-        OneElectronOperator(const scf::UHF<T>& uhf, const bool hermitian=true)
+        OneElectronOperatorBase(const scf::UHF<T>& uhf, const bool hermitian=true)
         : MOOperator<T>(uhf),
           hermitian(hermitian),
           ab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("a,b"))),
@@ -104,7 +104,7 @@ class OneElectronOperator : public MOOperator<T>,
             }
         }
 
-        OneElectronOperator(const scf::UHF<T>& uhf, const tensor::DistTensor<T>& ao, const bool hermitian=true)
+        OneElectronOperatorBase(const scf::UHF<T>& uhf, const tensor::DistTensor<T>& ao, const bool hermitian=true)
         : MOOperator<T>(uhf),
           hermitian(hermitian),
           ab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("a,b"))),
@@ -149,20 +149,20 @@ class OneElectronOperator : public MOOperator<T>,
             ab.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeAA, shapeNN, true), "A,B", "AB");
             ab.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeaa, shapeNN, true), "a,b", "ab");
 
-            ab(0)["AB"] = Aq["Aq"]*cA["qB"];
-            ab(1)["ab"] = aq["aq"]*ca["qb"];
+            ab(1,0,1,0)["AB"] = Aq["Aq"]*cA["qB"];
+            ab(0,0,0,0)["ab"] = aq["aq"]*ca["qb"];
 
             ij.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeII, shapeNN, true), "I,J", "IJ");
             ij.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeii, shapeNN, true), "i,j", "ij");
 
-            ij(0)["IJ"] = Iq["Iq"]*cI["qJ"];
-            ij(1)["ij"] = iq["iq"]*ci["qj"];
+            ij(0,1,0,1)["IJ"] = Iq["Iq"]*cI["qJ"];
+            ij(0,0,0,0)["ij"] = iq["iq"]*ci["qj"];
 
             ai.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeAI, shapeNN, true), "A,I", "AI");
             ai.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeai, shapeNN, true), "a,i", "ai");
 
-            ai(0)["AI"] = Aq["Aq"]*cI["qI"];
-            ai(1)["ai"] = aq["aq"]*ci["qi"];
+            ai(1,0,0,1)["AI"] = Aq["Aq"]*cI["qI"];
+            ai(0,0,0,0)["ai"] = aq["aq"]*ci["qi"];
 
             if (hermitian)
             {
@@ -174,14 +174,15 @@ class OneElectronOperator : public MOOperator<T>,
                 ia.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeAI, shapeNN, true), "I,A", "AI");
                 ia.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeai, shapeNN, true), "i,a", "ai");
 
-                ia(0)["IA"] = Iq["Iq"]*cA["qA"];
-                ia(1)["ia"] = iq["iq"]*ca["qa"];
+                ia(0,1,1,0)["IA"] = Iq["Iq"]*cA["qA"];
+                ia(0,0,0,0)["ia"] = iq["iq"]*ca["qa"];
             }
         }
 
-        OneElectronOperator(OneElectronOperator<T>& other, int copy)
+        template <typename otherDerived>
+        OneElectronOperatorBase(OneElectronOperatorBase<T,otherDerived>& other, int copy)
         : MOOperator<T>(other),
-          hermitian(copy == NONE && other.hermitian),
+          hermitian(copy == NONE && other.isHermitian()),
           ab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("a,b"))),
           ij(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("i,j"))),
           ai(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("a,i"))),
@@ -232,9 +233,10 @@ class OneElectronOperator : public MOOperator<T>,
             }
         }
 
-        OneElectronOperator(const OneElectronOperator<T>& other)
+        template <typename otherDerived>
+        OneElectronOperatorBase(const OneElectronOperatorBase<T,otherDerived>& other)
         : MOOperator<T>(other),
-          hermitian(other.hermitian),
+          hermitian(other.isHermitian()),
           ab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("a,b"))),
           ij(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("i,j"))),
           ai(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("a,i"))),
@@ -264,6 +266,25 @@ class OneElectronOperator : public MOOperator<T>,
         const tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getIJ()   const { return ij; }
         const tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getAI()   const { return ai; }
         const tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getIA()   const { return ia; }
+};
+
+template <typename T>
+class OneElectronOperator : public OneElectronOperatorBase<T,OneElectronOperator<T> >
+{
+    public:
+        OneElectronOperator(const scf::UHF<T>& uhf, const bool hermitian=true)
+        : OneElectronOperatorBase<T,OneElectronOperator<T> >(uhf, hermitian) {}
+
+        OneElectronOperator(const scf::UHF<T>& uhf, const tensor::DistTensor<T>& ao, const bool hermitian=true)
+        : OneElectronOperatorBase<T,OneElectronOperator<T> >(uhf, ao, hermitian) {}
+
+        template <typename Derived>
+        OneElectronOperator(OneElectronOperatorBase<T,Derived>& other, int copy)
+        : OneElectronOperatorBase<T,OneElectronOperator<T> >(other, copy) {}
+
+        template <typename Derived>
+        OneElectronOperator(const OneElectronOperatorBase<T,Derived>& other)
+        : OneElectronOperatorBase<T,OneElectronOperator<T> >(other) {}
 };
 
 }

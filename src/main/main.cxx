@@ -32,9 +32,11 @@
 #include "cc/ccsd.hpp"
 #include "cc/ccsdt.hpp"
 #include "cc/lambdaccsd.hpp"
+#include "cc/2edensity.hpp"
 #include "operator/st2eoperator.hpp"
 #include "time/time.hpp"
 #include "tensor/dist_tensor.hpp"
+#include "tensor/spinorbital.hpp"
 
 using namespace std;
 using namespace elem;
@@ -112,40 +114,177 @@ int main(int argc, char **argv)
         CholeskyMOIntegrals<double> moints(scf);
         AOMOIntegrals<double> aomo(aoscf);
 
-        CCSDT<double> ccsdt(config.get("cc"), moints);
+        double diff;
 
-        PRINT("UHF-MP2 Energy: %.15f\n", ccsdt.getEnergy());
+        /*
+        SpinorbitalTensor<DistTensor<double> > ij(moints.getIJ());
+        ij -= aomo.getIJ();
+        diff = ij(0,1,0,1).reduce(CTF_OP_MAXABS);
+        PRINT("IJ:   %e\n", diff);
+        diff = ij(0,0,0,0).reduce(CTF_OP_MAXABS);
+        PRINT("ij:   %e\n", diff);
 
-        PRINT("\nUHF-CCSDT\n\n");
+        SpinorbitalTensor<DistTensor<double> > ai(moints.getAI());
+        ai -= aomo.getAI();
+        diff = ai(1,0,0,1).reduce(CTF_OP_MAXABS);
+        PRINT("AI:   %e\n", diff);
+        diff = ai(0,0,0,0).reduce(CTF_OP_MAXABS);
+        PRINT("ai:   %e\n", diff);
+
+        SpinorbitalTensor<DistTensor<double> > ab(moints.getAB());
+        ab -= aomo.getAB();
+        diff = ab(1,0,1,0).reduce(CTF_OP_MAXABS);
+        PRINT("AB:   %e\n", diff);
+        diff = ab(0,0,0,0).reduce(CTF_OP_MAXABS);
+        PRINT("ab:   %e\n", diff);
+
+        SpinorbitalTensor<DistTensor<double> > abcd(moints.getABCD());
+        abcd -= aomo.getABCD();
+        diff = abcd(2,0,2,0).reduce(CTF_OP_MAXABS);
+        PRINT("ABCD:   %e\n", diff);
+        diff = abcd(1,0,1,0).reduce(CTF_OP_MAXABS);
+        PRINT("AbCd:   %e\n", diff);
+        diff = abcd(0,0,0,0).reduce(CTF_OP_MAXABS);
+        PRINT("abcd:   %e\n", diff);
+
+        SpinorbitalTensor<DistTensor<double> > abci(moints.getABCI());
+        abci -= aomo.getABCI();
+        diff = abci(2,0,1,1).reduce(CTF_OP_MAXABS);
+        PRINT("ABCI:   %e\n", diff);
+        diff = abci(1,0,1,0).reduce(CTF_OP_MAXABS);
+        PRINT("AbCi:   %e\n", diff);
+        diff = abci(1,0,0,1).reduce(CTF_OP_MAXABS);
+        PRINT("aBcI:   %e\n", diff);
+        diff = abci(0,0,0,0).reduce(CTF_OP_MAXABS);
+        PRINT("abci:   %e\n", diff);
+
+        SpinorbitalTensor<DistTensor<double> > abij(moints.getABIJ());
+        abij -= aomo.getABIJ();
+        diff = abij(2,0,0,2).reduce(CTF_OP_MAXABS);
+        PRINT("ABIJ:   %e\n", diff);
+        diff = abij(1,0,0,1).reduce(CTF_OP_MAXABS);
+        PRINT("AbIj:   %e\n", diff);
+        diff = abij(0,0,0,0).reduce(CTF_OP_MAXABS);
+        PRINT("abij:   %e\n", diff);
+        */
+
+        //moints.getAIBJ()(1,0,0,1)["AibJ"] = -moints.getABIJ()(1,0,0,1)["AbJi"];
+        //moints.getAIBJ()(0,1,1,0)["aIBj"] = -moints.getABIJ()(1,0,0,1)["BaIj"];
+        //aomo.getAIBJ()(1,0,0,1)["AibJ"] = -aomo.getABIJ()(1,0,0,1)["AbJi"];
+        //aomo.getAIBJ()(0,1,1,0)["aIBj"] = -aomo.getABIJ()(1,0,0,1)["BaIj"];
+
+        /*
+        SpinorbitalTensor<DistTensor<double> > aibj(moints.getAIBJ());
+        aibj -= aomo.getAIBJ();
+        diff = aibj(1,1,1,1).reduce(CTF_OP_MAXABS);
+        PRINT("AIBJ:   %e\n", diff);
+        diff = aibj(1,0,1,0).reduce(CTF_OP_MAXABS);
+        PRINT("AiBj:   %e\n", diff);
+        diff = aibj(0,1,0,1).reduce(CTF_OP_MAXABS);
+        PRINT("aIbJ:   %e\n", diff);
+        diff = aibj(0,0,0,0).reduce(CTF_OP_MAXABS);
+        PRINT("aibj:   %e\n", diff);
+        diff = aibj(1,0,0,1).reduce(CTF_OP_MAXABS);
+        PRINT("AibJ:   %e\n", diff);
+        diff = aibj(0,1,1,0).reduce(CTF_OP_MAXABS);
+        PRINT("aIBj:   %e\n", diff);
+
+        SpinorbitalTensor<DistTensor<double> > ijka(moints.getIJKA());
+        ijka -= aomo.getIJKA();
+        diff = ijka(0,2,1,1).reduce(CTF_OP_MAXABS);
+        PRINT("IJKA:   %e\n", diff);
+        diff = ijka(0,1,0,1).reduce(CTF_OP_MAXABS);
+        PRINT("IjKa:   %e\n", diff);
+        diff = ijka(0,1,1,0).reduce(CTF_OP_MAXABS);
+        PRINT("iJkA:   %e\n", diff);
+        diff = ijka(0,0,0,0).reduce(CTF_OP_MAXABS);
+        PRINT("ijka:   %e\n", diff);
+
+        SpinorbitalTensor<DistTensor<double> > ijkl(moints.getIJKL());
+        ijkl -= aomo.getIJKL();
+        diff = ijkl(0,2,0,2).reduce(CTF_OP_MAXABS);
+        PRINT("IJKL:   %e\n", diff);
+        diff = ijkl(0,1,0,1).reduce(CTF_OP_MAXABS);
+        PRINT("IjKl:   %e\n", diff);
+        diff = ijkl(0,0,0,0).reduce(CTF_OP_MAXABS);
+        PRINT("ijkl:   %e\n", diff);
+        */
+
+        DistTensor<double> AibJ1(moints.getAIBJ()(1,0,0,1));
+        AibJ1["AibJ"] += moints.getABIJ()(1,0,0,1)["AbJi"];
+        diff = AibJ1.reduce(CTF_OP_MAXABS);
+        PRINT("AibJ1:   %e\n", diff);
+
+        DistTensor<double> AibJ2(aomo.getAIBJ()(1,0,0,1));
+        AibJ2["AibJ"] += aomo.getABIJ()(1,0,0,1)["AbJi"];
+        diff = AibJ2.reduce(CTF_OP_MAXABS);
+        PRINT("AibJ2:   %e\n", diff);
+
+        DistTensor<double> aIBj1(moints.getAIBJ()(0,1,1,0));
+        aIBj1["aIBj"] += moints.getABIJ()(1,0,0,1)["BaIj"];
+        diff = aIBj1.reduce(CTF_OP_MAXABS);
+        PRINT("aIBj1:   %e\n", diff);
+
+        DistTensor<double> aIBj2(aomo.getAIBJ()(0,1,1,0));
+        aIBj2["aIBj"] += aomo.getABIJ()(1,0,0,1)["BaIj"];
+        diff = aIBj2.reduce(CTF_OP_MAXABS);
+        PRINT("aIBj2:   %e\n", diff);
+
+        /*
+        CCSD<double> ccsd(config.get("cc"), moints);
+
+        PRINT("UHF-MP2 Energy: %.15f\n", ccsd.getEnergy());
+
+        s2 = ccsd.getProjectedS2();
+        mult = ccsd.getProjectedMultiplicity();
+
+        PRINT("\n");
+        PRINT("<0|S^2|MP2>  = %f\n", s2);
+        PRINT("<0|2S+1|MP2> = %f\n", mult);
+        PRINT("\n");
+
+        PRINT("\nUHF-CCSD\n\n");
         PRINT("It.   Correlation Energy     Residual Walltime\n");
         tic();
-        for (int i = 0;ccsdt.iterate();i++)
+        for (int i = 0;ccsd.iterate();i++)
         {
             double dt = todouble(toc());
-            PRINT("%3d % 20.15f %12.6e %8.3f\n", i+1, ccsdt.getEnergy(), ccsdt.getConvergence(), dt);
+            PRINT("%3d % 20.15f %12.6e %8.3f\n", i+1, ccsd.getEnergy(), ccsd.getConvergence(), dt);
             tic();
         }
 
-        s2 = ccsdt.getProjectedS2();
-        mult = ccsdt.getProjectedMultiplicity();
+        s2 = ccsd.getProjectedS2();
+        mult = ccsd.getProjectedMultiplicity();
 
         PRINT("\n");
         PRINT("<0|S^2|CC>  = %f\n", s2);
         PRINT("<0|2S+1|CC> = %f\n", mult);
         PRINT("\n");
 
-        /*
         STTwoElectronOperator<double,2> H(moints, ccsd);
         LambdaCCSD<double> lambda(config.get("cc"), H, ccsd, ccsd.getEnergy());
 
         PRINT("UHF-Lambda-CCSD\n\n");
-        PRINT("It.   Correlation Energy     Residual\n");
+        PRINT("It.   Correlation Energy     Residual Walltime\n");
+        tic();
         for (int i = 0;lambda.iterate();i++)
         {
-            PRINT("%3d % 20.15f %12.6e\n", i+1, lambda.getEnergy(), lambda.getConvergence());
+            double dt = todouble(toc());
+            PRINT("%3d % 20.15f %12.6e %8.3f\n", i+1, lambda.getEnergy(), lambda.getConvergence(), dt);
+            tic();
         }
 
         PRINT("\nFinal Energy: %.15f\n\n", scf.getEnergy()+ccsd.getEnergy());
+
+        TwoElectronDensity<double> Ds(scf);
+        TwoElectronDensity<double> Du(ccsd);
+        TwoElectronDensity<double> Dr(lambda, ccsd);
+
+        double es = scalar(Ds*moints);
+        double eu = scalar(Du*moints);
+        double er = scalar(Dr*moints);
+
+        cout << es << " " << eu << " " << er << endl;
         */
 
         print_timers();

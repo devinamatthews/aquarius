@@ -188,19 +188,19 @@ class UHF : public Iterative, public Distributed<T>
             tmp["ai"] = (*Ca_occ)["ja"]*(*S)["ij"];
             Delta["ab"] = tmp["ai"]*(*Cb_occ)["ib"];
 
-            S2 -= tensor::scalar(Delta*Delta);
+            S2 -= scalar(Delta*Delta);
 
-            return fabs(S2);
+            return std::abs(S2);
         }
 
         T getAvgNumAlpha() const
         {
-            return tensor::scalar((*S)*(*Da));
+            return scalar((*S)*(*Da));
         }
 
         T getAvgNumBeta() const
         {
-            return tensor::scalar((*S)*(*Db));
+            return scalar((*S)*(*Db));
         }
 
         const T* getAlphaEigenvalues() const { return Ea.data(); }

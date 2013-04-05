@@ -91,7 +91,7 @@ class PerturbedLambdaCCSD : public Iterative, public op::DeexcitationOperator<U,
             Z = N;
             H.contract(L, Z);
 
-            energy = Ecc + tensor::scalar(Z*conj(L))/tensor::scalar(L*conj(L));
+            energy = Ecc + scalar(Z*conj(L))/scalar(L*conj(L));
 
              Z *= D;
             //Z -= LA;

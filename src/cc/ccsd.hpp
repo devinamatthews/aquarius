@@ -70,9 +70,9 @@ class CCSD : public Iterative, public op::ExponentialOperator<U,2>
             tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T(2));
             Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
-            energy = tensor::scalar(H.getAI()*T(1)) + 0.25*tensor::scalar(H.getABIJ()*Tau);
+            energy = scalar(H.getAI()*T(1)) + 0.25*scalar(H.getABIJ()*Tau);
 
-            conv =          conv,T(1)(0).reduce(CTF_OP_MAXABS);
+            conv =               T(1)(0).reduce(CTF_OP_MAXABS);
             conv = std::max(conv,T(1)(1).reduce(CTF_OP_MAXABS));
             conv = std::max(conv,T(2)(0).reduce(CTF_OP_MAXABS));
             conv = std::max(conv,T(2)(1).reduce(CTF_OP_MAXABS));
@@ -90,7 +90,7 @@ class CCSD : public Iterative, public op::ExponentialOperator<U,2>
             tensor::SpinorbitalTensor<tensor::DistTensor<U> > Tau(T(2));
             Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
-            energy = tensor::scalar(H.getAI()*T(1)) + 0.25*tensor::scalar(H.getABIJ()*Tau);
+            energy = scalar(H.getAI()*T(1)) + 0.25*scalar(H.getABIJ()*Tau);
 
             conv =               Z(1)(0).reduce(CTF_OP_MAXABS);
             conv = std::max(conv,Z(1)(1).reduce(CTF_OP_MAXABS));
@@ -149,19 +149,19 @@ class CCSD : public Iterative, public op::ExponentialOperator<U,2>
             Dai["ai"] = DaI["aJ"]*DIj["Ji"];
             DAbIj["AbIj"] = DAi["Aj"]*DaI["bI"];
 
-            const tensor::DistTensor<U>& T1A = T1(0);
-            const tensor::DistTensor<U>& T1B = T1(1);
-            tensor::DistTensor<U> TauAB(T2(1));
+            const tensor::DistTensor<U>& T1A = T1(1,0,0,1);
+            const tensor::DistTensor<U>& T1B = T1(0,0,0,0);
+            tensor::DistTensor<U> TauAB(T2(1,0,0,1));
 
             TauAB["AbIj"] += T1A["AI"]*T1B["bj"];
 
-            double S2 = uhf.getS2();
+            U S2 = uhf.getS2();
 
-            S2 -= tensor::scalar(DAI*T1A);
-            S2 -= tensor::scalar(Dai*T1B);
-            S2 -= tensor::scalar(DAbIj*TauAB);
+            U S2T11 = -scalar(DAI*T1A);
+            U S2T12 = -scalar(Dai*T1B);
+            U S2T2 = -scalar(DAbIj*TauAB);
 
-            return fabs(S2);
+            return std::abs(S2+S2T11+S2T12+S2T2);
         }
 
         double getProjectedS2() const

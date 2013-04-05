@@ -133,7 +133,8 @@ class CholeskyMOIntegrals : public MOIntegrals<T>
             (*this->aIbJ_)["aIbJ"]  = LDab["abR"]*LIJ["IJR"];
             (*this->aibj_)["aibj"]  = LDab["abR"]*Lij["ijR"];
             (*this->aibj_)["aibj"] -= LDai["ajR"]*Lai["biR"];
-            (*this->AibJ_)["AibJ"] -= (*this->AbIj_)["AbJi"];
+            (*this->AibJ_)["AibJ"]  = -(*this->AbIj_)["AbJi"];
+            (*this->aIBj_)["aIBj"]  = -(*this->AbIj_)["BaIj"];
 
             (*this->ABCI_)["ABCI"] = LDAB["ACR"]*LAI["BIR"];
             (*this->AbCi_)["AbCi"] = LDAB["ACR"]*Lai["biR"];

@@ -52,15 +52,15 @@ class AOMOIntegrals : public MOIntegrals<T>
 
         static bool sortIntsByRS(const integral_t<T>& i1, const integral_t<T>& i2)
         {
-            if (i1.idx.k < i2.idx.k)
+            if (i1.idx.l < i2.idx.l)
             {
                 return true;
             }
-            else if (i1.idx.k > i2.idx.k)
+            else if (i1.idx.l > i2.idx.l)
             {
                 return false;
             }
-            if (i1.idx.l < i2.idx.l)
+            if (i1.idx.k < i2.idx.k)
             {
                 return true;
             }
@@ -242,8 +242,6 @@ class AOMOIntegrals : public MOIntegrals<T>
 
                 integral_t<T>* newints = SAFE_MALLOC(integral_t<T>, nnewints);
 
-                //this->comm.Alltoallv(   ints, sendcount, sendoff, integral_t<T>::mpi_type(),
-                //                     newints, recvcount, recvoff, integral_t<T>::mpi_type());
                 this->comm.Alltoallv(   ints, sendcount, sendoff, MPI::BYTE,
                                      newints, recvcount, recvoff, MPI::BYTE);
 
@@ -844,14 +842,15 @@ class AOMOIntegrals : public MOIntegrals<T>
             //(*this->ABIJ_)["ABIJ"] = 0.5*ABIJ__["ABIJ"];
             //(*this->abij_)["abij"] = 0.5*abij__["abij"];
             (*this->ABIJ_)["ABIJ"]  = ABIJ__["ABIJ"];
-            (*this->abij_)["abij"]  = abij__["abij"];
             (*this->ABIJ_)["ABIJ"] -= ABIJ__["ABJI"];
+            (*this->abij_)["abij"]  = abij__["abij"];
             (*this->abij_)["abij"] -= abij__["abji"];
 
             /*
-             * Make <aI|Bj> = -<Ba|Ij>
+             * Make <Ai|bJ> = -<Ab|Ji> and <aI|Bj> = -<Ba|Ij>
              */
-            (*this->AibJ_)["AibJ"] -= (*this->AbIj_)["AbJi"];
+            (*this->AibJ_)["AibJ"] = -(*this->AbIj_)["AbJi"];
+            (*this->aIBj_)["aIBj"] = -(*this->AbIj_)["BaIj"];
 
             if (nA > 0) free(cA);
             if (na > 0) free(ca);

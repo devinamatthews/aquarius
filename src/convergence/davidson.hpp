@@ -139,7 +139,7 @@ class Davidson
 
             e[nextrap_real+nextrap_real*nextrap] = 0;
             for (int i = 0;i < nvec;i++)
-                e[nextrap_real+nextrap_real*nextrap] += tensor::scalar((*c[i])*(*hc[i]));
+                e[nextrap_real+nextrap_real*nextrap] += scalar((*c[i])*(*hc[i]));
 
             /*
              * Get the new off-diagonal subspace matrix elements for all
@@ -151,8 +151,8 @@ class Davidson
                 e[nextrap_real+i*nextrap] = 0;
                 for (int j = 0;j < nvec;i++)
                 {
-                    e[i+nextrap_real*nextrap] += tensor::scalar((*old_c[i][j])*(*hc[j]));
-                    e[nextrap_real+i*nextrap] += tensor::scalar((*c[j])*(*old_hc[i][j]));
+                    e[i+nextrap_real*nextrap] += scalar((*old_c[i][j])*(*hc[j]));
+                    e[nextrap_real+i*nextrap] += scalar((*c[j])*(*old_hc[i][j]));
                 }
             }
 

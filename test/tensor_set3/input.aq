@@ -1,8 +1,10 @@
 molecule
-	atom O
-	multiplicity 1
+	atom H
+	atom C 1 1.0
+	atom H 2 1.0 1 104.5
+	multiplicity 3
 	basis
-		basis_set DZ
+		basis_set STO-3G
 
 scf
 	convergence 1e-11
@@ -14,7 +16,7 @@ scf
 
 cc
 	diis
-		order 1
+		order 5
 	convergence 1e-10
 	max_iterations 100
 

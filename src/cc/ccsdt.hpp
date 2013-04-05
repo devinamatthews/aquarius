@@ -77,7 +77,7 @@ class CCSDT : public Iterative, public op::ExponentialOperator<U,3>
 
             energy = scalar(H.getAI()*T(1)) + 0.25*scalar(H.getABIJ()*Tau);
 
-            conv =          conv,T(1)(0).reduce(CTF_OP_MAXABS);
+            conv =               T(1)(0).reduce(CTF_OP_MAXABS);
             conv = std::max(conv,T(1)(1).reduce(CTF_OP_MAXABS));
             conv = std::max(conv,T(2)(0).reduce(CTF_OP_MAXABS));
             conv = std::max(conv,T(2)(1).reduce(CTF_OP_MAXABS));

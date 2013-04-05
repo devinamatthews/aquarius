@@ -48,6 +48,7 @@ namespace tensor
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::sum; \
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::invert; \
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::dot; \
+        using aquarius::tensor::CompositeTensor< Derived, Base, T >::operator(); \
         using aquarius::tensor::Tensor< Derived,T >::getDerived; \
         using aquarius::tensor::Tensor< Derived,T >::operator=; \
         using aquarius::tensor::Tensor< Derived,T >::operator+=; \
@@ -78,6 +79,8 @@ namespace tensor
         using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::operator=; \
         using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::operator+=; \
         using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::operator-=; \
+        using aquarius::tensor::IndexableTensorBase< Derived, T >::operator[]; \
+        using aquarius::tensor::CompositeTensor< Derived, Base, T >::operator(); \
         using aquarius::tensor::Tensor< Derived,T >::getDerived; \
         using aquarius::tensor::Tensor< Derived,T >::operator*=; \
         using aquarius::tensor::Tensor< Derived,T >::operator/=; \

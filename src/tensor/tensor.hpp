@@ -401,12 +401,6 @@ class Tensor
 };
 
 template <class Derived, typename T>
-T scalar(const TensorMult<Derived,T>& tm)
-{
-    return tm.factor_*tm.B_.tensor_.dot(tm.A_.conj_, tm.A_.tensor_, tm.B_.conj_);
-}
-
-template <class Derived, typename T>
 class ScaledTensor
 {
     public:
@@ -946,6 +940,13 @@ class InvalidStartError : public TensorError
 };
 
 }
+
+template <class Derived, typename T>
+T scalar(const tensor::TensorMult<Derived,T>& tm)
+{
+    return tm.factor_*tm.B_.tensor_.dot(tm.A_.conj_, tm.A_.tensor_, tm.B_.conj_);
+}
+
 }
 
 #endif

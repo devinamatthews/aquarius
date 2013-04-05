@@ -163,7 +163,7 @@ class DIIS
             e[0] = 0;
             for (int i = 0;i < ndx;i++)
             {
-                e[0] += tensor::scalar((*dx[i])*(*dx[i]));
+                e[0] += scalar((*dx[i])*(*dx[i]));
             }
 
             /*
@@ -177,7 +177,7 @@ class DIIS
                 e[i] = 0;
                 for (int j = 0;j < ndx;j++)
                 {
-                    e[i] += tensor::scalar((*dx[j])*(*old_dx[i][j]));
+                    e[i] += scalar((*dx[j])*(*old_dx[i][j]));
                 }
                 e[i*(nextrap+1)] = e[i];
                 nextrap_real++;

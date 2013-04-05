@@ -199,6 +199,22 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
             addSpinCase(tensor, logical, logical, factor, isAlloced);
         }
 
+        Base& operator()(int nA, int nM, int nE, int nI)
+        {
+            return const_cast<Base&>(const_cast<const SpinorbitalTensor<Base>&>(*this)(nA, nM, nE, nI));
+        }
+
+        const Base& operator()(int nA, int nM, int nE, int nI) const
+        {
+            for (typename std::vector<SpinCase>::const_iterator sc = cases.begin();sc != cases.end();++sc)
+            {
+                if (sc->nA == nA && sc->nM == nM &&
+                    sc->nE == nE && sc->nI == nI) return *sc->tensor;
+            }
+
+            throw std::logic_error("spin case not found");
+        }
+
         void mult(const T alpha, bool conja, const SpinorbitalTensor<Base>& A_, const int* idx_A,
                                  bool conjb, const SpinorbitalTensor<Base>& B_, const int* idx_B,
                   const T beta_,                                                const int* idx_C)
@@ -713,8 +729,8 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
                 #ifdef VALIDATE_INPUTS
                 for (int j = 0;j < ndim_;j++)
                 {
-                    if (logical[i].log_to_phys[j] != A.getDerived().logical[i].log_to_phys[j] ||
-                        logical[i].log_to_phys[j] != B.getDerived().logical[i].log_to_phys[j])
+                    if (cases[i].log_to_phys[j] != A.getDerived().cases[i].log_to_phys[j] ||
+                        cases[i].log_to_phys[j] != B.getDerived().cases[i].log_to_phys[j])
                         throw logic_error("types do not match");
                 }
                 #endif //VALIDATE_INPUTS
@@ -741,7 +757,7 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<Base
                 #ifdef VALIDATE_INPUTS
                 for (int j = 0;j < ndim_;j++)
                 {
-                    if (logical[i].log_to_phys[j] != A.getDerived().logical[i].log_to_phys[j])
+                    if (cases[i].log_to_phys[j] != A.getDerived().logical[i].log_to_phys[j])
                         throw logic_error("types do not match");
                 }
                 #endif //VALIDATE_INPUTS

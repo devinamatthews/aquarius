@@ -53,6 +53,7 @@ template <class Derived, class T> class IndexedTensorMult;
         using aquarius::tensor::IndexableTensor< Derived, T >::operator=; \
         using aquarius::tensor::IndexableTensor< Derived, T >::operator+=; \
         using aquarius::tensor::IndexableTensor< Derived, T >::operator-=; \
+        using aquarius::tensor::IndexableTensor< Derived, T >::operator[]; \
         using aquarius::tensor::Tensor< Derived,T >::getDerived; \
         using aquarius::tensor::Tensor< Derived,T >::operator*=; \
         using aquarius::tensor::Tensor< Derived,T >::operator/=; \
@@ -321,18 +322,6 @@ class IndexableTensor : public IndexableTensorBase<Derived,T>, public Tensor<Der
         }
 };
 
-/**************************************************************************
- *
- * Tensor to scalar operations
- *
- *************************************************************************/
-template <class Derived, typename T>
-T scalar(const IndexedTensorMult<Derived,T>& itm)
-{
-    return itm.factor_*itm.B_.tensor_.dot(itm.A_.conj_, itm.A_.tensor_, itm.A_.idx_,
-                                          itm.B_.conj_,                 itm.B_.idx_);
-}
-
 template <class Derived, typename T>
 class IndexedTensor
 {
@@ -591,6 +580,19 @@ class IndexedTensorMult
 };
 
 }
+
+/**************************************************************************
+ *
+ * Tensor to scalar operations
+ *
+ *************************************************************************/
+template <class Derived, typename T>
+T scalar(const tensor::IndexedTensorMult<Derived,T>& itm)
+{
+    return itm.factor_*itm.B_.tensor_.dot(itm.A_.conj_, itm.A_.tensor_, itm.A_.idx_,
+                                          itm.B_.conj_,                 itm.B_.idx_);
+}
+
 }
 
 #endif

@@ -44,15 +44,48 @@ class OneElectronDensity : public op::OneElectronOperator<U>
         OneElectronDensity(const scf::UHF<U>& uhf)
         : op::OneElectronOperator<U>(uhf)
         {
-            //TODO
-            assert(0);
+            int N = uhf.getMolecule().getNumOrbitals();
+            int nI = uhf.getMolecule().getNumAlphaElectrons();
+            int ni = uhf.getMolecule().getNumBetaElectrons();
+            int nA = N-nI;
+            int na = N-ni;
+
+            int NN[] = {NS,NS};
+            int sizeII[] = {nI,nI};
+            int sizeii[] = {ni,ni};
+            int sizeAI[] = {nA,nI};
+            int sizeai[] = {na,ni};
+
+            const tensor::DistTensor<U>& CA = uhf.getCA();
+            const tensor::DistTensor<U>& Ca = uhf.getCa();
+            const tensor::DistTensor<U>& CI = uhf.getCI();
+            const tensor::DistTensor<U>& Ci = uhf.getCi();
+
+            tensor::DistTensor<U> DIJ(this->ctf, 2, sizeII, NN);
+            tensor::DistTensor<U> Dij(this->ctf, 2, sizeii, NN);
+            tensor::DistTensor<U> DAI(this->ctf, 2, sizeAI, NN);
+            tensor::DistTensor<U> Dai(this->ctf, 2, sizeai, NN);
+
+            DIJ["IJ"] = CI["pI"]*CI["pJ"];
+            Dij["ij"] = Ci["pi"]*Ci["pj"];
+            DAI["AI"] = CA["pA"]*CI["pI"];
+            Dai["ai"] = Ca["pa"]*Ci["pi"];
+
+            this->ab(1,0,1,0)["AB"] = DAI["AI"]*DAI["BI"];
+            this->ab(0,0,0,0)["ab"] = Dai["ai"]*Dai["bi"];
+
+            this->ij(0,1,0,1)["IJ"] = DIJ["IK"]*DIJ["JK"];
+            this->ij(0,0,0,0)["ij"] = Dij["ik"]*Dij["jk"];
+
+            this->ai(1,0,0,1)["AI"] = DAI["AJ"]*DIJ["IJ"];
+            this->ai(0,0,0,0)["ai"] = Dai["aj"]*Dij["ij"];
         }
 
         /*
          * Form the unrelaxed CCSD density
          */
         OneElectronDensity(const op::ExponentialOperator<U,2>& T)
-        : op::OneElectronOperator<U>(T.uhf)
+        : op::OneElectronOperator<U>(T.getSCF(), false)
         {
             this->ai["ai"] = T(1)["ai"];
         }
@@ -63,7 +96,7 @@ class OneElectronDensity : public op::OneElectronOperator<U>
         OneElectronDensity(const op::DeexcitationOperator<U,2>& L,
                            const op::ExponentialOperator<U,2>& T,
                            const op::ExcitationOperator<U,2>& TA)
-        : op::OneElectronOperator<U>(L.uhf)
+        : op::OneElectronOperator<U>(L.getSCF(), false)
         {
             op::OneElectronOperator<U> I(this->uhf);
 
@@ -92,7 +125,7 @@ class OneElectronDensity : public op::OneElectronOperator<U>
          */
         OneElectronDensity(const op::DeexcitationOperator<U,2>& L,
                            const op::ExponentialOperator<U,2>& T)
-        : op::OneElectronOperator<U>(L.uhf)
+        : op::OneElectronOperator<U>(L.getSCF(), false)
         {
             this->ia["ia"] += L(1)["ia"];
 
@@ -116,7 +149,7 @@ class OneElectronDensity : public op::OneElectronOperator<U>
                            const op::DeexcitationOperator<U,2>& LA,
                            const op::ExponentialOperator<U,2>& T,
                            const op::ExcitationOperator<U,2>& TA)
-        : op::OneElectronOperator<U>(L.uhf)
+        : op::OneElectronOperator<U>(L.getSCF(), false)
         {
             op::OneElectronOperator<U> I(this->uhf);
 

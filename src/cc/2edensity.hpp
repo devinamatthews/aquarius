@@ -37,18 +37,34 @@ namespace cc
 template <typename U>
 class TwoElectronDensity : public op::TwoElectronOperator<U>
 {
-    protected:
-        OneElectronDensity<U> D1;
-
     public:
         /*
          * Form the SCF density
+         *
+         * P1_ab = D_ab (2D?)
+         *
+         * P2_abcd = P1_ab P1_cd + 1/2 P1_ac P1_bd
          */
         TwoElectronDensity(const scf::UHF<U>& uhf)
         : op::TwoElectronOperator<U>(OneElectronDensity<U>(uhf))
         {
-            //TODO
-            assert(0);
+            this->abcd["abcd"]  =     this->ab["ab"]*this->ab["cd"];
+            this->abcd["abcd"] += 0.5*this->ab["ac"]*this->ab["bd"];
+
+            this->abci["abci"]  =     this->ab["ab"]*this->ai["ci"];
+            this->abci["abci"] += 0.5*this->ab["ac"]*this->ai["bi"];
+
+            this->abij["abij"]  =     this->ab["ab"]*this->ij["ij"];
+            this->abij["abij"] += 0.5*this->ai["ai"]*this->ai["bj"];
+
+            this->aibj["aibj"]  =     this->ai["ai"]*this->ai["bj"];
+            this->aibj["aibj"] += 0.5*this->ab["ab"]*this->ij["ij"];
+
+            this->ijka["ijka"]  =     this->ij["ij"]*this->ia["ka"];
+            this->ijka["ijka"] += 0.5*this->ij["ik"]*this->ia["ja"];
+
+            this->ijkl["ijkl"]  =     this->ij["ij"]*this->ij["kl"];
+            this->ijkl["ijkl"] += 0.5*this->ij["ik"]*this->ij["jl"];
         }
 
         /*
@@ -190,6 +206,17 @@ class TwoElectronDensity : public op::TwoElectronOperator<U>
         {
             //TODO
             assert(0);
+        }
+
+        double getS2() const
+        {
+            //TODO
+            assert(0);
+        }
+
+        double getProjectedMultiplicity() const
+        {
+            return sqrt(1+4*getS2());
         }
 };
 
