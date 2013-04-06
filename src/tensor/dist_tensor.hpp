@@ -452,14 +452,14 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
             }
         }
 
-        void print(FILE* fp) const
+        void print(FILE* fp, double cutoff = 0.0) const
         {
-            ctf.ctf->print_tensor(fp, tid);
+            ctf.ctf->print_tensor(fp, tid, cutoff);
         }
 
-        void compare(FILE* fp, const DistTensor<T>& other) const
+        void compare(FILE* fp, const DistTensor<T>& other, double cutoff = 0.0) const
         {
-            ctf.ctf->compare_tensor(fp, tid, other.tid);
+            ctf.ctf->compare_tensor(fp, tid, other.tid, cutoff);
         }
 
         T reduce(CTF_OP op) const

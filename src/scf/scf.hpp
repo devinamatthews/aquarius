@@ -641,7 +641,7 @@ class UHF : public Iterative, public Distributed<T>
                     int sign = 0;
                     for (int i = 0;i < norb;i++)
                     {
-                        if (sign == 0 && std::abs(pairs[i].d) > 1e-12)
+                        if (sign == 0 && std::abs(pairs[i].d) > 1e-10)
                         {
                             sign = 1;
                             if (pairs[i].d < 0)

@@ -56,6 +56,8 @@ int main(int argc, char **argv)
     elem::Initialize(argc, argv);
 
     {
+        int i;
+        double dt;
         tCTF_World<double> ctf;
 
         assert(argc > 1);
@@ -65,17 +67,60 @@ int main(int argc, char **argv)
 
         Molecule mol(config);
 
+        tic();
         CholeskyIntegrals<double> chol(ctf, config.get("cholesky"), mol);
+        dt = todouble(toc());
+        PRINT("Cholesky integrals took: %8.3f s\n\n", dt);
+
+        tic();
         CholeskyUHF<double> scf(config.get("scf"), chol);
+
+        PRINT("nA: %d\n", mol.getNumOrbitals()-mol.getNumAlphaElectrons());
+        PRINT("na: %d\n", mol.getNumOrbitals()-mol.getNumBetaElectrons());
+        PRINT("nI: %d\n", mol.getNumAlphaElectrons());
+        PRINT("ni: %d\n", mol.getNumBetaElectrons());
 
         //chol.test();
 
-        PRINT("UHF-SCF\n\n");
-        PRINT("It.            SCF Energy     Residual\n");
-        for (int i = 0;scf.iterate();i++)
+        PRINT("\nUHF-SCF\n\n");
+        PRINT("It.            SCF Energy     Residual Walltime\n");
+        tic();
+        for (i = 0;scf.iterate();i++)
         {
-            PRINT("%3d % 21.15f %12.6e\n", i+1, scf.getEnergy(), scf.getConvergence());
+            dt = todouble(toc());
+            PRINT("%3d % 21.15f %12.6e %8.3f\n", i+1, scf.getEnergy(), scf.getConvergence(), dt);
+            tic();
         }
+        toc();
+
+        PRINT("\nUHF Orbital Energies\n\n");
+        for (int i = 0;i < mol.getNumOrbitals();i++)
+        {
+            PRINT("%4d ", i+1);
+
+            if (i < mol.getNumAlphaElectrons())
+            {
+                PRINT("%21.15f a ", scf.getAlphaEigenvalues()[i]);
+            }
+            else
+            {
+                PRINT("%21.15f   ", scf.getAlphaEigenvalues()[i]);
+            }
+
+            if (i < mol.getNumBetaElectrons())
+            {
+                PRINT("%21.15f b ", scf.getBetaEigenvalues()[i]);
+            }
+            else
+            {
+                PRINT("%21.15f   ", scf.getBetaEigenvalues()[i]);
+            }
+
+            PRINT("\n");
+        }
+
+        dt = todouble(toc());
+        PRINT("\nCholesky SCF took: %8.3f s (%8.3f s/it.)\n", dt, dt/i);
 
         double s2 = scf.getS2();
         double mult = scf.getMultiplicity();
@@ -89,15 +134,53 @@ int main(int argc, char **argv)
         PRINT("<0|n_beta|0>  = %f\n", nb);
         PRINT("\n");
 
+        tic();
         AOIntegrals<double> ao(ctf, mol);
+        dt = todouble(toc());
+        PRINT("AO integrals took: %8.3f s\n", dt);
+
+        tic();
         AOUHF<double> aoscf(config.get("scf"), ao);
 
-        PRINT("UHF-SCF\n\n");
-        PRINT("It.            SCF Energy     Residual\n");
-        for (int i = 0;aoscf.iterate();i++)
+        PRINT("\nUHF-SCF\n\n");
+        PRINT("It.            SCF Energy     Residual Walltime\n");
+        tic();
+        for (i = 0;aoscf.iterate();i++)
         {
-            PRINT("%3d % 21.15f %12.6e\n", i+1, aoscf.getEnergy(), aoscf.getConvergence());
+            dt = todouble(toc());
+            PRINT("%3d % 21.15f %12.6e %8.3f\n", i+1, aoscf.getEnergy(), aoscf.getConvergence(), dt);
+            tic();
         }
+        toc();
+
+        PRINT("\nUHF Orbital Energies\n\n");
+        for (int i = 0;i < mol.getNumOrbitals();i++)
+        {
+            PRINT("%4d ", i+1);
+
+            if (i < mol.getNumAlphaElectrons())
+            {
+                PRINT("%21.15f a ", aoscf.getAlphaEigenvalues()[i]);
+            }
+            else
+            {
+                PRINT("%21.15f   ", aoscf.getAlphaEigenvalues()[i]);
+            }
+
+            if (i < mol.getNumBetaElectrons())
+            {
+                PRINT("%21.15f b ", aoscf.getBetaEigenvalues()[i]);
+            }
+            else
+            {
+                PRINT("%21.15f   ", aoscf.getBetaEigenvalues()[i]);
+            }
+
+            PRINT("\n");
+        }
+
+        dt = todouble(toc());
+        PRINT("\nAO SCF took: %8.3f s (%8.3f s/it.)\n", dt, dt/i);
 
         s2 = aoscf.getS2();
         mult = aoscf.getMultiplicity();
@@ -111,181 +194,129 @@ int main(int argc, char **argv)
         PRINT("<0|n_beta|0>  = %f\n", nb);
         PRINT("\n");
 
-        CholeskyMOIntegrals<double> moints(scf);
-        AOMOIntegrals<double> aomo(aoscf);
-
-        double diff;
-
-        /*
-        SpinorbitalTensor<DistTensor<double> > ij(moints.getIJ());
-        ij -= aomo.getIJ();
-        diff = ij(0,1,0,1).reduce(CTF_OP_MAXABS);
-        PRINT("IJ:   %e\n", diff);
-        diff = ij(0,0,0,0).reduce(CTF_OP_MAXABS);
-        PRINT("ij:   %e\n", diff);
-
-        SpinorbitalTensor<DistTensor<double> > ai(moints.getAI());
-        ai -= aomo.getAI();
-        diff = ai(1,0,0,1).reduce(CTF_OP_MAXABS);
-        PRINT("AI:   %e\n", diff);
-        diff = ai(0,0,0,0).reduce(CTF_OP_MAXABS);
-        PRINT("ai:   %e\n", diff);
-
-        SpinorbitalTensor<DistTensor<double> > ab(moints.getAB());
-        ab -= aomo.getAB();
-        diff = ab(1,0,1,0).reduce(CTF_OP_MAXABS);
-        PRINT("AB:   %e\n", diff);
-        diff = ab(0,0,0,0).reduce(CTF_OP_MAXABS);
-        PRINT("ab:   %e\n", diff);
-
-        SpinorbitalTensor<DistTensor<double> > abcd(moints.getABCD());
-        abcd -= aomo.getABCD();
-        diff = abcd(2,0,2,0).reduce(CTF_OP_MAXABS);
-        PRINT("ABCD:   %e\n", diff);
-        diff = abcd(1,0,1,0).reduce(CTF_OP_MAXABS);
-        PRINT("AbCd:   %e\n", diff);
-        diff = abcd(0,0,0,0).reduce(CTF_OP_MAXABS);
-        PRINT("abcd:   %e\n", diff);
-
-        SpinorbitalTensor<DistTensor<double> > abci(moints.getABCI());
-        abci -= aomo.getABCI();
-        diff = abci(2,0,1,1).reduce(CTF_OP_MAXABS);
-        PRINT("ABCI:   %e\n", diff);
-        diff = abci(1,0,1,0).reduce(CTF_OP_MAXABS);
-        PRINT("AbCi:   %e\n", diff);
-        diff = abci(1,0,0,1).reduce(CTF_OP_MAXABS);
-        PRINT("aBcI:   %e\n", diff);
-        diff = abci(0,0,0,0).reduce(CTF_OP_MAXABS);
-        PRINT("abci:   %e\n", diff);
-
-        SpinorbitalTensor<DistTensor<double> > abij(moints.getABIJ());
-        abij -= aomo.getABIJ();
-        diff = abij(2,0,0,2).reduce(CTF_OP_MAXABS);
-        PRINT("ABIJ:   %e\n", diff);
-        diff = abij(1,0,0,1).reduce(CTF_OP_MAXABS);
-        PRINT("AbIj:   %e\n", diff);
-        diff = abij(0,0,0,0).reduce(CTF_OP_MAXABS);
-        PRINT("abij:   %e\n", diff);
-        */
-
-        //moints.getAIBJ()(1,0,0,1)["AibJ"] = -moints.getABIJ()(1,0,0,1)["AbJi"];
-        //moints.getAIBJ()(0,1,1,0)["aIBj"] = -moints.getABIJ()(1,0,0,1)["BaIj"];
-        //aomo.getAIBJ()(1,0,0,1)["AibJ"] = -aomo.getABIJ()(1,0,0,1)["AbJi"];
-        //aomo.getAIBJ()(0,1,1,0)["aIBj"] = -aomo.getABIJ()(1,0,0,1)["BaIj"];
-
-        /*
-        SpinorbitalTensor<DistTensor<double> > aibj(moints.getAIBJ());
-        aibj -= aomo.getAIBJ();
-        diff = aibj(1,1,1,1).reduce(CTF_OP_MAXABS);
-        PRINT("AIBJ:   %e\n", diff);
-        diff = aibj(1,0,1,0).reduce(CTF_OP_MAXABS);
-        PRINT("AiBj:   %e\n", diff);
-        diff = aibj(0,1,0,1).reduce(CTF_OP_MAXABS);
-        PRINT("aIbJ:   %e\n", diff);
-        diff = aibj(0,0,0,0).reduce(CTF_OP_MAXABS);
-        PRINT("aibj:   %e\n", diff);
-        diff = aibj(1,0,0,1).reduce(CTF_OP_MAXABS);
-        PRINT("AibJ:   %e\n", diff);
-        diff = aibj(0,1,1,0).reduce(CTF_OP_MAXABS);
-        PRINT("aIBj:   %e\n", diff);
-
-        SpinorbitalTensor<DistTensor<double> > ijka(moints.getIJKA());
-        ijka -= aomo.getIJKA();
-        diff = ijka(0,2,1,1).reduce(CTF_OP_MAXABS);
-        PRINT("IJKA:   %e\n", diff);
-        diff = ijka(0,1,0,1).reduce(CTF_OP_MAXABS);
-        PRINT("IjKa:   %e\n", diff);
-        diff = ijka(0,1,1,0).reduce(CTF_OP_MAXABS);
-        PRINT("iJkA:   %e\n", diff);
-        diff = ijka(0,0,0,0).reduce(CTF_OP_MAXABS);
-        PRINT("ijka:   %e\n", diff);
-
-        SpinorbitalTensor<DistTensor<double> > ijkl(moints.getIJKL());
-        ijkl -= aomo.getIJKL();
-        diff = ijkl(0,2,0,2).reduce(CTF_OP_MAXABS);
-        PRINT("IJKL:   %e\n", diff);
-        diff = ijkl(0,1,0,1).reduce(CTF_OP_MAXABS);
-        PRINT("IjKl:   %e\n", diff);
-        diff = ijkl(0,0,0,0).reduce(CTF_OP_MAXABS);
-        PRINT("ijkl:   %e\n", diff);
-        */
-
-        DistTensor<double> AibJ1(moints.getAIBJ()(1,0,0,1));
-        AibJ1["AibJ"] += moints.getABIJ()(1,0,0,1)["AbJi"];
-        diff = AibJ1.reduce(CTF_OP_MAXABS);
-        PRINT("AibJ1:   %e\n", diff);
-
-        DistTensor<double> AibJ2(aomo.getAIBJ()(1,0,0,1));
-        AibJ2["AibJ"] += aomo.getABIJ()(1,0,0,1)["AbJi"];
-        diff = AibJ2.reduce(CTF_OP_MAXABS);
-        PRINT("AibJ2:   %e\n", diff);
-
-        DistTensor<double> aIBj1(moints.getAIBJ()(0,1,1,0));
-        aIBj1["aIBj"] += moints.getABIJ()(1,0,0,1)["BaIj"];
-        diff = aIBj1.reduce(CTF_OP_MAXABS);
-        PRINT("aIBj1:   %e\n", diff);
-
-        DistTensor<double> aIBj2(aomo.getAIBJ()(0,1,1,0));
-        aIBj2["aIBj"] += aomo.getABIJ()(1,0,0,1)["BaIj"];
-        diff = aIBj2.reduce(CTF_OP_MAXABS);
-        PRINT("aIBj2:   %e\n", diff);
-
-        /*
-        CCSD<double> ccsd(config.get("cc"), moints);
-
-        PRINT("UHF-MP2 Energy: %.15f\n", ccsd.getEnergy());
-
-        s2 = ccsd.getProjectedS2();
-        mult = ccsd.getProjectedMultiplicity();
-
-        PRINT("\n");
-        PRINT("<0|S^2|MP2>  = %f\n", s2);
-        PRINT("<0|2S+1|MP2> = %f\n", mult);
-        PRINT("\n");
-
-        PRINT("\nUHF-CCSD\n\n");
-        PRINT("It.   Correlation Energy     Residual Walltime\n");
-        tic();
-        for (int i = 0;ccsd.iterate();i++)
         {
-            double dt = todouble(toc());
-            PRINT("%3d % 20.15f %12.6e %8.3f\n", i+1, ccsd.getEnergy(), ccsd.getConvergence(), dt);
             tic();
+            CholeskyMOIntegrals<double> moints(scf);
+            dt = todouble(toc());
+            PRINT("Cholesky MO took: %8.3f s\n\n", dt);
+
+            CCSD<double> cholccsd(config.get("cc"), moints);
+
+            PRINT("\nCholesky UHF-MP2 Energy: %.15f\n", cholccsd.getEnergy());
+
+            s2 = cholccsd.getProjectedS2();
+            mult = cholccsd.getProjectedMultiplicity();
+
+            PRINT("\n");
+            PRINT("<0|S^2|MP2>  = %f\n", s2);
+            PRINT("<0|2S+1|MP2> = %f\n", mult);
+            PRINT("\n");
+
+            PRINT("\nCholesky UHF-CCSD\n\n");
+            PRINT("It.   Correlation Energy     Residual Walltime\n");
+            tic();
+            tic();
+            for (i = 0;cholccsd.iterate();i++)
+            {
+                dt = todouble(toc());
+                PRINT("%3d % 20.15f %12.6e %8.3f\n", i+1, cholccsd.getEnergy(), cholccsd.getConvergence(), dt);
+                tic();
+            }
+            toc();
+
+            dt = todouble(toc());
+            PRINT("\nCholesky CCSD took: %8.3f s (%8.3f s/it.)\n", dt, dt/i);
+
+            s2 = cholccsd.getProjectedS2();
+            mult = cholccsd.getProjectedMultiplicity();
+
+            PRINT("\n");
+            PRINT("<0|S^2|CC>  = %f\n", s2);
+            PRINT("<0|2S+1|CC> = %f\n", mult);
+            PRINT("\n");
+
+            STTwoElectronOperator<double,2> cholH(moints, cholccsd);
+            LambdaCCSD<double> chollambda(config.get("cc"), cholH, cholccsd, cholccsd.getEnergy());
+
+            PRINT("Cholesky UHF-Lambda-CCSD\n\n");
+            PRINT("It.   Correlation Energy     Residual Walltime\n");
+            tic();
+            tic();
+            for (i = 0;chollambda.iterate();i++)
+            {
+                dt = todouble(toc());
+                PRINT("%3d % 20.15f %12.6e %8.3f\n", i+1, chollambda.getEnergy(), chollambda.getConvergence(), dt);
+                tic();
+            }
+            toc();
+
+            dt = todouble(toc());
+            PRINT("\nCholesky Lambda took: %8.3f s (%8.3f s/it.)\n", dt, dt/i);
+
+            PRINT("\nFinal Energy: %.15f\n\n", scf.getEnergy()+cholccsd.getEnergy());
         }
 
-        s2 = ccsd.getProjectedS2();
-        mult = ccsd.getProjectedMultiplicity();
-
-        PRINT("\n");
-        PRINT("<0|S^2|CC>  = %f\n", s2);
-        PRINT("<0|2S+1|CC> = %f\n", mult);
-        PRINT("\n");
-
-        STTwoElectronOperator<double,2> H(moints, ccsd);
-        LambdaCCSD<double> lambda(config.get("cc"), H, ccsd, ccsd.getEnergy());
-
-        PRINT("UHF-Lambda-CCSD\n\n");
-        PRINT("It.   Correlation Energy     Residual Walltime\n");
-        tic();
-        for (int i = 0;lambda.iterate();i++)
         {
-            double dt = todouble(toc());
-            PRINT("%3d % 20.15f %12.6e %8.3f\n", i+1, lambda.getEnergy(), lambda.getConvergence(), dt);
             tic();
+            AOMOIntegrals<double> aomo(aoscf);
+            dt = todouble(toc());
+            PRINT("AO MO took: %8.3f s\n\n", dt);
+
+            CCSD<double> aoccsd(config.get("cc"), aomo);
+
+            PRINT("AO UHF-MP2 Energy: %.15f\n", aoccsd.getEnergy());
+
+            s2 = aoccsd.getProjectedS2();
+            mult = aoccsd.getProjectedMultiplicity();
+
+            PRINT("\n");
+            PRINT("<0|S^2|MP2>  = %f\n", s2);
+            PRINT("<0|2S+1|MP2> = %f\n", mult);
+            PRINT("\n");
+
+            PRINT("\nAO UHF-CCSD\n\n");
+            PRINT("It.   Correlation Energy     Residual Walltime\n");
+            tic();
+            tic();
+            for (i = 0;aoccsd.iterate();i++)
+            {
+                dt = todouble(toc());
+                PRINT("%3d % 20.15f %12.6e %8.3f\n", i+1, aoccsd.getEnergy(), aoccsd.getConvergence(), dt);
+                tic();
+            }
+            toc();
+
+            dt = todouble(toc());
+            PRINT("\nAO CCSD took: %8.3f s (%8.3f s/it.)\n", dt, dt/i);
+
+            s2 = aoccsd.getProjectedS2();
+            mult = aoccsd.getProjectedMultiplicity();
+
+            PRINT("\n");
+            PRINT("<0|S^2|CC>  = %f\n", s2);
+            PRINT("<0|2S+1|CC> = %f\n", mult);
+            PRINT("\n");
+
+            STTwoElectronOperator<double,2> aoH(aomo, aoccsd);
+            LambdaCCSD<double> aolambda(config.get("cc"), aoH, aoccsd, aoccsd.getEnergy());
+
+            PRINT("AO UHF-Lambda-CCSD\n\n");
+            PRINT("It.   Correlation Energy     Residual Walltime\n");
+            tic();
+            tic();
+            for (i = 0;aolambda.iterate();i++)
+            {
+                dt = todouble(toc());
+                PRINT("%3d % 20.15f %12.6e %8.3f\n", i+1, aolambda.getEnergy(), aolambda.getConvergence(), dt);
+                tic();
+            }
+            toc();
+
+            dt = todouble(toc());
+            PRINT("\nAO Lambda took: %8.3f s (%8.3f s/it.)\n", dt, dt/i);
+
+            PRINT("\nFinal Energy: %.15f\n\n", aoscf.getEnergy()+aoccsd.getEnergy());
         }
-
-        PRINT("\nFinal Energy: %.15f\n\n", scf.getEnergy()+ccsd.getEnergy());
-
-        TwoElectronDensity<double> Ds(scf);
-        TwoElectronDensity<double> Du(ccsd);
-        TwoElectronDensity<double> Dr(lambda, ccsd);
-
-        double es = scalar(Ds*moints);
-        double eu = scalar(Du*moints);
-        double er = scalar(Dr*moints);
-
-        cout << es << " " << eu << " " << er << endl;
-        */
 
         print_timers();
     }

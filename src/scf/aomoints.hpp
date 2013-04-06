@@ -141,7 +141,8 @@ class AOMOIntegrals : public MOIntegrals<T>
 
                 nints = abrs.nints;
                 ints = SAFE_MALLOC(integral_t<T>, nints);
-                for (size_t ipqrs = 0, irs = 0;irs < abrs.nrs;irs++)
+                size_t ipqrs, irs;
+                for (ipqrs = 0, irs = 0;irs < abrs.nrs;irs++)
                 {
                     int p = abrs.rs[irs].i;
                     int q = abrs.rs[irs].j;
@@ -152,7 +153,7 @@ class AOMOIntegrals : public MOIntegrals<T>
                     {
                         for (int r = 0;r < nr;r++)
                         {
-                            assert(ipqrs < abrs.nints);
+                            assert(ipqrs < nints);
                             ints[ipqrs].idx.i = p;
                             ints[ipqrs].idx.j = q;
                             ints[ipqrs].idx.k = r;
@@ -162,6 +163,7 @@ class AOMOIntegrals : public MOIntegrals<T>
                         }
                     }
                 }
+                assert(ipqrs == nints);
             }
 
             void free()
@@ -255,6 +257,42 @@ class AOMOIntegrals : public MOIntegrals<T>
                 FREE(newints);
 
                 std::sort(ints, ints+nints, sortIntsByRS);
+
+                /*
+                rscount = SAFE_MALLOC(int, nrs);
+                std::fill(rscount, rscount+nrs, 0);
+
+                for (int i = 0;i < nints;i++)
+                {
+                    if (rles)
+                    {
+                        assert(ints[i].idx.k+ints[i].idx.l*(ints[i].idx.l+1)/2 < nrs);
+                        rscount[ints[i].idx.k+ints[i].idx.l*(ints[i].idx.l+1)/2]++;
+                    }
+                    else
+                    {
+                        assert(ints[i].idx.k+ints[i].idx.l*nr < nrs);
+                        rscount[ints[i].idx.k+ints[i].idx.l*nr]++;
+                    }
+                }
+
+                for (int j = 0;j < nproc;j++)
+                {
+                    if (rank == j)
+                    {
+                        printf("%d: ", j);
+                        for (int i = 0;i < nrs;i++)
+                        {
+                            printf("%2d ", rscount[i]);
+                        }
+                        std::cout << std::endl;
+                    }
+
+                    this->comm.Barrier();
+                }
+
+                FREE(rscount);
+                */
             }
         };
 
@@ -849,8 +887,8 @@ class AOMOIntegrals : public MOIntegrals<T>
             /*
              * Make <Ai|bJ> = -<Ab|Ji> and <aI|Bj> = -<Ba|Ij>
              */
-            (*this->AibJ_)["AibJ"] = -(*this->AbIj_)["AbJi"];
-            (*this->aIBj_)["aIBj"] = -(*this->AbIj_)["BaIj"];
+            (*this->AibJ_)["AbJi"] -= (*this->AbIj_)["AbJi"];
+            (*this->aIBj_)["BaIj"] -= (*this->AbIj_)["BaIj"];
 
             if (nA > 0) free(cA);
             if (na > 0) free(ca);

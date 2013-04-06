@@ -300,7 +300,7 @@ class CholeskyIntegrals : public Distributed<T>
 
                 if (pmax == pid)
                 {
-                    std::cout << "Decomposing block " << pid+max_block*nproc << std::endl;
+                    //std::cout << "Decomposing block " << pid+max_block*nproc << std::endl;
 
                     decomposeBlock(block_size[max_block], block_data[max_block], D, diag+block_start[max_block]);
 
