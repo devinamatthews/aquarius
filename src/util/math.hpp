@@ -25,6 +25,8 @@
 #ifndef _AQUARIUS_UTIL_MATH_HPP_
 #define _AQUARIUS_UTIL_MATH_HPP_
 
+#include <ostream>
+
 namespace aquarius
 {
 
@@ -86,6 +88,8 @@ class vec3
         vec3& orthogonalize(const vec3& other);
 };
 
+std::ostream& operator<<(std::ostream& os, const vec3& v);
+
 vec3 operator*(const double a, const vec3& v);
 
 vec3 operator/(const double a, const vec3& v);
@@ -140,6 +144,8 @@ class mat3x3
 
         static mat3x3 identity();
 };
+
+std::ostream& operator<<(std::ostream& os, const mat3x3& v);
 
 }
 

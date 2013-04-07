@@ -1,0 +1,41 @@
+# S. S. Xantheas, C. J. Burnham and R. J. Harrison, J. Chem. Phys. 116, 1493 (2002).
+# Development of Transferable Interaction Potentials for Water:
+# II. Accurate Energetics of the First Few Water Clusters from First Principles.
+
+molecule
+	coords cartesian
+	atom O       2.289015       0.225784       0.175030
+	atom H       1.837891      -0.638872       0.046444
+	atom H       2.811304       0.122451       0.974687
+	atom O       0.929887      -2.095904      -0.167528
+	atom H      -0.037083      -1.936553      -0.084181
+	atom H       1.034959      -2.583078      -0.988978
+	atom O      -1.718101      -1.549268       0.073447
+	atom H      -1.882083      -0.580570       0.056990
+	atom H      -2.170566      -1.871677       0.857083
+	atom O      -1.987637       1.157925      -0.077866
+	atom H      -1.103971       1.590183      -0.076556
+	atom H      -2.534625       1.699982       0.496152
+	atom O       0.498426       2.249945      -0.063688
+	atom H       1.178269       1.547359       0.044627
+	atom H       0.773193       2.742924      -0.841426
+	basis
+		basis_set DZ
+
+scf
+	convergence 1e-9
+	max_iterations 100
+	damping 0
+	diis
+		order 6
+		start 8
+
+cc
+	diis
+		order 5
+	convergence 1e-9
+	max_iterations 100
+
+cholesky
+	delta 1e-14
+	cond_max 1e99

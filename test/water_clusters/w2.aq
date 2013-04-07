@@ -1,0 +1,33 @@
+# S. S. Xantheas, J. Chem. Phys. 104, 8821 (1996).
+# On the importance of the fragment relaxation energy terms in the
+# estimation of the basis set superposition error correction to the"
+# intermolecular interaction energy.
+
+molecule
+	coords cartesian
+	atom O      -0.000545       1.517541       0.000000
+	atom H       0.094538       0.553640       0.000000
+	atom H       0.901237       1.847958       0.000000
+	atom O      -0.000545      -1.389760       0.000000
+	atom H      -0.493527      -1.711924       0.761014
+	atom H      -0.493527      -1.711924      -0.761014
+	basis
+		basis_set DZ
+
+scf
+	convergence 1e-9
+	max_iterations 100
+	damping 0
+	diis
+		order 6
+		start 8
+
+cc
+	diis
+		order 5
+	convergence 1e-9
+	max_iterations 100
+
+cholesky
+	delta 1e-14
+	cond_max 1e99

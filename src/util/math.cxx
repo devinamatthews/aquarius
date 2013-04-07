@@ -25,6 +25,9 @@
 #include "math.hpp"
 #include <stdexcept>
 #include <cmath>
+#include <iomanip>
+#include <ios>
+#include <iostream>
 
 using namespace std;
 
@@ -202,6 +205,12 @@ vec3& vec3::orthogonalize(const vec3& other)
     return *this;
 }
 
+ostream& operator<<(ostream& os, const vec3& v)
+{
+    os << "(" << v[0] << ", " << v[1] << ", " << v[2] << ")";
+    return os;
+}
+
 double& mat3x3::column::operator[](int i)
 {
     switch (i)
@@ -325,6 +334,17 @@ mat3x3 mat3x3::identity()
     i[1][1] = 1;
     i[2][2] = 1;
     return i;
+}
+
+ostream& operator<<(ostream& os, const mat3x3& m)
+{
+    ios_base::fmtflags oldfmt = os.flags();
+    os << scientific << showpos << setprecision(12) << setw(20);
+    os <<  "/" << m[0][0] << " " << m[0][1] << " " << m[0][2] << "\\";
+    os <<  "|" << m[1][0] << " " << m[1][1] << " " << m[1][2] << "|";
+    os << "\\" << m[2][0] << " " << m[2][1] << " " << m[2][2] << "/";
+    os.flags(oldfmt);
+    return os;
 }
 
 }

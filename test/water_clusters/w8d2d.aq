@@ -1,0 +1,50 @@
+# S. S. Xantheas and E. Apr\'a, J. Chem. Phys. 120, 823 (2004).
+# The binding energies of the D$_{2d}$ and S$_{4}$ water octamer isomers:
+# High-level electronic structure and empirical potential results.
+
+molecule
+	coords cartesian
+	atom O      -1.46966769     1.46966769     1.34326600
+	atom O       1.46966769    -1.46966769     1.34326600
+	atom O       1.46966769     1.46966769    -1.34326600
+	atom O      -1.46966769    -1.46966769    -1.34326600
+	atom O      -1.36565412     1.36565412    -1.32090835
+	atom O       1.36565412    -1.36565412    -1.32090835
+	atom O       1.36565412     1.36565412     1.32090835
+	atom O      -1.36565412    -1.36565412     1.32090835
+	atom H      -2.10464162     2.10464162     1.68605609
+	atom H       2.10464162    -2.10464162     1.68605609
+	atom H       2.10464162     2.10464162    -1.68605609
+	atom H      -2.10464162    -2.10464162    -1.68605609
+	atom H      -1.52398844     1.52398844      .35383543
+	atom H       1.52398844    -1.52398844      .35383543
+	atom H       1.52398844     1.52398844     -.35383543
+	atom H      -1.52398844    -1.52398844     -.35383543
+	atom H       1.51043211      .42340972     1.51629003
+	atom H      -1.51043211     -.42340972     1.51629003
+	atom H        .42340972    -1.51043211    -1.51629003
+	atom H       -.42340972     1.51043211    -1.51629003
+	atom H      -1.51043211      .42340972    -1.51629003
+	atom H       1.51043211     -.42340972    -1.51629003
+	atom H       -.42340972    -1.51043211     1.51629003
+	atom H        .42340972     1.51043211     1.51629003
+	basis
+		basis_set DZ
+
+scf
+	convergence 1e-9
+	max_iterations 100
+	damping 0
+	diis
+		order 6
+		start 8
+
+cc
+	diis
+		order 5
+	convergence 1e-9
+	max_iterations 100
+
+cholesky
+	delta 1e-14
+	cond_max 1e99

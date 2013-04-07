@@ -156,6 +156,8 @@ class Config::Extractor<AtomCartSpec>
         if ((c = resolve(node,"basis_set"))) s.basisSet = c->data;
         if ((c = resolve(node,"truncation"))) s.truncation = c->data;
 
+        c = node->children;
+
         str = nextSpec(c);
         if (str == "") throw BadValueError(path(node));
         s.symbol = str;
@@ -242,7 +244,7 @@ Molecule::Molecule(const Config& config)
     }
     else
     {
-        vector< pair<string,AtomCartSpec> > atomspecs = config.find<AtomCartSpec>("atom");
+        vector< pair<string,AtomCartSpec> > atomspecs = config.find<AtomCartSpec>("molecule.atom");
         for (vector< pair<string,AtomCartSpec> >::iterator it = atomspecs.begin();it != atomspecs.end();++it)
         {
             cartpos.push_back(it->second);
@@ -268,6 +270,13 @@ Molecule::Molecule(const Config& config)
     }
 
     //TODO: getSymmetry();
+
+    PRINT("Molecular Geometry:\n\n");
+    for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
+    {
+        PRINT("%3s % 20.15f % 20.15f % 20.15f\n", it->symbol.c_str(), it->pos[0], it->pos[1], it->pos[2]);
+    }
+    PRINT("\n");
 
     int order = SLIDE::getGroupOrder();
     int nfunc[8] = {0};
