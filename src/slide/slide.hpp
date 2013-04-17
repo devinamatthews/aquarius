@@ -235,12 +235,6 @@ class Center
 class Shell
 {
     friend class Context;
-    friend void swap(Shell& first, Shell& second)
-    {
-        using std::swap;
-        swap(first.center, second.center);
-        swap(first.shell, second.shell);
-    }
 
     protected:
         shell_t* shell;
@@ -291,6 +285,13 @@ class Shell
         const double* getCoefficients() const;
 
         const Center& getCenter() const;
+
+        friend void swap(Shell& first, Shell& second)
+        {
+            using std::swap;
+            swap(first.center, second.center);
+            swap(first.shell, second.shell);
+        }
 };
 
 class SLIDEError : public std::runtime_error
