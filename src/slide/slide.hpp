@@ -252,7 +252,7 @@ class Shell
         Shell(const Shell& other, const bool spherical, const bool contaminants);
 
         Shell(const Center& pos, const int L, const int nprim, const int ncontr, const bool spherical, const bool contaminants,
-              const double* exponents, const double* coefficients, const int idx[8] = (int[]){0,0,0,0,0,0,0,0});
+              const double* exponents, const double* coefficients, const int *idx = NULL);
 
         ~Shell();
 

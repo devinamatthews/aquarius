@@ -205,11 +205,11 @@ typedef struct
     const int Z;        /**< Atomic number. */
     const int isotope;  /**< Isotope number of this element. This is not e.g. the nucleon number, but an index
                              into the spin, mass, and nucleon arrays. */
-    const char* symbol; /**< Symbol of this element, e.g. H or Li. */
-    const char* name;   /**< Full name of this element. */
-    const int* spin;    /**< Spin of each isotope for this element, given in units of \f$\frac{\hbar}{2}\f$. */
-    const double* mass; /**< Mass of each isotope for this element, given in units of amu. */
-    const int* nucleon; /**< Nucleon number (P+N) of each isotope for this element. */
+    const char symbol[3]; /**< Symbol of this element, e.g. H or Li. */
+    const char name[14];   /**< Full name of this element. */
+    const int spin[25];    /**< Spin of each isotope for this element, given in units of \f$\frac{\hbar}{2}\f$. */
+    const double mass[25]; /**< Mass of each isotope for this element, given in units of amu. */
+    const int nucleon[25]; /**< Nucleon number (P+N) of each isotope for this element. */
 } element_t;
 
 /**

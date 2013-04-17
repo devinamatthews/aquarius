@@ -414,14 +414,12 @@ Center& Center::operator=(Center other)
 
 double Center::nuclearRepulsion(const vector<Center>& centers)
 {
-    vector<Center>::const_iterator it;
-    center_t** center_ts = new center_t*[centers.size()];
-    int i;
+    const center_t** center_ts = new const center_t*[centers.size()];
     double nucrep;
 
-    for (it = centers.begin();it != centers.end();++i) center_ts[i] = it->center;
+    for (int i = 0;i < centers.size();i++) center_ts[i] = centers[i].center;
 
-    nucrep = SLIDE_nuclear_repulsion(const_cast<const center_t**>(center_ts), centers.size());
+    nucrep = SLIDE_nuclear_repulsion(center_ts, centers.size());
 
     delete[] center_ts;
 
@@ -454,9 +452,11 @@ const double* Center::getCenterAfterOp(const int op) const
 }
 
 Shell::Shell(const Center& pos, const int L, const int nprim, const int ncontr, const bool spherical, const bool contaminants,
-      const double* exponents, const double* coefficients, const int idx[8])
+      const double* exponents, const double* coefficients, const int *idx)
 : center(pos)
 {
+    const int zero[8] = {0,0,0,0,0,0,0,0};
+    if (idx == NULL) idx = zero;
     shell = SLIDE_new_shell(pos.center, L, nprim, ncontr, spherical, contaminants,
                             exponents, coefficients, idx);
     if (shell == NULL) throw SLIDEError("Error creating shell");
