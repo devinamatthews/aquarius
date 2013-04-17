@@ -50,17 +50,17 @@ class AOMOIntegrals : public MOIntegrals<T>
         enum Side {PQ, RS};
         enum Index {A, B};
 
-        static bool sortIntsByRS(const integral_t<T>& i1, const integral_t<T>& i2)
+        static bool sortIntsByRS(const idx4_t& i1, const idx4_t& i2)
         {
-            if (i1.idx.l < i2.idx.l)
+            if (i1.l < i2.l)
             {
                 return true;
             }
-            else if (i1.idx.l > i2.idx.l)
+            else if (i1.l > i2.l)
             {
                 return false;
             }
-            if (i1.idx.k < i2.idx.k)
+            if (i1.k < i2.k)
             {
                 return true;
             }
@@ -76,7 +76,8 @@ class AOMOIntegrals : public MOIntegrals<T>
         {
             int np, nq, nr, ns;
             size_t nints;
-            integral_t<T> *ints;
+            T *ints;
+            idx4_t *idxs;
 
             /*
              * Read integrals in and break (pq|rs)=(rs|pq) symmetry
@@ -87,12 +88,13 @@ class AOMOIntegrals : public MOIntegrals<T>
                 ns = nr = nq = np = aoints.molecule.getNumOrbitals();
 
                 size_t noldints = aoints.getNumInts();
-                const integral_t<T> *oldints = aoints.getInts();
+                const T *oldints = aoints.getInts();
+                const idx4_t *oldidxs = aoints.getIndices();
                 nints = noldints;
 
                 for (size_t i = 0;i < noldints;i++)
                 {
-                    idx4_t idx = oldints[i].idx;
+                    idx4_t idx = oldidxs[i];
 
                     if (!((idx.i == idx.k && idx.j == idx.l) ||
                           (idx.i == idx.l && idx.j == idx.k)))
@@ -101,13 +103,14 @@ class AOMOIntegrals : public MOIntegrals<T>
                     }
                 }
 
-                ints = SAFE_MALLOC(integral_t<T>, nints);
+                ints = SAFE_MALLOC(T, nints);
+                idxs = SAFE_MALLOC(idx4_t, nints);
 
                 size_t j = 0;
                 for (size_t i = 0;i < noldints;i++)
                 {
-                    T val = oldints[i].value;
-                    idx4_t idx = oldints[i].idx;
+                    T val = oldints[i];
+                    idx4_t idx = oldidxs[i];
 
                     if (idx.i > idx.j) std::swap(idx.i, idx.j);
                     if (idx.k > idx.l) std::swap(idx.k, idx.l);
@@ -118,20 +121,24 @@ class AOMOIntegrals : public MOIntegrals<T>
                     assert(idx.l >= 0 && idx.l < ns);
 
                     assert(j < nints);
-                    ints[j++] = integral_t<T>(val, idx);
+                    ints[j] = val;
+                    idxs[j] = idx;
+                    j++;
 
                     if (idx.i != idx.k || idx.j != idx.l)
                     {
                         std::swap(idx.i, idx.k);
                         std::swap(idx.j, idx.l);
                         assert(j < nints);
-                        ints[j++] = integral_t<T>(val, idx);
+                        ints[j] = val;
+                        idxs[j] = idx;
+                        j++;
                     }
                 }
                 assert(j == nints);
             }
 
-            pqrs_integrals(const abrs_integrals& abrs)
+            pqrs_integrals(abrs_integrals& abrs)
             : Distributed<T>(abrs.ctf)
             {
                 np = abrs.nr;
@@ -140,7 +147,8 @@ class AOMOIntegrals : public MOIntegrals<T>
                 ns = abrs.nb;
 
                 nints = abrs.nints;
-                ints = SAFE_MALLOC(integral_t<T>, nints);
+                ints = abrs.ints;
+                idxs = SAFE_MALLOC(idx4_t, nints);
                 size_t ipqrs, irs;
                 for (ipqrs = 0, irs = 0;irs < abrs.nrs;irs++)
                 {
@@ -154,16 +162,17 @@ class AOMOIntegrals : public MOIntegrals<T>
                         for (int r = 0;r < nr;r++)
                         {
                             assert(ipqrs < nints);
-                            ints[ipqrs].idx.i = p;
-                            ints[ipqrs].idx.j = q;
-                            ints[ipqrs].idx.k = r;
-                            ints[ipqrs].idx.l = s;
-                            ints[ipqrs].value = abrs.ints[ipqrs];
+                            idxs[ipqrs].i = p;
+                            idxs[ipqrs].j = q;
+                            idxs[ipqrs].k = r;
+                            idxs[ipqrs].l = s;
                             ipqrs++;
                         }
                     }
                 }
                 assert(ipqrs == nints);
+
+                FREE(abrs.rs);
             }
 
             void free()
@@ -176,6 +185,9 @@ class AOMOIntegrals : public MOIntegrals<T>
              */
             void collect(const bool rles)
             {
+                MPI::Datatype IDX4_T_TYPE = MPI::Datatype(MPI_INT16_T).Create_contiguous(4);
+                IDX4_T_TYPE.Commit();
+
                 int nrs;
                 if (rles)
                 {
@@ -186,7 +198,7 @@ class AOMOIntegrals : public MOIntegrals<T>
                     nrs = nr*ns;
                 }
 
-                std::sort(ints, ints+nints, sortIntsByRS);
+                std::cosort(idxs, idxs+nints, ints, ints+nints, sortIntsByRS);
 
                 int *rscount = SAFE_MALLOC(int, nrs);
                 std::fill(rscount, rscount+nrs, 0);
@@ -195,13 +207,13 @@ class AOMOIntegrals : public MOIntegrals<T>
                 {
                     if (rles)
                     {
-                        assert(ints[i].idx.k+ints[i].idx.l*(ints[i].idx.l+1)/2 < nrs);
-                        rscount[ints[i].idx.k+ints[i].idx.l*(ints[i].idx.l+1)/2]++;
+                        assert(idxs[i].k+idxs[i].l*(idxs[i].l+1)/2 < nrs);
+                        rscount[idxs[i].k+idxs[i].l*(idxs[i].l+1)/2]++;
                     }
                     else
                     {
-                        assert(ints[i].idx.k+ints[i].idx.l*nr < nrs);
-                        rscount[ints[i].idx.k+ints[i].idx.l*nr]++;
+                        assert(idxs[i].k+idxs[i].l*nr < nrs);
+                        rscount[idxs[i].k+idxs[i].l*nr]++;
                     }
                 }
 
@@ -223,29 +235,33 @@ class AOMOIntegrals : public MOIntegrals<T>
                     for (int rs = (nrs*rank)/nproc;rs < (nrs*(rank+1))/nproc;rs++)
                     {
                         assert(rs+nrs*i < nproc*nrs);
-                        recvcount[i] += rscountall[rs+nrs*i]*sizeof(integral_t<T>);
+                        recvcount[i] += rscountall[rs+nrs*i];
                     }
                     if (i > 0) recvoff[i] = recvoff[i-1]+recvcount[i-1];
-                    nnewints += recvcount[i]/sizeof(integral_t<T>);
+                    nnewints += recvcount[i];
 
                     for (int rs = (nrs*i)/nproc;rs < (nrs*(i+1))/nproc;rs++)
                     {
                         assert(rs+nrs*rank < nproc*nrs);
-                        sendcount[i] += rscountall[rs+nrs*rank]*sizeof(integral_t<T>);
+                        sendcount[i] += rscountall[rs+nrs*rank];
                     }
                     if (i > 0) sendoff[i] = sendoff[i-1]+sendcount[i-1];
                 }
-                assert(recvoff[nproc-1]+recvcount[nproc-1] == nnewints*sizeof(integral_t<T>));
-                assert(sendoff[nproc-1]+sendcount[nproc-1] == nints*sizeof(integral_t<T>));
+                assert(recvoff[nproc-1]+recvcount[nproc-1] == nnewints);
+                assert(sendoff[nproc-1]+sendcount[nproc-1] == nints);
 
                 assert(allsum((long)nints) == allsum((long)nnewints));
 
                 FREE(rscountall);
 
-                integral_t<T>* newints = SAFE_MALLOC(integral_t<T>, nnewints);
+                T* newints = SAFE_MALLOC(T, nnewints);
+                idx4_t* newidxs = SAFE_MALLOC(idx4_t, nnewints);
 
-                this->comm.Alltoallv(   ints, sendcount, sendoff, MPI::BYTE,
-                                     newints, recvcount, recvoff, MPI::BYTE);
+                this->comm.Alltoallv(   ints, sendcount, sendoff, MPI::DOUBLE,
+                                     newints, recvcount, recvoff, MPI::DOUBLE);
+
+                this->comm.Alltoallv(   idxs, sendcount, sendoff, IDX4_T_TYPE,
+                                     newidxs, recvcount, recvoff, IDX4_T_TYPE);
 
                 FREE(sendcount);
                 FREE(sendoff);
@@ -254,45 +270,11 @@ class AOMOIntegrals : public MOIntegrals<T>
 
                 nints = nnewints;
                 std::swap(ints, newints);
+                std::swap(idxs, newidxs);
                 FREE(newints);
+                FREE(newidxs);
 
-                std::sort(ints, ints+nints, sortIntsByRS);
-
-                /*
-                rscount = SAFE_MALLOC(int, nrs);
-                std::fill(rscount, rscount+nrs, 0);
-
-                for (int i = 0;i < nints;i++)
-                {
-                    if (rles)
-                    {
-                        assert(ints[i].idx.k+ints[i].idx.l*(ints[i].idx.l+1)/2 < nrs);
-                        rscount[ints[i].idx.k+ints[i].idx.l*(ints[i].idx.l+1)/2]++;
-                    }
-                    else
-                    {
-                        assert(ints[i].idx.k+ints[i].idx.l*nr < nrs);
-                        rscount[ints[i].idx.k+ints[i].idx.l*nr]++;
-                    }
-                }
-
-                for (int j = 0;j < nproc;j++)
-                {
-                    if (rank == j)
-                    {
-                        printf("%d: ", j);
-                        for (int i = 0;i < nrs;i++)
-                        {
-                            printf("%2d ", rscount[i]);
-                        }
-                        std::cout << std::endl;
-                    }
-
-                    this->comm.Barrier();
-                }
-
-                FREE(rscount);
-                */
+                std::cosort(idxs, idxs+nints, ints, ints+nints, sortIntsByRS);
             }
         };
 
@@ -308,7 +290,7 @@ class AOMOIntegrals : public MOIntegrals<T>
              * Expand (p_i q_j|r_k s_l) into (pq|r_k s_l), where pleq = true indicates
              * that (pq|rs) = (qp|rs) and only p_i <= q_j is stored in the input
              */
-            abrs_integrals(const pqrs_integrals& pqrs, const bool pleq)
+            abrs_integrals(pqrs_integrals& pqrs, const bool pleq)
             : Distributed<T>(pqrs.ctf)
             {
                 na = pqrs.np;
@@ -319,8 +301,11 @@ class AOMOIntegrals : public MOIntegrals<T>
                 nrs = (pqrs.nints > 0 ? 1 : 0);
                 for (size_t ipqrs = 1;ipqrs < pqrs.nints;ipqrs++)
                 {
-                    if (pqrs.ints[ipqrs].idx.k != pqrs.ints[ipqrs-1].idx.k ||
-                        pqrs.ints[ipqrs].idx.l != pqrs.ints[ipqrs-1].idx.l) nrs++;
+                    assert( pqrs.idxs[ipqrs].l  > pqrs.idxs[ipqrs-1].l ||
+                           (pqrs.idxs[ipqrs].l == pqrs.idxs[ipqrs-1].l &&
+                            pqrs.idxs[ipqrs].k >= pqrs.idxs[ipqrs-1].k));
+                    if (pqrs.idxs[ipqrs].k != pqrs.idxs[ipqrs-1].k ||
+                        pqrs.idxs[ipqrs].l != pqrs.idxs[ipqrs-1].l) nrs++;
                 }
 
                 assert(allsum((long)nrs) <= nr*ns);
@@ -333,8 +318,8 @@ class AOMOIntegrals : public MOIntegrals<T>
                 size_t ipqrs = 0, irs = 0, iabrs = 0;
                 if (nrs > 0)
                 {
-                    rs[0].i = pqrs.ints[0].idx.k;
-                    rs[0].j = pqrs.ints[0].idx.l;
+                    rs[0].i = pqrs.idxs[0].k;
+                    rs[0].j = pqrs.idxs[0].l;
                     assert(rs[0].i >= 0 && rs[0].i < nr);
                     assert(rs[0].j >= 0 && rs[0].j < ns);
                 }
@@ -342,31 +327,33 @@ class AOMOIntegrals : public MOIntegrals<T>
                 {
                     assert(ipqrs >= 0 && ipqrs < pqrs.nints);
                     if (ipqrs > 0 &&
-                        (pqrs.ints[ipqrs].idx.k != pqrs.ints[ipqrs-1].idx.k ||
-                         pqrs.ints[ipqrs].idx.l != pqrs.ints[ipqrs-1].idx.l))
+                        (pqrs.idxs[ipqrs].k != pqrs.idxs[ipqrs-1].k ||
+                         pqrs.idxs[ipqrs].l != pqrs.idxs[ipqrs-1].l))
                     {
                         irs++;
                         iabrs += na*nb;
                         assert(irs >= 0 && irs < nrs);
-                        rs[irs].i = pqrs.ints[ipqrs].idx.k;
-                        rs[irs].j = pqrs.ints[ipqrs].idx.l;
+                        rs[irs].i = pqrs.idxs[ipqrs].k;
+                        rs[irs].j = pqrs.idxs[ipqrs].l;
                         assert(rs[irs].i >= 0 && rs[irs].i < nr);
                         assert(rs[irs].j >= 0 && rs[irs].j < ns);
                     }
 
-                    int p = pqrs.ints[ipqrs].idx.i;
-                    int q = pqrs.ints[ipqrs].idx.j;
+                    int p = pqrs.idxs[ipqrs].i;
+                    int q = pqrs.idxs[ipqrs].j;
 
                     assert(iabrs >= 0 && iabrs+na*nb <= nints);
                     assert(p >= 0 && p < na);
                     assert(q >= 0 && q < nb);
-                    ints[iabrs+p+q*na] = pqrs.ints[ipqrs].value;
+                    ints[iabrs+p+q*na] = pqrs.ints[ipqrs];
                     if (p != q && pleq)
-                        ints[iabrs+q+p*na] = pqrs.ints[ipqrs].value;
+                        ints[iabrs+q+p*na] = pqrs.ints[ipqrs];
                 }
                 assert(irs == nrs-1 || nrs == 0);
                 assert(iabrs == nints-na*nb || nrs == 0);
                 assert(ipqrs == pqrs.nints);
+
+                pqrs.free();
             }
 
             /*
@@ -389,25 +376,17 @@ class AOMOIntegrals : public MOIntegrals<T>
 
                     if (nc == 0) return out;
 
-                    size_t iin = 0;
-                    size_t iout = 0;
-                    for (size_t irs = 0;irs < nrs;irs++)
+                    if (trans == 'N')
                     {
-                        if (trans == 'N')
-                        {
-                            gemm('T', 'N', nc, nb, na, 1.0,             C, ldc,
-                                                                 ints+iin,  na,
-                                                       0.0, out.ints+iout,  nc);
-                        }
-                        else
-                        {
-                            gemm('N', 'N', nc, nb, na, 1.0,             C, ldc,
-                                                                 ints+iin,  na,
-                                                       0.0, out.ints+iout,  nc);
-                        }
-
-                        iin += na*nb;
-                        iout += nc*nb;
+                        gemm('T', 'N', nc, nb*nrs, na, 1.0,        C, ldc,
+                                                                ints,  na,
+                                                       0.0, out.ints,  nc);
+                    }
+                    else
+                    {
+                        gemm('N', 'N', nc, nb*nrs, na, 1.0,        C, ldc,
+                                                                ints,  na,
+                                                       0.0, out.ints,  nc);
                     }
                 }
                 else
@@ -660,7 +639,6 @@ class AOMOIntegrals : public MOIntegrals<T>
             pqrs_integrals pqrs(ints);
             pqrs.collect(true);
             abrs_integrals PQrs(pqrs, true);
-            pqrs.free();
 
             /*
              * First quarter-transformation
@@ -689,11 +667,9 @@ class AOMOIntegrals : public MOIntegrals<T>
              * Make <AB||CD>
              */
             pqrs_integrals rsAB(ABrs);
-            ABrs.free();
             rsAB.collect(false);
 
             abrs_integrals RSAB(rsAB, true);
-            rsAB.free();
             abrs_integrals RDAB = RSAB.transform(B, 'N', nA, cA, N);
             RSAB.free();
 
@@ -706,11 +682,9 @@ class AOMOIntegrals : public MOIntegrals<T>
              * Make <Ab|Cd> and <ab||cd>
              */
             pqrs_integrals rsab(abrs);
-            abrs.free();
             rsab.collect(false);
 
             abrs_integrals RSab(rsab, true);
-            rsab.free();
             abrs_integrals RDab = RSab.transform(B, 'N', nA, cA, N);
             abrs_integrals Rdab = RSab.transform(B, 'N', na, ca, N);
             RSab.free();
@@ -729,11 +703,9 @@ class AOMOIntegrals : public MOIntegrals<T>
              * Make <AB||CI>, <aB|cI>, and <AB|IJ>
              */
             pqrs_integrals rsAI(AIrs);
-            AIrs.free();
             rsAI.collect(false);
 
             abrs_integrals RSAI(rsAI, true);
-            rsAI.free();
             abrs_integrals RCAI = RSAI.transform(B, 'N', nA, cA, N);
             abrs_integrals RcAI = RSAI.transform(B, 'N', na, ca, N);
             abrs_integrals RJAI = RSAI.transform(B, 'N', nI, cI, N);
@@ -758,11 +730,9 @@ class AOMOIntegrals : public MOIntegrals<T>
              * Make <Ab|Ci>, <ab||ci>, <Ab|Ij>, and <ab|ij>
              */
             pqrs_integrals rsai(airs);
-            airs.free();
             rsai.collect(false);
 
             abrs_integrals RSai(rsai, true);
-            rsai.free();
             abrs_integrals RCai = RSai.transform(B, 'N', nA, cA, N);
             abrs_integrals Rcai = RSai.transform(B, 'N', na, ca, N);
             abrs_integrals RJai = RSai.transform(B, 'N', nI, cI, N);
@@ -793,11 +763,9 @@ class AOMOIntegrals : public MOIntegrals<T>
              * Make <IJ||KL>, <IJ||KA>, <Ij|Ka>, <aI|bJ>, and <AI|BJ>
              */
             pqrs_integrals rsIJ(IJrs);
-            IJrs.free();
             rsIJ.collect(false);
 
             abrs_integrals RSIJ(rsIJ, true);
-            rsIJ.free();
             abrs_integrals RBIJ = RSIJ.transform(B, 'N', nA, cA, N);
             abrs_integrals RbIJ = RSIJ.transform(B, 'N', na, ca, N);
             abrs_integrals RLIJ = RSIJ.transform(B, 'N', nI, cI, N);
@@ -831,11 +799,9 @@ class AOMOIntegrals : public MOIntegrals<T>
              * Make <Ij|Kl>, <ij||kl>, <iJ|kA>, <ij||ka>, <Ai|Bj>, and <ai|bj>
              */
             pqrs_integrals rsij(ijrs);
-            ijrs.free();
             rsij.collect(false);
 
             abrs_integrals RSij(rsij, true);
-            rsij.free();
             abrs_integrals RBij = RSij.transform(B, 'N', nA, cA, N);
             abrs_integrals Rbij = RSij.transform(B, 'N', na, ca, N);
             abrs_integrals RLij = RSij.transform(B, 'N', nI, cI, N);

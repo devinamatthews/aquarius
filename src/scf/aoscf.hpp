@@ -74,14 +74,15 @@ class AOUHF : public UHF<T>
             assert(npair == norb*norb);
 
             size_t neris = ints.getNumInts();
-            const integral_t<T>* eris = ints.getInts();
+            const T* eris = ints.getInts();
+            const idx4_t* idxs = ints.getIndices();
 
             for (size_t n = 0;n < neris;n++)
             {
-                int i = eris[n].idx.i;
-                int j = eris[n].idx.j;
-                int k = eris[n].idx.k;
-                int l = eris[n].idx.l;
+                int i = idxs[n].i;
+                int j = idxs[n].j;
+                int k = idxs[n].k;
+                int l = idxs[n].l;
 
                 /*
                 if (i < j)
@@ -100,7 +101,7 @@ class AOUHF : public UHF<T>
                 printf("%d %d %d %d %25.15e\n", i+1, j+1, k+1, l+1, eris[n].value);
                 */
 
-                T e = eris[n].value;
+                T e = eris[n];
                 if (i == j) e *= 0.5;
                 if (k == l) e *= 0.5;
                 if (std::min(i,j) == std::min(k,l) &&

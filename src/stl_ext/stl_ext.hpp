@@ -33,6 +33,40 @@
 #include <functional>
 #include <stdexcept>
 #include <cctype>
+#include <iterator>
+
+#if defined(CPLUSPLUS11)
+
+#include <type_traits>
+
+#elif defined(BOOST)
+
+#include <boost/type_traits.hpp>
+
+namespace std
+{
+    using namespace boost;
+}
+
+#define enable_if enable_if_c
+
+#else
+
+#error "type_traits not available"
+
+#endif
+
+#define ENABLE_IF_CONST(const_type,return_type) \
+template <typename _IsConst = const_type > \
+typename std::enable_if<std::is_const<_IsConst>::value, return_type >::type
+
+#define ENABLE_IF_NON_CONST(const_type,return_type) \
+template <typename _IsConst = const_type > \
+typename std::enable_if<!std::is_const<_IsConst>::value, return_type >::type
+
+#define ENABLE_IF_SAME(old_type,new_type,return_type) \
+template <typename new_type > \
+typename std::enable_if<std::is_base_of<const old_type, const new_type >::value, return_type >::type
 
 namespace std
 {
@@ -370,39 +404,220 @@ inline std::string tolower(const std::string& S)
 inline float conj(float v) { return v; }
 inline double conj(double v) { return v; }
 
-}
-
-#if defined(CPLUSPLUS11)
-
-#include <type_traits>
-
-#elif defined(BOOST)
-
-#include <boost/type_traits.hpp>
-
-namespace std
+template <class T, class U>
+struct doublet
 {
-    using namespace boost;
+    T first;
+    U second;
+
+    doublet(T first, U second) : first(first), second(second) {}
+
+    friend void swap(doublet<T,U> first, doublet<T,U> second)
+    {
+        swap(first.first, second.first);
+        swap(first.second, second.second);
+    }
+
+    template <typename T_, typename U_>
+    doublet(doublet<T_,U_> other)
+    : first(other.first), second(other.second) {}
+
+    template <typename T_, typename U_>
+    doublet<T,U>& operator=(const doublet<T_,U_>& other)
+    {
+        first = other.first;
+        second = other.second;
+        return *this;
+    }
+
+    doublet<T,U>& operator=(const doublet<T,U>& other)
+    {
+        first = other.first;
+        second = other.second;
+        return *this;
+    }
+
+    bool operator==(const doublet<T,U>& other) const
+    {
+        return first == other.first;
+    }
+
+    bool operator!=(const doublet<T,U>& other) const
+    {
+        return first != other.first;
+    }
+
+    bool operator<(const doublet<T,U>& other) const
+    {
+        return first < other.first;
+    }
+
+    bool operator>(const doublet<T,U>& other) const
+    {
+        return first > other.first;
+    }
+
+    bool operator<=(const doublet<T,U>& other) const
+    {
+        return first <= other.first;
+    }
+
+    bool operator>=(const doublet<T,U>& other) const
+    {
+        return first >= other.first;
+    }
+};
+
+template <class T, class U>
+class coiterator : public iterator<random_access_iterator_tag,
+                                   doublet<typename iterator_traits<T>::value_type,
+                                           typename iterator_traits<U>::value_type>,
+                                   ptrdiff_t,
+                                   doublet<typename iterator_traits<T>::pointer,
+                                           typename iterator_traits<U>::pointer>,
+                                   doublet<typename iterator_traits<T>::reference,
+                                           typename iterator_traits<U>::reference> >
+{
+    T it_T;
+    U it_U;
+
+    public:
+        coiterator(const T& it_T, const U& it_U) : it_T(it_T), it_U(it_U) {}
+
+        bool operator==(const coiterator<T,U>& other) const
+        {
+            return it_T == other.it_T;
+        }
+
+        bool operator!=(const coiterator<T,U>& other) const
+        {
+            return it_T != other.it_T;
+        }
+
+        bool operator<(const coiterator<T,U>& other) const
+        {
+            return it_T < other.it_T;
+        }
+
+        bool operator>(const coiterator<T,U>& other) const
+        {
+            return it_T > other.it_T;
+        }
+
+        bool operator<=(const coiterator<T,U>& other) const
+        {
+            return it_T <= other.it_T;
+        }
+
+        bool operator>=(const coiterator<T,U>& other) const
+        {
+            return it_T >= other.it_T;
+        }
+
+        typename coiterator<T,U>::reference operator*()
+        {
+            return typename coiterator<T,U>::reference(*it_T,*it_U);
+        }
+
+        typename coiterator<T,U>::reference operator[](ptrdiff_t n)
+        {
+            return typename coiterator<T,U>::reference(it_T[n],it_U[n]);
+        }
+
+        coiterator<T,U>& operator++()
+        {
+            ++it_T;
+            ++it_U;
+            return *this;
+        }
+
+        coiterator<T,U>& operator--()
+        {
+            --it_T;
+            --it_U;
+            return *this;
+        }
+
+        coiterator<T,U> operator++(int x)
+        {
+            return coiterator<T,U>(it_T++, it_U++);
+        }
+
+        coiterator<T,U> operator--(int x)
+        {
+            return coiterator<T,U>(it_T--, it_U--);
+        }
+
+        coiterator<T,U>& operator+=(ptrdiff_t n)
+        {
+            it_T += n;
+            it_U += n;
+            return *this;
+        }
+
+        coiterator<T,U>& operator-=(ptrdiff_t n)
+        {
+            it_T -= n;
+            it_U -= n;
+            return *this;
+        }
+
+        coiterator<T,U> operator+(ptrdiff_t n) const
+        {
+            return coiterator<T,U>(it_T+n, it_U+n);
+        }
+
+        friend coiterator<T,U> operator+(ptrdiff_t n, const coiterator<T,U>& other)
+        {
+            return coiterator<T,U>(other.it_T+n, other.it_U+n);
+        }
+
+        coiterator<T,U> operator-(ptrdiff_t n) const
+        {
+            return coiterator<T,U>(it_T-n, it_U-n);
+        }
+
+        ptrdiff_t operator-(const coiterator<T,U>& other) const
+        {
+            return it_T-other.it_T;
+        }
+};
+
+template <class key_iterator, class val_iterator, class Comparator>
+class cocomparator
+{
+    typedef typename coiterator<key_iterator,val_iterator>::value_type val;
+
+    Comparator comp;
+
+    public:
+        cocomparator(Comparator comp) : comp(comp) {}
+
+        bool operator()(const val& r1, const val& r2) const
+        {
+            return comp(r1.first, r2.first);
+        }
+};
+
+template <class key_iterator, class val_iterator>
+void cosort(key_iterator keys_begin, key_iterator keys_end,
+            val_iterator vals_begin, val_iterator vals_end)
+{
+    coiterator<key_iterator,val_iterator> begin = coiterator<key_iterator,val_iterator>(keys_begin, vals_begin);
+    coiterator<key_iterator,val_iterator> end = coiterator<key_iterator,val_iterator>(keys_end, vals_end);
+    sort(begin, end);
 }
 
-#define enable_if enable_if_c
+template <class key_iterator, class val_iterator, class Comparator>
+void cosort(key_iterator keys_begin, key_iterator keys_end,
+            val_iterator vals_begin, val_iterator vals_end,
+            Comparator comp)
+{
+    coiterator<key_iterator,val_iterator> begin = coiterator<key_iterator,val_iterator>(keys_begin, vals_begin);
+    coiterator<key_iterator,val_iterator> end = coiterator<key_iterator,val_iterator>(keys_end, vals_end);
+    sort(begin, end, cocomparator<key_iterator,val_iterator,Comparator>(comp));
+}
 
-#else
-
-#error "type_traits not available"
-
-#endif
-
-#define ENABLE_IF_CONST(const_type,return_type) \
-template <typename _IsConst = const_type > \
-typename std::enable_if<std::is_const<_IsConst>::value, return_type >::type
-
-#define ENABLE_IF_NON_CONST(const_type,return_type) \
-template <typename _IsConst = const_type > \
-typename std::enable_if<!std::is_const<_IsConst>::value, return_type >::type
-
-#define ENABLE_IF_SAME(old_type,new_type,return_type) \
-template <typename new_type > \
-typename std::enable_if<std::is_base_of<const old_type, const new_type >::value, return_type >::type
+}
 
 #endif

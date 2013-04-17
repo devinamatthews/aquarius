@@ -50,7 +50,7 @@ $(foreach d, $(patsubst -L%,%,$(filter -L%,$(1))),\
  )\
 ) $(filter %.a,$(1))
 
-.NOTPARALLEL:
+#.NOTPARALLEL:
 .PHONY: all default clean $(ALL_COMPONENTS)
 FORCE:
 

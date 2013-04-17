@@ -30,6 +30,8 @@
 #include "input/molecule.hpp"
 #include "memory/memory.h"
 
+#include <boost/foreach.hpp>
+
 #define TMP_BUFSIZE 100
 #define INTEGRAL_CUTOFF 1e-14
 
@@ -39,33 +41,6 @@ namespace scf
 {
 
 template <typename T>
-struct integral_t
-{
-    T value;
-    idx4_t idx;
-
-    integral_t(T value, idx4_t idx)
-    : value(value), idx(idx) {}
-
-    static MPI::Datatype mpi_type()
-    {
-        static MPI::Datatype type_ = MPI::DATATYPE_NULL;
-
-        if (type_ == MPI::DATATYPE_NULL)
-        {
-            assert(sizeof(short) == sizeof(uint16_t));
-            MPI::Datatype _types[] = {MPI_TYPE_<T>::value(), MPI::SHORT};
-            int _counts[] = {1, 4};
-            MPI::Aint _offsets[] = {0, 8};
-            type_ = MPI::Datatype::Create_struct(2, _counts, _offsets, _types);
-            type_.Commit();
-        }
-
-        return type_;
-    }
-};
-
-template <typename T>
 class AOIntegrals : public Distributed<T>
 {
     public:
@@ -73,8 +48,9 @@ class AOIntegrals : public Distributed<T>
 
     protected:
         slide::Context context;
-        size_t num_ints;
-        integral_t<T> *ints;
+        size_t nints;
+        T *ints;
+        idx4_t *idxs;
 
     public:
         AOIntegrals(tCTF_World<T>& ctf, const input::Molecule& molecule)
@@ -84,9 +60,11 @@ class AOIntegrals : public Distributed<T>
             loadBalance();
         }
 
-        size_t getNumInts() const { return num_ints; }
+        size_t getNumInts() const { return nints; }
 
-        const integral_t<T>* getInts() const { return ints; }
+        const T* getInts() const { return ints; }
+
+        const idx4_t* getIndices() const { return idxs; }
 
     protected:
         void generateInts()
@@ -94,7 +72,8 @@ class AOIntegrals : public Distributed<T>
             double tmpval[TMP_BUFSIZE];
             idx4_t tmpidx[TMP_BUFSIZE];
 
-            std::vector< integral_t<T> > tmpints;
+            std::vector<T> tmpints;
+            std::vector<idx4_t> tmpidxs;
 
             int abcd = 0;
             for (input::Molecule::const_shell_iterator a = molecule.getShellsBegin();a != molecule.getShellsEnd();++a)
@@ -114,11 +93,8 @@ class AOIntegrals : public Distributed<T>
                                 size_t n;
                                 while ((n = context.process2eInts(TMP_BUFSIZE, tmpval, tmpidx, INTEGRAL_CUTOFF)) != 0)
                                 {
-                                    for (size_t i = 0;i < n;i++)
-                                    {
-                                        //printf("%d %d %d %d %20.15f\n", tmpidx[i].i, tmpidx[i].j, tmpidx[i].k, tmpidx[i].l, tmpval[i]);
-                                        tmpints.push_back(integral_t<T>(tmpval[i], tmpidx[i]));
-                                    }
+                                    tmpints.insert(tmpints.end(), tmpval, tmpval+n);
+                                    tmpidxs.insert(tmpidxs.end(), tmpidx, tmpidx+n);
                                 }
                             }
                             abcd++;
@@ -127,19 +103,21 @@ class AOIntegrals : public Distributed<T>
                 }
             }
 
-            num_ints = tmpints.size();
-            ints = SAFE_MALLOC(integral_t<T>, num_ints);
+            nints = tmpints.size();
+            ints = SAFE_MALLOC(T, nints);
             std::copy(tmpints.begin(), tmpints.end(), ints);
+            idxs = SAFE_MALLOC(idx4_t, nints);
+            std::copy(tmpidxs.begin(), tmpidxs.end(), idxs);
         }
 
         void loadBalance()
         {
-
+            //TODO
         }
 
         void canonicalize()
         {
-            for (int i = 0;i < num_ints;++i)
+            for (int i = 0;i < nints;++i)
             {
                 if (ints[i].idx.i > ints[i].idx.j) std::swap(ints[i].idx.i, ints[i].idx.j);
                 if (ints[i].idx.k > ints[i].idx.l) std::swap(ints[i].idx.k, ints[i].idx.l);
