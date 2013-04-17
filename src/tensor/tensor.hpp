@@ -412,8 +412,8 @@ class ScaledTensor
         ScaledTensor(const ScaledTensor<cvDerived,T>& other)
         : tensor_(other.tensor_), factor_(other.factor_), conj_(other.conj_) {}
 
-        ScaledTensor(Derived& tensor, const T factor, const bool conj=false)
-        : tensor_(tensor), factor_(factor), conj_(conj) {}
+        ScaledTensor(Derived& tensor, const T factor, const bool conj_=false)
+        : tensor_(tensor), factor_(factor), conj_(conj_) {}
 
         /**********************************************************************
          *
@@ -430,7 +430,7 @@ class ScaledTensor
         friend ScaledTensor<const Derived,T> conj(const ScaledTensor<Derived,T>& st)
         {
             ScaledTensor<Derived,T> ret(st);
-            ret.conj = !ret.conj;
+            ret.conj_ = !ret.conj_;
             return ret;
         }
 
@@ -706,8 +706,8 @@ class InvertedTensor
         T factor_;
         bool conj_;
 
-        InvertedTensor(Derived& tensor, const T factor, const bool conj=false)
-        : tensor_(tensor), factor_(factor), conj_(conj) {}
+        InvertedTensor(Derived& tensor, const T factor, const bool conj_=false)
+        : tensor_(tensor), factor_(factor), conj_(conj_) {}
 
         /**********************************************************************
          *

@@ -202,11 +202,11 @@ class CompositeTensor : public Tensor<Derived,T>
             for (int i = 0;i < tensors_.size();i++)
             {
                 if (tensors_[i] != NULL &&
-                    A.tensors_[i] != NULL &&
-                    B.tensors_[i] != NULL)
+                    A.componentExists(i) &&
+                    B.componentExists(i))
                 {
-                    beta*(*tensors_[i].tensor_) += alpha*(*A.tensors_[i].tensor_)*
-                                                         (*B.tensors_[i].tensor_);
+                    beta*(*tensors_[i].tensor_) += alpha*(A(i))*
+                                                         (B(i));
                 }
             }
         }
@@ -222,11 +222,11 @@ class CompositeTensor : public Tensor<Derived,T>
             for (int i = 0;i < tensors_.size();i++)
             {
                 if (tensors_[i] != NULL &&
-                    A.tensors_[i] != NULL &&
-                    B.tensors_[i] != NULL)
+                    A.componentExists(i) &&
+                    B.componentExists(i))
                 {
-                    beta*(*tensors_[i].tensor_) += alpha*(*A.tensors_[i].tensor_)/
-                                                         (*B.tensors_[i].tensor_);
+                    beta*(*tensors_[i].tensor_) += alpha*(A(i))/
+                                                         (B(i));
                 }
             }
         }
@@ -251,9 +251,9 @@ class CompositeTensor : public Tensor<Derived,T>
             for (int i = 0;i < tensors_.size();i++)
             {
                 if (tensors_[i] != NULL &&
-                    A.tensors_[i] != NULL)
+                    A.componentExists(i))
                 {
-                    beta*(*tensors_[i].tensor_) += alpha*(*A.tensors_[i].tensor_);
+                    beta*(*tensors_[i].tensor_) += alpha*(A(i));
                 }
             }
         }
@@ -267,9 +267,9 @@ class CompositeTensor : public Tensor<Derived,T>
             for (int i = 0;i < tensors_.size();i++)
             {
                 if (tensors_[i] != NULL &&
-                    A.tensors_[i] != NULL)
+                    A.componentExists(i))
                 {
-                    beta*(*tensors_[i].tensor_) += alpha/(*A.tensors_[i].tensor_);
+                    beta*(*tensors_[i].tensor_) += alpha/(A(i));
                 }
             }
         }
@@ -285,9 +285,9 @@ class CompositeTensor : public Tensor<Derived,T>
             for (int i = 0;i < tensors_.size();i++)
             {
                 if (tensors_[i] != NULL &&
-                    A.tensors_[i] != NULL)
+                    A.componentExists(i))
                 {
-                    s += tensors_[i].tensor_->dot(conja, *A.tensors_[i].tensor_, conjb);
+                    s += tensors_[i].tensor_->dot(conja, A(i), conjb);
                 }
             }
 

@@ -79,6 +79,9 @@ class AOMOIntegrals : public MOIntegrals<T>
             T *ints;
             idx4_t *idxs;
 
+            using Distributed<T>::nproc;
+            using Distributed<T>::rank;
+
             /*
              * Read integrals in and break (pq|rs)=(rs|pq) symmetry
              */
@@ -217,7 +220,8 @@ class AOMOIntegrals : public MOIntegrals<T>
                     }
                 }
 
-                int *rscountall = SAFE_MALLOC(int, nrs*nproc);
+                //int *rscountall = SAFE_MALLOC(int, nrs*nproc);
+                int *rscountall = (int*)aq_malloc(sizeof(int)*(nrs*nproc), "/home/dmatthews/src/aquarius-chem/src/scf/aomoints.hpp", 220, 1);
                 this->comm.Allgather(rscount, nrs, MPI::INT, rscountall, nrs, MPI::INT);
                 FREE(rscount);
 

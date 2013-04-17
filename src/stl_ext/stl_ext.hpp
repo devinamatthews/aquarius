@@ -64,9 +64,12 @@ typename std::enable_if<std::is_const<_IsConst>::value, return_type >::type
 template <typename _IsConst = const_type > \
 typename std::enable_if<!std::is_const<_IsConst>::value, return_type >::type
 
+//#define ENABLE_IF_SAME(old_type,new_type,return_type) \
+//template <typename new_type > \
+//typename std::enable_if<std::is_base_of<const old_type, const new_type >::value, return_type >::type
+
 #define ENABLE_IF_SAME(old_type,new_type,return_type) \
-template <typename new_type > \
-typename std::enable_if<std::is_base_of<const old_type, const new_type >::value, return_type >::type
+template <typename new_type > return_type
 
 namespace std
 {
