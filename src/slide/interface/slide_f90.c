@@ -313,7 +313,7 @@ integer FFUNC(slide_get_group,SLIDE_GET_GROUP)()
 
 void FFUNC(slide_set_ordering,SLIDE_SET_ORDERING)(integer* ordering)
 {
-    return SLIDE_set_ordering(*ordering);
+    SLIDE_set_ordering(*ordering);
 }
 
 integer FFUNC(slide_get_ordering,SLIDE_GET_ORDERING)()
@@ -323,7 +323,7 @@ integer FFUNC(slide_get_ordering,SLIDE_GET_ORDERING)()
 
 void FFUNC(slide_set_geometry_tolerance,SLIDE_SET_GEOMETRY_TOLERANCE)(double* geometry_tolerance)
 {
-    return SLIDE_set_geometry_tolerance(*geometry_tolerance);
+    SLIDE_set_geometry_tolerance(*geometry_tolerance);
 }
 
 double FFUNC(slide_get_geometry_tolerance,SLIDE_GET_GEOMETRY_TOLERANCE)()

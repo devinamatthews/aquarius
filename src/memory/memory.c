@@ -24,6 +24,8 @@
 
 #include "memory.h"
 
+#include <stdint.h>
+
 size_t mem_limit = 0, mem_used = 0;
 
 void set_memory_limit(const size_t bytes)
@@ -63,7 +65,7 @@ void* aq_malloc(const size_t size_, const char *file, const int line, const int 
     mem_used += size+ALIGNMENT;
     *(size_t*)mem = size;
 
-    return mem+ALIGNMENT;
+    return (void*)((intptr_t)mem+ALIGNMENT);
 }
 
 void* aq_realloc(void* ptr, const size_t size_, const char *file, const int line, const int bailout)
