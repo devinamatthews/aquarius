@@ -2,25 +2,24 @@ topdir = /path/to/aquarius
 
 CYCLOPSTF = /path/to/cyclopstf
 
-BLAS_LIBS = -llapack -lblas
 CYCLOPSTF_LIBS = -L$(CYCLOPSTF)/lib -lctf
 
 DEFAULT_COMPONENTS = bins
 
-DEFS = -D_POSIX_C_SOURCE=200112L
+DEFS = -DBOOST -D_POSIX_C_SOURCE=200112L
 CPPFLAGS = 
 LDFLAGS = 
-INCLUDES = 
+INCLUDES = -I/path/to/unbuilt/boost/
 
 AR = ar -crs
 CP = cp
 
 DEPFLAGS = -MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po
 
-CC = mpicc -cc=gcc
+CC = cc
 CFLAGS = -fopenmp -g -O2 -std=c99
 
-CXX = mpicxx -cxx=g++
+CXX = CC
 CXXFLAGS = -fopenmp -g -O2 -D__STDC_LIMIT_MACROS -Drestrict=
 
 FORTRAN_INTEGER_SIZE=4
