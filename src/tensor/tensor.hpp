@@ -36,6 +36,12 @@ namespace aquarius
 namespace tensor
 {
 
+template <class T, class U>
+struct if_exists
+{
+    typedef U type;
+};
+
 template <class Derived, class T> class Tensor;
 template <class Derived, class T> class ScaledTensor;
 template <class Derived, class T> class InvertedTensor;
@@ -342,20 +348,18 @@ class Tensor
             return ScaledTensor<const Derived,T>(t.getDerived(), (T)1, true);
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
+        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, TensorMult<Derived,T> >::type
+        //ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
         operator*(const cvDerived& other) const
         {
-            //TODO: Ugly hack to keep some compiler happy
-            typename cvDerived::dtype d;
             return TensorMult<Derived,T>(ScaledTensor<const Derived,T>(getDerived(), (T)1),
                                          ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
+        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, TensorDiv<Derived,T> >::type
+        //ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorDiv<Derived,T>))
         operator/(const cvDerived& other) const
         {
-            //TODO: Ugly hack to keep some compiler happy
-            typename cvDerived::dtype d;
             return TensorDiv<Derived,T>(ScaledTensor<const Derived,T>(getDerived(), (T)1),
                                         ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
         }
