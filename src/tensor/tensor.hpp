@@ -345,6 +345,8 @@ class Tensor
         ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
         operator*(const cvDerived& other) const
         {
+            //TODO: Ugly hack to keep some compiler happy
+            typename cvDerived::dtype d;
             return TensorMult<Derived,T>(ScaledTensor<const Derived,T>(getDerived(), (T)1),
                                          ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
         }
@@ -352,6 +354,8 @@ class Tensor
         ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
         operator/(const cvDerived& other) const
         {
+            //TODO: Ugly hack to keep some compiler happy
+            typename cvDerived::dtype d;
             return TensorDiv<Derived,T>(ScaledTensor<const Derived,T>(getDerived(), (T)1),
                                         ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
         }

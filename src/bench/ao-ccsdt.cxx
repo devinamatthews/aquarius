@@ -38,8 +38,12 @@
 #include "tensor/dist_tensor.hpp"
 #include "tensor/spinorbital.hpp"
 
-using namespace std;
+#ifdef USE_ELEMENTAL
+#include "elemental.hpp"
 using namespace elem;
+#endif
+
+using namespace std;
 using namespace MPI;
 using namespace aquarius::slide;
 using namespace aquarius::input;
@@ -53,7 +57,9 @@ int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
     SLIDE::init();
+#ifdef USE_ELEMENTAL
     elem::Initialize(argc, argv);
+#endif
 
     {
         int i;
@@ -175,7 +181,9 @@ int main(int argc, char **argv)
         print_timers();
     }
 
+#ifdef USE_ELEMENTAL
     elem::Finalize();
+#endif
     SLIDE::finish();
     MPI_Finalize();
 }

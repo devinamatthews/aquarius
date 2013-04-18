@@ -109,11 +109,21 @@ class mat3x3
 
             protected:
                 double &r1, &r2, &r3;
-                column(double r1, double r2, double r3) : r1(r1), r2(r2), r3(r3) {};
+                column(double& r1, double& r2, double& r3) : r1(r1), r2(r2), r3(r3) {};
 
             public:
                 double& operator[](int i);
+        };
 
+        class const_column
+        {
+            friend class mat3x3;
+
+            protected:
+                const double &r1, &r2, &r3;
+                const_column(const double& r1, const double& r2, const double& r3) : r1(r1), r2(r2), r3(r3) {};
+
+            public:
                 const double& operator[](int i) const;
         };
 
@@ -128,7 +138,7 @@ class mat3x3
 
         column operator[](int i);
 
-        const column operator[](int i) const;
+        const_column operator[](int i) const;
 
         bool operator==(const mat3x3& other) const;
 

@@ -28,7 +28,9 @@
 #include <complex>
 
 #include "mpi.h"
+#ifdef USE_ELEMENTAL
 #include "elemental.hpp"
+#endif
 
 #include "ctf.hpp"
 

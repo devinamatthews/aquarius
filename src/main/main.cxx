@@ -22,14 +22,19 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
+#include <iostream>
+
+#ifdef USE_ELEMENTAL
 #include "elemental.hpp"
+using namespace elem;
+#endif
+
 #include "mpi.h"
 
 #include "slide/slide.hpp"
 #include "stl_ext/stl_ext.hpp"
 
 using namespace std;
-using namespace elem;
 using namespace MPI;
 using namespace aquarius::slide;
 
@@ -72,7 +77,9 @@ int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
     SLIDE::init();
+    #ifdef USE_ELEMENTAL
     elem::Initialize(argc, argv);
+    #endif
 
     //idx2_t a[] = {{1,4},{2,3},{5,1},{3,8},{3,7},{3,4},{8,9},{0,3},{9,1},{4,6}};
     int a[] = {10,2,7,4,8,3,9,1,5,6};
@@ -94,7 +101,9 @@ int main(int argc, char **argv)
         cout << a[i] << " " << b[i] << endl;
     }
 
+    #ifdef USE_ELEMENTAL
     elem::Finalize();
+    #endif
     SLIDE::finish();
     MPI_Finalize();
 }

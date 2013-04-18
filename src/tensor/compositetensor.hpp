@@ -307,8 +307,8 @@ class IndexableCompositeTensor : public IndexableTensorBase<Derived,T>, public C
         using IndexableTensorBase< Derived, T >::operator=;
         using IndexableTensorBase< Derived, T >::operator+=;
         using IndexableTensorBase< Derived, T >::operator-=;
-        using CompositeTensor<Derived,Base,T>::div;
-        using CompositeTensor<Derived,Base,T>::invert;
+        //using CompositeTensor<Derived,Base,T>::div;
+        //using CompositeTensor<Derived,Base,T>::invert;
         using IndexableTensorBase<Derived,T>::scale;
         using IndexableTensorBase<Derived,T>::dot;
         using IndexableTensorBase<Derived,T>::mult;
@@ -358,12 +358,12 @@ class IndexableCompositeTensor : public IndexableTensorBase<Derived,T>, public C
         void div(const T alpha, bool conja, const Derived& A,
                                 bool conjb, const Derived& B, const T beta)
         {
-            div(alpha, conja, A, conjb, B, beta);
+            CompositeTensor<Derived,Base,T>::div(alpha, conja, A, conjb, B, beta);
         }
 
         void invert(const T alpha, bool conja, const Derived& A, const T beta)
         {
-            invert(alpha, conja, A, beta);
+            CompositeTensor<Derived,Base,T>::invert(alpha, conja, A, beta);
         }
 
         void scale(const T alpha)

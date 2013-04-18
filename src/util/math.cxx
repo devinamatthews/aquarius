@@ -226,7 +226,7 @@ double& mat3x3::column::operator[](int i)
     }
 }
 
-const double& mat3x3::column::operator[](int i) const
+const double& mat3x3::const_column::operator[](int i) const
 {
     switch (i)
     {
@@ -276,9 +276,9 @@ mat3x3::column mat3x3::operator[](int i)
     return column(m[0][i], m[1][i], m[2][i]);
 }
 
-const mat3x3::column mat3x3::operator[](int i) const
+mat3x3::const_column mat3x3::operator[](int i) const
 {
-    return column(m[0][i], m[1][i], m[2][i]);
+    return const_column(m[0][i], m[1][i], m[2][i]);
 }
 
 bool mat3x3::operator==(const mat3x3& other) const
