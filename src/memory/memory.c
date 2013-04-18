@@ -79,7 +79,7 @@ void* aq_realloc(void* ptr, const size_t size_, const char *file, const int line
 		return NULL;
 	}
 
-	ptr -= ALIGNMENT;
+	ptr = (void*)((intptr_t)ptr-ALIGNMENT);
 	size_t old_size = *(size_t*)ptr;
 
 	if (mem_limit > 0 && mem_used+size-old_size > mem_limit)
@@ -95,21 +95,21 @@ void* aq_realloc(void* ptr, const size_t size_, const char *file, const int line
         return NULL;
     }
 
-    memcpy(mem+ALIGNMENT, ptr+ALIGNMENT, MIN(size,old_size));
+    memcpy((void*)((intptr_t)mem+ALIGNMENT), (void*)((intptr_t)ptr+ALIGNMENT), MIN(size,old_size));
 
     aq_free(ptr, file, line);
 
     mem_used += size-old_size;
     *(size_t*)mem = size;
 
-    return mem+ALIGNMENT;
+    return (void*)((intptr_t)mem+ALIGNMENT);
 }
 
 void aq_free(void* ptr, const char *file, const int line)
 {
 	if (ptr == NULL) return;
 
-	ptr -= ALIGNMENT;
+    ptr = (void*)((intptr_t)ptr-ALIGNMENT);
 	size_t old_size = *(size_t*)ptr;
 
     free(ptr);
