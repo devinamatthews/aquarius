@@ -497,14 +497,16 @@ class IndexedTensor
 };
 
 template <class Derived1, class Derived2, class T>
-typename std::enable_if<std::is_same<const Derived1, const Derived2>::value,IndexedTensorMult<Derived1,T> >::type
+//typename std::enable_if<std::is_same<const Derived1, const Derived2>::value,IndexedTensorMult<Derived1,T> >::type
+IndexedTensorMult<Derived1,T>
 operator*(const IndexableTensorBase<Derived1,T>& t1, const IndexedTensor<Derived2,T>& t2)
 {
     return IndexedTensorMult<Derived1,T>(t1[t1.implicit()], t2);
 }
 
 template <class Derived1, class Derived2, class T>
-typename std::enable_if<std::is_same<const Derived1, const Derived2>::value,IndexedTensorMult<Derived1,T> >::type
+//typename std::enable_if<std::is_same<const Derived1, const Derived2>::value,IndexedTensorMult<Derived1,T> >::type
+IndexedTensorMult<Derived1,T>
 operator*(const ScaledTensor<Derived1,T>& t1, const IndexedTensor<Derived2,T>& t2)
 {
     Derived1& A = t1.tensor_.getDerived();

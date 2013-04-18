@@ -158,7 +158,7 @@ template<typename T, class Predicate> std::vector<T>& filter(std::vector<T>& v, 
     return v;
 }
 
-template<typename T, typename U, class Functor> std::vector<U> map(std::vector<T>& v, Functor f)
+template<typename T, typename U, class Functor> std::vector<U> apply(std::vector<T>& v, Functor f)
 {
     std::vector<U> v2();
 
