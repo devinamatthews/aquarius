@@ -64,7 +64,7 @@ int main(int argc, char **argv)
     {
         int i;
         double dt;
-        tCTF_World<double> ctf;
+        tCTF_World<double> ctf(argc, argv);
 
         assert(argc > 1);
         Schema schema(TOPDIR "/input_schema");
