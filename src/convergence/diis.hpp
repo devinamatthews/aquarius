@@ -216,7 +216,7 @@ class DIIS
                 int info;
                 std::vector<double> tmp((nextrap+1)*(nextrap+1));
                 std::vector<double> work(nextrap+1);
-                std::vector<int> ipiv(nextrap+1);
+                std::vector<integer> ipiv(nextrap+1);
 
                 std::copy(e.begin(), e.end(), tmp.begin());
                 info = dsysv('U', nextrap_real+1, 1, tmp.data(), nextrap+1, ipiv.data(),
