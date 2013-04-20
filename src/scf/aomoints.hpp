@@ -188,7 +188,8 @@ class AOMOIntegrals : public MOIntegrals<T>
              */
             void collect(const bool rles)
             {
-                MPI::Datatype IDX4_T_TYPE = MPI::Datatype(MPI_INT16_T).Create_contiguous(4);
+				assert(sizeof(short) == sizeof(int16_t));
+                MPI::Datatype IDX4_T_TYPE = MPI::Datatype(MPI_SHORT).Create_contiguous(4);
                 IDX4_T_TYPE.Commit();
 
                 int nrs;
