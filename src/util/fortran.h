@@ -45,7 +45,7 @@
 #if FORTRAN_INTEGER_SIZE == 4
 typedef int32_t integer;
 #elif FORTRAN_INTEGER_SIZE == 8
-typedef integer int64_t;
+typedef int64_t integer;
 #else
 #error "Unsupported Fortran integer size"
 #endif

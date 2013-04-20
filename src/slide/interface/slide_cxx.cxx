@@ -287,6 +287,7 @@ const Shell& Context::getA() const
     if (c->shell == context->a) return *c;
     if (d->shell == context->a) return *d;
     assert(0);
+    return *a;
 }
 
 const Shell& Context::getB() const
@@ -296,6 +297,7 @@ const Shell& Context::getB() const
     if (c->shell == context->b) return *c;
     if (d->shell == context->b) return *d;
     assert(0);
+    return *a;
 }
 
 const Shell& Context::getC() const
@@ -305,6 +307,7 @@ const Shell& Context::getC() const
     if (a->shell == context->c) return *a;
     if (b->shell == context->c) return *b;
     assert(0);
+    return *a;
 }
 
 const Shell& Context::getD() const
@@ -314,6 +317,7 @@ const Shell& Context::getD() const
     if (a->shell == context->d) return *a;
     if (b->shell == context->d) return *b;
     assert(0);
+    return *a;
 }
 
 Element::~Element()
