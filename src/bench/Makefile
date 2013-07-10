@@ -1,5 +1,6 @@
 include ../../config.mk
-include ../../rules.mk
+include ../make/make.in
+include ../make/rules.mk
 
 bins: $(bindir)/bench-cholesky-ccsd-lambda
 $(bindir)/bench-cholesky-ccsd-lambda: cholesky-ccsd-lambda.o \

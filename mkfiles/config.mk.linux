@@ -1,25 +1,23 @@
-topdir = /path/to/aquarius
-
-CYCLOPSTF = /path/to/cyclopstf
-
-CYCLOPSTF_LIBS = -L$(CYCLOPSTF)/lib -lctf
+CTF_DIR = /home/edgar/work/ctf
+BLAS_LIBS = -llapack -lblas
+CTF_LIBS = -L$(CTF_DIR)/lib -lctf
 
 DEFAULT_COMPONENTS = bins
 
-DEFS = -DBOOST -D_POSIX_C_SOURCE=200112L
-CPPFLAGS = 
-LDFLAGS = 
-INCLUDES = -I/path/to/unbuilt/boost/
+DEFS = -D_POSIX_C_SOURCE=200112L
+CPPFLAGS =
+LDFLAGS =
+INCLUDES =
 
 AR = ar -crs
 CP = cp
 
 DEPFLAGS = -MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po
 
-CC = cc
+CC = mpicc -cc=gcc
 CFLAGS = -fopenmp -g -O2 -std=c99
 
-CXX = CC
+CXX = mpicxx -cxx=g++
 CXXFLAGS = -fopenmp -g -O2 -D__STDC_LIMIT_MACROS -Drestrict=
 
 FORTRAN_INTEGER_SIZE=4
@@ -30,3 +28,5 @@ F90_NAME = $(LOWER_UNDERSCORE)
 F77FLAGS = -g -O2
 F90FLAGS = -g -O2
 FLIBS = -lgfortran
+
+
