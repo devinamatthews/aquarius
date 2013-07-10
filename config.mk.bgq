@@ -19,9 +19,11 @@ DEPFLAGS = #-MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po
 # ESSL
 BGQ_ESSL    = /soft/libraries/essl/current/
 # On Blue Gene/Q, you must use bglib64 not lib64.
-ESSL_LDIR   = -L$(BGQ_ESSL)/lib64 -L$(IBM_MAIN_DIR)/xlf/bg/14.1/bglib64/ -L$(IBM_MAIN_DIR)/xlsmp/bg/3.1/bglib64/ -L$(IBM_MAIN_DIR)/xlmass/bg/7.3/bglib64/ 
-ESSL_LIBS   = $(ESSL_LDIR) -lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r
-BLAS_LIBS   = $(ESSL_LIBS) /soft/libraries/alcf/current/xl/LAPACK/lib/liblapack.a $(ESSL_LIBS)
+XLF_LIBS    = -L$(IBM_MAIN_DIR)/xlf/bg/14.1/bglib64/ -L$(IBM_MAIN_DIR)/xlsmp/bg/3.1/bglib64/ -L$(IBM_MAIN_DIR)/xlmass/bg/7.3/bglib64/  -lxlsmp -lxlfmath -lxlf90_r -lxl
+ESSL_LIBS   = -L$(BGQ_ESSL)/lib64 -lesslsmpbg
+# Must use Netlib LAPACK and not ESSL LAPACK.  The latter does not work (for AQ, at least).
+BLAS_LIBS   = /soft/libraries/alcf/current/xl/LAPACK/lib/liblapack.a $(ESSL_LIBS) $(XLF_LIBS) -Wl,--allow-multiple-definition
+FORTRAN_INTEGER_SIZE=4
 INCLUDES   += -I$(BGQ_ESSL)/include
 
 # GNU
@@ -53,7 +55,6 @@ CFLAGS   = $(OPTFLAGS) $(INCLUDES) -qlanglvl=extc99
 CXXFLAGS = $(OPTFLAGS) $(INCLUDES) -qlanglvl=c99preprocessor -D__STDC_LIMIT_MACROS -Drestrict=__restrict__
 LDFLAGS  = $(OPTFLAGS)
 
-FORTRAN_INTEGER_SIZE=4
 FLIBS = -D_FYI_NO_FLIBS_
 F77FLAGS = $(FFLAGS) 
 F90FLAGS = $(FFLAGS)
