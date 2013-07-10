@@ -277,8 +277,8 @@ module slide
 
         end function SLIDE_shell_pos
 
-        integer*8 function SLIDE_new_shell(pos, L, nprim, ncontr, spherical, contaminants, &
-                                           exponents, coefficients, idx)
+        integer*8 function SLIDE_new_shell(pos, L, nprim, ncontr, &
+            spherical, contaminants, exponents, coefficients, idx)
 
             integer*8 :: pos
             integer :: L, nprim, ncontr
