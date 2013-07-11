@@ -1,24 +1,38 @@
-DEFAULT_COMPONENTS = ctf
+DEFAULT_COMPONENTS = bins
 
-BLAS        = 
-LIBS        =  
-CXX         = CC
-WARN_FLAGS  = #-Drestrict = -Wall 
-OPT_FLAGS   = -g -O3
-CXXFLAGS    = -fopenmp $(OPT_FLAGS) $(WARN_FLAGS) 
-DEFS        = -DHOPPER -D__STDC_LIMIT_MACROS
-LDFLAGS     = 
-INCLUDES    = 
 AR          = ar -crs
+CP          = cp
+
+BLAS_LIBS   =
+CYCLOPSTF_LIBS = -L$(CYCLOPSTF)/lib -lctf
+
+# On Blue Gene/Q, you must use bglib64 not lib64.
+LDFLAGS     = -L$(BGQ_ESSL)/lib64 \
+              -L$(IBM_FCMP_DIR)/xlf/bg/14.1/bglib64/ \
+              -L$(IBM_FCMP_DIR)/xlsmp/bg/3.1/bglib64/ \
+              -L$(IBM_FCMP_DIR)/xlmass/bg/7.3/bglib64/
+INCLUDES    = -I$(BGQ_ESSL)/include
+
 DEPFLAGS    = -MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po
 
+CPPFLAGS    =
+DEFS        = -D$(shell echo $(NERSC_HOST) | tr a-z A-Z) -D_POSIX_C_SOURCE=200112L
+
 #uncomment below to enable performance profiling
-#DEFS      := $(DEFS) -DPROFILE
+#DEFS       += -DPROFILE
 
-#uncomment below to enable CTF debugging and status output
-#DEFS      := $(DEFS) -DDEBUG=1
+#uncomment below to enable debugging
+#DEFS       += -DDEBUG=1
 
-#SCALAPACK only necessary for pgemm tests and benchmarks 
-#LIBS      := $(LIBS) -L$(HOME)/work/scalapack-2.0.2/lib -lscalapack -lgfortran
-#DEFS      := $(DEFS) -DUSE_SCALAPACK
+WARN        = -Wall
+OPT_FLAGS   = -g -O3
 
+CC          = CC
+CFLAGS      = -fopenmp $(OPT_FLAGS) $(WARN_FLAGS) -qlanglvl=stdc99
+
+CXX         = cc
+CXXFLAGS    = -fopenmp $(OPT_FLAGS) $(WARN_FLAGS) -D__STDC_LIMIT_MACROS -Drestrict=
+
+FORTRAN_INTEGER_SIZE=4
+F77_NAME = $(LOWER_UNDERSCORE)
+F90_NAME = $(LOWER_UNDERSCORE)

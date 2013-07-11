@@ -1,6 +1,5 @@
 include ../../../config.mk
-include ../../make/make.in
-include ../../make/rules.mk
+include ../../../rules.mk
 
 libs: $(libdir)/libslide.a
 $(libdir)/libslide.a: fmgamma.o hrr.o ish.o kei.o nai.o os.o osinv.o rys.o \

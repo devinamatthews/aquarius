@@ -10,22 +10,22 @@ UPPER_NO_UNDERSCORE = 3
 UPPER_UNDERSCORE = 4
 
 
-bindir = ${top_dir}/bin
-libdir = ${top_dir}/lib
+bindir = $(topdir)/bin
+libdir = $(topdir)/lib
 
 DEPDIR = .deps
-DEPS += ${top_dir}/.dummy $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard *.o))))
+DEPS += $(topdir)/.dummy $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard *.o))))
 ALL_SUBDIRS = $(sort $(SUBDIRS) $(foreach comp,$(ALL_COMPONENTS),$(value $(addsuffix _SUBDIRS,$(comp)))))
 
 _CPPFLAGS = $(CPPFLAGS)
-_DEFS = $(DEFS) -DFORTRAN_INTEGER_SIZE=$(FORTRAN_INTEGER_SIZE) -DF77_NAME=$(F77_NAME) -DF90_NAME=$(F90_NAME) -DTOPDIR=\"${top_dir}\"
-_LDFLAGS = $(LDFLAGS) -L${top_dir}/lib
-_INCLUDES = $(INCLUDES) -I. -I${top_dir} -I${top_dir}/src -I$(CTF_DIR)/include -I$(ELEMENTAL)/include
+_DEFS = $(DEFS) -DBOOST -DFORTRAN_INTEGER_SIZE=$(FORTRAN_INTEGER_SIZE) -DF77_NAME=$(F77_NAME) -DF90_NAME=$(F90_NAME) -DTOPDIR=\"$(topdir)\"
+_LDFLAGS = $(LDFLAGS) -L$(topdir)/lib
+_INCLUDES = $(INCLUDES) -I. -I$(topdir) -I$(topdir)/src -I$(CTF_DIR)/include -I$(ELEMENTAL)/include
 _CFLAGS = $(CFLAGS)
 _CXXFLAGS = $(CXXFLAGS)
 _F77FLAGS = $(F77FLAGS)
 _F90FLAGS = $(F90FLAGS)
-_DEPENDENCIES = $(DEPENDENCIES) Makefile ${top_dir}/config.mk ${top_dir}/rules.mk
+_DEPENDENCIES = $(DEPENDENCIES) Makefile $(topdir)/config.mk $(topdir)/rules.mk
 _LIBS = $(LIBS) $(CTF_LIBS) $(ELEMENTAL_LIBS) $(BLAS_LIBS)
 
 F77COMPILE = $(F77) $(_INCLUDES) $(_F77FLAGS)
@@ -58,7 +58,7 @@ FORCE:
 $(ALL_COMPONENTS):
 	@for dir in $(SUBDIRS) $($@_SUBDIRS); do \
     echo "top dir is"; \
-    echo ${top_dir}; \
+    echo $(topdir); \
 		echo "Making $@ in $$dir"; \
 		(cd $$dir && $(MAKE) $@); \
 	done

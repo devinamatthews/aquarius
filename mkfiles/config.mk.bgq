@@ -1,29 +1,40 @@
-DEFAULT_COMPONENTS = ctf
+DEFAULT_COMPONENTS = bins
 
 BGQ_ESSL    = /soft/libraries/essl/current/
-LIBS        = -lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r
-CXX	        = mpixlcxx_r
-WARN_FLAGS  = #-Drestrict = -Wall 
-OPT_FLAGS   = -g -O3 -qarch=qp -qtune=qp -qsimd=auto -qhot=level=1 -qprefetch -qunroll=yes -qreport
-CXXFLAGS    = -qsmp=omp $(OPT_FLAGS) $(WARN_FLAGS) 
-DEFS        = -DBGQ -D__STDC_LIMIT_MACROS
+ 
+BLAS_LIBS   = -lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r
+CYCLOPSTF_LIBS = -L$(CYCLOPSTF)/lib -lctf
+
+AR          = powerpc64-bgq-linux-ar -crs
+CP          = cp
 
 # On Blue Gene/Q, you must use bglib64 not lib64.
-LDFLAGS     = -L$(BGQ_ESSL)/bglib64 \
+LDFLAGS     = -L$(BGQ_ESSL)/lib64 \
               -L$(IBM_FCMP_DIR)/xlf/bg/14.1/bglib64/ \
               -L$(IBM_FCMP_DIR)/xlsmp/bg/3.1/bglib64/ \
-              -L$(IBM_FCMP_DIR)/xlmass/bg/7.3/bglib64/ \
-INCLUDES    = -I$(BGQ_ESSL)/include 
-AR          = powerpc64-bgq-linux-ar -crs
+              -L$(IBM_FCMP_DIR)/xlmass/bg/7.3/bglib64/
+INCLUDES    = -I$(BGQ_ESSL)/include
+
 DEPFLAGS    = -M -MF $(DEPDIR)/$(notdir $*).Po
 
+CPPFLAGS    =
+DEFS        = -DBGQ -D_POSIX_C_SOURCE=200112L
+
 #uncomment below to enable performance profiling
-#DEFS      := $(DEFS) -DPROFILE
+#DEFS       += -DPROFILE
 
-#uncomment below to enable CTF debugging and status output
-#DEFS      := $(DEFS) -DDEBUG=1
+#uncomment below to enable debugging
+#DEFS       += -DDEBUG=1
 
-#SCALAPACK only necessary for pgemm tests and benchmarks 
-#LIBS      := $(LIBS) -L$(HOME)/work/scalapack-2.0.2/lib -lscalapack -lgfortran
-#DEFS      := $(DEFS) -DUSE_SCALAPACK
+WARN        = -Wall
+OPT_FLAGS   = -g -O3 -qarch=qp -qtune=qp -qsimd=auto -qhot=level=1 -qprefetch -qunroll=yes -qreport
 
+CC          = mpixlc_r
+CFLAGS      = -qsmp=omp  $(OPT_FLAGS) $(WARN_FLAGS) -qlanglvl=stdc99
+
+CXX         = mpixlcxx_r
+CXXFLAGS    = -qsmp=omp  $(OPT_FLAGS) $(WARN_FLAGS) -D__STDC_LIMIT_MACROS -Drestrict=
+
+FORTRAN_INTEGER_SIZE=4
+F77_NAME = $(LOWER_UNDERSCORE)
+F90_NAME = $(LOWER_UNDERSCORE)

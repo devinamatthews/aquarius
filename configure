@@ -1,0 +1,110 @@
+#!/bin/sh
+
+function usage()
+{
+	echo 'Usage: configure [options]'
+	echo
+	echo '\t--ctf=path        Specify the path to an existing installation of CTF.'
+	echo '\t--ctf path        If a path is not given, CTF is searched for as a subdirectory'
+	echo '\t                  of the source directory or downloaded automatically.'
+	echo
+	echo '\t--help            Display this message'
+	echo
+}
+
+#
+# Parse command-line arguments
+#
+ctfdir=unknown
+while [ $1 ]; do
+	shift
+	case $1 in
+		--ctf=*)
+			ctfdir=${1#--ctf}
+			;;
+		--ctf)
+			shift
+			if [ ! $1 ]; then
+				echo 'Missing argument after --ctf'
+				echo
+				usage
+				exit 1
+			fi
+			ctfdir=$1
+			;;
+		--help)
+			usage
+			exit 0
+			;;
+		*)
+			echo "Unkown option $1"
+			echo
+			usage
+			exit 1
+			;;
+	esac
+	shift
+done
+
+#
+# Get the src and build (top) paths
+#
+topdir=`pwd`
+if [[ $0 = /* ]]; then
+	srcdir=$(dirname $0)
+else
+	srcdir=`pwd`/$(dirname $0)
+fi
+echo -e "topdir = $topdir\nsrcdir = $srcdir\n" > config.mk
+
+#
+# Get the path to CTF or go and get it
+#
+make_ctf=no
+if [ $ctfdir = unknown ]; then
+	make_ctf=yes
+	ctfdir=$srcdir/ctf
+	if [ ! -d $srcdir/ctf ]; then
+		if (command -v git >/dev/null 2>&1); then
+			echo -e "Downloading CTF from external Git repository...\n"
+			if ! git clone git://repo.eecs.berkeley.edu/users/solomon/ctf $ctfdir; then
+				echo -e "Could not download CTF repository.\n"
+				exit 1
+			fi
+			echo
+		else
+			echo 'An existing installation of CTF is not found and cannot be downloaded.'
+			echo 'Install Git (www.git-scm.com) or download CTF and specify the location'
+			echo 'with configure --ctf=/path/to/ctf.'
+			echo
+			exit 1
+		fi
+	fi
+fi
+
+echo -e "CTF_DIR = $ctfdir\nmake_ctf = $make_ctf\n" >> config.mk
+
+#
+# Check for known supercomputer host names
+#
+host=unknown
+if (hostname | grep 'edison\|hopper\|carver'); then
+	host=nersc
+	echo 'Hostname recognized as a NERSC machine'
+elif (hostname | grep 'surveyor\|intrepid\|challenger\|udawn'); then
+	host=bgp
+	echo 'Hostname recognized as a BG/P machine'
+elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
+	host=bgq
+	echo 'Hostname recognized as a BG/Q machine'
+fi
+
+#
+# Check for other common architectures (just Linux for now)
+#
+if [ $host = unknown ]; then
+	host=linux
+	echo 'Assuming generic Linux host'
+fi
+
+cat mkfiles/config.mk.$host >> config.mk
