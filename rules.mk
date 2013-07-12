@@ -1,14 +1,18 @@
 all: $(DEFAULT_COMPONENTS)
 
-ALL_COMPONENTS = libs bins
+ALL_COMPONENTS = libs bins bench_ao_ccsd bench_ao_ccsd_lambda bench_ao_ccsdt \
+                 bench_cholesky_ccsd bench_cholesky_ccsd_lambda bench_cholesky_ccsdt
 
-bins: libs
+bins bench_ao_ccsd bench_ao_ccsd_lambda bench_ao_ccsdt bench_cholesky_ccsd \
+     bench_cholesky_ccsd_lambda bench_cholesky_ccsdt: libs
+
+bins: bench_ao_ccsd bench_ao_ccsd_lambda bench_ao_ccsdt bench_cholesky_ccsd \
+      bench_cholesky_ccsd_lambda bench_cholesky_ccsdt
 
 LOWER_NO_UNDERSCORE = 1
 LOWER_UNDERSCORE = 2
 UPPER_NO_UNDERSCORE = 3
 UPPER_UNDERSCORE = 4
-
 
 bindir = $(topdir)/bin
 libdir = $(topdir)/lib
@@ -20,16 +24,16 @@ ALL_SUBDIRS = $(sort $(SUBDIRS) $(foreach comp,$(ALL_COMPONENTS),$(value $(addsu
 _CPPFLAGS = $(CPPFLAGS)
 _DEFS = $(DEFS) -DBOOST -DFORTRAN_INTEGER_SIZE=$(FORTRAN_INTEGER_SIZE) -DF77_NAME=$(F77_NAME) -DF90_NAME=$(F90_NAME) -DTOPDIR=\"$(topdir)\"
 _LDFLAGS = $(LDFLAGS) -L$(topdir)/lib
-_INCLUDES = $(INCLUDES) -I. -I$(topdir) -I$(topdir)/src -I$(CTF_DIR)/include -I$(ELEMENTAL)/include
-_CFLAGS = $(CFLAGS)
-_CXXFLAGS = $(CXXFLAGS)
-_F77FLAGS = $(F77FLAGS)
-_F90FLAGS = $(F90FLAGS)
+_INCLUDES = $(INCLUDES) -I. -I$(topdir) -I$(topdir)/src -I$(CTFDIR)/include #-I$(ELEMENTAL)/include
+_CFLAGS = $(OPT) $(WARN) $(CFLAGS)
+_CXXFLAGS = $(OPT) $(WARN) $(CXXFLAGS)
+#_F77FLAGS = $(F77FLAGS)
+#_F90FLAGS = $(F90FLAGS)
 _DEPENDENCIES = $(DEPENDENCIES) Makefile $(topdir)/config.mk $(topdir)/rules.mk
 _LIBS = $(LIBS) $(CTF_LIBS) $(ELEMENTAL_LIBS) $(BLAS_LIBS)
 
-F77COMPILE = $(F77) $(_INCLUDES) $(_F77FLAGS)
-F90COMPILE = $(F90) $(_INCLUDES) $(_F90FLAGS)
+#F77COMPILE = $(F77) $(_INCLUDES) $(_F77FLAGS)
+#F90COMPILE = $(F90) $(_INCLUDES) $(_F90FLAGS)
 CCOMPILE = $(CC) $(_DEFS) $(_INCLUDES) $(_CPPFLAGS) $(_CFLAGS)
 CXXCOMPILE = $(CXX) $(_DEFS) $(_INCLUDES) $(_CPPFLAGS) $(_CXXFLAGS)
 CCOMPILEDEPS = $(CCOMPILE) $(DEPFLAGS)
