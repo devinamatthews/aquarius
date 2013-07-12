@@ -154,7 +154,6 @@ done
 #
 # Check for known supercomputer host names
 #
-host=unknown
 if (hostname | grep 'edison\|hopper\|carver'); then
 	echo 'Hostname recognized as a NERSC machine'
 	echo
@@ -220,9 +219,7 @@ elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
 	WARN='-Wall'
 	OPT='-g -O3 -qarch=qp -qtune=qp -qsimd=auto -qhot=level=1 -qprefetch -qunroll=yes -qreport'
 	
-fi
-
-if [ $host = unknown ]; then
+else
 	#
 	# Check for other common architectures (just Linux for now)
 	#
@@ -287,34 +284,49 @@ if [ $host = unknown ]; then
 		if [ "x$DEFS"     = "x" ]; then DEFS='-DLinux -D_POSIX_C_SOURCE=200112L'; fi
 		if [ "x$WARN"     = "x" ]; then WARN='-Wall'; fi
 		if [ "x$OPT"      = "x" ]; then OPT='-g -O2'; fi
+	elif ((echo $REALCC | grep -q cc) && (echo $REALCXX | grep -q c++)); then
+		if [ "x$AR"       = "x" ]; then AR='ar -crs'; fi
+		if [ "x$CFLAGS"   = "x" ]; then CFLAGS='-fopenmp -std=c99'; fi
+		if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-fopenmp -D__STDC_LIMIT_MACROS -Drestrict='; fi
+		if [ "x$DEPS"     = "x" ]; then DEPS='-MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po'; fi
+		if [ "x$DEFS"     = "x" ]; then DEFS='-DLinux -D_POSIX_C_SOURCE=200112L'; fi
+		if [ "x$WARN"     = "x" ]; then WARN='-Wall'; fi
+		if [ "x$OPT"      = "x" ]; then OPT='-g -O2'; fi
 	else
 		echo 'No default flags known for given compilers. Make sure that you have set the'
 		echo 'appropriate compiler flags manually.'
 		echo
+		if [ "x$AR"       = "x" ]; then AR='ar -crs'; fi
+		if [ "x$CFLAGS"   = "x" ]; then CFLAGS='-fopenmp -std=c99'; fi
+		if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-fopenmp -D__STDC_LIMIT_MACROS -Drestrict='; fi
+		if [ "x$DEPS"     = "x" ]; then DEPS='-MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po'; fi
+		if [ "x$DEFS"     = "x" ]; then DEFS='-DLinux -D_POSIX_C_SOURCE=200112L'; fi
+		if [ "x$WARN"     = "x" ]; then WARN='-Wall'; fi
+		if [ "x$OPT"      = "x" ]; then OPT='-g -O2'; fi
 	fi
-fi
 
-#
-# Find BLAS/LAPACK if not already specified
-#
-if [ "x$blaslibs" = "x" -a host != nersc ]; then
-	echo 'Searching for BLAS/LAPACK libraries...' $blaslibs
-	echo
-	
-	echo -n 'Looking for generic -llapack and -lblas...'
-	if testblas '-llapack -lblas'; then
-		blaslibs='-llapack -lblas'
-		echo 'found'
-	else
-	echo 'not found'
-	
-	echo
-	echo 'No suitable BLAS/LAPACK libraries found.'
-	echo
-	exit 1
-	
+	#
+	# Find BLAS/LAPACK if not already specified
+	#
+	if [ "x$blaslibs" = "x" ]; then
+		echo 'Searching for BLAS/LAPACK libraries...' $blaslibs
+		echo
+		
+		echo -n 'Looking for generic -llapack and -lblas...'
+		if testblas '-llapack -lblas'; then
+			blaslibs='-llapack -lblas'
+			echo 'found'
+		else
+		echo 'not found'
+		
+		echo
+		echo 'No suitable BLAS/LAPACK libraries found.'
+		echo
+		exit 1
+		
+		fi
+		echo
 	fi
-	echo
 fi
 
 #
