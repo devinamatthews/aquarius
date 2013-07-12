@@ -240,8 +240,29 @@ if [ $host = unknown ]; then
 		CXX=mpicxx
 	fi
 	
-	REALCC=`$CC -show`
-	REALCXX=`$CXX -show`
+	if ! (command -v $CC >/dev/null 2>&1); then
+		echo "MPI C compiler $CC does not exist."
+		echo
+		exit 1
+	fi
+	if ! (command -v $CXX >/dev/null 2>&1); then
+		echo "MPI C++ compiler $CXX does not exist."
+		echo
+		exit 1
+	fi
+	
+	if $CC -show >/dev/null 2>&1; then
+		REALCC=`$CC -show`
+		REALCXX=`$CXX -show`
+	elif $CC -showme >/dev/null 2>&1; then
+		REALCC=`$CC -showme`
+		REALCXX=`$CXX -showme`
+	fi
+	
+	echo "CC = $CC"
+	echo "CXX = $CXX"
+	echo "REALCC = $REALCC"
+	echo "REALCXX = $REALCXX"
 	
 	#
 	# Set default compiler flags
@@ -263,12 +284,11 @@ if [ $host = unknown ]; then
 		if [ "x$WARN"     = "x" ]; then WARN='-Wall'; fi
 		if [ "x$OPT"      = "x" ]; then OPT='-g -O2'; fi
 	else
-		echo 'No default flags known for given compilers.'
+		echo 'No default flags known for given compilers. Make sure that you have set the'
+		echo 'appropriate compiler flags manually.'
 		echo
-		exit 1
 	fi
 fi
-
 
 #
 # Find BLAS/LAPACK if not already specified
@@ -302,11 +322,6 @@ if ! testblas "$blaslibs"; then
 	exit 1
 fi
 
-if [[ $ctfdir != /* && "x$ctfdir" != "x" ]]; then
-	ctfdir=`pwd`/$ctfdir
-fi
-
-
 #
 # Get the src and build (top) paths
 #
@@ -317,11 +332,13 @@ else
 	srcdir=`pwd`/$(dirname $0)
 fi
 
-
 #
 # Get the path to CTF or go and get it
 #
 make_ctf=no
+if [[ $ctfdir != /* && "x$ctfdir" != "x" ]]; then
+	ctfdir=`pwd`/$ctfdir
+fi
 if [ "x$ctfdir" = "x" ]; then
 	make_ctf=yes
 	ctfdir=$srcdir/ctf
@@ -385,3 +402,5 @@ F77_NAME = $FNAME
 F90_NAME = $FNAME
 
 EOF
+
+cp Makefile.in Makefile
