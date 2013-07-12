@@ -257,6 +257,10 @@ if [ $host = unknown ]; then
 	elif $CC -showme >/dev/null 2>&1; then
 		REALCC=`$CC -showme`
 		REALCXX=`$CXX -showme`
+	else
+		echo 'Could not determine underlying C/C++ compilers.'
+		echo
+		exit 1
 	fi
 	
 	echo "CC = $CC"
