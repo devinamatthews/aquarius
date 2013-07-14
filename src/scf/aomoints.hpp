@@ -221,10 +221,12 @@ class AOMOIntegrals : public MOIntegrals<T>
                     }
                 }
 
+                /*
                 //int *rscountall = SAFE_MALLOC(int, nrs*nproc);
                 int *rscountall = (int*)aq_malloc(sizeof(int)*(nrs*nproc), "/home/dmatthews/src/aquarius-chem/src/scf/aomoints.hpp", 220, 1);
                 this->comm.Allgather(rscount, nrs, MPI::INT, rscountall, nrs, MPI::INT);
                 FREE(rscount);
+                */
 
                 size_t nnewints = 0;
                 int *sendcount = SAFE_MALLOC(int, nproc);
@@ -235,6 +237,26 @@ class AOMOIntegrals : public MOIntegrals<T>
                 sendoff[0] = 0;
                 std::fill(recvcount, recvcount+nproc, 0);
                 recvoff[0] = 0;
+
+                for (int i = 0;i < nproc;i++)
+                {
+                    for (int rs = (nrs*i)/nproc;rs < (nrs*(i+1))/nproc;rs++)
+                    {
+                        assert(rs >= 0 && rs < nrs);
+                        sendcount[i] += rscount[rs];
+                    }
+                    if (i > 0) sendoff[i] = sendoff[i-1]+sendcount[i-1];
+                }
+
+                this->comm.Alltoall(sendcount, 1, MPI::INT, recvcount, 1, MPI::INT);
+
+                for (int i = 1;i < nproc;i++)
+                {
+                    recvoff[i] = recvoff[i-1]+recvcount[i-1];
+                }
+                nnewints = recvoff[nproc-1]+recvcount[nproc-1];
+
+                /*
                 for (int i = 0;i < nproc;i++)
                 {
                     for (int rs = (nrs*rank)/nproc;rs < (nrs*(rank+1))/nproc;rs++)
@@ -252,12 +274,13 @@ class AOMOIntegrals : public MOIntegrals<T>
                     }
                     if (i > 0) sendoff[i] = sendoff[i-1]+sendcount[i-1];
                 }
+                */
                 assert(recvoff[nproc-1]+recvcount[nproc-1] == nnewints);
                 assert(sendoff[nproc-1]+sendcount[nproc-1] == nints);
 
                 assert(allsum((long)nints) == allsum((long)nnewints));
 
-                FREE(rscountall);
+                //FREE(rscountall);
 
                 T* newints = SAFE_MALLOC(T, nnewints);
                 idx4_t* newidxs = SAFE_MALLOC(idx4_t, nnewints);
