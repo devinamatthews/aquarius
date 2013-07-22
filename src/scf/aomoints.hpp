@@ -474,7 +474,7 @@ class AOMOIntegrals : public MOIntegrals<T>
                             for (int a = 0;a < na;a++)
                             {
                                 if ((!assymij || s < b) && (!assymkl || r < a))
-                                    pairs.push_back(tkv_pair<T>(((a*nr+r)*nb+b)*ns+s, ints[idx]));
+                                    pairs.push_back(tkv_pair<T>(((((int64_t)a)*nr+r)*nb+b)*ns+s, ints[idx]));
                                 idx++;
                             }
                         }
@@ -504,7 +504,7 @@ class AOMOIntegrals : public MOIntegrals<T>
                                 for (int a = 0;a < na;a++)
                                 {
                                     if (b < s && (!assymkl || r < a))
-                                        pairs.push_back(tkv_pair<T>(((a*nr+r)*ns+s)*nb+b, ints[idx]));
+                                        pairs.push_back(tkv_pair<T>(((((int64_t)a)*nr+r)*ns+s)*nb+b, ints[idx]));
                                     idx++;
                                 }
                             }
@@ -527,7 +527,7 @@ class AOMOIntegrals : public MOIntegrals<T>
                                 for (int a = 0;a < na;a++)
                                 {
                                     if (a < r)
-                                        pairs.push_back(tkv_pair<T>(((r*na+a)*nb+b)*ns+s, ints[idx]));
+                                        pairs.push_back(tkv_pair<T>(((((int64_t)r)*na+a)*nb+b)*ns+s, ints[idx]));
                                     idx++;
                                 }
                             }
@@ -557,7 +557,7 @@ class AOMOIntegrals : public MOIntegrals<T>
                             {
                                 if ((!assymij || a < r) && (!assymkl || b < s))
                                 {
-                                    pairs.push_back(tkv_pair<T>(((s*nb+b)*nr+r)*na+a, ints[idx]));
+                                    pairs.push_back(tkv_pair<T>(((((int64_t)s)*nb+b)*nr+r)*na+a, ints[idx]));
                                 }
                                 idx++;
                             }
@@ -588,7 +588,7 @@ class AOMOIntegrals : public MOIntegrals<T>
                                 for (int a = 0;a < na;a++)
                                 {
                                     if (r < a && (!assymkl || b < s))
-                                        pairs.push_back(tkv_pair<T>(((s*nb+b)*na+a)*nr+r, ints[idx]));
+                                        pairs.push_back(tkv_pair<T>(((((int64_t)s)*nb+b)*na+a)*nr+r, ints[idx]));
                                     idx++;
                                 }
                             }
@@ -611,7 +611,7 @@ class AOMOIntegrals : public MOIntegrals<T>
                                 for (int a = 0;a < na;a++)
                                 {
                                     if (s < b)
-                                        pairs.push_back(tkv_pair<T>(((b*ns+s)*nr+r)*na+a, ints[idx]));
+                                        pairs.push_back(tkv_pair<T>(((((int64_t)b)*ns+s)*nr+r)*na+a, ints[idx]));
                                     idx++;
                                 }
                             }
