@@ -26,6 +26,7 @@
 #define _AQUARIUS_TENSOR_HPP_
 
 #include <stdexcept>
+#include <iostream>
 
 #include "stl_ext/stl_ext.hpp"
 #include "util/util.h"
@@ -188,35 +189,40 @@ class Tensor
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
+        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator=(cvDerived& other)
         {
             sum((T)1, false, other, (T)0);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
+        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator+=(cvDerived& other)
         {
             sum((T)1, false, other, (T)1);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
+        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator-=(cvDerived& other)
         {
             sum((T)(-1), false, other, (T)1);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
+        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator*=(cvDerived& other)
         {
             mult((T)1, false, getDerived(), false, other, (T)0);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
+        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator/=(cvDerived& other)
         {
             div((T)1, false, getDerived(), false, other, (T)0);
@@ -298,12 +304,12 @@ class Tensor
          * Intermediate operations
          *
          *********************************************************************/
-        friend ScaledTensor<Derived,T> operator*(const double factor, Derived& other)
+        friend ScaledTensor<Derived,T> operator*(const T factor, Derived& other)
         {
             return ScaledTensor<Derived,T>(other.getDerived(), factor);
         }
 
-        friend ScaledTensor<const Derived,T> operator*(const double factor, const Derived& other)
+        friend ScaledTensor<const Derived,T> operator*(const T factor, const Derived& other)
         {
             return ScaledTensor<const Derived,T>(other.getDerived(), factor);
         }
@@ -318,7 +324,7 @@ class Tensor
             return ScaledTensor<const Derived,T>(getDerived(), factor);
         }
 
-        friend InvertedTensor<const Derived,T> operator/(const double factor, const Derived& other)
+        friend InvertedTensor<const Derived,T> operator/(const T factor, const Derived& other)
         {
             return InvertedTensor<const Derived,T>(other.getDerived(), factor);
         }
@@ -776,7 +782,7 @@ class TensorMult
 
         template <class Derived1, class Derived2>
         TensorMult(const ScaledTensor<Derived1,T>& A, const ScaledTensor<Derived2,T>& B)
-        : A_(A), B_(B), factor_(A_.factor_*B_.factor_) {}
+        : A_(A), B_(B), factor_(A.factor_*B.factor_) {}
 
         /**********************************************************************
          *
@@ -836,7 +842,7 @@ class TensorDiv
 
         template <class Derived1, class Derived2>
         TensorDiv(const ScaledTensor<Derived1,T>& A, const ScaledTensor<Derived2,T>& B)
-        : A_(A), B_(B), factor_(A_.factor_/B_.factor_) {}
+        : A_(A), B_(B), factor_(A.factor_/B.factor_) {}
 
         /**********************************************************************
          *

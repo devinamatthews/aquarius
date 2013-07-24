@@ -26,6 +26,8 @@
 #define _AQUARIUS_CC_PERTURBEDLAMBDACCSD_HPP_
 
 #include "operator/2eoperator.hpp"
+#include "operator/st2eoperator.hpp"
+#include "operator/perturbedst2eoperator.hpp"
 #include "operator/deexcitationoperator.hpp"
 #include "operator/exponentialoperator.hpp"
 
@@ -53,58 +55,16 @@ class PerturbedLambdaCCSD : public Iterative, public op::DeexcitationOperator<U,
     protected:
         op::DeexcitationOperator<U,2>& LA;
         op::DeexcitationOperator<U,2> Z, D, N;
-        op::STTwoElectronOperator<U,2> H;
+        const op::STTwoElectronOperator<U,2>& H;
         U omega;
         convergence::DIIS< op::DeexcitationOperator<U,2> > diis;
 
     public:
         PerturbedLambdaCCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
                             const op::DeexcitationOperator<U,2>& L,
-                            const op::PerturbedSTTwoElectronOperator<U,2>& A, const U omega=0)
-        : Iterative(config), op::DeexcitationOperator<U,2>(H.getSCF()), LA(*this),
-          Z(this->uhf), D(this->uhf), N(this->uhf),
-          H(const_cast<op::TwoElectronOperator<U>&>(H),
-            op::TwoElectronOperator<U>::AB|op::TwoElectronOperator<U>::IJ),
-          omega(omega), diis(config.get("diis"))
-        {
-            D(0) = 1;
-            D(1)["ia"]  = H.getIJ()["ii"];
-            D(1)["ia"] -= H.getAB()["aa"];
-            D(2)["ijab"]  = H.getIJ()["ii"];
-            D(2)["ijab"] += H.getIJ()["jj"];
-            D(2)["ijab"] -= H.getAB()["aa"];
-            D(2)["ijab"] -= H.getAB()["bb"];
+                            const op::PerturbedSTTwoElectronOperator<U,2>& A, const U omega=0);
 
-            D -= omega;
-            D = 1/D;
-
-            N(1) = 0;
-            N(2) = 0;
-            A.contract(L, N);
-            N(0) = 0;
-
-            LA = N*D;
-        }
-
-        void _iterate()
-        {
-            Z = N;
-            H.contract(L, Z);
-
-            energy = Ecc + scalar(Z*conj(L))/scalar(L*conj(L));
-
-             Z *= D;
-            //Z -= LA;
-            LA += Z;
-
-            conv =               Z(1)(0).reduce(CTF_OP_MAXABS);
-            conv = std::max(conv,Z(1)(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2)(0).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2)(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2)(2).reduce(CTF_OP_MAXABS));
-
-            diis.extrapolate(L, Z);
-        }
+        void _iterate();
 };
 
 }

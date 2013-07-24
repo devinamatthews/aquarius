@@ -35,110 +35,18 @@ namespace cc
 template <typename U>
 class CCD : public CCSD<U>
 {
+    protected:
+        using CCSD<U>::T;
+        using CCSD<U>::D;
+        using CCSD<U>::Z;
+        using CCSD<U>::H;
+        using CCSD<U>::energy;
+        using CCSD<U>::conv;
+
     public:
-        CCD(const input::Config& config, op::TwoElectronOperator<U>& moints)
-        : CCSD<U>(config, moints)
-        {
-            this->T(1) = 0;
+        CCD(const input::Config& config, op::TwoElectronOperator<U>& moints);
 
-            energy = 0.25*scalar(moints.getABIJ()*T(2));
-
-            conv =          conv,T(2).getSpinCase(0).reduce(CTF_OP_MAXABS);
-            conv = std::max(conv,T(2).getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,T(2).getSpinCase(2).reduce(CTF_OP_MAXABS));
-        }
-
-        void _iterate()
-        {
-            using CCSD<U>::T;
-            using CCSD<U>::D;
-            using CCSD<U>::Z;
-
-            op::TwoElectronOperator H(moints, op::TwoElectronOperator::AB|
-                                              op::TwoElectronOperator::IJ|
-                                              op::TwoElectronOperator::IJKL|
-                                              op::TwoElectronOperator::AIBJ);
-
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FAE = H.getAB();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FMI = H.getIJ();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMNEF = H.getIJAB();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WABEF = H.getABCD();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMNIJ = H.getIJKL();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WAMEI = H.getAIBJ();
-
-            FAE["aa"] = 0.0;
-            FMI["ii"] = 0.0;
-
-            /**************************************************************************
-             *
-             * Intermediates
-             */
-            PROFILE_SECTION(calc_FMI)
-            FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_WIJKL)
-            WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*T(2)["efij"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_FAE)
-            FAE["ae"] -= 0.5*WMNEF["mnef"]*T(2)["afmn"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_WMBEJ)
-            WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T(2)["afin"];
-            PROFILE_STOP
-            /*
-             *************************************************************************/
-
-            /**************************************************************************
-             *
-             * T(1)->T(2) and T(2)->T(2)
-             */
-            PROFILE_SECTION(calc_WMNEF)
-            Z(2)["abij"] = WMNEF["ijab"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T2_IN_T2_FAE)
-            Z(2)["abij"] += FAE["af"]*T(2)["fbij"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T2_IN_T2_FMI)
-            Z(2)["abij"] -= FMI["ni"]*T(2)["abnj"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T2_IN_T2_ABCD)
-            Z(2)["abij"] += 0.5*WABEF["abef"]*T(2)["efij"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T2_IN_T2_IJKL)
-            Z(2)["abij"] += 0.5*WMNIJ["mnij"]*T(2)["abmn"];
-            PROFILE_STOP
-
-            PROFILE_SECTION(calc_T2_IN_T2_RING)
-            Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];
-            PROFILE_STOP
-            /*
-             *************************************************************************/
-
-            PROFILE_SECTION(calc_EN)
-
-            Z *= D;
-            Z -= T;
-            T += Z;
-
-            energy = 0.25*scalar(moints.getVABIJ()*T(2));
-
-            conv =               Z(1).getSpinCase(0).reduce(CTF_OP_MAXABS);
-            conv = std::max(conv,Z(1).getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2).getSpinCase(0).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2).getSpinCase(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2).getSpinCase(2).reduce(CTF_OP_MAXABS));
-
-            this->diis.extrapolate(T, Z);
-
-            PROFILE_STOP
-        }
+        void _iterate();
 };
 
 }

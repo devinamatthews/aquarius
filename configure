@@ -42,7 +42,7 @@ EOF
 		if [ -x a.out ]; then
 			FNAME='$(LOWER_NO_UNDERSCORE)'
 			status=0
-		fi
+  	fi
 	fi
 	
 	if [ $status = 1 ]; then
@@ -201,15 +201,15 @@ elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
 	echo
 	
 	host=bgq
-	blaslibs='-lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r'
+	blaslibs="-lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r -lm"
 	BGQ_ESSL='/soft/libraries/essl/current/'
 	LDFLAGS="-L$BGQ_ESSL/lib64 \
-             -L\$(IBM_FCMP_DIR)/xlf/bg/14.1/bglib64/ \
-             -L\$(IBM_FCMP_DIR)/xlsmp/bg/3.1/bglib64/ \
-             -L\$(IBM_FCMP_DIR)/xlmass/bg/7.3/bglib64/"
+             -L$IBM_MAIN_DIR/xlf/bg/14.1/bglib64/ \
+             -L$IBM_MAIN_DIR/xlsmp/bg/3.1/bglib64/ \
+             -L$IBM_MAIN_DIR/xlmass/bg/7.3/bglib64/"
 	CPPFLAGS=
 	INCLUDES="-I$BGQ_ESSL/include"
-	AR='powerpc64-bgq-linux-ar -crs'
+	AR='ar -crs'
 	CC=mpixlc_r
 	CXX=mpixlcxx_r
 	CFLAGS='-qsmp=omp -qlanglvl=stdc99'
@@ -354,6 +354,12 @@ fi
 make_ctf=no
 if [[ $ctfdir != /* && "x$ctfdir" != "x" ]]; then
 	ctfdir=`pwd`/$ctfdir
+fi
+if [ "x$ctfdir" = "x" ]; then
+  read -p "Please specify a CTF directory or press enter to get a CTF clone: " ctfdp
+  if [ -d $ctfdp ]; then
+     ctfdir=$ctfdp
+  fi
 fi
 if [ "x$ctfdir" = "x" ]; then
 	make_ctf=yes

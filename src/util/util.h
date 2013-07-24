@@ -27,8 +27,25 @@
 
 #include "mpi.h"
 
+#ifdef __cplusplus
+#ifdef USE_ELEMENTAL
+#include "elemental.hpp"
+#endif
+#endif
+
 #include <math.h>
 #include <stdio.h>
+
+/*
+#define INSTANTIATE_SPECIALIZATIONS(name) \
+template class name<double>; \
+template class name<float>; \
+template class name<std::complex<double> >; \
+template class name<std::complex<float> >;
+*/
+
+#define INSTANTIATE_SPECIALIZATIONS(name) \
+template class name<double>;
 
 #define CONCAT(...) __VA_ARGS__
 
@@ -131,18 +148,16 @@ static inline double allsum(const double what)
     return ret;
 }
 
-#ifdef __cplusplus
-
-static inline long allsum(const long what)
+static inline long allsuml(const long what)
 {
     long ret = what;
     MPI_Allreduce(MPI_IN_PLACE, &ret, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
     return ret;
 }
 
-#else
+#ifdef __cplusplus
 
-static inline long allsuml(const long what)
+static inline long allsum(const long what)
 {
     long ret = what;
     MPI_Allreduce(MPI_IN_PLACE, &ret, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
@@ -156,11 +171,6 @@ static inline int roundup(int x, int y)
     return ((x+y-1)/y)*y;
 }
 
-#ifdef __cplusplus
-namespace aquarius
-{
-#endif
-
 static inline double dist2(const double* a, const double* b)
 {
     return (a[0]-b[0])*(a[0]-b[0]) +
@@ -172,9 +182,5 @@ static inline double dist(const double* a, const double* b)
 {
     return sqrt(dist2(a, b));
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

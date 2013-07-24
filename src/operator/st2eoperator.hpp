@@ -71,7 +71,7 @@ class STTwoElectronOperator<U,2> : public TwoElectronOperator<U>
         STTwoElectronOperator(const TwoElectronOperator<U>& X, const ExponentialOperator<U,2>& T, const bool isHbar=false)
         : TwoElectronOperator<U>(const_cast<TwoElectronOperator<U>&>(X), TwoElectronOperator<U>::ALL), T(T)
         {
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T(2));
+            tensor::SpinorbitalTensor<U> Tau(T(2));
             Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
             this->ia["me"] = this->ijab["mnef"]*T(1)["fn"];
@@ -150,8 +150,8 @@ class STTwoElectronOperator<U,2> : public TwoElectronOperator<U>
         {
             op::OneElectronOperator<U> I(this->uhf);
 
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IMI = I.getIJ();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IAE = I.getAB();
+            tensor::SpinorbitalTensor<U>& IMI = I.getIJ();
+            tensor::SpinorbitalTensor<U>& IAE = I.getAB();
 
             IMI["mi"]  = this->ijka["mnie"]*R(1)["en"];
             IMI["mi"] += 0.5*this->ijab["mnef"]*R(2)["efin"];
@@ -189,10 +189,10 @@ class STTwoElectronOperator<U,2> : public TwoElectronOperator<U>
         {
             op::OneElectronOperator<U> I(this->uhf);
 
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IMN = I.getIJ();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IEF = I.getAB();
+            tensor::SpinorbitalTensor<U>& IMN = I.getIJ();
+            tensor::SpinorbitalTensor<U>& IEF = I.getAB();
 
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T(2));
+            tensor::SpinorbitalTensor<U> Tau(T(2));
             Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
             IMN["mn"] = 0.5*T(2)["efno"]*L(2)["moef"];

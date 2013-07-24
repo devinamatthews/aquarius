@@ -1,10 +1,12 @@
-all: $(DEFAULT_COMPONENTS)
+all: ctf $(DEFAULT_COMPONENTS)
 
 ALL_COMPONENTS = libs bins bench_ao_ccsd bench_ao_ccsd_lambda bench_ao_ccsdt \
                  bench_cholesky_ccsd bench_cholesky_ccsd_lambda bench_cholesky_ccsdt
 
+libs: phase1
+
 bins bench_ao_ccsd bench_ao_ccsd_lambda bench_ao_ccsdt bench_cholesky_ccsd \
-     bench_cholesky_ccsd_lambda bench_cholesky_ccsdt: libs
+     bench_cholesky_ccsd_lambda bench_cholesky_ccsdt: libs phase2
 
 bins: bench_ao_ccsd bench_ao_ccsd_lambda bench_ao_ccsdt bench_cholesky_ccsd \
       bench_cholesky_ccsd_lambda bench_cholesky_ccsdt
@@ -17,20 +19,27 @@ UPPER_UNDERSCORE = 4
 bindir = $(topdir)/bin
 libdir = $(topdir)/lib
 
+ALL_LIBS_LINK = -lscf -lcc -linput -ltime -lslide -ltensor -lautocc -lmemory -lutil
+ALL_LIBS_DEPS = $(libdir)/libautocc.a $(libdir)/libinput.a \
+                $(libdir)/libtime.a $(libdir)/libslide.a \
+                $(libdir)/libmemory.a $(libdir)/libtensor.a \
+                $(libdir)/libutil.a $(libdir)/libcc.a \
+                $(libdir)/libscf.a
+
 DEPDIR = .deps
 DEPS += $(topdir)/.dummy $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard *.o))))
 ALL_SUBDIRS = $(sort $(SUBDIRS) $(foreach comp,$(ALL_COMPONENTS),$(value $(addsuffix _SUBDIRS,$(comp)))))
 
 _CPPFLAGS = $(CPPFLAGS)
 _DEFS = $(DEFS) -DBOOST -DFORTRAN_INTEGER_SIZE=$(FORTRAN_INTEGER_SIZE) -DF77_NAME=$(F77_NAME) -DF90_NAME=$(F90_NAME) -DTOPDIR=\"$(topdir)\"
-_LDFLAGS = $(LDFLAGS) -L$(topdir)/lib
+_LDFLAGS = $(OPT) $(LDFLAGS) -L$(topdir)/lib
 _INCLUDES = $(INCLUDES) -I. -I$(topdir) -I$(topdir)/src -I$(CTFDIR)/include #-I$(ELEMENTAL)/include
 _CFLAGS = $(OPT) $(WARN) $(CFLAGS)
 _CXXFLAGS = $(OPT) $(WARN) $(CXXFLAGS)
 #_F77FLAGS = $(F77FLAGS)
 #_F90FLAGS = $(F90FLAGS)
 _DEPENDENCIES = $(DEPENDENCIES) Makefile $(topdir)/config.mk $(topdir)/rules.mk
-_LIBS = $(LIBS) $(CTF_LIBS) $(ELEMENTAL_LIBS) $(BLAS_LIBS)
+_LIBS = $(LIBS) $(ALL_LIBS_LINK) $(CTF_LIBS) $(ELEMENTAL_LIBS) $(BLAS_LIBS)
 
 #F77COMPILE = $(F77) $(_INCLUDES) $(_F77FLAGS)
 #F90COMPILE = $(F90) $(_INCLUDES) $(_F90FLAGS)
@@ -56,25 +65,41 @@ $(foreach d, $(patsubst -L%,%,$(filter -L%,$(1))),\
 ) $(filter %.a,$(1))
 
 #.NOTPARALLEL:
-.PHONY: all default clean $(ALL_COMPONENTS)
+.PHONY: all default clean $(ALL_COMPONENTS) ctf phase1 phase2
 FORCE:
 
-$(ALL_COMPONENTS):
-	@for dir in $(SUBDIRS) $($@_SUBDIRS); do \
-    echo "top dir is"; \
-    echo $(topdir); \
-		echo "Making $@ in $$dir"; \
-		(cd $$dir && $(MAKE) $@); \
+ctf: FORCE
+	@if [ -d ctf -a $(make_ctf) = yes ];then \
+		echo "Making ctf in ctf"; \
+		(cd ctf && $(MAKE) ctf); \
+	fi
+	
+phase1: ctf
+	@if [ -f config.mk -o "x$(MAKECMDGOALS)" = "xlibs" ]; then \
+		for dir in $(ALL_SUBDIRS); do \
+			echo "Compiling in $$dir"; \
+			(cd $$dir && $(MAKE) libs); \
+		done; \
+	fi
+
+phase2: phase1 ctf
+	@for dir in $(ALL_SUBDIRS); do \
+		echo "Linking $(MAKECMDGOALS) in $$dir"; \
+		(cd $$dir && $(MAKE) $(MAKECMDGOALS)); \
 	done
 
 clean:
 	rm -rf $(DEPDIR) *.o
-	@for subdir in $(ALL_SUBDIRS); do \
-		echo "Making clean in $$subdir"; \
+	@if [ -d ctf -a $(make_ctf) = yes ];then \
+    	echo "Cleaning in ctf"; \
+    	(cd ctf && $(MAKE) clean); \
+	fi; \
+	for subdir in $(ALL_SUBDIRS); do \
+		echo "Cleaning in $$subdir"; \
 		(cd $$subdir && $(MAKE) clean); \
 	done
 
-$(bindir)/%: $(_DEPENDENCIES) $(call libdeps,$(_LIBS))
+$(bindir)/%: $(_DEPENDENCIES) $(call libdeps,$(_LIBS)) $(ALL_LIBS_DEPS)
 	@mkdir -p $(dir $@)
 	$(LINK) $(filter %.o,$^) $(FLIBS) $(_LIBS)
 

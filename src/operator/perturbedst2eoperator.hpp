@@ -45,18 +45,18 @@ template <typename U>
 class PerturbedSTTwoElectronOperator<U,2> : public STTwoElectronOperator<U,2>
 {
     protected:
-        const STTwoElectronOperator<U>& X;
+        const STTwoElectronOperator<U,2>& X;
         const ExcitationOperator<U,2>& TA;
 
-        void initialize(const STTwoElectronOperator<U>& X,
+        void initialize(const STTwoElectronOperator<U,2>& X,
                         const ExponentialOperator<U,2>& T,
                         const ExcitationOperator<U,2>& TA)
         {
             OneElectronOperator<U> I(this->uhf);
 
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IMI = I.getIJ();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IAE = I.getAB();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IME = I.getIA();
+            tensor::SpinorbitalTensor<U>& IMI = I.getIJ();
+            tensor::SpinorbitalTensor<U>& IAE = I.getAB();
+            tensor::SpinorbitalTensor<U>& IME = I.getIA();
 
             IME["me"]  = X.ijab["mnef"]*TA(1)["fn"];
 
@@ -117,50 +117,50 @@ class PerturbedSTTwoElectronOperator<U,2> : public STTwoElectronOperator<U,2>
         }
 
     public:
-        PerturbedSTTwoElectronOperator(const STTwoElectronOperator<U>& X, const OneElectronOperator<U>& XA,
+        PerturbedSTTwoElectronOperator(const STTwoElectronOperator<U,2>& X, const OneElectronOperator<U>& XA,
                                        const ExponentialOperator<U,2>& T, const ExcitationOperator<U,2>& TA)
         : STTwoElectronOperator<U,2>(XA, T), X(X), TA(TA)
         {
             initialize(X, T, TA);
         }
 
-        PerturbedSTTwoElectronOperator(const STTwoElectronOperator<U>& X, const TwoElectronOperator<U>& XA,
+        PerturbedSTTwoElectronOperator(const STTwoElectronOperator<U,2>& X, const TwoElectronOperator<U>& XA,
                                        const ExponentialOperator<U,2>& T, const ExcitationOperator<U,2>& TA)
         : STTwoElectronOperator<U,2>(XA, T), X(X), TA(TA)
         {
             initialize(X, T, TA);
         }
 
-        void contract(const ExcitationOperator<U,2>& R, ExcitationOperator<U,2>& Z, const bool connected=true)
+        void contract(const ExcitationOperator<U,2>& R, ExcitationOperator<U,2>& Z, const bool connected=true) const
         {
             STTwoElectronOperator<U,2>::contract(R, Z, connected);
 
             op::OneElectronOperator<U> I(this->uhf);
 
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IMI = I.getIJ();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IAE = I.getAB();
+            tensor::SpinorbitalTensor<U>& IMI = I.getIJ();
+            tensor::SpinorbitalTensor<U>& IAE = I.getAB();
 
-            IMI["mi"] = X.ijka["mnie"]*R(1)["en"];
-            IAE["ae"] = X.aibc["amef"]*R(1)["fm"];
+            IMI["mi"] = X.getIJKA()["mnie"]*R(1)["en"];
+            IAE["ae"] = X.getAIBC()["amef"]*R(1)["fm"];
 
             Z(2)["abij"] += IAE["ae"]*TA(2)["ebij"];
             Z(2)["abij"] -= IMI["mi"]*TA(2)["abmj"];
         }
 
-        void contract(const DeexcitationOperator<U,2>& L, DeexcitationOperator<U,2>& Z, const bool connected=false)
+        void contract(const DeexcitationOperator<U,2>& L, DeexcitationOperator<U,2>& Z, const bool connected=false) const
         {
             STTwoElectronOperator<U,2>::contract(L, Z, connected);
 
             op::OneElectronOperator<U> I(this->uhf);
 
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IMN = I.getIJ();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& IEF = I.getAB();
+            tensor::SpinorbitalTensor<U>& IMN = I.getIJ();
+            tensor::SpinorbitalTensor<U>& IEF = I.getAB();
 
             IMN["mn"] =  0.5*L(2)["moef"]*TA(2)["efno"];
             IEF["ef"] = -0.5*L(2)["mnfg"]*TA(2)["egmn"];
 
-            Z(1)["ia"] -= IMN["mn"]*X.ijka["nima"];
-            Z(1)["ia"] -= IEF["ef"]*X.abci["fiea"];
+            Z(1)["ia"] -= IMN["mn"]*X.getIJKA()["nima"];
+            Z(1)["ia"] -= IEF["ef"]*X.getAIBC()["fiea"];
         }
 };
 

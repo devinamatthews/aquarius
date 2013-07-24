@@ -61,44 +61,9 @@ class LambdaCCSD : public Iterative, public op::DeexcitationOperator<U,2>
 
     public:
         LambdaCCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
-                   const op::ExponentialOperator<U,2>& T, const double Ecc)
-        : Iterative(config), op::DeexcitationOperator<U,2>(H.getSCF()), L(*this),
-          Z(this->uhf), D(this->uhf),
-          H(H), T(T), Ecc(Ecc), diis(config.get("diis"))
-        {
-            D(0) = 1;
-            D(1)["ia"]  = H.getIJ()["ii"];
-            D(1)["ia"] -= H.getAB()["aa"];
-            D(2)["ijab"]  = H.getIJ()["ii"];
-            D(2)["ijab"] += H.getIJ()["jj"];
-            D(2)["ijab"] -= H.getAB()["aa"];
-            D(2)["ijab"] -= H.getAB()["bb"];
+                   const op::ExponentialOperator<U,2>& T, const double Ecc);
 
-            D = 1/D;
-
-            L(0) = 1;
-            L(1) = H.getIA()*D(1);
-            L(2) = H.getIJAB()*D(2);
-        }
-
-        void _iterate()
-        {
-            Z = 0;
-            H.contract(L, Z);
-
-            energy = Ecc + scalar(Z*conj(L))/scalar(L*conj(L));
-
-            Z *= D;
-            L += Z;
-
-            conv =               Z(1)(0).reduce(CTF_OP_MAXABS);
-            conv = std::max(conv,Z(1)(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2)(0).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2)(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2)(2).reduce(CTF_OP_MAXABS));
-
-            diis.extrapolate(L, Z);
-        }
+        void _iterate();
 };
 
 }

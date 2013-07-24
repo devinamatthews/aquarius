@@ -26,6 +26,8 @@
 #define _AQUARIUS_CC_PERTURBEDCCSD_HPP_
 
 #include "operator/2eoperator.hpp"
+#include "operator/st2eoperator.hpp"
+#include "operator/exponentialoperator.hpp"
 
 #include "ccsd.hpp"
 
@@ -57,68 +59,12 @@ class PerturbedCCSD : public Iterative, public op::ExcitationOperator<U,2>
 
     public:
         PerturbedCCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
-                      const op::ExponentialOperator<U,2>& T, const OneElectronOperator<U>& A, const U omega=0)
-        : Iterative(config), op::ExcitationOperator<U,2>(ccsd.uhf),
-          H(H), omega(omega), TA(*this), D(this->uhf), Z(this->uhf), X(this->uhf),
-          diis(config.get("diis"))
-        {
-            D(0) = 1;
-            D(1)["ai"]  = H.getIJ()["ii"];
-            D(1)["ai"] -= H.getAB()["aa"];
-            D(2)["abij"]  = H.getIJ()["ii"];
-            D(2)["abij"] += H.getIJ()["jj"];
-            D(2)["abij"] -= H.getAB()["aa"];
-            D(2)["abij"] -= H.getAB()["bb"];
+                      const op::ExponentialOperator<U,2>& T, const op::OneElectronOperator<U>& A, const U omega=0);
 
-            D += omega;
-            D = 1/D;
+        PerturbedCCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
+                      const op::ExponentialOperator<U,2>& T, const op::TwoElectronOperator<U>& A, const U omega=0);
 
-            op::STExcitationOperator<U,2>::transform(A, T, X);
-            X(0) = 0;
-
-            TA = X*D;
-        }
-
-        PerturbedCCSD(const input::Config& config, const op::TwoElectronOperator& H,
-                      const CCSD<U>& T, const TwoElectronOperator<U>& A, const U omega=0)
-        : Iterative(config), op::ExcitationOperator<U,2>(ccsd.uhf),
-          H(H), omega(omega), TA(*this), D(this->uhf), Z(this->uhf), X(this->uhf),
-          diis(config.get("diis"))
-        {
-            D(0) = 1;
-            D(1)["ai"]  = H.getIJ()["ii"];
-            D(1)["ai"] -= H.getAB()["aa"];
-            D(2)["abij"]  = H.getIJ()["ii"];
-            D(2)["abij"] += H.getIJ()["jj"];
-            D(2)["abij"] -= H.getAB()["aa"];
-            D(2)["abij"] -= H.getAB()["bb"];
-
-            D += omega;
-            D = 1/D;
-
-            op::STExcitationOperator<U,2>::transform(A, T, X);
-            X(0) = 0;
-
-            TA = X*D;
-        }
-
-        void _iterate()
-        {
-            Z = X;
-            H.contract(TA, Z);
-
-             Z *=  D;
-            // Z -= TA;
-            TA +=  Z;
-
-            conv =               Z(1)(0).reduce(CTF_OP_MAXABS);
-            conv = std::max(conv,Z(1)(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2)(0).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2)(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2)(2).reduce(CTF_OP_MAXABS));
-
-            diis.extrapolate(TA, Z);
-        }
+        void _iterate();
 };
 
 }

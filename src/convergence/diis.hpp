@@ -32,13 +32,13 @@
 /*
  * Use of tensor::scalar requires definitions now
  */
-#include "tensor/tensor.hpp"
-#include "tensor/dist_tensor.hpp"
-#include "tensor/spinorbital.hpp"
-#include "tensor/compositetensor.hpp"
-#include "tensor/symblocked_tensor.hpp"
-#include "tensor/dense_tensor.hpp"
-#include "tensor/packed_tensor.hpp"
+//#include "tensor/tensor.hpp"
+//#include "tensor/dist_tensor.hpp"
+//#include "tensor/spinorbital_tensor.hpp"
+//#include "tensor/composite_tensor.hpp"
+//#include "tensor/symblocked_tensor.hpp"
+//#include "tensor/dense_tensor.hpp"
+//#include "tensor/packed_tensor.hpp"
 
 #include "input/config.hpp"
 #include "util/lapack.h"
@@ -52,9 +52,11 @@ template<typename T, typename U = T>
 class DIIS
 {
     protected:
+        typedef typename T::dtype dtype;
+
         std::vector< std::vector<T*> > old_x;
         std::vector< std::vector<U*> > old_dx;
-        std::vector<double> c, e;
+        std::vector<dtype> c, e;
         int nextrap, start, nx, ndx;
 
     public:
@@ -163,7 +165,7 @@ class DIIS
             e[0] = 0;
             for (int i = 0;i < ndx;i++)
             {
-                e[0] += scalar((*dx[i])*(*dx[i]));
+                e[0] += scalar(conj(*dx[i])*(*dx[i]));
             }
 
             /*
@@ -177,7 +179,7 @@ class DIIS
                 e[i] = 0;
                 for (int j = 0;j < ndx;j++)
                 {
-                    e[i] += scalar((*dx[j])*(*old_dx[i][j]));
+                    e[i] += scalar(conj(*dx[j])*(*old_dx[i][j]));
                 }
                 e[i*(nextrap+1)] = e[i];
                 nextrap_real++;
@@ -214,13 +216,12 @@ class DIIS
 
             {
                 int info;
-                std::vector<double> tmp((nextrap+1)*(nextrap+1));
-                std::vector<double> work(nextrap+1);
+                std::vector<dtype> tmp((nextrap+1)*(nextrap+1));
                 std::vector<integer> ipiv(nextrap+1);
 
                 std::copy(e.begin(), e.end(), tmp.begin());
-                info = dsysv('U', nextrap_real+1, 1, tmp.data(), nextrap+1, ipiv.data(),
-                             c.data(), nextrap+1, work.data(), nextrap+1);
+                info = hesv('U', nextrap_real+1, 1, tmp.data(), nextrap+1, ipiv.data(),
+                            c.data(), nextrap+1);
                 ASSERT(info == 0, "failure in dsysv, info = %d", info);
             }
 

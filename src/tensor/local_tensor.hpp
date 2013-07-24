@@ -33,11 +33,12 @@
 #include <cassert>
 #include <string>
 #include <algorithm>
+#include <cfloat>
 
 #include "memory/memory.h"
 
 #include "tensor.h"
-#include "indexabletensor.hpp"
+#include "indexable_tensor.hpp"
 
 namespace aquarius
 {
@@ -55,7 +56,8 @@ namespace tensor
         using aquarius::tensor::LocalTensor< Derived, T >::REFERENCE; \
         using aquarius::tensor::LocalTensor< Derived, T >::REPLACE; \
         using aquarius::tensor::LocalTensor< Derived, T >::getSize; \
-    INHERIT_FROM_INDEXABLE_TENSOR(Derived, T)
+    INHERIT_FROM_INDEXABLE_TENSOR(Derived, T) \
+    friend class aquarius::tensor::LocalTensor< Derived, T >;
 
 #define CHECK_RETURN_VALUE(ret) \
 switch (ret) \
@@ -226,8 +228,8 @@ class LocalTensor : public IndexableTensor<Derived,T>
 
         uint64_t getSize() const { return size_; }
 
-        void div(const T alpha, bool conja, const Tensor<Derived,T>& A,
-                                bool conjb, const Tensor<Derived,T>& B, const T beta)
+        void div(const T alpha, bool conja, const Derived& A,
+                                bool conjb, const Derived& B, const T beta)
         {
             assert(size_ == A.size_ && size_ == B.size_);
 
@@ -237,7 +239,7 @@ class LocalTensor : public IndexableTensor<Derived,T>
                 {
                     for (uint64_t i = 0;i < size_;i++)
                     {
-                        if (std::abs(B.data[i]) > DBL_MIN)
+                        if (std::abs(B.data_[i]) > DBL_MIN)
                         {
                             data_[i] = beta*data_[i] + alpha*conj(A.data_[i])/conj(B.data_[i]);
                         }
@@ -247,7 +249,7 @@ class LocalTensor : public IndexableTensor<Derived,T>
                 {
                     for (uint64_t i = 0;i < size_;i++)
                     {
-                        if (std::abs(B.data[i]) > DBL_MIN)
+                        if (std::abs(B.data_[i]) > DBL_MIN)
                         {
                             data_[i] = beta*data_[i] + alpha*conj(A.data_[i])/B.data_[i];
                         }
@@ -260,7 +262,7 @@ class LocalTensor : public IndexableTensor<Derived,T>
                 {
                     for (uint64_t i = 0;i < size_;i++)
                     {
-                        if (std::abs(B.data[i]) > DBL_MIN)
+                        if (std::abs(B.data_[i]) > DBL_MIN)
                         {
                             data_[i] = beta*data_[i] + alpha*A.data_[i]/conj(B.data_[i]);
                         }
@@ -270,7 +272,7 @@ class LocalTensor : public IndexableTensor<Derived,T>
                 {
                     for (uint64_t i = 0;i < size_;i++)
                     {
-                        if (std::abs(B.data[i]) > DBL_MIN)
+                        if (std::abs(B.data_[i]) > DBL_MIN)
                         {
                             data_[i] = beta*data_[i] + alpha*A.data_[i]/B.data_[i];
                         }
@@ -279,7 +281,7 @@ class LocalTensor : public IndexableTensor<Derived,T>
             }
         }
 
-        void invert(const T alpha, bool conja, const Tensor<Derived,T>& A, const T beta)
+        void invert(const T alpha, bool conja, const Derived& A, const T beta)
         {
             assert(size_ == A.size_);
 
@@ -287,7 +289,7 @@ class LocalTensor : public IndexableTensor<Derived,T>
             {
                 for (uint64_t i = 0;i < size_;i++)
                 {
-                    if (std::abs(A.data[i]) > DBL_MIN)
+                    if (std::abs(A.data_[i]) > DBL_MIN)
                     {
                         data_[i] = beta*data_[i] + alpha/conj(A.data_[i]);
                     }
@@ -297,7 +299,7 @@ class LocalTensor : public IndexableTensor<Derived,T>
             {
                 for (uint64_t i = 0;i < size_;i++)
                 {
-                    if (std::abs(A.data[i]) > DBL_MIN)
+                    if (std::abs(A.data_[i]) > DBL_MIN)
                     {
                         data_[i] = beta*data_[i] + alpha/A.data_[i];
                     }

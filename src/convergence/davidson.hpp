@@ -25,7 +25,8 @@
 #ifndef _AQUARIUS_DAVIDSON_HPP_
 #define _AQUARIUS_DAVIDSON_HPP_
 
-#include "tensor/tensor.hpp"
+//#include "tensor/tensor.hpp"
+#include "stl_ext/stl_ext.hpp"
 #include "input/config.hpp"
 #include "util/lapack.h"
 #include "util/util.h"
@@ -44,9 +45,10 @@ template<typename T>
 class Davidson
 {
     protected:
+        typedef typename T::dtype dtype;
         std::vector< std::vector<T*> > old_c;
         std::vector< std::vector<T*> > old_hc;
-        std::vector<double> c, e;
+        std::vector<dtype> c, e;
         int nvec, nextrap;
         int mode;
         bool lock;
@@ -91,7 +93,7 @@ class Davidson
             return extrapolate(std::vector<T*>(1, &c), std::vector<T*>(1, &hc), std::vector<T*>(1, &D));
         }
 
-        double extrapolate(std::vector<T*>& c, std::vector<T*>& hc, std::vector<T*>& D)
+        double extrapolate(const std::vector<T*>& c, const std::vector<T*>& hc, const std::vector<T*>& D)
         {
             assert(c.size() == nvec);
             assert(hc.size() == nvec);
@@ -139,7 +141,7 @@ class Davidson
 
             e[nextrap_real+nextrap_real*nextrap] = 0;
             for (int i = 0;i < nvec;i++)
-                e[nextrap_real+nextrap_real*nextrap] += scalar((*c[i])*(*hc[i]));
+                e[nextrap_real+nextrap_real*nextrap] += scalar(conj(*c[i])*(*hc[i]));
 
             /*
              * Get the new off-diagonal subspace matrix elements for all
@@ -151,8 +153,8 @@ class Davidson
                 e[nextrap_real+i*nextrap] = 0;
                 for (int j = 0;j < nvec;i++)
                 {
-                    e[i+nextrap_real*nextrap] += scalar((*old_c[i][j])*(*hc[j]));
-                    e[nextrap_real+i*nextrap] += scalar((*c[j])*(*old_hc[i][j]));
+                    e[i+nextrap_real*nextrap] += scalar(conj(*old_c[i][j])*(*hc[j]));
+                    e[nextrap_real+i*nextrap] += scalar(conj(*c[j])*(*old_hc[i][j]));
                 }
             }
 
@@ -170,15 +172,13 @@ class Davidson
             */
 
             int info;
-            std::vector<double> tmp(nextrap*nextrap);
-            std::vector<double> vr(nextrap*nextrap);
-            std::vector<double> lr(nextrap);
-            std::vector<double> lc(nextrap);
-            std::vector<double> work(3*nextrap);
+            std::vector<dtype> tmp(nextrap*nextrap);
+            std::vector<dtype> vr(nextrap*nextrap);
+            std::vector<typename std::complex_type<dtype>::type> l(nextrap);
 
             std::copy(e.begin(), e.end(), tmp.begin());
-            info = dgeev('N', 'V', nextrap_real, tmp.data(), nextrap, lr.data(), lc.data(),
-                         NULL, 1, vr.data(), nextrap, work.data(), 4*nextrap);
+            info = geev('N', 'V', nextrap_real, tmp.data(), nextrap, l.data(),
+                        NULL, 1, vr.data(), nextrap);
             ASSERT(info == 0, "failure in dgeev, info = %d", info);
 
             int bestev = 0;
@@ -190,13 +190,13 @@ class Davidson
                 switch (mode)
                 {
                     case GUESS_OVERLAP:
-                        crit = 1-vr[i*nextrap_real];
+                        crit = 1-std::abs(vr[i*nextrap_real]);
                         break;
                     case LOWEST_ENERGY:
-                        crit = abs(lr[i]-lr[0]);
+                        crit = std::abs(std::real(l[i])-std::real(l[0]));
                         break;
                     case CLOSEST_ENERGY:
-                        crit = abs(lr[i]-target);
+                        crit = std::abs(std::real(l[i])-target);
                         break;
                 }
 
@@ -207,7 +207,7 @@ class Davidson
                 }
             }
 
-            ASSERT(abs(lc[bestev]) < 1e-10, "Complex eigenvalue");
+            ASSERT(std::abs(std::imag(l[bestev])) < 1e-10, "Complex eigenvalue");
 
             for (int j = 0;j < nvec;j++)
             {
@@ -220,14 +220,14 @@ class Davidson
                     *c[j] += (*old_hc[i][j])*vr[i+bestev*nextrap_real];
                 }
 
-                *c[j] -= lr[bestev]*(*hc[j]);
+                *c[j] -= std::real(l[bestev])*(*hc[j]);
 
-                *D[j] -= lr[bestev];
+                *D[j] -= std::real(l[bestev]);
                 *c[j] /= *D[j];
-                *D[j] += lr[bestev];
+                *D[j] += std::real(l[bestev]);
             }
 
-            return lr[bestev];
+            return std::real(l[bestev]);
         }
 };
 

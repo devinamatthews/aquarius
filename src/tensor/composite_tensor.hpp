@@ -31,7 +31,7 @@
 
 #include "stl_ext/stl_ext.hpp"
 
-#include "indexabletensor.hpp"
+#include "indexable_tensor.hpp"
 
 namespace aquarius
 {

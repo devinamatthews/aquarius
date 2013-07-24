@@ -59,13 +59,14 @@ class STExcitationOperator<U,2> : public ExcitationOperator<U,2>
         static void transform(const OneElectronOperator<U>& X, const ExponentialOperator<U,2>& T,
                               ExcitationOperator<U,2>& Z)
         {
-            OneElectronOperator<U> W(X, OneElectronOperator<U>::AB|
-                                        OneElectronOperator<U>::IJ);
+            OneElectronOperator<U> W(const_cast<OneElectronOperator<U>&>(X),
+                                     OneElectronOperator<U>::AB|
+                                     OneElectronOperator<U>::IJ);
 
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FAI = W.getAI();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FME = W.getIA();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FAE = W.getAB();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FMI = W.getIJ();
+            tensor::SpinorbitalTensor<U>& FAI = W.getAI();
+            tensor::SpinorbitalTensor<U>& FME = W.getIA();
+            tensor::SpinorbitalTensor<U>& FAE = W.getAB();
+            tensor::SpinorbitalTensor<U>& FMI = W.getIJ();
 
             Z(0) = FME["me"]*T(1)["em"];
 
@@ -93,24 +94,24 @@ class STExcitationOperator<U,2> : public ExcitationOperator<U,2>
                                                                              TwoElectronOperator<U>::IAJK|
                                                                              TwoElectronOperator<U>::AIBJ);
 
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FAI = W.getAI();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FME = W.getIA();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FAE = W.getAB();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& FMI = W.getIJ();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WABIJ = W.getABIJ();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMNEF = W.getIJAB();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WAMEF = W.getAIBC();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WABEJ = W.getABCI();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WABEF = W.getABCD();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMNIJ = W.getIJKL();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMNIE = W.getIJKA();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WMBIJ = W.getIAJK();
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> >& WAMEI = W.getAIBJ();
+            tensor::SpinorbitalTensor<U>& FAI = W.getAI();
+            tensor::SpinorbitalTensor<U>& FME = W.getIA();
+            tensor::SpinorbitalTensor<U>& FAE = W.getAB();
+            tensor::SpinorbitalTensor<U>& FMI = W.getIJ();
+            tensor::SpinorbitalTensor<U>& WABIJ = W.getABIJ();
+            tensor::SpinorbitalTensor<U>& WMNEF = W.getIJAB();
+            tensor::SpinorbitalTensor<U>& WAMEF = W.getAIBC();
+            tensor::SpinorbitalTensor<U>& WABEJ = W.getABCI();
+            tensor::SpinorbitalTensor<U>& WABEF = W.getABCD();
+            tensor::SpinorbitalTensor<U>& WMNIJ = W.getIJKL();
+            tensor::SpinorbitalTensor<U>& WMNIE = W.getIJKA();
+            tensor::SpinorbitalTensor<U>& WMBIJ = W.getIAJK();
+            tensor::SpinorbitalTensor<U>& WAMEI = W.getAIBJ();
 
-            tensor::SpinorbitalTensor< tensor::DistTensor<U> > Tau(T(2));
+            tensor::SpinorbitalTensor<U> Tau(T(2));
             Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
-            Z(0) = 0;
+            Z(0) = (U)0.0;
             //Z(0)  = FME["me"]*T(1)["em"];
             //Z(0) += 0.25*WMNEF["mnef"]*Tau["efmn"];
 

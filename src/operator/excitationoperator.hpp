@@ -25,8 +25,9 @@
 #ifndef _AQUARIUS_OPERATOR_EXCITATIONOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_EXCITATIONOPERATOR_HPP_
 
-#include "tensor/compositetensor.hpp"
-#include "tensor/spinorbital.hpp"
+#include "stl_ext/stl_ext.hpp"
+#include "tensor/composite_tensor.hpp"
+#include "tensor/spinorbital_tensor.hpp"
 
 #include "mooperator.hpp"
 
@@ -39,10 +40,10 @@ template <typename T, int np, int nh=np>
 class ExcitationOperator
 : public MOOperator<T>,
   public tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
-                                  tensor::SpinorbitalTensor< tensor::DistTensor<T> >, T >
+                                  tensor::SpinorbitalTensor<T>, T >
 {
     INHERIT_FROM_COMPOSITE_TENSOR(CONCAT(ExcitationOperator<T,np,nh>),
-                                  tensor::SpinorbitalTensor< tensor::DistTensor<T> >, T)
+                                  tensor::SpinorbitalTensor<T>, T)
 
     protected:
         const int spin;
@@ -51,13 +52,13 @@ class ExcitationOperator
         ExcitationOperator(const ExcitationOperator<T,np,nh>& other)
         : MOOperator<T>(other.uhf),
           tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
-           tensor::SpinorbitalTensor< tensor::DistTensor<T> >, T >(other),
+           tensor::SpinorbitalTensor<T>, T >(other),
           spin(other.spin) {}
 
         ExcitationOperator(const scf::UHF<T>& uhf, const int spin=0)
         : MOOperator<T>(uhf),
           tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
-           tensor::SpinorbitalTensor< tensor::DistTensor<T> >, T >(std::max(np,nh)+1),
+           tensor::SpinorbitalTensor<T>, T >(std::max(np,nh)+1),
           spin(spin)
         {
             if (abs(spin%2) != (np+nh)%2 || abs(spin) > np+nh) throw std::logic_error("incompatible spin");
@@ -75,7 +76,7 @@ class ExcitationOperator
                 int npex = (np > nh ? ex+np-nh : ex);
                 int nhex = (nh > np ? ex+nh-np : ex);
 
-                tensors_[idx].tensor_ = new tensor::SpinorbitalTensor< tensor::DistTensor<T> >(autocc::Manifold(npex,nhex), 0, spin);
+                tensors_[idx].tensor_ = new tensor::SpinorbitalTensor<T>(autocc::Manifold(npex,nhex), 0, spin);
 
                 for (int pspin = std::max(-npex,spin-nhex);pspin <= std::min(npex,spin+nhex);pspin++)
                 {
@@ -114,7 +115,7 @@ class ExcitationOperator
 
             for (int i = 0;i <= std::min(np,nh);i++)
             {
-                s += (*this)(i).dot(conja, A(i), conjb)/factorial(i)/factorial(i+std::abs(np-nh));
+                s += (*this)(i).dot(conja, A(i), conjb)/(T)factorial(i)/(T)factorial(i+std::abs(np-nh));
             }
 
             return s;

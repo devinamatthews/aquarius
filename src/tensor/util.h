@@ -49,6 +49,7 @@ do                                                  \
 } while (0)
 
 #ifdef __cplusplus
+#include <iostream>
 extern "C"
 {
 #endif

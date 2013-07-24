@@ -1,0 +1,185 @@
+/* Copyright (c) 2013, Devin Matthews
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following
+ * conditions are met:
+ *      * Redistributions of source code must retain the above copyright
+ *        notice, this list of conditions and the following disclaimer.
+ *      * Redistributions in binary form must reproduce the above copyright
+ *        notice, this list of conditions and the following disclaimer in the
+ *        documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE. */
+
+#include "aoscf.hpp"
+
+using namespace std;
+using namespace aquarius;
+using namespace aquarius::scf;
+using namespace aquarius::tensor;
+using namespace aquarius::input;
+using namespace aquarius::slide;
+
+template <typename T>
+AOUHF<T>::AOUHF(const Config& config, const AOIntegrals<T>& ints)
+: UHF<T>(ints.ctf, config, ints.molecule), ints(ints) {}
+
+template <typename T>
+void AOUHF<T>::buildFock()
+{
+    T *focka, *fockb;
+    T *densa, *densb;
+
+    int64_t npair;
+
+    this->H->getAllData(npair, focka, 0);
+    assert(this->rank != 0 || npair == norb*norb);
+    this->H->getAllData(npair, fockb, 0);
+    assert(this->rank != 0 || npair == norb*norb);
+
+    if (this->rank != 0)
+    {
+        focka = SAFE_MALLOC(T, norb*norb);
+        fockb = SAFE_MALLOC(T, norb*norb);
+        fill(focka, focka+norb*norb, 0.0);
+        fill(fockb, fockb+norb*norb, 0.0);
+    }
+
+    this->Da->getAllData(npair, densa);
+    assert(npair == norb*norb);
+    this->Db->getAllData(npair, densb);
+    assert(npair == norb*norb);
+
+    size_t neris = ints.getNumInts();
+    const T* eris = ints.getInts();
+    const idx4_t* idxs = ints.getIndices();
+
+    for (size_t n = 0;n < neris;n++)
+    {
+        int i = idxs[n].i;
+        int j = idxs[n].j;
+        int k = idxs[n].k;
+        int l = idxs[n].l;
+
+        /*
+        if (i < j)
+        {
+            swap(i, j);
+        }
+        if (k < l)
+        {
+            swap(k, l);
+        }
+        if (i < k || (i == k && j < l))
+        {
+            swap(i, k);
+            swap(j, l);
+        }
+        printf("%d %d %d %d %25.15e\n", i+1, j+1, k+1, l+1, eris[n].value);
+        */
+
+        T e = eris[n];
+        if (i == j) e *= 0.5;
+        if (k == l) e *= 0.5;
+        if (min(i,j) == min(k,l) &&
+            max(i,j) == max(k,l)) e *= 0.5;
+
+        /*
+         * Coulomb contribution: Fa(ab) += [Da(cd)+Db(cd)]*(ab|cd)
+         */
+
+        // (ij|kl)
+        focka[i+j*norb] += 2.0*(densa[k+l*norb]+densb[k+l*norb])*e;
+        fockb[i+j*norb] += 2.0*(densa[k+l*norb]+densb[k+l*norb])*e;
+        // (ji|kl)
+        focka[j+i*norb] += 2.0*(densa[k+l*norb]+densb[k+l*norb])*e;
+        fockb[j+i*norb] += 2.0*(densa[k+l*norb]+densb[k+l*norb])*e;
+        // (kl|ij)
+        focka[k+l*norb] += 2.0*(densa[i+j*norb]+densb[i+j*norb])*e;
+        fockb[k+l*norb] += 2.0*(densa[i+j*norb]+densb[i+j*norb])*e;
+        // (lk|ij)
+        focka[l+k*norb] += 2.0*(densa[i+j*norb]+densb[i+j*norb])*e;
+        fockb[l+k*norb] += 2.0*(densa[i+j*norb]+densb[i+j*norb])*e;
+
+        /*
+         * Exchange contribution: Fa(ac) -= Da(bd)*(ab|cd)
+         */
+
+        // (ij|kl)
+        focka[i+k*norb] -= densa[j+l*norb]*e;
+        fockb[i+k*norb] -= densb[j+l*norb]*e;
+        // (kl|ij)
+        focka[k+i*norb] -= densa[j+l*norb]*e;
+        fockb[k+i*norb] -= densb[j+l*norb]*e;
+        // (ij|lk)
+        focka[i+l*norb] -= densa[j+k*norb]*e;
+        fockb[i+l*norb] -= densb[j+k*norb]*e;
+        // (lk|ij)
+        focka[l+i*norb] -= densa[j+k*norb]*e;
+        fockb[l+i*norb] -= densb[j+k*norb]*e;
+        // (ji|lk)
+        focka[j+l*norb] -= densa[i+k*norb]*e;
+        fockb[j+l*norb] -= densb[i+k*norb]*e;
+        // (lk|ji)
+        focka[l+j*norb] -= densa[i+k*norb]*e;
+        fockb[l+j*norb] -= densb[i+k*norb]*e;
+        // (ji|kl)
+        focka[j+k*norb] -= densa[i+l*norb]*e;
+        fockb[j+k*norb] -= densb[i+l*norb]*e;
+        // (kl|ji)
+        focka[k+j*norb] -= densa[i+l*norb]*e;
+        fockb[k+j*norb] -= densb[i+l*norb]*e;
+    }
+
+    if (this->rank == 0)
+    {
+        this->comm.Reduce(MPI::IN_PLACE, focka, norb*norb, this->type, MPI::SUM, 0);
+        this->comm.Reduce(MPI::IN_PLACE, fockb, norb*norb, this->type, MPI::SUM, 0);
+
+        tkv_pair<T>* pairs = SAFE_MALLOC(tkv_pair<T>, norb*norb);
+
+        for (int p = 0;p < norb*norb;p++)
+        {
+            pairs[p].d = focka[p];
+            pairs[p].k = p;
+        }
+
+        this->Fa->writeRemoteData(norb*norb, pairs);
+
+        for (int p = 0;p < norb*norb;p++)
+        {
+            pairs[p].d = fockb[p];
+            pairs[p].k = p;
+        }
+
+        this->Fb->writeRemoteData(norb*norb, pairs);
+
+        FREE(pairs);
+    }
+    else
+    {
+        this->comm.Reduce(focka, NULL, norb*norb, this->type, MPI::SUM, 0);
+        this->comm.Reduce(fockb, NULL, norb*norb, this->type, MPI::SUM, 0);
+
+        this->Fa->writeRemoteData(0, NULL);
+        this->Fb->writeRemoteData(0, NULL);
+    }
+
+    FREE(focka);
+    FREE(fockb);
+    FREE(densa);
+    FREE(densb);
+}
+
+INSTANTIATE_SPECIALIZATIONS(AOUHF);
