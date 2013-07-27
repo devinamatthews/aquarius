@@ -84,9 +84,9 @@ void rysquad(const double T, const int n, double* restrict rt, double* restrict 
 void quadrature(const int n, double* restrict a, double* restrict b, const double mu0, double* restrict rt, double* restrict wt)
 {
     int i, info;
-    double Z[n * n], work[n * 2 - 2];
+    double Z[n * n];
 
-    info = dstev('V', n, a, b, Z, n, work);
+    info = dstev('V', n, a, b, Z, n);
     if (info != 0)
     {
         fprintf(stderr, "rys.c: quadrature: info in dstev = %d\n", info);

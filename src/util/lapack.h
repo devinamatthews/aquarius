@@ -12965,7 +12965,7 @@ static inline integer c_ssyevr( char jobz, char range, char uplo, integer n,
                     integer* m, float* w, float* z, integer ldz,
                     integer* isuppz)
 {
-    integer info, lwork = -1, liwork = -1, lrwork = -1;
+    integer info, lwork = -1, liwork = -1;
     float *work, query;
     integer *iwork, iquery;
     FFUNC(ssyevr,SSYEVR)(&jobz, &range, &uplo, &n, a, &lda, &vl, &vu, &il, &iu, &abstol, m, w, z, &ldz, isuppz, &query, &lwork,
@@ -12987,7 +12987,7 @@ static inline integer c_dsyevr( char jobz, char range, char uplo, integer n,
                     integer* m, double* w, double* z, integer ldz,
                     integer* isuppz)
 {
-    integer info, lwork = -1, liwork = -1, lrwork = -1;
+    integer info, lwork = -1, liwork = -1;
     double *work, query;
     integer *iwork, iquery;
     FFUNC(dsyevr,DSYEVR)(&jobz, &range, &uplo, &n, a, &lda, &vl, &vu, &il, &iu, &abstol, m, w, z, &ldz, isuppz, &query, &lwork,

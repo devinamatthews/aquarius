@@ -231,6 +231,8 @@ class LocalTensor : public IndexableTensor<Derived,T>
         void div(const T alpha, bool conja, const Derived& A,
                                 bool conjb, const Derived& B, const T beta)
         {
+            using std::conj;
+
             assert(size_ == A.size_ && size_ == B.size_);
 
             if (conja)
@@ -283,6 +285,8 @@ class LocalTensor : public IndexableTensor<Derived,T>
 
         void invert(const T alpha, bool conja, const Derived& A, const T beta)
         {
+            using std::conj;
+
             assert(size_ == A.size_);
 
             if (conja)

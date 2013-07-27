@@ -324,7 +324,7 @@ AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const boo
 }
 
 template <typename T>
-AOMOIntegrals<T>::abrs_integrals AOMOIntegrals<T>::abrs_integrals::transform(Index index, const char trans, const int nc, const double* C, const int ldc)
+typename AOMOIntegrals<T>::abrs_integrals AOMOIntegrals<T>::abrs_integrals::transform(Index index, const char trans, const int nc, const double* C, const int ldc)
 {
     abrs_integrals out = *this;
 
