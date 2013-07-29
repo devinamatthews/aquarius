@@ -125,19 +125,21 @@ function realcompiler
             compiler=intel
             ;;
         *Portland*)
-            echo 'Using Portland Group compilers.'
+            echo 'Portland Group compilers are not supported.'
             echo
+            exit 1
             compiler=pgi
             ;;
-        *Cray*)
-            echo 'Using Cray compilers.'
-            echo
-            compiler=cray
-            ;;
-        "*Free Software*")
+        *Free\ Software*)
             echo 'Using GNU compilers.'
             echo
             compiler=gnu
+            ;;
+        *Cray*)
+            echo 'Cray compilers are not supported.'
+            echo
+            exit 1
+            compiler=cray
             ;;
         *)
             echo 'Could not determine underlying C/C++ compilers.'
