@@ -189,7 +189,7 @@ function defaultflags
             if [ "x$DEPS"     = "x" ]; then DEPS='-MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po'; fi
             if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
             if [ "x$WARN"     = "x" ]; then WARN='-Wall -Wno-comment -Wno-sign-compare'; fi
-            if [ "x$OPT"      = "x" ]; then OPT='-g -O2'; fi
+            if [ "x$OPT"      = "x" ]; then OPT='-g -O3'; fi
             ;;
         *)
             echo 'No default flags known for given compilers. Make sure that you have set the'
@@ -260,7 +260,7 @@ if [ "$NERSC_HOST" = "carver" ]; then
     echo
     host=nersc
     
-    if [ "x$blaslibs" = "x"]; then
+    if [ "x$blaslibs" = "x" ]; then
         if [ "x$MKL" = "x" -o "x$MKL_ILP64" = "x" ]; then
             echo 'MKL module not loaded and no alternative specified.'
             echo 'Do "module load mkl" or use the --blas option.'
