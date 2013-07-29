@@ -109,9 +109,9 @@ EOF
 function realcompiler
 {
     if $CC -V > /dev/null 2>&1; then
-        version=`$CC -V`
+        version=`$CC -V 2>&1`
     elif $CC --version > /dev/null 2>&1; then
-        version=`$CC --version`
+        version=`$CC --version 2>&1`
     else
         echo 'Could not determine underlying C/C++ compilers.'
         echo
@@ -190,8 +190,8 @@ function defaultflags
             if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-fopenmp -D__STDC_LIMIT_MACROS -Drestrict='; fi
             if [ "x$DEPS"     = "x" ]; then DEPS='-MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po'; fi
             if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
-            if [ "x$WARN"     = "x" ]; then WARN='-Wall'; fi
-            if [ "x$OPT"      = "x" ]; then OPT='-g -O2'; fi
+            if [ "x$WARN"     = "x" ]; then WARN='-Wall -Wno-comment -Wno-sign-compare'; fi
+            if [ "x$OPT"      = "x" ]; then OPT='-g -O3'; fi
             ;;
         *)
             echo 'No default flags known for given compilers. Make sure that you have set the'
@@ -262,7 +262,7 @@ if [ "$NERSC_HOST" = "carver" ]; then
     echo
     host=nersc
     
-    if [ "x$blaslibs" = "x"]; then
+    if [ "x$blaslibs" = "x" ]; then
         if [ "x$MKL" = "x" -o "x$MKL_ILP64" = "x" ]; then
             echo 'MKL module not loaded and no alternative specified.'
             echo 'Do "module load mkl" or use the --blas option.'
@@ -436,7 +436,7 @@ if [ "x$ctfdir" = "x" ]; then
 	ctfdir=$srcdir/ctf
 	if [ ! -d $ctfdir ]; then
         read -p "Please specify a CTF directory or press enter to get a CTF clone: " ctfdp
-        if [ -d $ctfdp ]; then
+        if [ "x$ctfdp" != "x" ]; then
             ctfdir=$ctfdp
         elif (command -v git >/dev/null 2>&1); then
 			echo -e "Downloading CTF from external Git repository...\n"
@@ -484,7 +484,7 @@ DEFS        = $DEFS
 #DEFS       += -DDEBUG=1
 
 WARN        = $WARN
-OPT_FLAGS   = $OPT
+OPT         = $OPT
 
 CC          = $CC
 CFLAGS      = $CFLAGS

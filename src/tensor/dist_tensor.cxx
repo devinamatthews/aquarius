@@ -298,7 +298,7 @@ template <typename T>
 void DistTensor<T>::getAllData(int64_t& npair, T*& vals) const
 {
     getAllData(npair, vals, 0);
-    this->comm.Bcast(&npair, 1, MPI_INT64_T, 0);
+    this->comm.Bcast(&npair, 1, MPI_LONG_LONG, 0);
     if (this->rank != 0) vals = SAFE_MALLOC(T,npair);
     this->comm.Bcast(vals, npair, MPI_TYPE_<T>::value(), 0);
 }
