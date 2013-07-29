@@ -171,7 +171,7 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(const bool rles)
     MPI::Datatype IDX4_T_TYPE = MPI::Datatype(MPI_SHORT).Create_contiguous(4);
     IDX4_T_TYPE.Commit();
 
-    int nrs;
+    size_t nrs;
     if (rles)
     {
         nrs = nr*(nr+1)/2;
@@ -212,7 +212,7 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(const bool rles)
 
     for (int i = 0;i < nproc;i++)
     {
-        for (int rs = (nrs*i)/nproc;rs < (nrs*(i+1))/nproc;rs++)
+        for (size_t rs = (nrs*i)/nproc;rs < (nrs*(i+1))/nproc;rs++)
         {
             assert(rs >= 0 && rs < nrs);
             sendcount[i] += rscount[rs];
