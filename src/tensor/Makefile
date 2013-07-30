@@ -3,6 +3,11 @@ include ../../rules.mk
 
 libs: $(libdir)/libtensor.a
 $(libdir)/libtensor.a: \
+dense_tensor.o \
+dist_tensor.o \
+packed_tensor.o \
+spinorbital_tensor.o \
+symblocked_tensor.o \
 tensor_densify.o \
 tensor_mult_dense.o \
 tensor_mult.o \

@@ -34,25 +34,253 @@
 #include <stdexcept>
 #include <cctype>
 #include <iterator>
+#include <complex>
 
-#if defined(CPLUSPLUS11)
+#if defined(__GXX_EXPERIMENTAL_CXX0X__) || _MSC_VER >= 1600 || __cplusplus >= 201103l
 
 #include <type_traits>
-
-#elif defined(BOOST)
-
-#include <boost/type_traits.hpp>
-
-namespace std
-{
-    using namespace boost;
-}
-
-#define enable_if enable_if_c
+#include <memory>
 
 #else
 
-#error "type_traits not available"
+namespace std
+{
+    template <bool cond, class return_type = void> struct enable_if {};
+    template <class return_type> struct enable_if<true, return_type> { typedef return_type type; };
+    template <> struct enable_if<true> { typedef void type; };
+
+    template <class T, class U> struct is_same      { static const bool value = false; };
+    template <class T>          struct is_same<T,T> { static const bool value = true; };
+
+    template <class T> struct remove_cv                   {typedef T type; };
+    template <class T> struct remove_cv<const T>          {typedef T type; };
+    template <class T> struct remove_cv<volatile T>       {typedef T type; };
+    template <class T> struct remove_cv<const volatile T> {typedef T type; };
+
+    template <class T> struct make_unsigned__              { typedef T type; };
+    template <>        struct make_unsigned__<signed char> { typedef unsigned char type; };
+    template <>        struct make_unsigned__<short>       { typedef unsigned short type; };
+    template <>        struct make_unsigned__<int>         { typedef unsigned int type; };
+    template <>        struct make_unsigned__<long>        { typedef unsigned long type; };
+    template <>        struct make_unsigned__<long long>   { typedef unsigned long long type; };
+
+    template <class T> struct make_unsigned                   { typedef typename make_unsigned__<T>::type type; };
+    template <class T> struct make_unsigned<const T>          { typedef const typename make_unsigned__<T>::type type; };
+    template <class T> struct make_unsigned<volatile T>       { typedef volatile typename make_unsigned__<T>::type type; };
+    template <class T> struct make_unsigned<const volatile T> { typedef const volatile typename make_unsigned__<T>::type type; };
+
+    template <class T> struct is_const          { static const bool value = false; };
+    template <class T> struct is_const<const T> { static const bool value = true; };
+
+    template <class T, class U = void> struct is_integral { static const bool value = false; };
+    template <class T> struct is_integral<T,
+        typename enable_if<is_same<char,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
+        { static const bool value = true; };
+    template <class T> struct is_integral<T,
+        typename enable_if<is_same<short,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
+        { static const bool value = true; };
+    template <class T> struct is_integral<T,
+        typename enable_if<is_same<int,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
+        { static const bool value = true; };
+    template <class T> struct is_integral<T,
+        typename enable_if<is_same<long,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
+        { static const bool value = true; };
+    template <class T> struct is_integral<T,
+        typename enable_if<is_same<long long,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
+        { static const bool value = true; };
+    template <class T> struct is_integral<T,
+        typename enable_if<is_same<bool,typename remove_cv<T>::type>::value>::type>
+        { static const bool value = true; };
+    template <class T> struct is_integral<T,
+        typename enable_if<is_same<wchar_t,typename remove_cv<T>::type>::value>::type>
+        { static const bool value = true; };
+
+    template <class T>
+    class shared_ptr
+    {
+        friend void swap(shared_ptr& a, shared_ptr& b)
+        {
+            a.swap(b);
+        }
+
+        friend ostream& operator<<(ostream& os, const shared_ptr& sp)
+        {
+            os << sp.get();
+            return os;
+        }
+
+        friend bool operator==(const shared_ptr& a, const shared_ptr& b)
+        {
+            return a.get() == b.get();
+        }
+
+        friend bool operator==(const T* a, const shared_ptr& b)
+        {
+            return a == b.get();
+        }
+
+        friend bool operator==(const shared_ptr& a, const T* b)
+        {
+            return a.get() == b;
+        }
+
+        friend bool operator<(const shared_ptr& a, const shared_ptr& b)
+        {
+            return a.get() < b.get();
+        }
+
+        friend bool operator<(const T* a, const shared_ptr& b)
+        {
+            return a < b.get();
+        }
+
+        friend bool operator<(const shared_ptr& a, const T* b)
+        {
+            return a.get() < b;
+        }
+
+        protected:
+            struct ref_ptr
+            {
+                T* ptr;
+                long count;
+                ref_ptr(T* ptr)
+                : ptr(ptr), count(0) {}
+            };
+            ref_ptr* ptr;
+
+            void assign_ptr(ref_ptr* ptr)
+            {
+                this->ptr = ptr;
+                if (ptr != NULL) ptr->count++;
+            }
+
+            void release_ptr()
+            {
+                if (ptr == NULL) return;
+                ptr->count--;
+                if (ptr->count == 0)
+                {
+                    delete ptr->ptr;
+                    delete ptr;
+                }
+                ptr = NULL;
+            }
+
+        public:
+            shared_ptr()
+            {
+                assign_ptr(NULL);
+            }
+
+            shared_ptr(T* p)
+            {
+                if (p == NULL)
+                {
+                    assign_ptr(NULL);
+                }
+                else
+                {
+                    assign_ptr(new ref_ptr(p));
+                }
+            }
+
+            shared_ptr(const shared_ptr& other)
+            {
+                assign_ptr(other.ptr);
+            }
+
+            ~shared_ptr()
+            {
+                release_ptr();
+            }
+
+            shared_ptr& operator=(const shared_ptr& other)
+            {
+                if (other.ptr == this->ptr) return *this;
+                release_ptr();
+                assign_ptr(other.ptr);
+                return *this;
+            }
+
+            void swap(shared_ptr& other)
+            {
+                std::swap(ptr, other.ptr);
+            }
+
+            void reset()
+            {
+                release_ptr();
+            }
+
+            void reset(T* p)
+            {
+                release_ptr();
+                if (p == NULL)
+                {
+                    assign_ptr(NULL);
+                }
+                else
+                {
+                    assign_ptr(new ref_ptr(p));
+                }
+            }
+
+            T* get()
+            {
+                if (ptr == NULL) return NULL;
+                return ptr->ptr;
+            }
+
+            const T* get() const
+            {
+                if (ptr == NULL) return NULL;
+                return ptr->ptr;
+            }
+
+            T& operator*()
+            {
+                return *get();
+            }
+
+            const T& operator*() const
+            {
+                return *get();
+            }
+
+            T* operator->()
+            {
+                return get();
+            }
+
+            const T* operator->() const
+            {
+                return get();
+            }
+
+            long use_count() const
+            {
+                if (ptr == NULL) return 0;
+                return ptr->count;
+            }
+
+            bool unique() const
+            {
+                return use_count() == 1;
+            }
+
+            operator bool() const
+            {
+                return ptr != NULL;
+            }
+    };
+}
+
+template<typename I1, typename I2, typename Pred>
+I2 copy_if(I1 begin, I1 end, I2 result, Pred pred)
+{
+    return remove_copy_if(begin, end, result, not1(pred));
+}
 
 #endif
 
@@ -82,16 +310,6 @@ template<typename T> std::ostream& operator<<(std::ostream& os, const std::vecto
     os << "]";
     return os;
 }
-
-#ifndef CPLUSPLUS11
-
-template<typename I1, typename I2, typename Pred>
-I2 copy_if(I1 begin, I1 end, I2 result, Pred pred)
-{
-    return remove_copy_if(begin, end, result, not1(pred));
-}
-
-#endif
 
 template<typename T> std::string str(const T& t)
 {
@@ -407,6 +625,36 @@ inline std::string tolower(const std::string& S)
 inline float conj(float v) { return v; }
 inline double conj(double v) { return v; }
 
+inline float real(float v) { return v; }
+inline double real(double v) { return v; }
+
+inline float imag(float v) { return 0.0; }
+inline double imag(double v) { return 0.0; }
+
+template <typename T>
+struct real_type
+{
+    typedef T type;
+};
+
+template <typename T>
+struct real_type<complex<T> >
+{
+    typedef T type;
+};
+
+template <typename T>
+struct complex_type
+{
+    typedef complex<T> type;
+};
+
+template <typename T>
+struct complex_type<complex<T> >
+{
+    typedef complex<T> type;
+};
+
 template <class T, class U>
 struct doublet
 {
@@ -621,6 +869,42 @@ void cosort(key_iterator keys_begin, key_iterator keys_end,
     sort(begin, end, cocomparator<key_iterator,val_iterator,Comparator>(comp));
 }
 
+}
+
+inline std::complex<float> operator*(std::complex<float> f, double d)
+{
+    return f*(float)d;
+}
+
+inline std::complex<float> operator*(double d, std::complex<float> f)
+{
+    return f*(float)d;
+}
+
+inline std::complex<float> operator/(std::complex<float> f, double d)
+{
+    return f/(float)d;
+}
+
+template <class F, class I>
+typename std::enable_if<std::is_integral<I>::value,std::complex<F> >::type
+operator*(std::complex<F> f, I i)
+{
+    return f*(F)i;
+}
+
+template <class F, class I>
+typename std::enable_if<std::is_integral<I>::value,std::complex<F> >::type
+operator*(I i, std::complex<F> f)
+{
+    return f*(F)i;
+}
+
+template <class F, class I>
+typename std::enable_if<std::is_integral<I>::value,std::complex<F> >::type
+operator/(std::complex<F> f, I i)
+{
+    return f/(F)i;
 }
 
 #endif

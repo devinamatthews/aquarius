@@ -27,6 +27,8 @@
 
 #include "convergence/davidson.hpp"
 #include "operator/2eoperator.hpp"
+#include "operator/st2eoperator.hpp"
+#include "operator/exponentialoperator.hpp"
 
 #include "ccsd.hpp"
 
@@ -47,40 +49,9 @@ class EOMEECCSD : public Iterative, public op::ExcitationOperator<U,2>
 
     public:
         EOMEECCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
-                  const op::ExponentialOperator<U,2>& T)
-        : Iterative(config), op::ExcitationOperator<U,2>(H.getSCF()), R(*this),
-          Z(this->uhf), D(this->uhf), H(H), T(T), davidson(config.get("davidson"))
-        {
-            D(0) = 1;
-            D(1)["ai"]  = H.getIJ()["ii"];
-            D(1)["ai"] -= H.getAB()["aa"];
-            //D(1)["ai"] -= H.getAIBJ()["aiai"];
-            D(2)["abij"]  = H.getIJ()["ii"];
-            D(2)["abij"] += H.getIJ()["jj"];
-            D(2)["abij"] -= H.getAB()["aa"];
-            D(2)["abij"] -= H.getAB()["bb"];
-            //D(2)["abij"] -= H.getAIBJ()["aiai"];
-            //D(2)["abij"] -= H.getAIBJ()["bjbj"];
-            //D(2)["abij"] += H.getABCD()["abab"];
-            //D(2)["abij"] += H.getIJKL()["ijij"];
-            //D(2)["abij"] -= H.getIJAB()["imab"]*T(2)["abim"];
-            //D(2)["abij"] += H.getIJAB()["ijae"]*T(2)["aeij"];
+                  const op::ExponentialOperator<U,2>& T);
 
-            //TODO: guess
-        }
-
-        void _iterate()
-        {
-            H.contract(R, Z);
-
-            energy = davidson.extrapolate(R, Z, D);
-
-            conv =               Z(1)(0).reduce(CTF_OP_MAXABS);
-            conv = std::max(conv,Z(1)(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2)(0).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2)(1).reduce(CTF_OP_MAXABS));
-            conv = std::max(conv,Z(2)(2).reduce(CTF_OP_MAXABS));
-        }
+        void _iterate();
 };
 
 }

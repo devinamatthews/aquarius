@@ -36,7 +36,7 @@
 #include "operator/st2eoperator.hpp"
 #include "time/time.hpp"
 #include "tensor/dist_tensor.hpp"
-#include "tensor/spinorbital.hpp"
+#include "tensor/spinorbital_tensor.hpp"
 
 #ifdef USE_ELEMENTAL
 #include "elemental.hpp"

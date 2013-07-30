@@ -30,8 +30,6 @@
 #include "input/molecule.hpp"
 #include "memory/memory.h"
 
-#include <boost/foreach.hpp>
-
 #define TMP_BUFSIZE 100
 #define INTEGRAL_CUTOFF 1e-14
 
@@ -53,12 +51,7 @@ class AOIntegrals : public Distributed<T>
         idx4_t *idxs;
 
     public:
-        AOIntegrals(tCTF_World<T>& ctf, const input::Molecule& molecule)
-        : Distributed<T>(ctf), molecule(molecule)
-        {
-            generateInts();
-            loadBalance();
-        }
+        AOIntegrals(tCTF_World<T>& ctf, const input::Molecule& molecule);
 
         size_t getNumInts() const { return nints; }
 
@@ -67,68 +60,11 @@ class AOIntegrals : public Distributed<T>
         const idx4_t* getIndices() const { return idxs; }
 
     protected:
-        void generateInts()
-        {
-            double tmpval[TMP_BUFSIZE];
-            idx4_t tmpidx[TMP_BUFSIZE];
+        void generateInts();
 
-            std::vector<T> tmpints;
-            std::vector<idx4_t> tmpidxs;
+        void loadBalance();
 
-            int abcd = 0;
-            for (input::Molecule::const_shell_iterator a = molecule.getShellsBegin();a != molecule.getShellsEnd();++a)
-            {
-                for (input::Molecule::const_shell_iterator b = molecule.getShellsBegin();b != a+1;++b)
-                {
-                    for (input::Molecule::const_shell_iterator c = molecule.getShellsBegin();c != a+1;++c)
-                    {
-                        input::Molecule::const_shell_iterator dmax = c+1;
-                        if (a == c) dmax = b+1;
-                        for (input::Molecule::const_shell_iterator d = molecule.getShellsBegin();d != dmax;++d)
-                        {
-                            if (abcd%this->nproc == this->rank)
-                            {
-                                context.calcERI(1.0, 0.0, *a, *b, *c, *d);
-
-                                size_t n;
-                                while ((n = context.process2eInts(TMP_BUFSIZE, tmpval, tmpidx, INTEGRAL_CUTOFF)) != 0)
-                                {
-                                    tmpints.insert(tmpints.end(), tmpval, tmpval+n);
-                                    tmpidxs.insert(tmpidxs.end(), tmpidx, tmpidx+n);
-                                }
-                            }
-                            abcd++;
-                        }
-                    }
-                }
-            }
-
-            nints = tmpints.size();
-            ints = SAFE_MALLOC(T, nints);
-            std::copy(tmpints.begin(), tmpints.end(), ints);
-            idxs = SAFE_MALLOC(idx4_t, nints);
-            std::copy(tmpidxs.begin(), tmpidxs.end(), idxs);
-        }
-
-        void loadBalance()
-        {
-            //TODO
-        }
-
-        void canonicalize()
-        {
-            for (int i = 0;i < nints;++i)
-            {
-                if (ints[i].idx.i > ints[i].idx.j) std::swap(ints[i].idx.i, ints[i].idx.j);
-                if (ints[i].idx.k > ints[i].idx.l) std::swap(ints[i].idx.k, ints[i].idx.l);
-                if (ints[i].idx.i > ints[i].idx.k ||
-                    (ints[i].idx.i == ints[i].idx.j && ints[i].idx.j > ints[i].idx.l))
-                {
-                    std::swap(ints[i].idx.i, ints[i].idx.k);
-                    std::swap(ints[i].idx.j, ints[i].idx.l);
-                }
-            }
-        }
+        void canonicalize();
 };
 
 }

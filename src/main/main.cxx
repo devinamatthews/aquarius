@@ -24,86 +24,114 @@
 
 #include <iostream>
 
-#ifdef USE_ELEMENTAL
-#include "elemental.hpp"
-using namespace elem;
-#endif
-
-#include "mpi.h"
-
-#include "slide/slide.hpp"
 #include "stl_ext/stl_ext.hpp"
+#include "util/util.h"
 
 using namespace std;
-using namespace MPI;
-using namespace aquarius::slide;
+//using namespace aquarius::tensor;
+//using namespace aquarius::slide;
 
-static bool sortIntsByRS(const idx2_t& i1, const idx2_t& i2)
+template <class T, class U>
+struct if_exists
 {
-    cout << "compare: " << i1.i << " " << i1.j << " " << i2.i << " " << i2.j << " ";
+    typedef U type;
+};
 
-    if (i1.j < i2.j)
-    {
-        cout << "T" << endl;
-        return true;
-    }
-    else if (i1.j > i2.j)
-    {
-        cout << "F" << endl;
-        return false;
-    }
-    if (i1.i < i2.i)
-    {
-        cout << "T" << endl;
-        return true;
-    }
-    else
-    {
-        cout << "F" << endl;
-        return false;
-    }
+template <class Derived, class T> class Tensor;
+template <class Derived, class T> class ScaledTensor;
+template <class Derived, class T> class TensorMult;
+
+template <class Derived, typename T>
+class Tensor
+{
+    public:
+        typedef T dtype;
+
+        virtual ~Tensor() {}
+
+        Derived& getDerived() { return static_cast<Derived&>(*this); }
+
+        const Derived& getDerived() const { return static_cast<const Derived&>(*this); }
+
+        //template <typename cvDerived> typename if_exists<typename cvDerived::dtype, TensorMult<Derived,T> >::type
+        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
+        operator*(const cvDerived& other) const
+        {
+            return TensorMult<Derived,T>(ScaledTensor<const Derived,T>(getDerived(), (T)1),
+                                         ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
+        }
+
+        virtual T dot(const Derived& A) const = 0;
+};
+
+template <class Derived, typename T>
+class ScaledTensor
+{
+    public:
+        Derived& tensor_;
+        T factor_;
+
+        template <typename cvDerived>
+        ScaledTensor(const ScaledTensor<cvDerived,T>& other)
+        : tensor_(other.tensor_), factor_(other.factor_) {}
+
+        ScaledTensor(Derived& tensor, const T factor)
+        : tensor_(tensor), factor_(factor) {}
+};
+
+template <class Derived, typename T>
+class TensorMult
+{
+    private:
+        const TensorMult& operator=(const TensorMult<Derived,T>& other);
+
+    public:
+        ScaledTensor<const Derived,T> A_;
+        ScaledTensor<const Derived,T> B_;
+        T factor_;
+
+        template <class Derived1, class Derived2>
+        TensorMult(const ScaledTensor<Derived1,T>& A, const ScaledTensor<Derived2,T>& B)
+        : A_(A), B_(B), factor_(B.factor_) {}
+};
+
+template <class Derived, typename T>
+T scalar(const TensorMult<Derived,T>& tm)
+{
+    return tm.factor_*tm.B_.tensor_.dot(tm.A_.tensor_);
 }
 
 template <typename T>
-struct sortBackwards
+class DistTensor : public Tensor<DistTensor<T>,T>
 {
-    bool operator()(const T& a, const T& b) const
-    {
-        return a < b;
-    }
+    public:
+        virtual ~DistTensor() {}
+
+        T dot(const DistTensor<T>& A) const { return (T)0; }
 };
 
 int main(int argc, char **argv)
 {
-    MPI_Init(&argc, &argv);
-    SLIDE::init();
+    //MPI::Init(argc, argv);
+    //SLIDE::init();
     #ifdef USE_ELEMENTAL
     elem::Initialize(argc, argv);
     #endif
 
-    //idx2_t a[] = {{1,4},{2,3},{5,1},{3,8},{3,7},{3,4},{8,9},{0,3},{9,1},{4,6}};
-    int a[] = {10,2,7,4,8,3,9,1,5,6};
-    int b[] = {1,2,3,4,5,6,7,8,9,10};
+    DistTensor<double> Delta;
 
-    for (int i = 0;i < 10;i++)
-    {
-        //cout << a[i].i << " " << a[i].j << " " << b[i] << endl;
-        cout << a[i] << " " << b[i] << endl;
-    }
-    cout << endl;
-
-    //cosort(a, a+10, b, b+10);
-    cosort(a, a+10, b, b+10, sortBackwards<int>());
-
-    for (int i = 0;i < 10;i++)
-    {
-        //cout << a[i].i << " " << a[i].j << " " << b[i] << endl;
-        cout << a[i] << " " << b[i] << endl;
-    }
+    TensorMult<DistTensor<double>,double> tm = Delta*Delta;
+    cout << &tm << endl;
+    cout << tm.factor_ << endl;
+    cout << &tm.A_ << endl;
+    cout << &tm.A_.tensor_ << endl;
+    cout << &tm.B_ << endl;
+    cout << &tm.B_.tensor_ << endl;
+    double S2 = scalar(tm);
 
     #ifdef USE_ELEMENTAL
     elem::Finalize();
     #endif
-    SLIDE::finish();
-    MPI_Finalize();
+    //SLIDE::finish();
+    //MPI::Finalize();
 }

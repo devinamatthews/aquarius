@@ -36,15 +36,15 @@ template <typename T>
 class TwoElectronOperator : public OneElectronOperatorBase<T,TwoElectronOperator<T> >
 {
     protected:
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& ijkl;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& iajk;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& ijka;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& abij;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& ijab;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& aibj;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& aibc;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& abci;
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& abcd;
+        tensor::SpinorbitalTensor<T>& ijkl;
+        tensor::SpinorbitalTensor<T>& iajk;
+        tensor::SpinorbitalTensor<T>& ijka;
+        tensor::SpinorbitalTensor<T>& abij;
+        tensor::SpinorbitalTensor<T>& ijab;
+        tensor::SpinorbitalTensor<T>& aibj;
+        tensor::SpinorbitalTensor<T>& aibc;
+        tensor::SpinorbitalTensor<T>& abci;
+        tensor::SpinorbitalTensor<T>& abcd;
 
         void initialize()
         {
@@ -169,60 +169,60 @@ class TwoElectronOperator : public OneElectronOperatorBase<T,TwoElectronOperator
 
         TwoElectronOperator(const scf::UHF<T>& uhf, const bool hermitian=true)
         : OneElectronOperatorBase<T,TwoElectronOperator<T> >(uhf, hermitian),
-          ijkl(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,kl"))),
-          iajk(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ia,jk"))),
-          ijka(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ka"))),
-          abij(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ij"))),
-          ijab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ab"))),
-          aibj(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bj"))),
-          aibc(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bc"))),
-          abci(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ci"))),
-          abcd(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,cd")))
+          ijkl(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,kl"))),
+          iajk(this->addTensor(new tensor::SpinorbitalTensor<T>("ia,jk"))),
+          ijka(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,ka"))),
+          abij(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,ij"))),
+          ijab(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,ab"))),
+          aibj(this->addTensor(new tensor::SpinorbitalTensor<T>("ai,bj"))),
+          aibc(this->addTensor(new tensor::SpinorbitalTensor<T>("ai,bc"))),
+          abci(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,ci"))),
+          abcd(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,cd")))
         {
             initialize();
         }
 
         TwoElectronOperator(OneElectronOperator<T>& other, int copy)
         : OneElectronOperatorBase<T,TwoElectronOperator<T> >(other, copy),
-          ijkl(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,kl"))),
-          iajk(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ia,jk"))),
-          ijka(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ka"))),
-          abij(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ij"))),
-          ijab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ab"))),
-          aibj(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bj"))),
-          aibc(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bc"))),
-          abci(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ci"))),
-          abcd(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,cd")))
+          ijkl(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,kl"))),
+          iajk(this->addTensor(new tensor::SpinorbitalTensor<T>("ia,jk"))),
+          ijka(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,ka"))),
+          abij(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,ij"))),
+          ijab(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,ab"))),
+          aibj(this->addTensor(new tensor::SpinorbitalTensor<T>("ai,bj"))),
+          aibc(this->addTensor(new tensor::SpinorbitalTensor<T>("ai,bc"))),
+          abci(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,ci"))),
+          abcd(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,cd")))
         {
           initialize();
         }
 
         TwoElectronOperator(const OneElectronOperator<T>& other)
         : OneElectronOperatorBase<T,TwoElectronOperator<T> >(other),
-          ijkl(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,kl"))),
-          iajk(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ia,jk"))),
-          ijka(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ka"))),
-          abij(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ij"))),
-          ijab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ab"))),
-          aibj(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bj"))),
-          aibc(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bc"))),
-          abci(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ci"))),
-          abcd(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,cd")))
+          ijkl(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,kl"))),
+          iajk(this->addTensor(new tensor::SpinorbitalTensor<T>("ia,jk"))),
+          ijka(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,ka"))),
+          abij(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,ij"))),
+          ijab(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,ab"))),
+          aibj(this->addTensor(new tensor::SpinorbitalTensor<T>("ai,bj"))),
+          aibc(this->addTensor(new tensor::SpinorbitalTensor<T>("ai,bc"))),
+          abci(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,ci"))),
+          abcd(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,cd")))
         {
           initialize();
         }
 
         TwoElectronOperator(TwoElectronOperator<T>& other, int copy)
         : OneElectronOperatorBase<T,TwoElectronOperator<T> >(other, copy),
-          ijkl(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,kl"))),
-          iajk(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ia,jk"))),
-          ijka(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ka"))),
-          abij(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ij"))),
-          ijab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ab"))),
-          aibj(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bj"))),
-          aibc(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bc"))),
-          abci(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ci"))),
-          abcd(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,cd")))
+          ijkl(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,kl"))),
+          iajk(this->addTensor(new tensor::SpinorbitalTensor<T>("ia,jk"))),
+          ijka(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,ka"))),
+          abij(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,ij"))),
+          ijab(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,ab"))),
+          aibj(this->addTensor(new tensor::SpinorbitalTensor<T>("ai,bj"))),
+          aibc(this->addTensor(new tensor::SpinorbitalTensor<T>("ai,bc"))),
+          abci(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,ci"))),
+          abcd(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,cd")))
         {
             if (copy&IJKL)
             {
@@ -358,15 +358,15 @@ class TwoElectronOperator : public OneElectronOperatorBase<T,TwoElectronOperator
 
         TwoElectronOperator(const TwoElectronOperator<T>& other)
         : OneElectronOperatorBase<T,TwoElectronOperator<T> >(other),
-          ijkl(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,kl"))),
-          iajk(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ia,jk"))),
-          ijka(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ka"))),
-          abij(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ij"))),
-          ijab(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ij,ab"))),
-          aibj(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bj"))),
-          aibc(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ai,bc"))),
-          abci(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,ci"))),
-          abcd(this->addTensor(new tensor::SpinorbitalTensor<tensor::DistTensor<T> >("ab,cd")))
+          ijkl(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,kl"))),
+          iajk(this->addTensor(new tensor::SpinorbitalTensor<T>("ia,jk"))),
+          ijka(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,ka"))),
+          abij(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,ij"))),
+          ijab(this->addTensor(new tensor::SpinorbitalTensor<T>("ij,ab"))),
+          aibj(this->addTensor(new tensor::SpinorbitalTensor<T>("ai,bj"))),
+          aibc(this->addTensor(new tensor::SpinorbitalTensor<T>("ai,bc"))),
+          abci(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,ci"))),
+          abcd(this->addTensor(new tensor::SpinorbitalTensor<T>("ab,cd")))
         {
             ijkl.addSpinCase(new tensor::DistTensor<T>(other.getIJKL()(0)), "IJ,KL", "IJKL");
             ijkl.addSpinCase(new tensor::DistTensor<T>(other.getIJKL()(1)), "Ij,Kl", "IjKl");
@@ -450,38 +450,38 @@ class TwoElectronOperator : public OneElectronOperatorBase<T,TwoElectronOperator
             sum += this->ia.dot(conja, A.ia, conjb);
             sum += this->ij.dot(conja, A.ij, conjb);
 
-            sum += 0.25*ijkl.dot(conja, A.ijkl, conjb);
-            sum += 0.25*abcd.dot(conja, A.abcd, conjb);
-            sum += 0.25*abij.dot(conja, A.abij, conjb);
-            sum += 0.25*ijab.dot(conja, A.ijab, conjb);
-            sum +=  0.5*abci.dot(conja, A.abci, conjb);
-            sum +=  0.5*aibc.dot(conja, A.aibc, conjb);
-            sum +=  0.5*ijka.dot(conja, A.ijka, conjb);
-            sum +=  0.5*iajk.dot(conja, A.iajk, conjb);
-            sum +=      aibj.dot(conja, A.aibj, conjb);
+            sum += (T)0.25*ijkl.dot(conja, A.ijkl, conjb);
+            sum += (T)0.25*abcd.dot(conja, A.abcd, conjb);
+            sum += (T)0.25*abij.dot(conja, A.abij, conjb);
+            sum += (T)0.25*ijab.dot(conja, A.ijab, conjb);
+            sum +=  (T)0.5*abci.dot(conja, A.abci, conjb);
+            sum +=  (T)0.5*aibc.dot(conja, A.aibc, conjb);
+            sum +=  (T)0.5*ijka.dot(conja, A.ijka, conjb);
+            sum +=  (T)0.5*iajk.dot(conja, A.iajk, conjb);
+            sum +=         aibj.dot(conja, A.aibj, conjb);
 
             return sum;
         }
 
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getIJKL() { return ijkl; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getIAJK() { return iajk; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getIJKA() { return ijka; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getABIJ() { return abij; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getIJAB() { return ijab; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getAIBJ() { return aibj; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getAIBC() { return aibc; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getABCI() { return abci; }
-        tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getABCD() { return abcd; }
+        tensor::SpinorbitalTensor<T>& getIJKL() { return ijkl; }
+        tensor::SpinorbitalTensor<T>& getIAJK() { return iajk; }
+        tensor::SpinorbitalTensor<T>& getIJKA() { return ijka; }
+        tensor::SpinorbitalTensor<T>& getABIJ() { return abij; }
+        tensor::SpinorbitalTensor<T>& getIJAB() { return ijab; }
+        tensor::SpinorbitalTensor<T>& getAIBJ() { return aibj; }
+        tensor::SpinorbitalTensor<T>& getAIBC() { return aibc; }
+        tensor::SpinorbitalTensor<T>& getABCI() { return abci; }
+        tensor::SpinorbitalTensor<T>& getABCD() { return abcd; }
 
-        const tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getIJKL() const { return ijkl; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getIAJK() const { return iajk; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getIJKA() const { return ijka; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getABIJ() const { return abij; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getIJAB() const { return ijab; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getAIBJ() const { return aibj; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getAIBC() const { return aibc; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getABCI() const { return abci; }
-        const tensor::SpinorbitalTensor< tensor::DistTensor<T> >& getABCD() const { return abcd; }
+        const tensor::SpinorbitalTensor<T>& getIJKL() const { return ijkl; }
+        const tensor::SpinorbitalTensor<T>& getIAJK() const { return iajk; }
+        const tensor::SpinorbitalTensor<T>& getIJKA() const { return ijka; }
+        const tensor::SpinorbitalTensor<T>& getABIJ() const { return abij; }
+        const tensor::SpinorbitalTensor<T>& getIJAB() const { return ijab; }
+        const tensor::SpinorbitalTensor<T>& getAIBJ() const { return aibj; }
+        const tensor::SpinorbitalTensor<T>& getAIBC() const { return aibc; }
+        const tensor::SpinorbitalTensor<T>& getABCI() const { return abci; }
+        const tensor::SpinorbitalTensor<T>& getABCD() const { return abcd; }
 };
 
 }

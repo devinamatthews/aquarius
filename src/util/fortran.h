@@ -51,19 +51,26 @@ typedef int64_t integer;
 #endif
 
 typedef integer logical;
-typedef float real;
 
 #if defined(__cplusplus)
 #include <complex>
 typedef std::complex<float> scomplex;
 typedef std::complex<double> dcomplex;
-#elif __STDC_VERSION__ == 199901L
+#define creal std::real
+#define cimag std::imag
+#define crealf std::real
+#define cimagf std::imag
+#elif __STDC_VERSION__ >= 199901L
 #include <complex.h>
 typedef float complex scomplex;
 typedef double complex dcomplex;
 #else
 typedef struct scomplex_ { float real,imag; } scomplex;
 typedef struct dcomplex_ { double real,imag; } dcomplex;
+inline float crealf(scomplex c) { return c.real; }
+inline double creal(dcomplex c) { return c.real; }
+inline float cimagf(scomplex c) { return c.imag; }
+inline double cimag(dcomplex c) { return c.imag; }
 #endif
 
 #endif

@@ -357,7 +357,7 @@ static inline void   c_cswap (const integer n, scomplex* x, const integer incx,
 
 static inline void   c_cscal (const integer n, const scomplex alpha, scomplex* x, const integer incx)
 {
-    FFUNC(cscal,ZSCAL)(&n, &alpha, x, &incx);
+    FFUNC(cscal,CSCAL)(&n, &alpha, x, &incx);
 }
 
 static inline void   c_csscal (const integer n, const float alpha, scomplex* x, const integer incx)

@@ -10,3 +10,6 @@ clean_bin:
 
 clean_lib:
 	rm -rf $(libdir)/*
+	
+.NOTPARALLEL:
+	

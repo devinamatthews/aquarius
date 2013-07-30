@@ -1,0 +1,503 @@
+#!/bin/bash
+
+function usage
+{
+	echo -e 'Usage: configure [options]'
+	echo
+	echo -e '\t--ctf=path        Specify the path to an existing installation of CTF.'
+	echo -e '\t                  If a path is not given, CTF is searched for as a subdirectory'
+	echo -e '\t                  of the source directory or downloaded automatically.'
+	echo
+	echo -e '\t--blas=libs       Specify the linker options and/or libraries needed to link'
+	echo -e '\t                  the BLAS and LAPACK libraries. If not specified, common BLAS'
+	echo -e '\t                  and LAPACK libraries will be searched for.'
+	echo
+	echo -e '\t--blas[32|64]     Specify whether the BLAS and LAPACK interfaces are 32 or 64'
+	echo -e '\t                  bit; the default is 32 bit.'
+	echo
+	echo -e '\t--help            Display this message'
+	echo
+	echo -e 'Additionally, the variables CC, CXX, CFLAGS, CXXFLAGS, CPPFLAGS, LDFLAGS,'
+	echo -e 'AR, WARN, OPT, DEPS, and INCLUDES can be set on the command line, e.g. configure CC=gcc.'
+	echo
+}
+
+function testblas
+{
+	status=1
+	
+	if [ $status = 1 ]; then
+		cat > .test.c <<EOF
+		void dgemm();
+		void dgels();
+		int main(int argc, char **argv)
+		{
+			dgemm();
+			dgels();
+			return 0;
+		}
+EOF
+		
+		$CC $DEFS $INCLUDES $CPPFLAGS $OPT $WARN $CFLAGS .test.c $LDFLAGS $1 > /dev/null 2>&1
+		if [ -x a.out ]; then
+			FNAME='$(LOWER_NO_UNDERSCORE)'
+			status=0
+  	fi
+	fi
+	
+	if [ $status = 1 ]; then
+		cat > .test.c <<EOF
+		void dgemm_();
+		void dgels_();
+		int main(int argc, char **argv)
+		{
+			dgemm_();
+			dgels_();
+			return 0;
+		}
+EOF
+		
+		$CC $DEFS $INCLUDES $CPPFLAGS $OPT $WARN $CFLAGS .test.c $LDFLAGS $1 > /dev/null 2>&1
+		if [ -x a.out ]; then
+			FNAME='$(LOWER_UNDERSCORE)'
+			status=0
+		fi
+	fi
+	
+	if [ $status = 1 ]; then
+		cat > .test.c <<EOF
+		void DGEMM();
+		void DGELS();
+		int main(int argc, char **argv)
+		{
+			DGEMM();
+			DGELS();
+			return 0;
+		}
+EOF
+		
+		$CC $DEFS $INCLUDES $CPPFLAGS $OPT $WARN $CFLAGS .test.c $LDFLAGS $1 > /dev/null 2>&1
+		if [ -x a.out ]; then
+			FNAME='$(UPPER_NO_UNDERSCORE)'
+			status=0
+		fi
+	fi
+	
+	if [ $status = 1 ]; then
+		cat > .test.c <<EOF
+		void DGEMM_();
+		void DGELS_();
+		int main(int argc, char **argv)
+		{
+			DGEMM_();
+			DGELS_();
+			return 0;
+		}
+EOF
+		
+		$CC $DEFS $INCLUDES $CPPFLAGS $OPT $WARN $CFLAGS .test.c $LDFLAGS $1 > /dev/null 2>&1
+		if [ -x a.out ]; then
+			FNAME='$(UPPER_UNDERSCORE)'
+			status=0
+		fi
+	fi
+	
+	rm -f .test.c a.out
+	return $status
+}
+
+function realcompiler
+{
+    if $CC -V > /dev/null 2>&1; then
+        version=`$CC -V 2>&1`
+    elif $CC --version > /dev/null 2>&1; then
+        version=`$CC --version 2>&1`
+    else
+        echo 'Could not determine underlying C/C++ compilers.'
+        echo
+        exit 1
+    fi
+
+    case $version in
+        *Intel*)
+            echo 'Using Intel compilers.'
+            echo
+            compiler=intel
+            ;;
+        *Portland*)
+            echo 'Portland Group compilers are not supported.'
+            echo
+            exit 1
+            compiler=pgi
+            ;;
+        *Free\ Software*)
+            echo 'Using GNU compilers.'
+            echo
+            compiler=gnu
+            ;;
+        *Cray*)
+            echo 'Cray compilers are not supported.'
+            echo
+            exit 1
+            compiler=cray
+            ;;
+        *)
+            echo 'Could not determine underlying C/C++ compilers.'
+            echo
+            exit 1
+            ;;
+    esac
+}
+
+function defaultflags
+{
+    #
+    # Set default compiler flags
+    #
+    case $compiler in
+        intel)
+            if [ "x$AR"       = "x" ]; then AR='xiar -crs'; fi
+            if [ "x$CFLAGS"   = "x" ]; then CFLAGS='-openmp -std=c99'; fi
+            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-openmp -D__STDC_LIMIT_MACROS -Drestrict='; fi
+            if [ "x$DEPS"     = "x" ]; then DEPS='-MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po'; fi
+            if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
+            if [ "x$WARN"     = "x" ]; then WARN='-Wall'; fi
+            if [ "x$OPT"      = "x" ]; then OPT=''; fi
+            ;;
+        cray)
+            depstype=stupid
+            if [ "x$AR"       = "x" ]; then AR='ar -crs'; fi
+            if [ "x$CFLAGS"   = "x" ]; then CFLAGS=''; fi
+            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-D__STDC_LIMIT_MACROS -Drestrict='; fi
+            if [ "x$DEPS"     = "x" ]; then DEPS='-M'; fi
+            if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
+            if [ "x$WARN"     = "x" ]; then WARN=''; fi
+            if [ "x$OPT"      = "x" ]; then OPT=''; fi
+            ;;
+        pgi)
+            depstype=stupid
+            if [ "x$AR"       = "x" ]; then AR='ar -crs'; fi
+            if [ "x$CFLAGS"   = "x" ]; then CFLAGS='-mp=nonuma -c99'; fi
+            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-mp=nonuma -D__STDC_LIMIT_MACROS -Drestrict='; fi
+            if [ "x$DEPS"     = "x" ]; then DEPS='-M'; fi
+            if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
+            if [ "x$WARN"     = "x" ]; then WARN=''; fi
+            if [ "x$OPT"      = "x" ]; then OPT='-fast'; fi
+            ;;
+        gnu)
+            if [ "x$AR"       = "x" ]; then AR='ar -crs'; fi
+            if [ "x$CFLAGS"   = "x" ]; then CFLAGS='-fopenmp -std=c99'; fi
+            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-fopenmp -D__STDC_LIMIT_MACROS -Drestrict='; fi
+            if [ "x$DEPS"     = "x" ]; then DEPS='-MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po'; fi
+            if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
+            if [ "x$WARN"     = "x" ]; then WARN='-Wall -Wno-comment -Wno-sign-compare'; fi
+            if [ "x$OPT"      = "x" ]; then OPT='-g -O3'; fi
+            ;;
+        *)
+            echo 'No default flags known for given compilers. Make sure that you have set the'
+            echo 'appropriate compiler flags manually.'
+            echo
+            if [ "x$AR"       = "x" ]; then AR='ar -crs'; fi
+            if [ "x$CFLAGS"   = "x" ]; then CFLAGS='-fopenmp -std=c99'; fi
+            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-fopenmp -D__STDC_LIMIT_MACROS -Drestrict='; fi
+            if [ "x$DEPS"     = "x" ]; then DEPS='-MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po'; fi
+            if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
+            if [ "x$WARN"     = "x" ]; then WARN='-Wall'; fi
+            if [ "x$OPT"      = "x" ]; then OPT='-g -O2'; fi
+            ;;
+    esac
+}
+
+#
+# Parse command-line arguments
+#
+depstype=normal
+blasbits=32
+while [ "x$1" != "x" ]; do
+	case $1 in
+		--ctf=*)
+			ctfdir="${1#--ctf=}"
+			;;
+		--blas=*)
+			blaslibs="${1#--blas=}"
+			;;
+		--blas32)
+			blasbits=32
+			;;
+		--blas64)
+			blasbits=64
+			;;
+		--help)
+			usage
+			exit 0
+			;;
+		CC=*|\
+		CXX=*|\
+		AR=*|\
+		CFLAGS=*|\
+		CXXFLAGS=*|\
+		LDFLAGS=*|\
+		WARN=*|\
+		OPT=*|\
+		DEPS=*|\
+		INCLUDES=*|\
+		CPPFLAGS=*)
+			eval "${1%%=*}=\"${1#*=}\""
+			;;
+		*)
+			echo "Unknown option \"$1\""
+			echo
+			usage
+			exit 1
+			;;
+	esac
+	shift
+done
+
+#
+# Check for known supercomputer host names
+#
+if [ "$NERSC_HOST" = "carver" ]; then
+    echo 'Hostname recognized as a NERSC machine'
+    echo
+    host=nersc
+    
+    if [ "x$blaslibs" = "x" ]; then
+        if [ "x$MKL" = "x" -o "x$MKL_ILP64" = "x" ]; then
+            echo 'MKL module not loaded and no alternative specified.'
+            echo 'Do "module load mkl" or use the --blas option.'
+            echo
+            exit 1
+        fi
+    fi
+    
+    CC=mpicc
+    CXX=mpiCC
+    realcompiler
+    defaultflags
+    DEFS="$DEFS -DCARVER"
+    
+    if [ $blasbits -eq 32 ]; then
+        blaslibs="$MKL_LP64"
+    else
+        blaslibs="$MKL_ILP64"
+    fi
+    
+elif [ "$NERSC_HOST" = "hopper" -o "$NERSC_HOST" = "edison" ]; then
+    echo 'Hostname recognized as a NERSC machine'
+    echo
+    host=nersc
+    
+    if [ $blasbits -ne 32 ]; then
+        echo '64-bit BLAS not supported on this machine.'
+        echo
+        exit 1
+    fi
+    
+    CC=cc
+    CXX=CC
+    realcompiler
+    defaultflags
+    DEFS="$DEFS -D`echo $NERSC_HOST | tr a-z A-Z`"
+    
+    blaslibs=
+    
+elif (hostname | grep 'surveyor\|intrepid\|challenger\|udawn'); then
+	echo 'Hostname recognized as a BG/P machine'
+	echo
+    
+    if [ $blasbits -ne 32 ]; then
+        echo '64-bit BLAS not supported on this machine.'
+        echo
+        exit 1
+    fi
+	
+	host=bgp
+	blaslibs='-lesslsmpbg -lmass -lxlfmath -lxlf90_r -lxlsmp -lxlomp_ser -lpthread'
+	BGP_ESSL='/soft/apps/ESSL-4.4.1-0'
+	LDFLAGS="-L$BGP_ESSL/lib \
+             -L/bgsys/ibm_compilers/sles10/prod/opt/ibmcmp/xlf/bg/11.1/bglib/ \
+             -L/soft/apps/ibmcmp/xlsmp/bg/1.7/bglib \
+             -L/soft/apps/ibmcmp/xlf/bg/11.1/bglib"
+	CPPFLAGS=
+	INCLUDES="-I$BGP_ESSL/include -I/bgsys/drivers/ppcfloor/arch/include"
+	AR='ar -crs'
+	CC=mpixlc_r
+	CXX=mpixlcxx_r
+	CFLAGS='-qsmp=omp -qlanglvl=stdc99'
+	CXXFLAGS='-qsmp=omp -D__STDC_LIMIT_MACROS -Drestrict='
+	DEPS='-M -MF $(DEPDIR)/$(notdir $*).Po'
+	DEFS='-DBGP -D_POSIX_C_SOURCE=200112L'
+	WARN='-Wall'
+	OPT='-qnoipa -g -O3'
+	
+elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
+	echo 'Hostname recognized as a BG/Q machine'
+	echo
+    
+    if [ $blasbits -ne 32 ]; then
+        echo '64-bit BLAS not supported on this machine.'
+        echo
+        exit 1
+    fi
+	
+	host=bgq
+	blaslibs="-lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r -lm"
+	BGQ_ESSL='/soft/libraries/essl/current/'
+	LDFLAGS="-L$BGQ_ESSL/lib64 \
+             -L$IBM_MAIN_DIR/xlf/bg/14.1/bglib64/ \
+             -L$IBM_MAIN_DIR/xlsmp/bg/3.1/bglib64/ \
+             -L$IBM_MAIN_DIR/xlmass/bg/7.3/bglib64/"
+	CPPFLAGS=
+	INCLUDES="-I$BGQ_ESSL/include"
+	AR='ar -crs'
+	CC=mpixlc_r
+	CXX=mpixlcxx_r
+	CFLAGS='-qsmp=omp -qlanglvl=stdc99'
+	CXXFLAGS='-qsmp=omp -D__STDC_LIMIT_MACROS -Drestrict='
+	DEPS='-M -MF $(DEPDIR)/$(notdir $*).Po'
+	DEFS='-DBGQ -D_POSIX_C_SOURCE=200112L'
+	WARN='-Wall'
+	OPT='-g -O3 -qarch=qp -qtune=qp -qsimd=auto -qhot=level=1 -qprefetch -qunroll=yes -qreport'
+	
+else
+	#
+	# Check for other common architectures (just Linux for now)
+	#
+	host=linux
+	echo 'Assuming generic Linux host'
+	echo
+
+	#
+	# Check for compiler used by MPI
+	#
+	if [ "x$CC" = "x" ]; then
+		CC=mpicc
+	fi
+	if [ "x$CXX" = "x" ]; then
+		CXX=mpicxx
+	fi
+	
+	realcompiler
+	defaultflags
+
+	#
+	# Find BLAS/LAPACK if not already specified
+	#
+	if [ "x$blaslibs" = "x" ]; then
+		echo 'Searching for BLAS/LAPACK libraries...' $blaslibs
+		echo
+		
+		echo -n 'Looking for generic -llapack and -lblas...'
+		if testblas '-llapack -lblas'; then
+			blaslibs='-llapack -lblas'
+			echo 'found'
+		else
+		echo 'not found'
+		
+		echo
+		echo 'No suitable BLAS/LAPACK libraries found.'
+		echo
+		exit 1
+		
+		fi
+		echo
+	fi
+fi
+
+#
+# Determine BLAS/LAPACK naming convention
+#
+if ! testblas "$blaslibs"; then
+	echo 'Could not link with BLAS/LAPACK.'
+	echo
+	exit 1
+fi
+
+#
+# Get the src and build (top) paths
+#
+topdir=`pwd`
+if [[ $0 = /* ]]; then
+	srcdir=$(dirname $0)
+else
+	srcdir=`pwd`/$(dirname $0)
+fi
+
+#
+# Get the path to CTF or go and get it
+#
+make_ctf=no
+if [[ $ctfdir != /* && "x$ctfdir" != "x" ]]; then
+	ctfdir=`pwd`/$ctfdir
+fi
+if [ "x$ctfdir" = "x" ]; then
+	make_ctf=yes
+	ctfdir=$srcdir/ctf
+	if [ ! -d $ctfdir ]; then
+        read -p "Please specify a CTF directory or press enter to get a CTF clone: " ctfdp
+        if [ "x$ctfdp" != "x" ]; then
+            ctfdir=$ctfdp
+        elif (command -v git >/dev/null 2>&1); then
+			echo -e "Downloading CTF from external Git repository...\n"
+			if ! git clone git://repo.eecs.berkeley.edu/users/solomon/ctf $ctfdir; then
+				echo -e "Could not download CTF repository.\n"
+				exit 1
+			fi
+			echo
+		else
+			echo 'An existing installation of CTF is not found and cannot be downloaded.'
+			echo 'Install Git (www.git-scm.com) or download CTF and specify the location'
+			echo 'with configure --ctf=/path/to/ctf.'
+			echo
+			exit 1
+		fi
+	fi
+fi
+
+cat > config.mk <<EOF
+topdir = $topdir
+srcdir = $srcdir
+
+CTFDIR = $ctfdir
+make_ctf = $make_ctf
+
+DEFAULT_COMPONENTS = bins
+
+BLAS_LIBS   = $blaslibs
+CTF_LIBS    = -L\$(CTFDIR)/lib -lctf
+
+AR          = $AR
+
+LDFLAGS     = $LDFLAGS
+INCLUDES    = $INCLUDES
+
+DEPFLAGS    = $DEPS
+
+CPPFLAGS    = $CPPFLAGS
+DEFS        = $DEFS
+
+#uncomment below to enable performance profiling
+#DEFS       += -DPROFILE
+
+#uncomment below to enable debugging
+#DEFS       += -DDEBUG=1
+
+WARN        = $WARN
+OPT         = $OPT
+
+CC          = $CC
+CFLAGS      = $CFLAGS
+
+CXX         = $CXX
+CXXFLAGS    = $CXXFLAGS
+
+FORTRAN_INTEGER_SIZE=$((blasbits/8))
+F77_NAME = $FNAME
+F90_NAME = $FNAME
+
+DEPSTYPE    = $depstype
+
+EOF
+
+cp Makefile.in Makefile
