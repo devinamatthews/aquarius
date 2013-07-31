@@ -43,7 +43,6 @@
 
 #else
 
-#include <boost/shared_ptr.hpp>
 namespace std
 {
     template <bool cond, class return_type = void> struct enable_if {};
