@@ -36,25 +36,18 @@ using namespace aquarius::tensor;
 using namespace aquarius::input;
 using namespace aquarius::slide;
 
-template <typename T>
-AOMOIntegrals<T>::AOMOIntegrals(const AOUHF<T>& uhf)
-: MOIntegrals<T>(uhf)
+/*
+static bool sortIntsByRS(const idx4_t& i1, const idx4_t& i2)
 {
-    doTransformation(uhf.ints);
-}
-
-template <typename T>
-bool AOMOIntegrals<T>::integral_t::operator<(const integral_t& other) const
-{
-    if (idx.l < other.idx.l)
+    if (i1.l < i2.l)
     {
         return true;
     }
-    else if (idx.l > other.idx.l)
+    else if (i1.l > i2.l)
     {
         return false;
     }
-    if (idx.k < other.idx.k)
+    if (i1.k < i2.k)
     {
         return true;
     }
@@ -62,6 +55,14 @@ bool AOMOIntegrals<T>::integral_t::operator<(const integral_t& other) const
     {
         return false;
     }
+}
+*/
+
+template <typename T>
+AOMOIntegrals<T>::AOMOIntegrals(const AOUHF<T>& uhf)
+: MOIntegrals<T>(uhf)
+{
+    doTransformation(uhf.ints);
 }
 
 template <typename T>
@@ -86,7 +87,8 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(const AOIntegrals<T>& aoints)
         }
     }
 
-    ints = SAFE_MALLOC(integral_t, nints);
+    ints = SAFE_MALLOC(T, nints);
+    idxs = SAFE_MALLOC(idx4_t, nints);
 
     size_t j = 0;
     for (size_t i = 0;i < noldints;i++)
@@ -103,8 +105,8 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(const AOIntegrals<T>& aoints)
         assert(idx.l >= 0 && idx.l < ns);
 
         assert(j < nints);
-        ints[j].val = val;
-        ints[j].idx = idx;
+        ints[j] = val;
+        idxs[j] = idx;
         j++;
 
         if (idx.i != idx.k || idx.j != idx.l)
@@ -112,8 +114,8 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(const AOIntegrals<T>& aoints)
             swap(idx.i, idx.k);
             swap(idx.j, idx.l);
             assert(j < nints);
-            ints[j].val = val;
-            ints[j].idx = idx;
+            ints[j] = val;
+            idxs[j] = idx;
             j++;
         }
     }
@@ -130,7 +132,8 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(abrs_integrals& abrs)
     ns = abrs.nb;
 
     nints = abrs.nints;
-    ints = SAFE_MALLOC(integral_t, nints);
+    ints = abrs.ints;
+    idxs = SAFE_MALLOC(idx4_t, nints);
     size_t ipqrs, irs;
     for (ipqrs = 0, irs = 0;irs < abrs.nrs;irs++)
     {
@@ -144,18 +147,16 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(abrs_integrals& abrs)
             for (int r = 0;r < nr;r++)
             {
                 assert(ipqrs < nints);
-                ints[ipqrs].val = abrs.ints[ipqrs];
-                ints[ipqrs].idx.i = p;
-                ints[ipqrs].idx.j = q;
-                ints[ipqrs].idx.k = r;
-                ints[ipqrs].idx.l = s;
+                idxs[ipqrs].i = p;
+                idxs[ipqrs].j = q;
+                idxs[ipqrs].k = r;
+                idxs[ipqrs].l = s;
                 ipqrs++;
             }
         }
     }
     assert(ipqrs == nints);
 
-    FREE(abrs.ints);
     FREE(abrs.rs);
 }
 
@@ -163,19 +164,12 @@ template <typename T>
 void AOMOIntegrals<T>::pqrs_integrals::free()
 {
     FREE(ints);
+    FREE(idxs);
 }
 
-/*
- * Redistribute integrals such that each node has all pq for each rs pair
- */
 template <typename T>
-void AOMOIntegrals<T>::pqrs_integrals::collect(const bool rles)
+void AOMOIntegrals<T>::pqrs_integrals::sortInts(bool rles, size_t& nrs, size_t*& rscount)
 {
-    assert(sizeof(short) == sizeof(int16_t));
-    MPI::Datatype IDX4_T_TYPE = MPI::Datatype(MPI_SHORT).Create_contiguous(4);
-    IDX4_T_TYPE.Commit();
-
-    size_t nrs;
     if (rles)
     {
         nrs = nr*(nr+1)/2;
@@ -185,20 +179,7 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(const bool rles)
         nrs = nr*ns;
     }
 
-    sort(ints, ints+nints);
-
-    T *vals = SAFE_MALLOC(T, nints);
-    idx4_t *idxs = SAFE_MALLOC(idx4_t, nints);
-
-    for (size_t ipqrs = 0;ipqrs < nints;ipqrs++)
-    {
-        vals[ipqrs] = ints[ipqrs].val;
-        idxs[ipqrs] = ints[ipqrs].idx;
-    }
-
-    FREE(ints);
-
-    size_t *rscount = SAFE_MALLOC(size_t, nrs);
+    rscount = SAFE_MALLOC(size_t, nrs);
     fill(rscount, rscount+nrs, 0);
 
     for (size_t i = 0;i < nints;i++)
@@ -214,6 +195,47 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(const bool rles)
             rscount[idxs[i].k+idxs[i].l*nr]++;
         }
     }
+
+    size_t *rsoff = SAFE_MALLOC(size_t, nrs);
+
+    rsoff[0] = 0;
+    for (size_t i = 1;i < nrs;i++) rsoff[i] = rsoff[i-1]+rscount[i-1];
+    assert(rsoff[nrs-1]+rscount[nrs-1] == nints);
+
+    T* newints = SAFE_MALLOC(T, nints);
+    idx4_t* newidxs = SAFE_MALLOC(idx4_t, nints);
+
+    for (size_t i = 0;i < nints;i++)
+    {
+        size_t rs = (rles ? idxs[i].k+idxs[i].l*(idxs[i].l+1)/2
+                          : idxs[i].k+idxs[i].l*nr);
+
+        newints[rsoff[rs]] = ints[i];
+        newidxs[rsoff[rs]] = idxs[i];
+
+        rsoff[rs]++;
+    }
+
+    swap(ints, newints);
+    swap(idxs, newidxs);
+    FREE(newints);
+    FREE(newidxs);
+    FREE(rsoff);
+}
+
+/*
+ * Redistribute integrals such that each node has all pq for each rs pair
+ */
+template <typename T>
+void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
+{
+    assert(sizeof(short) == sizeof(int16_t));
+    MPI::Datatype IDX4_T_TYPE = MPI::Datatype(MPI_SHORT).Create_contiguous(4);
+    IDX4_T_TYPE.Commit();
+
+    size_t nrs;
+    size_t *rscount;
+    sortInts(rles, nrs, rscount);
 
     size_t nnewints = 0;
     size_t *sendcount = SAFE_MALLOC(size_t, nproc);
@@ -235,6 +257,7 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(const bool rles)
         if (i > 0) sendoff[i] = sendoff[i-1]+sendcount[i-1];
     }
 
+    FREE(rscount);
     this->comm.Alltoall(sendcount, 1, MPI::INT, recvcount, 1, MPI::INT);
 
     for (int i = 1;i < nproc;i++)
@@ -248,7 +271,7 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(const bool rles)
 
     assert(allsum((long)nints) == allsum((long)nnewints));
 
-    T* newvals = SAFE_MALLOC(T, nnewints);
+    T* newints = SAFE_MALLOC(T, nnewints);
     idx4_t* newidxs = SAFE_MALLOC(idx4_t, nnewints);
 
     int *realsendcount = SAFE_MALLOC(int, nproc);
@@ -268,8 +291,8 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(const bool rles)
         realrecvoff[i] = (int)recvoff[i];
     }
 
-    this->comm.Alltoallv(   vals, realsendcount, realsendoff, MPI_TYPE_<T>::value(),
-                         newvals, realrecvcount, realrecvoff, MPI_TYPE_<T>::value());
+    this->comm.Alltoallv(   ints, realsendcount, realsendoff, MPI_TYPE_<T>::value(),
+                         newints, realrecvcount, realrecvoff, MPI_TYPE_<T>::value());
 
     this->comm.Alltoallv(   idxs, realsendcount, realsendoff, IDX4_T_TYPE,
                          newidxs, realrecvcount, realrecvoff, IDX4_T_TYPE);
@@ -284,23 +307,13 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(const bool rles)
     FREE(recvoff);
 
     nints = nnewints;
-    swap(vals, newvals);
+    swap(ints, newints);
     swap(idxs, newidxs);
-    FREE(newvals);
+    FREE(newints);
     FREE(newidxs);
 
-    ints = SAFE_MALLOC(integral_t, nints);
-
-    for (size_t ipqrs = 0;ipqrs < nints;ipqrs++)
-    {
-        ints[ipqrs].val = vals[ipqrs];
-        ints[ipqrs].idx = idxs[ipqrs];
-    }
-
-    FREE(vals);
-    FREE(idxs);
-
-    sort(ints, ints+nints);
+    sortInts(rles, nrs, rscount);
+    FREE(rscount);
 }
 
 template <typename T>
@@ -315,11 +328,11 @@ AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const boo
     nrs = (pqrs.nints > 0 ? 1 : 0);
     for (size_t ipqrs = 1;ipqrs < pqrs.nints;ipqrs++)
     {
-        assert( pqrs.ints[ipqrs].idx.l  > pqrs.ints[ipqrs-1].idx.l ||
-               (pqrs.ints[ipqrs].idx.l == pqrs.ints[ipqrs-1].idx.l &&
-                pqrs.ints[ipqrs].idx.k >= pqrs.ints[ipqrs-1].idx.k));
-        if (pqrs.ints[ipqrs].idx.k != pqrs.ints[ipqrs-1].idx.k ||
-            pqrs.ints[ipqrs].idx.l != pqrs.ints[ipqrs-1].idx.l) nrs++;
+        assert( pqrs.idxs[ipqrs].l  > pqrs.idxs[ipqrs-1].l ||
+               (pqrs.idxs[ipqrs].l == pqrs.idxs[ipqrs-1].l &&
+                pqrs.idxs[ipqrs].k >= pqrs.idxs[ipqrs-1].k));
+        if (pqrs.idxs[ipqrs].k != pqrs.idxs[ipqrs-1].k ||
+            pqrs.idxs[ipqrs].l != pqrs.idxs[ipqrs-1].l) nrs++;
     }
 
     assert(allsum((long)nrs) <= nr*ns);
@@ -332,8 +345,8 @@ AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const boo
     size_t ipqrs = 0, irs = 0, iabrs = 0;
     if (nrs > 0)
     {
-        rs[0].i = pqrs.ints[0].idx.k;
-        rs[0].j = pqrs.ints[0].idx.l;
+        rs[0].i = pqrs.idxs[0].k;
+        rs[0].j = pqrs.idxs[0].l;
         assert(rs[0].i >= 0 && rs[0].i < nr);
         assert(rs[0].j >= 0 && rs[0].j < ns);
     }
@@ -341,27 +354,27 @@ AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const boo
     {
         assert(ipqrs >= 0 && ipqrs < pqrs.nints);
         if (ipqrs > 0 &&
-            (pqrs.ints[ipqrs].idx.k != pqrs.ints[ipqrs-1].idx.k ||
-             pqrs.ints[ipqrs].idx.l != pqrs.ints[ipqrs-1].idx.l))
+            (pqrs.idxs[ipqrs].k != pqrs.idxs[ipqrs-1].k ||
+             pqrs.idxs[ipqrs].l != pqrs.idxs[ipqrs-1].l))
         {
             irs++;
             iabrs += na*nb;
             assert(irs >= 0 && irs < nrs);
-            rs[irs].i = pqrs.ints[ipqrs].idx.k;
-            rs[irs].j = pqrs.ints[ipqrs].idx.l;
+            rs[irs].i = pqrs.idxs[ipqrs].k;
+            rs[irs].j = pqrs.idxs[ipqrs].l;
             assert(rs[irs].i >= 0 && rs[irs].i < nr);
             assert(rs[irs].j >= 0 && rs[irs].j < ns);
         }
 
-        int p = pqrs.ints[ipqrs].idx.i;
-        int q = pqrs.ints[ipqrs].idx.j;
+        int p = pqrs.idxs[ipqrs].i;
+        int q = pqrs.idxs[ipqrs].j;
 
         assert(iabrs >= 0 && iabrs+na*nb <= nints);
         assert(p >= 0 && p < na);
         assert(q >= 0 && q < nb);
-        ints[iabrs+p+q*na] = pqrs.ints[ipqrs].val;
+        ints[iabrs+p+q*na] = pqrs.ints[ipqrs];
         if (p != q && pleq)
-            ints[iabrs+q+p*na] = pqrs.ints[ipqrs].val;
+            ints[iabrs+q+p*na] = pqrs.ints[ipqrs];
     }
     assert(irs == nrs-1 || nrs == 0);
     assert(iabrs == nints-na*nb || nrs == 0);
