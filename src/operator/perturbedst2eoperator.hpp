@@ -125,13 +125,13 @@ class PerturbedSTTwoElectronOperator<U,2> : public STTwoElectronOperator<U,2>
         }
 
         PerturbedSTTwoElectronOperator(const STTwoElectronOperator<U,2>& X, const TwoElectronOperator<U>& XA,
-                                       const ExponentialOperator<U,2>& T, const ExcitationOperator<U,2>& TA)
+                const ExponentialOperator<U,2>& T, const ExcitationOperator<U,2>& TA)
         : STTwoElectronOperator<U,2>(XA, T), X(X), TA(TA)
         {
             initialize(X, T, TA);
         }
 
-        void contract(const ExcitationOperator<U,2>& R, ExcitationOperator<U,2>& Z, const bool connected=true) const
+        void contract(const ExcitationOperator<U,2>& R, ExcitationOperator<U,2>& Z, bool connected=true) const
         {
             STTwoElectronOperator<U,2>::contract(R, Z, connected);
 
@@ -147,7 +147,7 @@ class PerturbedSTTwoElectronOperator<U,2> : public STTwoElectronOperator<U,2>
             Z(2)["abij"] -= IMI["mi"]*TA(2)["abmj"];
         }
 
-        void contract(const DeexcitationOperator<U,2>& L, DeexcitationOperator<U,2>& Z, const bool connected=false) const
+        void contract(const DeexcitationOperator<U,2>& L, DeexcitationOperator<U,2>& Z, bool connected=false) const
         {
             STTwoElectronOperator<U,2>::contract(L, Z, connected);
 

@@ -39,49 +39,116 @@ namespace task
 
 class Resource
 {
+    protected:
+        std::string type;
+        void* data;
+        int revision;
+        bool needsDelete;
+
     public:
-        virtual ~Resource() {};
+        template <typename T>
+        Resource(const std::string& type, T& data);
 
-        virtual bool operator==(const Resource& other) = 0;
+        template <typename T>
+        Resource(const std::string& type, T* data);
 
-        virtual Task* defaultProvider() = 0;
+        ~Resource();
+
+        const std::string& getType() const { return type; }
+
+        template <typename T> T& get();
+
+        template <typename T> const T& get() const;
+
+        void update() { revision++; }
+
+        int getRevision() const { return revision; }
+};
+
+class Product;
+
+class Requirement
+{
+    protected:
+        std::string name;
+        std::string type;
+        std::pair<std::string,std::string> defaultProvider;
+        std::shared_ptr<Product> product;
+
+    public:
+        Requirement(const std::string& name, const std::string& type);
+
+        Requirement(const std::string& name, const std::string& type, const std::string& defaultTask, const std::string& defaultName);
+
+        const std::string& getName() const { return name; }
+
+        const std::string getType() const { return type; }
+
+        void fulfil(Product& product);
+
+        bool isFulfilled() const { return product; }
+
+        const std::pair<std::string,std::string>& getDefaultProvider() const { return defaultProvider; }
+
+        Resource& getResource();
+};
+
+class Task;
+
+class Product
+{
+    friend class Task;
+
+    protected:
+        std::vector<Requirement> requirements;
+        std::vector<int> revisions;
+        std::shared_ptr<Resource> resource;
+        Task& parent;
+        std::string name;
+
+        void run_check();
+
+    public:
+        Product(Task& parent, const std::string& name, const std::shared_ptr<Resource>& resource);
+
+        Product(Task& parent, const std::string& name, const std::shared_ptr<Resource>& resource, const Requirement& requirement);
+
+        Product(Task& parent, const std::string& name, const std::shared_ptr<Resource>& resource, const std::vector<Requirement>& requirements);
+
+        const std::string& getName() const { return name; }
+
+        const std::vector<Requirement> getRequirements() const { return requirements; }
+
+        Resource& getResource();
 };
 
 class Task
 {
     protected:
-        std::map<std::string,Resource*> requirements;
-        std::map<std::string,Resource*> products;
-        bool hasRun_;
-        bool wasSuccessful_;
+        std::string type;
+        std::string name;
+        std::vector<Product> products;
+
+        void addProduct(const Product& product);
 
     public:
-        Task() : hasRun_(false), wasSuccessful_(false) {}
+        Task(const std::string& type, const std::string& name);
 
-        virtual ~Task()
-        {
-            for (std::map<std::string,Resource*>::iterator i = requirements.begin();i != requirements.end();++i)
-            {
-                delete i->second;
-            }
+        Task(const std::string& type, const std::string& name, const Product& product);
 
-            for (std::map<std::string,Resource*>::iterator i = products.begin();i != products.end();++i)
-            {
-                delete i->second;
-            }
-        }
+        Task(const std::string& type, const std::string& name, const std::vector<Product>& products);
 
-        virtual void configure(const input::Config& config) = 0;
+        virtual ~Task() {}
+
+        Product& getProduct(const std::string& name);
+
+        const Product& getProduct(const std::string& name) const;
+
+        std::vector<Product>& getProducts() { return products; }
+
+        const std::vector<Product>& getProducts() const { return products; }
 
         virtual void run() = 0;
-
-        bool hasRun() const { return hasRun_; }
-
-        bool wasSuccessful() const { return wasSuccessful_; }
-
-        const std::map<std::string,Resource*>& requires() const { return requirements; }
-
-        const std::map<std::string,Resource*>& provides() const { return products; }
 };
 
 }

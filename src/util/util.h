@@ -164,6 +164,80 @@ static inline long allsum(const long what)
     return ret;
 }
 
+template <typename T>
+void transpose(const size_t m, const size_t n, const T alpha, const T* A, const size_t lda,
+                                               const T  beta,       T* B, const size_t ldb)
+{
+    size_t i, j;
+
+    if (alpha == 1.0)
+    {
+        if (beta == 0.0)
+        {
+            for (i = 0;i < m;i++)
+            {
+                for (j = 0;j < n;j++)
+                {
+                    B[i*ldb + j] = A[j*lda + i];
+                }
+            }
+        }
+        else if (beta == 1.0)
+        {
+            for (i = 0;i < m;i++)
+            {
+                for (j = 0;j < n;j++)
+                {
+                    B[i*ldb + j] += A[j*lda + i];
+                }
+            }
+        }
+        else
+        {
+            for (i = 0;i < m;i++)
+            {
+                for (j = 0;j < n;j++)
+                {
+                    B[i*ldb + j] = beta*B[i*ldb + j] + A[j*lda + i];
+                }
+            }
+        }
+    }
+    else
+    {
+        if (beta == 0.0)
+        {
+            for (i = 0;i < m;i++)
+            {
+                for (j = 0;j < n;j++)
+                {
+                    B[i*ldb + j] = alpha*A[j*lda + i];
+                }
+            }
+        }
+        else if (beta == 1.0)
+        {
+            for (i = 0;i < m;i++)
+            {
+                for (j = 0;j < n;j++)
+                {
+                    B[i*ldb + j] += alpha*A[j*lda + i];
+                }
+            }
+        }
+        else
+        {
+            for (i = 0;i < m;i++)
+            {
+                for (j = 0;j < n;j++)
+                {
+                    B[i*ldb + j] = beta*B[i*ldb + j] + alpha*A[j*lda + i];
+                }
+            }
+        }
+    }
+}
+
 #endif
 
 static inline int roundup(int x, int y)

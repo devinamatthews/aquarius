@@ -24,6 +24,8 @@
 
 #include "aoscf.hpp"
 
+#include "util/blas.h"
+
 using namespace std;
 using namespace aquarius;
 using namespace aquarius::scf;
@@ -61,6 +63,11 @@ void AOUHF<T>::buildFock()
     this->Db->getAllData(npair, densb);
     assert(npair == norb*norb);
 
+    T *densab = SAFE_MALLOC(T, norb*norb);
+
+    copy(norb*norb,      densa, 1, densab, 1);
+    axpy(norb*norb, 1.0, densb, 1, densab, 1);
+
     size_t neris = ints.getNumInts();
     const T* eris = ints.getInts();
     const idx4_t* idxs = ints.getIndices();
@@ -89,57 +96,55 @@ void AOUHF<T>::buildFock()
         printf("%d %d %d %d %25.15e\n", i+1, j+1, k+1, l+1, eris[n].value);
         */
 
-        T e = eris[n];
-        if (i == j) e *= 0.5;
-        if (k == l) e *= 0.5;
-        if (min(i,j) == min(k,l) &&
-            max(i,j) == max(k,l)) e *= 0.5;
-
-        /*
-         * Coulomb contribution: Fa(ab) += [Da(cd)+Db(cd)]*(ab|cd)
-         */
-
-        // (ij|kl)
-        focka[i+j*norb] += 2.0*(densa[k+l*norb]+densb[k+l*norb])*e;
-        fockb[i+j*norb] += 2.0*(densa[k+l*norb]+densb[k+l*norb])*e;
-        // (ji|kl)
-        focka[j+i*norb] += 2.0*(densa[k+l*norb]+densb[k+l*norb])*e;
-        fockb[j+i*norb] += 2.0*(densa[k+l*norb]+densb[k+l*norb])*e;
-        // (kl|ij)
-        focka[k+l*norb] += 2.0*(densa[i+j*norb]+densb[i+j*norb])*e;
-        fockb[k+l*norb] += 2.0*(densa[i+j*norb]+densb[i+j*norb])*e;
-        // (lk|ij)
-        focka[l+k*norb] += 2.0*(densa[i+j*norb]+densb[i+j*norb])*e;
-        fockb[l+k*norb] += 2.0*(densa[i+j*norb]+densb[i+j*norb])*e;
+        bool ieqj = i == j;
+        bool keql = k == l;
+        bool ijeqkl = min(i,j) == min(k,l) && max(i,j) == max(k,l);
 
         /*
          * Exchange contribution: Fa(ac) -= Da(bd)*(ab|cd)
          */
 
-        // (ij|kl)
+        T e = 2.0*eris[n]*(ijeqkl ? 0.5 : 1.0);
+
         focka[i+k*norb] -= densa[j+l*norb]*e;
         fockb[i+k*norb] -= densb[j+l*norb]*e;
-        // (kl|ij)
-        focka[k+i*norb] -= densa[j+l*norb]*e;
-        fockb[k+i*norb] -= densb[j+l*norb]*e;
-        // (ij|lk)
-        focka[i+l*norb] -= densa[j+k*norb]*e;
-        fockb[i+l*norb] -= densb[j+k*norb]*e;
-        // (lk|ij)
-        focka[l+i*norb] -= densa[j+k*norb]*e;
-        fockb[l+i*norb] -= densb[j+k*norb]*e;
-        // (ji|lk)
-        focka[j+l*norb] -= densa[i+k*norb]*e;
-        fockb[j+l*norb] -= densb[i+k*norb]*e;
-        // (lk|ji)
-        focka[l+j*norb] -= densa[i+k*norb]*e;
-        fockb[l+j*norb] -= densb[i+k*norb]*e;
-        // (ji|kl)
-        focka[j+k*norb] -= densa[i+l*norb]*e;
-        fockb[j+k*norb] -= densb[i+l*norb]*e;
-        // (kl|ji)
-        focka[k+j*norb] -= densa[i+l*norb]*e;
-        fockb[k+j*norb] -= densb[i+l*norb]*e;
+        if (!keql)
+        {
+            focka[i+l*norb] -= densa[j+k*norb]*e;
+            fockb[i+l*norb] -= densb[j+k*norb]*e;
+        }
+        if (!ieqj)
+        {
+            focka[j+k*norb] -= densa[i+l*norb]*e;
+            fockb[j+k*norb] -= densb[i+l*norb]*e;
+            if (!keql)
+            {
+                focka[j+l*norb] -= densa[i+k*norb]*e;
+                fockb[j+l*norb] -= densb[i+k*norb]*e;
+            }
+        }
+
+        /*
+         * Coulomb contribution: Fa(ab) += [Da(cd)+Db(cd)]*(ab|cd)
+         */
+
+        e = 2.0*e*(keql ? 0.5 : 1.0)*(ieqj ? 0.5 : 1.0);
+
+        focka[i+j*norb] += densab[k+l*norb]*e;
+        fockb[i+j*norb] += densab[k+l*norb]*e;
+        focka[k+l*norb] += densab[i+j*norb]*e;
+        fockb[k+l*norb] += densab[i+j*norb]*e;
+    }
+
+    for (int i = 0;i < norb;i++)
+    {
+        for (int j = 0;j < i;j++)
+        {
+            focka[i+j*norb] = 0.5*(focka[i+j*norb]+focka[j+i*norb]);
+            focka[j+i*norb] = focka[i+j*norb];
+            fockb[i+j*norb] = 0.5*(fockb[i+j*norb]+fockb[j+i*norb]);
+            fockb[j+i*norb] = fockb[i+j*norb];
+        }
     }
 
     if (this->rank == 0)
@@ -176,6 +181,7 @@ void AOUHF<T>::buildFock()
         this->Fb->writeRemoteData(0, NULL);
     }
 
+    FREE(densab);
     FREE(focka);
     FREE(fockb);
     FREE(densa);

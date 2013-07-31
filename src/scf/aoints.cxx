@@ -80,6 +80,8 @@ void AOIntegrals<T>::generateInts()
     copy(tmpints.begin(), tmpints.end(), ints);
     idxs = SAFE_MALLOC(idx4_t, nints);
     copy(tmpidxs.begin(), tmpidxs.end(), idxs);
+
+    PRINT("#ints: %ld\n", nints);
 }
 
 template <typename T>

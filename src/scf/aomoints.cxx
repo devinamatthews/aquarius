@@ -22,7 +22,11 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
+#include "limits.h"
+
 #include "aomoints.hpp"
+
+#include "util/util.h"
 
 using namespace std;
 using namespace aquarius;
@@ -40,17 +44,17 @@ AOMOIntegrals<T>::AOMOIntegrals(const AOUHF<T>& uhf)
 }
 
 template <typename T>
-bool AOMOIntegrals<T>::sortIntsByRS(const idx4_t& i1, const idx4_t& i2)
+bool AOMOIntegrals<T>::integral_t::operator<(const integral_t& other) const
 {
-    if (i1.l < i2.l)
+    if (idx.l < other.idx.l)
     {
         return true;
     }
-    else if (i1.l > i2.l)
+    else if (idx.l > other.idx.l)
     {
         return false;
     }
-    if (i1.k < i2.k)
+    if (idx.k < other.idx.k)
     {
         return true;
     }
@@ -82,8 +86,7 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(const AOIntegrals<T>& aoints)
         }
     }
 
-    ints = SAFE_MALLOC(T, nints);
-    idxs = SAFE_MALLOC(idx4_t, nints);
+    ints = SAFE_MALLOC(integral_t, nints);
 
     size_t j = 0;
     for (size_t i = 0;i < noldints;i++)
@@ -100,8 +103,8 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(const AOIntegrals<T>& aoints)
         assert(idx.l >= 0 && idx.l < ns);
 
         assert(j < nints);
-        ints[j] = val;
-        idxs[j] = idx;
+        ints[j].val = val;
+        ints[j].idx = idx;
         j++;
 
         if (idx.i != idx.k || idx.j != idx.l)
@@ -109,8 +112,8 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(const AOIntegrals<T>& aoints)
             swap(idx.i, idx.k);
             swap(idx.j, idx.l);
             assert(j < nints);
-            ints[j] = val;
-            idxs[j] = idx;
+            ints[j].val = val;
+            ints[j].idx = idx;
             j++;
         }
     }
@@ -127,8 +130,7 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(abrs_integrals& abrs)
     ns = abrs.nb;
 
     nints = abrs.nints;
-    ints = abrs.ints;
-    idxs = SAFE_MALLOC(idx4_t, nints);
+    ints = SAFE_MALLOC(integral_t, nints);
     size_t ipqrs, irs;
     for (ipqrs = 0, irs = 0;irs < abrs.nrs;irs++)
     {
@@ -142,16 +144,18 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(abrs_integrals& abrs)
             for (int r = 0;r < nr;r++)
             {
                 assert(ipqrs < nints);
-                idxs[ipqrs].i = p;
-                idxs[ipqrs].j = q;
-                idxs[ipqrs].k = r;
-                idxs[ipqrs].l = s;
+                ints[ipqrs].val = abrs.ints[ipqrs];
+                ints[ipqrs].idx.i = p;
+                ints[ipqrs].idx.j = q;
+                ints[ipqrs].idx.k = r;
+                ints[ipqrs].idx.l = s;
                 ipqrs++;
             }
         }
     }
     assert(ipqrs == nints);
 
+    FREE(abrs.ints);
     FREE(abrs.rs);
 }
 
@@ -181,12 +185,23 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(const bool rles)
         nrs = nr*ns;
     }
 
-    cosort(idxs, idxs+nints, ints, ints+nints, sortIntsByRS);
+    sort(ints, ints+nints);
+
+    T *vals = SAFE_MALLOC(T, nints);
+    idx4_t *idxs = SAFE_MALLOC(idx4_t, nints);
+
+    for (size_t ipqrs = 0;ipqrs < nints;ipqrs++)
+    {
+        vals[ipqrs] = ints[ipqrs].val;
+        idxs[ipqrs] = ints[ipqrs].idx;
+    }
+
+    FREE(ints);
 
     size_t *rscount = SAFE_MALLOC(size_t, nrs);
     fill(rscount, rscount+nrs, 0);
 
-    for (int i = 0;i < nints;i++)
+    for (size_t i = 0;i < nints;i++)
     {
         if (rles)
         {
@@ -233,27 +248,59 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(const bool rles)
 
     assert(allsum((long)nints) == allsum((long)nnewints));
 
-    T* newints = SAFE_MALLOC(T, nnewints);
+    T* newvals = SAFE_MALLOC(T, nnewints);
     idx4_t* newidxs = SAFE_MALLOC(idx4_t, nnewints);
 
-    this->comm.Alltoallv(   ints, sendcount, sendoff, MPI_TYPE_<T>::value(),
-                         newints, recvcount, recvoff, MPI_TYPE_<T>::value());
+    int *realsendcount = SAFE_MALLOC(int, nproc);
+    int *realrecvcount = SAFE_MALLOC(int, nproc);
+    int *realsendoff = SAFE_MALLOC(int, nproc);
+    int *realrecvoff = SAFE_MALLOC(int, nproc);
 
-    this->comm.Alltoallv(   idxs, sendcount, sendoff, IDX4_T_TYPE,
-                         newidxs, recvcount, recvoff, IDX4_T_TYPE);
+    for (int i = 0;i < nproc;i++)
+    {
+        assert(sendcount[i] <= INT_MAX);
+        assert(recvcount[i] <= INT_MAX);
+        assert(sendoff[i] <= INT_MAX);
+        assert(recvoff[i] <= INT_MAX);
+        realsendcount[i] = (int)sendcount[i];
+        realrecvcount[i] = (int)recvcount[i];
+        realsendoff[i] = (int)sendoff[i];
+        realrecvoff[i] = (int)recvoff[i];
+    }
 
+    this->comm.Alltoallv(   vals, realsendcount, realsendoff, MPI_TYPE_<T>::value(),
+                         newvals, realrecvcount, realrecvoff, MPI_TYPE_<T>::value());
+
+    this->comm.Alltoallv(   idxs, realsendcount, realsendoff, IDX4_T_TYPE,
+                         newidxs, realrecvcount, realrecvoff, IDX4_T_TYPE);
+
+    FREE(realsendcount);
+    FREE(realsendoff);
+    FREE(realrecvcount);
+    FREE(realrecvoff);
     FREE(sendcount);
     FREE(sendoff);
     FREE(recvcount);
     FREE(recvoff);
 
     nints = nnewints;
-    swap(ints, newints);
+    swap(vals, newvals);
     swap(idxs, newidxs);
-    FREE(newints);
+    FREE(newvals);
     FREE(newidxs);
 
-    cosort(idxs, idxs+nints, ints, ints+nints, sortIntsByRS);
+    ints = SAFE_MALLOC(integral_t, nints);
+
+    for (size_t ipqrs = 0;ipqrs < nints;ipqrs++)
+    {
+        ints[ipqrs].val = vals[ipqrs];
+        ints[ipqrs].idx = idxs[ipqrs];
+    }
+
+    FREE(vals);
+    FREE(idxs);
+
+    sort(ints, ints+nints);
 }
 
 template <typename T>
@@ -268,11 +315,11 @@ AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const boo
     nrs = (pqrs.nints > 0 ? 1 : 0);
     for (size_t ipqrs = 1;ipqrs < pqrs.nints;ipqrs++)
     {
-        assert( pqrs.idxs[ipqrs].l  > pqrs.idxs[ipqrs-1].l ||
-               (pqrs.idxs[ipqrs].l == pqrs.idxs[ipqrs-1].l &&
-                pqrs.idxs[ipqrs].k >= pqrs.idxs[ipqrs-1].k));
-        if (pqrs.idxs[ipqrs].k != pqrs.idxs[ipqrs-1].k ||
-            pqrs.idxs[ipqrs].l != pqrs.idxs[ipqrs-1].l) nrs++;
+        assert( pqrs.ints[ipqrs].idx.l  > pqrs.ints[ipqrs-1].idx.l ||
+               (pqrs.ints[ipqrs].idx.l == pqrs.ints[ipqrs-1].idx.l &&
+                pqrs.ints[ipqrs].idx.k >= pqrs.ints[ipqrs-1].idx.k));
+        if (pqrs.ints[ipqrs].idx.k != pqrs.ints[ipqrs-1].idx.k ||
+            pqrs.ints[ipqrs].idx.l != pqrs.ints[ipqrs-1].idx.l) nrs++;
     }
 
     assert(allsum((long)nrs) <= nr*ns);
@@ -285,8 +332,8 @@ AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const boo
     size_t ipqrs = 0, irs = 0, iabrs = 0;
     if (nrs > 0)
     {
-        rs[0].i = pqrs.idxs[0].k;
-        rs[0].j = pqrs.idxs[0].l;
+        rs[0].i = pqrs.ints[0].idx.k;
+        rs[0].j = pqrs.ints[0].idx.l;
         assert(rs[0].i >= 0 && rs[0].i < nr);
         assert(rs[0].j >= 0 && rs[0].j < ns);
     }
@@ -294,27 +341,27 @@ AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const boo
     {
         assert(ipqrs >= 0 && ipqrs < pqrs.nints);
         if (ipqrs > 0 &&
-            (pqrs.idxs[ipqrs].k != pqrs.idxs[ipqrs-1].k ||
-             pqrs.idxs[ipqrs].l != pqrs.idxs[ipqrs-1].l))
+            (pqrs.ints[ipqrs].idx.k != pqrs.ints[ipqrs-1].idx.k ||
+             pqrs.ints[ipqrs].idx.l != pqrs.ints[ipqrs-1].idx.l))
         {
             irs++;
             iabrs += na*nb;
             assert(irs >= 0 && irs < nrs);
-            rs[irs].i = pqrs.idxs[ipqrs].k;
-            rs[irs].j = pqrs.idxs[ipqrs].l;
+            rs[irs].i = pqrs.ints[ipqrs].idx.k;
+            rs[irs].j = pqrs.ints[ipqrs].idx.l;
             assert(rs[irs].i >= 0 && rs[irs].i < nr);
             assert(rs[irs].j >= 0 && rs[irs].j < ns);
         }
 
-        int p = pqrs.idxs[ipqrs].i;
-        int q = pqrs.idxs[ipqrs].j;
+        int p = pqrs.ints[ipqrs].idx.i;
+        int q = pqrs.ints[ipqrs].idx.j;
 
         assert(iabrs >= 0 && iabrs+na*nb <= nints);
         assert(p >= 0 && p < na);
         assert(q >= 0 && q < nb);
-        ints[iabrs+p+q*na] = pqrs.ints[ipqrs];
+        ints[iabrs+p+q*na] = pqrs.ints[ipqrs].val;
         if (p != q && pleq)
-            ints[iabrs+q+p*na] = pqrs.ints[ipqrs];
+            ints[iabrs+q+p*na] = pqrs.ints[ipqrs].val;
     }
     assert(irs == nrs-1 || nrs == 0);
     assert(iabrs == nints-na*nb || nrs == 0);
@@ -360,6 +407,30 @@ typename AOMOIntegrals<T>::abrs_integrals AOMOIntegrals<T>::abrs_integrals::tran
 
         if (nc == 0) return out;
 
+        T* tmp = SAFE_MALLOC(T, max(nints, out.nints));
+        transpose(na, nb*nrs, 1.0, ints, na, 0.0, tmp, nb*nrs);
+
+        if (trans == 'N')
+        {
+            gemm('T', 'N', nc, na*nrs, nb, 1.0,        C, ldc,
+                                                     tmp,  nb,
+                                           0.0, out.ints,  nc);
+        }
+        else
+        {
+            gemm('N', 'N', nc, na*nrs, nb, 1.0,        C, ldc,
+                                                     tmp,  nb,
+                                           0.0, out.ints,  nc);
+        }
+
+        FREE(tmp);
+
+        tmp = SAFE_MALLOC(T, out.nints);
+        transpose(nc*nrs, na, 1.0, out.ints, nc*nrs, 0.0, tmp, na);
+        swap(tmp, out.ints);
+        FREE(tmp);
+
+        /*
         size_t iin = 0;
         size_t iout = 0;
         for (size_t irs = 0;irs < nrs;irs++)
@@ -380,6 +451,7 @@ typename AOMOIntegrals<T>::abrs_integrals AOMOIntegrals<T>::abrs_integrals::tran
             iin += na*nb;
             iout += na*nc;
         }
+        */
     }
 
     return out;

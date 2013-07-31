@@ -46,7 +46,13 @@ class AOMOIntegrals : public MOIntegrals<T>
         enum Side {PQ, RS};
         enum Index {A, B};
 
-        static bool sortIntsByRS(const idx4_t& i1, const idx4_t& i2);
+        struct integral_t
+        {
+            T val;
+            idx4_t idx;
+
+            bool operator<(const integral_t& other) const;
+        };
 
         struct abrs_integrals;
 
@@ -54,8 +60,7 @@ class AOMOIntegrals : public MOIntegrals<T>
         {
             int np, nq, nr, ns;
             size_t nints;
-            T *ints;
-            idx4_t *idxs;
+            integral_t *ints;
 
             using Distributed<T>::nproc;
             using Distributed<T>::rank;

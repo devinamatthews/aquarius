@@ -43,6 +43,7 @@
 
 #else
 
+#include <boost/shared_ptr.hpp>
 namespace std
 {
     template <bool cond, class return_type = void> struct enable_if {};
@@ -311,6 +312,116 @@ template<typename T> std::ostream& operator<<(std::ostream& os, const std::vecto
     return os;
 }
 
+
+template<typename T> std::vector<T> make_vector(const T& a)
+{
+    std::vector<T> v;
+    v.push_back(a);
+}
+
+template<typename T> std::vector<T> make_vector(const T& a, const T& b)
+{
+    std::vector<T> v;
+    v.push_back(a);
+    v.push_back(b);
+}
+
+template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c)
+{
+    std::vector<T> v;
+    v.push_back(a);
+    v.push_back(b);
+    v.push_back(c);
+}
+
+template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c, const T& d)
+{
+    std::vector<T> v;
+    v.push_back(a);
+    v.push_back(b);
+    v.push_back(c);
+    v.push_back(d);
+}
+
+template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c, const T& d, const T& e)
+{
+    std::vector<T> v;
+    v.push_back(a);
+    v.push_back(b);
+    v.push_back(c);
+    v.push_back(d);
+    v.push_back(e);
+}
+
+template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c, const T& d, const T& e,
+                                                const T& f)
+{
+    std::vector<T> v;
+    v.push_back(a);
+    v.push_back(b);
+    v.push_back(c);
+    v.push_back(d);
+    v.push_back(e);
+    v.push_back(f);
+}
+
+template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c, const T& d, const T& e,
+                                                const T& f, const T& g)
+{
+    std::vector<T> v;
+    v.push_back(a);
+    v.push_back(b);
+    v.push_back(c);
+    v.push_back(d);
+    v.push_back(e);
+    v.push_back(f);
+    v.push_back(g);
+}
+
+template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c, const T& d, const T& e,
+                                                const T& f, const T& g, const T& h)
+{
+    std::vector<T> v;
+    v.push_back(a);
+    v.push_back(b);
+    v.push_back(c);
+    v.push_back(d);
+    v.push_back(e);
+    v.push_back(f);
+    v.push_back(g);
+    v.push_back(h);
+}
+
+template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c, const T& d, const T& e,
+                                                const T& f, const T& g, const T& h, const T& i)
+{
+    std::vector<T> v;
+    v.push_back(a);
+    v.push_back(b);
+    v.push_back(c);
+    v.push_back(d);
+    v.push_back(e);
+    v.push_back(f);
+    v.push_back(g);
+    v.push_back(h);
+    v.push_back(i);
+}
+
+template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c, const T& d, const T& e,
+                                                const T& f, const T& g, const T& h, const T& i, const T& j)
+{
+    std::vector<T> v;
+    v.push_back(a);
+    v.push_back(b);
+    v.push_back(c);
+    v.push_back(d);
+    v.push_back(e);
+    v.push_back(f);
+    v.push_back(g);
+    v.push_back(h);
+    v.push_back(i);
+    v.push_back(j);
+}
 template<typename T> std::string str(const T& t)
 {
     std::ostringstream oss;

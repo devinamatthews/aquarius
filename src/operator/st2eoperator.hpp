@@ -218,8 +218,8 @@ class STTwoElectronOperator<U,2> : public TwoElectronOperator<U>
 
             if (!connected)
             {
-                //Z(1)["ia"] += this->ia["ia"]*L(0)[""];
-                //Z(2)["ijab"] += this->ijab["ijab"]*L(0)[""];
+                Z(1)["ia"] += this->ia["ia"]*L(0)[""];
+                Z(2)["ijab"] += this->ijab["ijab"]*L(0)[""];
 
                 Z(1)["ia"] += this->ia["ia"];
                 Z(2)["ijab"] += this->ijab["ijab"];

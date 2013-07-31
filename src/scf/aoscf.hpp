@@ -25,8 +25,9 @@
 #ifndef _AQUARIUS_SCF_AOSCF_HPP_
 #define _AQUARIUS_SCF_AOSCF_HPP_
 
+#include "stl_ext/stl_ext.hpp"
+
 #include "scf.hpp"
-#include "cholesky.hpp"
 #include "aoints.hpp"
 
 namespace aquarius
@@ -37,13 +38,12 @@ namespace scf
 template <typename T>
 class AOUHF : public UHF<T>
 {
-    public:
-        const AOIntegrals<T>& ints;
-
     protected:
         using UHF<T>::norb;
 
     public:
+        const AOIntegrals<T>& ints;
+
         AOUHF(const input::Config& config, const AOIntegrals<T>& ints);
 
     protected:
