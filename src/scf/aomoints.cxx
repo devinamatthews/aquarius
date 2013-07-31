@@ -258,7 +258,8 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
     }
 
     FREE(rscount);
-    this->comm.Alltoall(sendcount, 1, MPI::INT, recvcount, 1, MPI::INT);
+    this->comm.Alltoall(sendcount, 1, MPI_TYPE_<size_t>::value(),
+                        recvcount, 1, MPI_TYPE_<size_t>::value());
 
     for (int i = 1;i < nproc;i++)
     {
