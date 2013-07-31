@@ -164,6 +164,27 @@ static inline long allsum(const long what)
     return ret;
 }
 
+static inline long long allsum(const long long what)
+{
+    long ret = what;
+    MPI_Allreduce(MPI_IN_PLACE, &ret, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    return ret;
+}
+
+static inline unsigned long allsum(const unsigned long what)
+{
+    long ret = what;
+    MPI_Allreduce(MPI_IN_PLACE, &ret, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+    return ret;
+}
+
+static inline unsigned long long allsum(const unsigned long long what)
+{
+    long ret = what;
+    MPI_Allreduce(MPI_IN_PLACE, &ret, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    return ret;
+}
+
 template <typename T>
 void transpose(const size_t m, const size_t n, const T alpha, const T* A, const size_t lda,
                                                const T  beta,       T* B, const size_t ldb)
