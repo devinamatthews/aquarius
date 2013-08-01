@@ -57,12 +57,12 @@ namespace std
     template <class T> struct remove_cv<volatile T>       {typedef T type; };
     template <class T> struct remove_cv<const volatile T> {typedef T type; };
 
-    template <class T> struct make_unsigned__              { typedef T type; };
-    template <>        struct make_unsigned__<signed char> { typedef unsigned char type; };
-    template <>        struct make_unsigned__<short>       { typedef unsigned short type; };
-    template <>        struct make_unsigned__<int>         { typedef unsigned int type; };
-    template <>        struct make_unsigned__<long>        { typedef unsigned long type; };
-    template <>        struct make_unsigned__<long long>   { typedef unsigned long long type; };
+    template <class T> struct make_unsigned__                   { typedef T type; };
+    template <>        struct make_unsigned__<signed char>      { typedef unsigned char type; };
+    template <>        struct make_unsigned__<signed short>     { typedef unsigned short type; };
+    template <>        struct make_unsigned__<signed int>       { typedef unsigned int type; };
+    template <>        struct make_unsigned__<signed long>      { typedef unsigned long type; };
+    template <>        struct make_unsigned__<signed long long> { typedef unsigned long long type; };
 
     template <class T> struct make_unsigned                   { typedef typename make_unsigned__<T>::type type; };
     template <class T> struct make_unsigned<const T>          { typedef const typename make_unsigned__<T>::type type; };
@@ -74,19 +74,19 @@ namespace std
 
     template <class T, class U = void> struct is_integral { static const bool value = false; };
     template <class T> struct is_integral<T,
-        typename enable_if<is_same<char,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
+        typename enable_if<is_same<unsigned char,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
         { static const bool value = true; };
     template <class T> struct is_integral<T,
-        typename enable_if<is_same<short,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
+        typename enable_if<is_same<unsigned short,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
         { static const bool value = true; };
     template <class T> struct is_integral<T,
-        typename enable_if<is_same<int,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
+        typename enable_if<is_same<unsigned int,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
         { static const bool value = true; };
     template <class T> struct is_integral<T,
-        typename enable_if<is_same<long,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
+        typename enable_if<is_same<unsigned long,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
         { static const bool value = true; };
     template <class T> struct is_integral<T,
-        typename enable_if<is_same<long long,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
+        typename enable_if<is_same<unsigned long long,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
         { static const bool value = true; };
     template <class T> struct is_integral<T,
         typename enable_if<is_same<bool,typename remove_cv<T>::type>::value>::type>

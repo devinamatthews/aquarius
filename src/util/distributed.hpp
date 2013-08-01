@@ -64,6 +64,54 @@ struct MPI_TYPE_< std::complex<double> >
     static MPI::Datatype value() { return MPI::DOUBLE_COMPLEX; }
 };
 
+template <>
+struct MPI_TYPE_<short>
+{
+    static MPI::Datatype value() { return MPI::SHORT; }
+};
+
+template <>
+struct MPI_TYPE_<unsigned short>
+{
+    static MPI::Datatype value() { return MPI::UNSIGNED_SHORT; }
+};
+
+template <>
+struct MPI_TYPE_<int>
+{
+    static MPI::Datatype value() { return MPI::INT; }
+};
+
+template <>
+struct MPI_TYPE_<unsigned int>
+{
+    static MPI::Datatype value() { return MPI::UNSIGNED; }
+};
+
+template <>
+struct MPI_TYPE_<long>
+{
+    static MPI::Datatype value() { return MPI::LONG; }
+};
+
+template <>
+struct MPI_TYPE_<unsigned long>
+{
+    static MPI::Datatype value() { return MPI::UNSIGNED_LONG; }
+};
+
+template <>
+struct MPI_TYPE_<long long>
+{
+    static MPI::Datatype value() { return MPI::LONG_LONG; }
+};
+
+template <>
+struct MPI_TYPE_<unsigned long long>
+{
+    static MPI::Datatype value() { return MPI::UNSIGNED_LONG_LONG; }
+};
+
 template <typename T>
 class Distributed
 {

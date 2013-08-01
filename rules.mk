@@ -32,7 +32,7 @@ ALL_SUBDIRS = $(sort $(SUBDIRS) $(foreach comp,$(ALL_COMPONENTS),$(value $(addsu
 
 _CPPFLAGS = $(CPPFLAGS)
 _DEFS = $(DEFS) -DFORTRAN_INTEGER_SIZE=$(FORTRAN_INTEGER_SIZE) -DF77_NAME=$(F77_NAME) -DF90_NAME=$(F90_NAME) -DTOPDIR=\"$(topdir)\"
-_LDFLAGS = $(OPT) $(LDFLAGS) -L$(topdir)/lib
+_LDFLAGS = $(LDFLAGS) -L$(topdir)/lib
 _INCLUDES = $(INCLUDES) -I. -I$(topdir) -I$(topdir)/src -I$(CTFDIR)/include #-I$(ELEMENTAL)/include
 _CFLAGS = $(OPT) $(WARN) $(CFLAGS)
 _CXXFLAGS = $(OPT) $(WARN) $(CXXFLAGS)

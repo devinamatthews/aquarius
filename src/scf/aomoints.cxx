@@ -258,7 +258,8 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
     }
 
     FREE(rscount);
-    this->comm.Alltoall(sendcount, 1, MPI::INT, recvcount, 1, MPI::INT);
+    this->comm.Alltoall(sendcount, 1, MPI_TYPE_<size_t>::value(),
+                        recvcount, 1, MPI_TYPE_<size_t>::value());
 
     for (int i = 1;i < nproc;i++)
     {
@@ -269,7 +270,7 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
     assert(recvoff[nproc-1]+recvcount[nproc-1] == nnewints);
     assert(sendoff[nproc-1]+sendcount[nproc-1] == nints);
 
-    assert(allsum((long)nints) == allsum((long)nnewints));
+    assert(allsum(nints) == allsum(nnewints));
 
     T* newints = SAFE_MALLOC(T, nnewints);
     idx4_t* newidxs = SAFE_MALLOC(idx4_t, nnewints);
