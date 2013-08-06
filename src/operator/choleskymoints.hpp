@@ -22,22 +22,24 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_SCF_CHOLESKYMOINTS_HPP_
-#define _AQUARIUS_SCF_CHOLESKYMOINTS_HPP_
+#ifndef _AQUARIUS_OPERATOR_CHOLESKYMOINTS_HPP_
+#define _AQUARIUS_OPERATOR_CHOLESKYMOINTS_HPP_
 
-#include "choleskyscf.hpp"
+#include "scf/choleskyscf.hpp"
+
+#include "cholesky.hpp"
 #include "moints.hpp"
 
 namespace aquarius
 {
-namespace scf
+namespace op
 {
 
 template <typename T>
 class CholeskyMOIntegrals : public MOIntegrals<T>
 {
     public:
-        CholeskyMOIntegrals(const CholeskyUHF<T>& uhf);
+        CholeskyMOIntegrals(const scf::CholeskyUHF<T>& uhf);
 
     protected:
         void doTransformation(const CholeskyIntegrals<T>& chol);

@@ -26,14 +26,14 @@
 
 using namespace std;
 using namespace aquarius;
-using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
 using namespace aquarius::slide;
+using namespace aquarius::op;
 
 template <typename T>
-CholeskyIntegrals<T>::CholeskyIntegrals(tCTF_World<T>& ctf, const Config& config, const Molecule& molecule)
-: Distributed<T>(ctf),
+CholeskyIntegrals<T>::CholeskyIntegrals(Arena<T>& arena, const Config& config, const Molecule& molecule)
+: Distributed<T>(arena),
   molecule(molecule),
   rank(0),
   shells(molecule.getShellsBegin(),molecule.getShellsEnd()),
@@ -57,12 +57,8 @@ CholeskyIntegrals<T>::~CholeskyIntegrals()
 template <typename T>
 void CholeskyIntegrals<T>::test()
 {
-    int sizeffr[] = {nfunc,nfunc,rank};
-    int shapeSNN[] = {SY,NS,NS};
-    int sizeffff[] = {nfunc,nfunc,nfunc,nfunc};
-    int shapeNNNN[] = {NS,NS,NS,NS};
-    DistTensor<T> LD(this->ctf, 3, sizeffr, shapeSNN, false);
-    DistTensor<T> ints(this->ctf, 4, sizeffff, shapeNNNN, false);
+    DistTensor<T> LD(this->arena, 3, vec(nfunc,nfunc,rank), vec(SY,NS,NS), false);
+    DistTensor<T> ints(this->arena, 4, vec(nfunc,nfunc,nfunc,nfunc), vec(NS,NS,NS,NS), false);
 
     context = new Context();
 
@@ -87,10 +83,9 @@ void CholeskyIntegrals<T>::test()
                     int nk = shells[k].getNFunc()*shells[k].getNContr();
                     int nl = shells[l].getNFunc()*shells[l].getNContr();
 
-                    int size[] = {ni,nj,nk,nl};
-                    DenseTensor<T> local_ints(4, size);
+                    DenseTensor<T> local_ints(4, vec(ni,nj,nk,nl));
 
-                    tkv_pair<T>* pairs = new tkv_pair<T>[ni*nj*nk*nl];
+                    vector<tkv_pair<T> > pairs(ni*nj*nk*nl);
 
                     for (int a = 0, q = 0;a < ni;a++)
                     {
@@ -108,7 +103,7 @@ void CholeskyIntegrals<T>::test()
 
                     if (this->comm.Get_rank() == 0)
                     {
-                        ints.getRemoteData(ni*nj*nk*nl, pairs);
+                        ints.getRemoteData(pairs);
 
                         T* local_data = local_ints.getData();
                         for (int q = 0;q < ni*nj*nk*nl;q++)
@@ -129,7 +124,7 @@ void CholeskyIntegrals<T>::test()
                     }
                     else
                     {
-                        ints.getRemoteData(0, NULL);
+                        ints.getRemoteData();
                     }
 
                     p += shells[l].getNFunc()*shells[l].getNContr();
@@ -286,27 +281,22 @@ void CholeskyIntegrals<T>::decompose()
     delete[] tmp_block_data;
     delete[] tmp_diag;
 
-    int sizer[] = {rank};
-    int shapeN[] = {NS};
-    this->D = new DistTensor<T>(this->ctf, 1, sizer, shapeN, false);
-    int sizeffr[] = {nfunc,nfunc,rank};
-    int shapeSNN[] = {SY,NS,NS};
-    this->L = new DistTensor<T>(this->ctf, 3, sizeffr, shapeSNN, false);
+    this->D = new DistTensor<T>(this->arena, 1, vec(rank), vec(NS), false);
+    this->L = new DistTensor<T>(this->arena, 3, vec(nfunc,nfunc,rank), vec(SY,NS,NS), false);
 
     if (pid == 0)
     {
-        tkv_pair<T>* pairs = new tkv_pair<T>[rank];
+        vector<tkv_pair<T> > pairs(rank);
         for (int i = 0;i < rank;i++)
         {
             pairs[i].k = i;
             pairs[i].d = D[i];
         }
-        this->D->writeRemoteData(rank, pairs);
-        delete[] pairs;
+        this->D->writeRemoteData(pairs);
     }
     else
     {
-        this->D->writeRemoteData(0, NULL);
+        this->D->writeRemoteData();
     }
 
     vector< tkv_pair<T> > pairs;
@@ -342,7 +332,7 @@ void CholeskyIntegrals<T>::decompose()
             }
         }
     }
-    this->L->writeRemoteData(pairs.size(), pairs.data());
+    this->L->writeRemoteData(pairs);
 
     //cout << "D:" << endl;
     //this->D->print(cout);

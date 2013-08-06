@@ -28,38 +28,38 @@ using namespace std;
 using namespace aquarius::tensor;
 
 template <typename T>
-DenseTensor<T>::DenseTensor(const DenseTensor& t, const T val)
-: LocalTensor<DenseTensor<T>,T>(t, val) {}
+DenseTensor<T>::DenseTensor(T val)
+: LocalTensor<DenseTensor<T>,T>(val) {}
 
 /*
 DenseTensor(const PackedTensor& A)
-: LocalTensor<DenseTensor>(A.ndim_, A.len_, (int*)NULL, A.size_, (bool)false)
+: LocalTensor<DenseTensor>(A.ndim, A.len, (int*)NULL, A.size_, (bool)false)
 {
     CHECK_RETURN_VALUE(
-    tensor_densify(&ndim_, len_, A.sym_));
+    tensor_densify(&ndim, len, A.sym_));
 
-    copy(A.data_, A.data_+size_, data_);
+    copy(A.data, A.data+size_, data);
 }
 
 DenseTensor(const PackedTensor& A, const CopyType type)
-: LocalTensor<DenseTensor>(A.ndim_, A.len_, (int*)NULL, A.size_, (double*)NULL)
+: LocalTensor<DenseTensor>(A.ndim, A.len, (int*)NULL, A.size_, (double*)NULL)
 {
     CHECK_RETURN_VALUE(
-    tensor_densify(&ndim_, len_, A.sym_));
+    tensor_densify(&ndim, len, A.sym_));
 
     switch (type)
     {
         case CLONE:
-            data_ = new double[size_];
-            copy(A.data_, A.data_+size_, data_);
+            data = new double[size_];
+            copy(A.data, A.data+size_, data);
             isAlloced = true;
             break;
         case REFERENCE:
-            data_ = A.data_;
+            data = A.data;
             isAlloced = false;
             break;
         case REPLACE:
-            data_ = A.data_;
+            data = A.data;
             isAlloced = A.isAlloced;
             const_cast<PackedTensor&>(A).isAlloced = false;
             break;
@@ -68,30 +68,37 @@ DenseTensor(const PackedTensor& A, const CopyType type)
 */
 
 template <typename T>
-DenseTensor<T>::DenseTensor(const DenseTensor<T>& A,
-        const typename LocalTensor<DenseTensor<T>,T>::CopyType type)
+DenseTensor<T>::DenseTensor(const DenseTensor<T>& A, T val)
+: LocalTensor< DenseTensor<T>,T >(val) {}
+
+template <typename T>
+DenseTensor<T>::DenseTensor(const DenseTensor<T>& A)
+: LocalTensor< DenseTensor<T>,T >(A) {}
+
+template <typename T>
+DenseTensor<T>::DenseTensor(DenseTensor<T>& A, typename LocalTensor<DenseTensor<T>,T>::CopyType type)
 : LocalTensor< DenseTensor<T>,T >(A, type) {}
 
 template <typename T>
-DenseTensor<T>::DenseTensor(const int ndim, const int *len, T* data, const bool zero)
-: LocalTensor< DenseTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL), data, zero) {}
+DenseTensor<T>::DenseTensor(int ndim, const vector<int>& len, T* data, bool zero)
+: LocalTensor< DenseTensor<T>,T >(ndim, len, vector<int>(), getSize(ndim, len, vector<int>()), data, zero) {}
 
 template <typename T>
-DenseTensor<T>::DenseTensor(const int ndim, const int *len, const bool zero)
-: LocalTensor< DenseTensor<T>,T >(ndim, len, NULL, getSize(ndim, len, NULL), zero) {}
+DenseTensor<T>::DenseTensor(int ndim, const vector<int>& len, bool zero)
+: LocalTensor< DenseTensor<T>,T >(ndim, len, vector<int>(), getSize(ndim, len, vector<int>()), zero) {}
 
 template <typename T>
-DenseTensor<T>::DenseTensor(const int ndim, const int *len, const int *ld, T* data, const bool zero)
+DenseTensor<T>::DenseTensor(int ndim, const vector<int>& len, const vector<int>& ld, T* data, bool zero)
 : LocalTensor< DenseTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld), data, zero) {}
 
 template <typename T>
-DenseTensor<T>::DenseTensor(const int ndim, const int *len, const int *ld, const bool zero)
+DenseTensor<T>::DenseTensor(int ndim, const vector<int>& len, const vector<int>& ld, bool zero)
 : LocalTensor< DenseTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld), zero) {}
 
 template <typename T>
-uint64_t DenseTensor<T>::getSize(const int ndim, const int *len, const int *ld)
+uint64_t DenseTensor<T>::getSize(int ndim, const vector<int>& len, const vector<int>& ld)
 {
-    int64_t r = tensor_size_dense(ndim, len, ld);
+    int64_t r = tensor_size_dense(ndim, len.data(), (ld.size() == 0 ? NULL : ld.data()));
 
     #ifdef VALIDATE_INPUTS
     CHECK_RETURN_VALUE(r);
@@ -104,32 +111,24 @@ template <typename T>
 void DenseTensor<T>::print(FILE* fp) const
 {
     CHECK_RETURN_VALUE(
-    tensor_print_dense(fp, data_, ndim_, len_, ld_));
+    tensor_print_dense(fp, data, ndim, len.data(), ld.data()));
 }
 
 template <typename T>
 void DenseTensor<T>::print(ostream& stream) const
 {
     #ifdef VALIDATE_INPUTS
-    VALIDATE_TENSOR_THROW(ndim_, len_, ld_, NULL);
+    VALIDATE_TENSOR_THROW(ndim, len.data(), ld.data(), NULL);
     #endif //VALIDATE_INPUTS
 
-    vector<size_t> stride(ndim_);
-    if (ld_ == NULL)
-    {
-        if (ndim_ > 0) stride[0] = 1;
-        for (int i = 1;i < ndim_;i++) stride[i] = stride[i-1]*len_[i-1];
-    }
-    else
-    {
-        if (ndim_ > 0) stride[0] = ld_[0];
-        for (int i = 1;i < ndim_;i++) stride[i] = stride[i-1]*ld_[i];
-    }
+    vector<size_t> stride(ndim);
+    if (ndim > 0) stride[0] = ld[0];
+    for (int i = 1;i < ndim;i++) stride[i] = stride[i-1]*ld[i];
 
     size_t size;
-    if (ndim_ > 0)
+    if (ndim > 0)
     {
-        size = stride[ndim_-1]*len_[ndim_-1];
+        size = stride[ndim-1]*len[ndim-1];
     }
     else
     {
@@ -141,24 +140,24 @@ void DenseTensor<T>::print(ostream& stream) const
     /*
      * loop over elements in A
      */
-    vector<int> pos(ndim_, 0);
+    vector<int> pos(ndim, 0);
     for (bool done = false;!done;)
     {
         #ifdef CHECK_BOUNDS
         if (off < 0 || off >= size) throw OutOfBoundsError();
         #endif //CHECK_BOUNDS
 
-        for (int i = 0;i < ndim_;i++) stream << pos[i] << ' ';
-        stream << scientific << setprecision(15) << data_[off] << '\n';
+        for (int i = 0;i < ndim;i++) stream << pos[i] << ' ';
+        stream << scientific << setprecision(15) << data[off] << '\n';
 
-        for (int i = 0;i < ndim_;i++)
+        for (int i = 0;i < ndim;i++)
         {
-            if (pos[i] == len_[i]-1)
+            if (pos[i] == len[i]-1)
             {
                 pos[i] = 0;
-                off -= stride[i]*(len_[i]-1);
+                off -= stride[i]*(len[i]-1);
 
-                if (i == ndim_-1)
+                if (i == ndim-1)
                 {
                     done = true;
                     break;
@@ -172,7 +171,7 @@ void DenseTensor<T>::print(ostream& stream) const
             }
         }
 
-        if (ndim_ == 0) done = true;
+        if (ndim == 0) done = true;
     }
     /*
      * end loop over A
@@ -185,9 +184,9 @@ void DenseTensor<T>::mult(const T alpha, bool conja, const DenseTensor<T>& A, co
                           const T beta,                                       const int* idx_C)
 {
     CHECK_RETURN_VALUE(
-    tensor_mult_dense_(alpha,     A.data_,     A.ndim_,     A.len_,     A.ld_, idx_A,
-                                  B.data_,     B.ndim_,     B.len_,     B.ld_, idx_B,
-                       beta,  data_, ndim_, len_, ld_, idx_C));
+    tensor_mult_dense_(alpha, A.data, A.ndim, A.len.data(), A.ld.data(), idx_A,
+                              B.data, B.ndim, B.len.data(), B.ld.data(), idx_B,
+                       beta,    data,   ndim,   len.data(),   ld.data(), idx_C));
 }
 
 template <typename T>
@@ -195,43 +194,46 @@ void DenseTensor<T>::sum(const T alpha, bool conja, const DenseTensor<T>& A, con
                          const T beta,                                       const int* idx_B)
 {
     CHECK_RETURN_VALUE(
-    tensor_sum_dense_(alpha,     A.data_,     A.ndim_,     A.len_,     A.ld_, idx_A,
-                      beta,  data_, ndim_, len_, ld_, idx_B));
+    tensor_sum_dense_(alpha, A.data, A.ndim, A.len.data(), A.ld.data(), idx_A,
+                      beta,    data,   ndim,   len.data(),   ld.data(), idx_B));
 }
 
 template <typename T>
 void DenseTensor<T>::scale(const T alpha, const int* idx_A)
 {
     CHECK_RETURN_VALUE(
-    tensor_scale_dense_(alpha, data_, ndim_, len_, ld_, idx_A));
+    tensor_scale_dense_(alpha, data, ndim, len.data(), ld.data(), idx_A));
 }
 
 /*
 void unpack(const PackedTensor& A)
 {
 #ifdef VALIDATE_INPUTS
-    if (size_ != tensor_size_dense(A.ndim_, A.len_, NULL)) throw LengthMismatchError();
+    if (size_ != tensor_size_dense(A.ndim, A.len, NULL)) throw LengthMismatchError();
 #endif //VALIDATE_INPUTS
 
     CHECK_RETURN_VALUE(
-    tensor_unpack(A.data_, data_, A.ndim_, A.len_, A.sym_));
+    tensor_unpack(A.data, data, A.ndim, A.len, A.sym_));
 }
 */
 
 template <typename T>
-DenseTensor<T> DenseTensor<T>::slice(const int* start, const int* len)
+DenseTensor<T> DenseTensor<T>::slice(const vector<int>& start, const vector<int>& len)
 {
     T* B;
-    int ndim_B;
-    vector<int> len_B(ndim_);
-    vector<int> ldb(ndim_);
+    int ndimB;
+    vector<int> lenB(ndim);
+    vector<int> ldB(ndim);
 
     CHECK_RETURN_VALUE(
-    tensor_slice_dense(data_, ndim_,         len_,  ld_,
-                                &B,     &ndim_B, len_B.data(), ldb.data(),
-                       start, len));
+    tensor_slice_dense(data,   ndim,  len.data(),  ld.data(),
+                         &B, &ndimB, lenB.data(), ldB.data(),
+                       start.data(), len.data()));
 
-    return DenseTensor<T>(ndim_B, len_B.data(), ldb.data(), B);
+    lenB.resize(ndimB);
+    ldB.resize(ndimB);
+
+    return DenseTensor<T>(ndimB, lenB, ldB, B);
 }
 
 INSTANTIATE_SPECIALIZATIONS(DenseTensor);

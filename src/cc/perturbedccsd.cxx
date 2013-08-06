@@ -89,11 +89,11 @@ void PerturbedCCSD<U>::_iterate()
     // Z -= TA;
     TA +=  Z;
 
-    conv =          Z(1)(0).reduce(CTF_OP_MAXABS);
-    conv = max(conv,Z(1)(1).reduce(CTF_OP_MAXABS));
-    conv = max(conv,Z(2)(0).reduce(CTF_OP_MAXABS));
-    conv = max(conv,Z(2)(1).reduce(CTF_OP_MAXABS));
-    conv = max(conv,Z(2)(2).reduce(CTF_OP_MAXABS));
+    conv =          Z(1)(0).norm(00);
+    conv = max(conv,Z(1)(1).norm(00));
+    conv = max(conv,Z(2)(0).norm(00));
+    conv = max(conv,Z(2)(1).norm(00));
+    conv = max(conv,Z(2)(2).norm(00));
 
     diis.extrapolate(TA, Z);
 }

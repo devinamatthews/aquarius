@@ -22,23 +22,24 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_SCF_AOMOINTS_HPP_
-#define _AQUARIUS_SCF_AOMOINTS_HPP_
+#ifndef _AQUARIUS_OPERATOR_AOMOINTS_HPP_
+#define _AQUARIUS_OPERATOR_AOMOINTS_HPP_
 
-#include "aoints.hpp"
-#include "aoscf.hpp"
+#include "scf/aoscf.hpp"
+
+#include "eri.hpp"
 #include "moints.hpp"
 
 namespace aquarius
 {
-namespace scf
+namespace op
 {
 
 template <typename T>
 class AOMOIntegrals : public MOIntegrals<T>
 {
     public:
-        AOMOIntegrals(const AOUHF<T>& uhf);
+        AOMOIntegrals(const scf::AOUHF<T>& uhf);
 
     private:
         using Distributed<T>::nproc;
@@ -61,7 +62,7 @@ class AOMOIntegrals : public MOIntegrals<T>
             /*
              * Read integrals in and break (pq|rs)=(rs|pq) symmetry
              */
-            pqrs_integrals(const AOIntegrals<T>& aoints);
+            pqrs_integrals(const ERI<T>& aoints);
 
             pqrs_integrals(abrs_integrals& abrs);
 
@@ -102,7 +103,7 @@ class AOMOIntegrals : public MOIntegrals<T>
         };
 
     protected:
-        void doTransformation(const AOIntegrals<T>& ints);
+        void doTransformation(const ERI<T>& ints);
 };
 
 }

@@ -37,119 +37,107 @@ namespace aquarius
 namespace task
 {
 
-class Resource
-{
-    protected:
-        std::string type;
-        void* data;
-        int revision;
-        bool needsDelete;
-
-    public:
-        template <typename T>
-        Resource(const std::string& type, T& data);
-
-        template <typename T>
-        Resource(const std::string& type, T* data);
-
-        ~Resource();
-
-        const std::string& getType() const { return type; }
-
-        template <typename T> T& get();
-
-        template <typename T> const T& get() const;
-
-        void update() { revision++; }
-
-        int getRevision() const { return revision; }
-};
-
 class Product;
 
 class Requirement
 {
     protected:
-        std::string name;
         std::string type;
-        std::pair<std::string,std::string> defaultProvider;
-        std::shared_ptr<Product> product;
+        std::string name;
+        Product* product;
 
     public:
-        Requirement(const std::string& name, const std::string& type);
+        Requirement(const std::string& type, const std::string& name);
 
-        Requirement(const std::string& name, const std::string& type, const std::string& defaultTask, const std::string& defaultName);
+        ~Requirement();
 
         const std::string& getName() const { return name; }
 
         const std::string getType() const { return type; }
 
-        void fulfil(Product& product);
+        void fulfil(const Product& product);
 
-        bool isFulfilled() const { return product; }
+        bool isFulfilled() const { return product != NULL; }
 
-        const std::pair<std::string,std::string>& getDefaultProvider() const { return defaultProvider; }
-
-        Resource& getResource();
+        Product& get();
 };
-
-class Task;
 
 class Product
 {
-    friend class Task;
-
     protected:
-        std::vector<Requirement> requirements;
-        std::vector<int> revisions;
-        std::shared_ptr<Resource> resource;
-        Task& parent;
+        std::string type;
         std::string name;
-
-        void run_check();
+        std::shared_ptr<void*> data;
+        std::vector<Requirement> requirements;
 
     public:
-        Product(Task& parent, const std::string& name, const std::shared_ptr<Resource>& resource);
-
-        Product(Task& parent, const std::string& name, const std::shared_ptr<Resource>& resource, const Requirement& requirement);
-
-        Product(Task& parent, const std::string& name, const std::shared_ptr<Resource>& resource, const std::vector<Requirement>& requirements);
+        Product(const std::string& type, const std::string& name);
 
         const std::string& getName() const { return name; }
 
-        const std::vector<Requirement> getRequirements() const { return requirements; }
+        const std::string& getType() const { return type; }
 
-        Resource& getResource();
+        template <typename T> void put(T* resource);
+
+        template <typename T> T& get();
+
+        bool exists() const { return data; }
+
+        void addRequirement(const Requirement& req);
+
+        std::vector<Requirement> getRequirements() { return requirements; }
 };
 
 class Task
 {
     protected:
+        typedef Task* (*factory_func)(const std::string&, const input::Config&);
+
         std::string type;
         std::string name;
         std::vector<Product> products;
+
+        static std::map<std::string,factory_func>& tasks();
 
         void addProduct(const Product& product);
 
     public:
         Task(const std::string& type, const std::string& name);
 
-        Task(const std::string& type, const std::string& name, const Product& product);
-
-        Task(const std::string& type, const std::string& name, const std::vector<Product>& products);
-
         virtual ~Task() {}
+
+        static bool registerTask(const std::string& name, factory_func create);
+
+        template <typename T> void put(const std::string& name, T* resource);
+
+        template <typename T> T& get(const std::string& name);
 
         Product& getProduct(const std::string& name);
 
-        const Product& getProduct(const std::string& name) const;
-
         std::vector<Product>& getProducts() { return products; }
 
-        const std::vector<Product>& getProducts() const { return products; }
-
         virtual void run() = 0;
+
+        static Task* createTask(const std::string& type, const std::string& name, const input::Config& config);
 };
+
+template <class T>
+class TaskFactory
+{
+    friend class Task;
+
+    protected:
+        static bool initialized;
+
+        Task* create(const std::string& name, const input::Config& config)
+        {
+            return new T(name, config);
+        }
+};
+
+#define REGISTER_TASK(task,type) \
+template <> int TaskFactory<task>::initialized = \
+    Task::registerTask(name,TaskFactory<task>::create);
 
 }
 }

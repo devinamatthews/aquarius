@@ -55,20 +55,24 @@ class DenseTensor : public LocalTensor< DenseTensor<T>,T >
     INHERIT_FROM_LOCAL_TENSOR(DenseTensor<T>,T)
 
     public:
-        DenseTensor(const DenseTensor& t, const T val);
+        DenseTensor(T val = (T)0);
 
-        DenseTensor(const DenseTensor<T>& A,
-                const typename LocalTensor<DenseTensor<T>,T>::CopyType type=LocalTensor<DenseTensor<T>,T>::CLONE);
+        DenseTensor(const DenseTensor<T>& A, T val);
 
-        DenseTensor(const int ndim, const int *len, T* data, const bool zero=false);
+        DenseTensor(const DenseTensor<T>& A);
 
-        DenseTensor(const int ndim, const int *len, const bool zero=true);
+        DenseTensor(DenseTensor<T>& A,
+                 typename LocalTensor<DenseTensor<T>,T>::CopyType type=LocalTensor<DenseTensor<T>,T>::CLONE);
 
-        DenseTensor(const int ndim, const int *len, const int *ld, T* data, const bool zero=false);
+        DenseTensor(int ndim, const std::vector<int>& len, T* data, bool zero=false);
 
-        DenseTensor(const int ndim, const int *len, const int *ld, const bool zero=true);
+        DenseTensor(int ndim, const std::vector<int>& len, bool zero=true);
 
-        static uint64_t getSize(const int ndim, const int *len, const int *ld);
+        DenseTensor(int ndim, const std::vector<int>& len, const std::vector<int>& ld, T* data, bool zero=false);
+
+        DenseTensor(int ndim, const std::vector<int>& len, const std::vector<int>& ld, bool zero=true);
+
+        static uint64_t getSize(int ndim, const std::vector<int>& len, const std::vector<int>& ld);
 
         void print(FILE* fp) const;
 
@@ -83,7 +87,7 @@ class DenseTensor : public LocalTensor< DenseTensor<T>,T >
 
         void scale(const T alpha, const int* idx_A);
 
-        DenseTensor slice(const int* start, const int* len);
+        DenseTensor<T> slice(const std::vector<int>& start, const std::vector<int>& len);
 };
 
 }

@@ -30,12 +30,13 @@ using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
 using namespace aquarius::slide;
+using namespace aquarius::op;
 
 template <typename T>
 CholeskyMOIntegrals<T>::CholeskyMOIntegrals(const CholeskyUHF<T>& uhf)
 : MOIntegrals<T>(uhf)
 {
-    doTransformation(uhf.chol);
+    doTransformation(uhf.getCholesky());
 }
 
 template <typename T>
@@ -55,32 +56,32 @@ void CholeskyMOIntegrals<T>::doTransformation(const CholeskyIntegrals<T>& chol)
     int na = N-ni;
     int R = chol.getRank();
 
-    int sizeIIR[] = {nI, nI, R};
-    int sizeiiR[] = {ni, ni, R};
-    int sizeAAR[] = {nA, nA, R};
-    int sizeaaR[] = {na, na, R};
-    int sizeAIR[] = {nA, nI, R};
-    int sizeaiR[] = {na, ni, R};
+    vector<int> sizeIIR = vec(nI, nI, R);
+    vector<int> sizeiiR = vec(ni, ni, R);
+    vector<int> sizeAAR = vec(nA, nA, R);
+    vector<int> sizeaaR = vec(na, na, R);
+    vector<int> sizeAIR = vec(nA, nI, R);
+    vector<int> sizeaiR = vec(na, ni, R);
 
-    int shapeNNN[] = {NS, NS, NS};
+    vector<int> shapeNNN = vec(NS, NS, NS);
 
-    DistTensor<T> LIJ(this->ctf, 3, sizeIIR, shapeNNN, false);
-    DistTensor<T> Lij(this->ctf, 3, sizeiiR, shapeNNN, false);
-    DistTensor<T> LAB(this->ctf, 3, sizeAAR, shapeNNN, false);
-    DistTensor<T> Lab(this->ctf, 3, sizeaaR, shapeNNN, false);
-    DistTensor<T> LAI(this->ctf, 3, sizeAIR, shapeNNN, false);
-    DistTensor<T> Lai(this->ctf, 3, sizeaiR, shapeNNN, false);
+    DistTensor<T> LIJ(this->arena, 3, sizeIIR, shapeNNN, false);
+    DistTensor<T> Lij(this->arena, 3, sizeiiR, shapeNNN, false);
+    DistTensor<T> LAB(this->arena, 3, sizeAAR, shapeNNN, false);
+    DistTensor<T> Lab(this->arena, 3, sizeaaR, shapeNNN, false);
+    DistTensor<T> LAI(this->arena, 3, sizeAIR, shapeNNN, false);
+    DistTensor<T> Lai(this->arena, 3, sizeaiR, shapeNNN, false);
 
     {
-        int sizeNIR[] = { N, nI, R};
-        int sizeNiR[] = { N, ni, R};
-        int sizeNAR[] = { N, nA, R};
-        int sizeNaR[] = { N, na, R};
+        vector<int> sizeNIR = vec(N, nI, R);
+        vector<int> sizeNiR = vec(N, ni, R);
+        vector<int> sizeNAR = vec(N, nA, R);
+        vector<int> sizeNaR = vec(N, na, R);
 
-        DistTensor<T> LpI(this->ctf, 3, sizeNIR, shapeNNN, false);
-        DistTensor<T> Lpi(this->ctf, 3, sizeNiR, shapeNNN, false);
-        DistTensor<T> LpA(this->ctf, 3, sizeNAR, shapeNNN, false);
-        DistTensor<T> Lpa(this->ctf, 3, sizeNaR, shapeNNN, false);
+        DistTensor<T> LpI(this->arena, 3, sizeNIR, shapeNNN, false);
+        DistTensor<T> Lpi(this->arena, 3, sizeNiR, shapeNNN, false);
+        DistTensor<T> LpA(this->arena, 3, sizeNAR, shapeNNN, false);
+        DistTensor<T> Lpa(this->arena, 3, sizeNaR, shapeNNN, false);
 
         LpI["pIR"] = Lpq["pqR"]*cI["qI"];
         Lpi["piR"] = Lpq["pqR"]*ci["qi"];
@@ -95,12 +96,12 @@ void CholeskyMOIntegrals<T>::doTransformation(const CholeskyIntegrals<T>& chol)
         Lab["abR"] = Lpa["pbR"]*ca["pa"];
     }
 
-    DistTensor<T> LDIJ(this->ctf, 3, sizeIIR, shapeNNN, false);
-    DistTensor<T> LDij(this->ctf, 3, sizeiiR, shapeNNN, false);
-    DistTensor<T> LDAB(this->ctf, 3, sizeAAR, shapeNNN, false);
-    DistTensor<T> LDab(this->ctf, 3, sizeaaR, shapeNNN, false);
-    DistTensor<T> LDAI(this->ctf, 3, sizeAIR, shapeNNN, false);
-    DistTensor<T> LDai(this->ctf, 3, sizeaiR, shapeNNN, false);
+    DistTensor<T> LDIJ(this->arena, 3, sizeIIR, shapeNNN, false);
+    DistTensor<T> LDij(this->arena, 3, sizeiiR, shapeNNN, false);
+    DistTensor<T> LDAB(this->arena, 3, sizeAAR, shapeNNN, false);
+    DistTensor<T> LDab(this->arena, 3, sizeaaR, shapeNNN, false);
+    DistTensor<T> LDAI(this->arena, 3, sizeAIR, shapeNNN, false);
+    DistTensor<T> LDai(this->arena, 3, sizeaiR, shapeNNN, false);
 
     LDIJ["IJR"] = D["R"]*LIJ["IJR"];
     LDij["ijR"] = D["R"]*Lij["ijR"];

@@ -22,55 +22,25 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#include "lambdaccsd.hpp"
+#include "st1eoperator.hpp"
 
 using namespace std;
+using namespace aquarius;
 using namespace aquarius::op;
-using namespace aquarius::cc;
-using namespace aquarius::scf;
-using namespace aquarius::input;
 using namespace aquarius::tensor;
 
 template <typename U>
-LambdaCCSD<U>::LambdaCCSD(const Config& config, const STTwoElectronOperator<U,2>& H,
-                          const ExponentialOperator<U,2>& T, const double Ecc)
-: Iterative(config), DeexcitationOperator<U,2>(H.getSCF()), L(*this),
-  Z(this->uhf), D(this->uhf),
-  H(H), T(T), Ecc(Ecc), diis(config.get("diis"))
+STOneElectronOperator<U,2>::STOneElectronOperator(const OneElectronOperator<U>& X,
+                                                  const ExponentialOperator<U,2>& T)
+: OneElectronOperator<U>(X)
 {
-    D(0) = (U)1.0;
-    D(1)["ia"]  = H.getIJ()["ii"];
-    D(1)["ia"] -= H.getAB()["aa"];
-    D(2)["ijab"]  = H.getIJ()["ii"];
-    D(2)["ijab"] += H.getIJ()["jj"];
-    D(2)["ijab"] -= H.getAB()["aa"];
-    D(2)["ijab"] -= H.getAB()["bb"];
+    this->ij["mi"] += this->ia["me"]*T(1)["ei"];
 
-    D = 1/D;
+    this->ai["ai"] += T(2)["aeim"]*this->ia["me"];
+    this->ai["ai"] += T(1)["ei"]*this->ab["ae"];
+    this->ai["ai"] -= T(1)["am"]*this->ij["mi"];
 
-    L(0) = (U)1.0;
-    L(1) = H.getIA()*D(1);
-    L(2) = H.getIJAB()*D(2);
+    this->ab["ae"] -= this->ia["me"]*T(1)["am"];
 }
 
-template <typename U>
-void LambdaCCSD<U>::_iterate()
-{
-    Z = (U)0.0;
-    H.contract(L, Z);
-
-    energy = Ecc + real(scalar(Z*conj(L))/scalar(L*conj(L)));
-
-    Z *= D;
-    L += Z;
-
-    conv =          Z(1)(0).norm(00);
-    conv = max(conv,Z(1)(1).norm(00));
-    conv = max(conv,Z(2)(0).norm(00));
-    conv = max(conv,Z(2)(1).norm(00));
-    conv = max(conv,Z(2)(2).norm(00));
-
-    diis.extrapolate(L, Z);
-}
-
-INSTANTIATE_SPECIALIZATIONS(LambdaCCSD);
+INSTANTIATE_SPECIALIZATIONS_2(STOneElectronOperator,2);

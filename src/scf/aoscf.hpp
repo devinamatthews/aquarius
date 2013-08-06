@@ -26,9 +26,9 @@
 #define _AQUARIUS_SCF_AOSCF_HPP_
 
 #include "stl_ext/stl_ext.hpp"
+#include "operator/eri.hpp"
 
 #include "scf.hpp"
-#include "aoints.hpp"
 
 namespace aquarius
 {
@@ -40,14 +40,14 @@ class AOUHF : public UHF<T>
 {
     protected:
         using UHF<T>::norb;
+        const op::ERI<T>& ints;
+
+        void buildFock();
 
     public:
-        const AOIntegrals<T>& ints;
+        AOUHF(const input::Config& config, const op::ERI<T>& ints);
 
-        AOUHF(const input::Config& config, const AOIntegrals<T>& ints);
-
-    protected:
-        void buildFock();
+        const op::ERI<T>& getIntegrals() const { return ints; }
 };
 
 }

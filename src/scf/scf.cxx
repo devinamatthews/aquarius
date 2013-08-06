@@ -32,9 +32,9 @@ using namespace aquarius::input;
 using namespace aquarius::slide;
 
 template <typename T>
-UHF<T>::UHF(tCTF_World<T>& ctf, const Config& config, const Molecule& molecule)
+UHF<T>::UHF(Arena<T>& arena, const Config& config, const Molecule& molecule)
 : Iterative(config),
-  Distributed<T>(ctf),
+  Distributed<T>(arena),
   molecule(molecule),
   norb(molecule.getNumOrbitals()),
   nalpha(molecule.getNumAlphaElectrons()),
@@ -53,27 +53,27 @@ UHF<T>::UHF(tCTF_World<T>& ctf, const Config& config, const Molecule& molecule)
 {
     energy = molecule.getNuclearRepulsion();
 
-    int shapeNN[] = {NS,NS};
+    vector<int> shapeNN = vec(NS,NS);
+    vector<int> sizenn = vec(norb,norb);
+    vector<int> sizenO = vec(norb,nalpha);
+    vector<int> sizeno = vec(norb,nbeta);
+    vector<int> sizenV = vec(norb,norb-nalpha);
+    vector<int> sizenv = vec(norb,norb-nbeta);
 
-    int sizenn[] = {norb,norb};
-    Fa = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
-    Fb = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
-    dF = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
-    int sizenO[] = {norb,nalpha};
-    int sizeno[] = {norb,nbeta};
-    Ca_occ = new DistTensor<T>(ctf, 2, sizenO, shapeNN, false);
-    Cb_occ = new DistTensor<T>(ctf, 2, sizeno, shapeNN, false);
-    int sizenV[] = {norb,norb-nalpha};
-    int sizenv[] = {norb,norb-nbeta};
-    Ca_vrt = new DistTensor<T>(ctf, 2, sizenV, shapeNN, false);
-    Cb_vrt = new DistTensor<T>(ctf, 2, sizenv, shapeNN, false);
-    Da = new DistTensor<T>(ctf, 2, sizenn, shapeNN, true);
-    Db = new DistTensor<T>(ctf, 2, sizenn, shapeNN, true);
-    dDa = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
-    dDb = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
-    S = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
-    Smhalf = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
-    H = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
+    Fa = new DistTensor<T>(arena, 2, sizenn, shapeNN, false);
+    Fb = new DistTensor<T>(arena, 2, sizenn, shapeNN, false);
+    dF = new DistTensor<T>(arena, 2, sizenn, shapeNN, false);
+    Ca_occ = new DistTensor<T>(arena, 2, sizenO, shapeNN, false);
+    Cb_occ = new DistTensor<T>(arena, 2, sizeno, shapeNN, false);
+    Ca_vrt = new DistTensor<T>(arena, 2, sizenV, shapeNN, false);
+    Cb_vrt = new DistTensor<T>(arena, 2, sizenv, shapeNN, false);
+    Da = new DistTensor<T>(arena, 2, sizenn, shapeNN, true);
+    Db = new DistTensor<T>(arena, 2, sizenn, shapeNN, true);
+    dDa = new DistTensor<T>(arena, 2, sizenn, shapeNN, false);
+    dDb = new DistTensor<T>(arena, 2, sizenn, shapeNN, false);
+    S = new DistTensor<T>(arena, 2, sizenn, shapeNN, false);
+    Smhalf = new DistTensor<T>(arena, 2, sizenn, shapeNN, false);
+    H = new DistTensor<T>(arena, 2, sizenn, shapeNN, false);
 
     calcOverlap();
     calc1eHamiltonian();
@@ -110,13 +110,13 @@ void UHF<T>::_iterate()
     switch (convtype)
     {
         case MAX_ABS:
-            conv = max(dDa->reduce(CTF_OP_MAXABS), dDb->reduce(CTF_OP_MAXABS));
+            conv = max(dDa->norm(00), dDb->norm(00));
             break;
         case RMSD:
-            conv = sqrt((dDa->reduce(CTF_OP_SQNRM2)+dDb->reduce(CTF_OP_SQNRM2))/(2*norb*norb));
+            conv = sqrt((dDa->norm(2)+dDb->norm(2))/(2*norb*norb));
             break;
         case MAD:
-            conv = (dDa->reduce(CTF_OP_SUMABS)+dDb->reduce(CTF_OP_SUMABS))/(2*norb*norb);
+            conv = (dDa->norm(1)+dDb->norm(1))/(2*norb*norb);
             break;
     }
 }
@@ -130,12 +130,8 @@ T UHF<T>::getMultiplicity() const
 template <typename T>
 T UHF<T>::getS2() const
 {
-    int shapeNN[] = {NS,NS};
-    int sizeab[] = {nalpha,nbeta};
-    int sizean[] = {nalpha,norb};
-
-    DistTensor<T> Delta(this->ctf, 2, sizeab, shapeNN, false);
-    DistTensor<T> tmp(this->ctf, 2, sizean, shapeNN, false);
+    DistTensor<T> Delta(this->arena, 2, vec(nalpha,nbeta), vec(NS,NS), false);
+    DistTensor<T> tmp(this->arena, 2, vec(nalpha,norb), vec(NS,NS), false);
 
     int ndiff = abs(nalpha-nbeta);
     int nmin = min(nalpha, nbeta);
@@ -203,7 +199,7 @@ void UHF<T>::calcOverlap()
         }
     }
 
-    S->writeRemoteData(pairs.size(), pairs.data());
+    S->writeRemoteData(pairs);
 
     pairs.clear();
 
@@ -253,25 +249,22 @@ void UHF<T>::calcOverlap()
 
     #else
 
-    int64_t size;
-    T *s;
+    vector<T> s;
     vector<T> smhalf(norb*norb);
 
-    S->getAllData(size, s);
-    assert(size == norb*norb);
+    S->getAllData(s);
+    assert(s.size() == norb*norb);
 
-    int info = heev('V', 'U', norb, s, norb, Ea.data());
+    int info = heev('V', 'U', norb, s.data(), norb, Ea.data());
     assert(info == 0);
 
     fill(smhalf.begin(), smhalf.end(), 0.0);
     for (int i = 0;i < norb;i++)
     {
-        ger(norb, norb, 1/sqrt(Ea[i]), s+i*norb, 1, s+i*norb, 1, smhalf.data(), norb);
+        ger(norb, norb, 1/sqrt(Ea[i]), &s[i*norb], 1, &s[i*norb], 1, smhalf.data(), norb);
     }
 
-    FREE(s);
-
-    if (this->comm.Get_rank() == 0)
+    if (this->rank == 0)
     {
         vector< tkv_pair<T> > pairs;
 
@@ -283,11 +276,11 @@ void UHF<T>::calcOverlap()
             }
         }
 
-        Smhalf->writeRemoteData(norb*norb, pairs.data());
+        Smhalf->writeRemoteData(pairs);
     }
     else
     {
-        Smhalf->writeRemoteData(0, NULL);
+        Smhalf->writeRemoteData();
     }
 
     #endif
@@ -341,7 +334,7 @@ void UHF<T>::calc1eHamiltonian()
         }
     }
 
-    H->writeRemoteData(pairs.size(), pairs.data());
+    H->writeRemoteData(pairs);
 }
 
 template <typename T>
@@ -458,16 +451,16 @@ void UHF<T>::diagonalizeFock()
 
     int64_t size;
     int info;
-    T *fock, *s;
+    vector<T> fock, s;
 
-    S->getAllData(size, s);
-    assert(size == norb*norb);
-    Fa->getAllData(size, fock);
-    assert(size == norb*norb);
-    info = hegv(AXBX, 'V', 'U', norb, fock, norb, s, norb, Ea.data());
+    S->getAllData(s);
+    assert(s.size() == norb*norb);
+    Fa->getAllData(fock);
+    assert(fock.size() == norb*norb);
+    info = hegv(AXBX, 'V', 'U', norb, fock.data(), norb, s.data(), norb, Ea.data());
     assert(info == 0);
 
-    if (this->comm.Get_rank() == 0)
+    if (this->rank == 0)
     {
         for (int i = 0;i < nalpha;i++)
         {
@@ -477,7 +470,7 @@ void UHF<T>::diagonalizeFock()
             }
         }
 
-        Ca_occ->writeRemoteData(norb*nalpha, pairs.data());
+        Ca_occ->writeRemoteData(pairs);
         pairs.clear();
 
         for (int i = 0;i < norb-nalpha;i++)
@@ -488,26 +481,23 @@ void UHF<T>::diagonalizeFock()
             }
         }
 
-        Ca_vrt->writeRemoteData(norb*(norb-nalpha), pairs.data());
+        Ca_vrt->writeRemoteData(pairs);
         pairs.clear();
     }
     else
     {
-        Ca_occ->writeRemoteData(0, NULL);
-        Ca_vrt->writeRemoteData(0, NULL);
+        Ca_occ->writeRemoteData();
+        Ca_vrt->writeRemoteData();
     }
 
-    FREE(fock);
-    FREE(s);
-
-    S->getAllData(size, s);
-    assert(size == norb*norb);
-    Fb->getAllData(size, fock);
-    assert(size == norb*norb);
-    info = hegv(AXBX, 'V', 'U', norb, fock, norb, s, norb, Eb.data());
+    S->getAllData(s);
+    assert(s.size() == norb*norb);
+    Fb->getAllData(fock);
+    assert(fock.size() == norb*norb);
+    info = hegv(AXBX, 'V', 'U', norb, fock.data(), norb, s.data(), norb, Eb.data());
     assert(info == 0);
 
-    if (this->comm.Get_rank() == 0)
+    if (this->rank == 0)
     {
         for (int i = 0;i < nbeta;i++)
         {
@@ -517,7 +507,7 @@ void UHF<T>::diagonalizeFock()
             }
         }
 
-        Cb_occ->writeRemoteData(norb*nbeta, pairs.data());
+        Cb_occ->writeRemoteData(pairs);
         pairs.clear();
 
         for (int i = 0;i < norb-nbeta;i++)
@@ -528,16 +518,13 @@ void UHF<T>::diagonalizeFock()
             }
         }
 
-        Cb_vrt->writeRemoteData(norb*(norb-nbeta), pairs.data());
+        Cb_vrt->writeRemoteData(pairs);
     }
     else
     {
-        Cb_occ->writeRemoteData(0, NULL);
-        Cb_vrt->writeRemoteData(0, NULL);
+        Cb_occ->writeRemoteData();
+        Cb_vrt->writeRemoteData();
     }
-
-    FREE(fock);
-    FREE(s);
 
     #endif
 
@@ -571,7 +558,7 @@ void UHF<T>::fixPhase(DistTensor<T>& C)
     int np = this->comm.Get_size();
     int nr = C.getLengths()[1];
 
-    vector< tkv_pair<T> > pairs(norb, tkv_pair<T>(0,0));
+    vector< tkv_pair<T> > pairs(norb);
 
     for (int b = 0;b*np < nr;b++)
     {
@@ -581,7 +568,7 @@ void UHF<T>::fixPhase(DistTensor<T>& C)
         {
             for (int i = 0;i < norb;i++) pairs[i].k = i+r*norb;
 
-            C.getRemoteData(norb, pairs.data());
+            C.getRemoteData(pairs);
 
             sort(pairs.begin(), pairs.end());
             int sign = 0;
@@ -602,12 +589,12 @@ void UHF<T>::fixPhase(DistTensor<T>& C)
                 }
             }
 
-            C.writeRemoteData(norb, pairs.data());
+            C.writeRemoteData(pairs);
         }
         else
         {
-            C.getRemoteData(0, NULL);
-            C.writeRemoteData(0, NULL);
+            C.getRemoteData();
+            C.writeRemoteData();
         }
     }
 }

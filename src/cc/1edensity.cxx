@@ -40,21 +40,21 @@ OneElectronDensity<U>::OneElectronDensity(const UHF<U>& uhf)
     int nA = N-nI;
     int na = N-ni;
 
-    int NN[] = {NS,NS};
-    int sizeII[] = {nI,nI};
-    int sizeii[] = {ni,ni};
-    int sizeAI[] = {nA,nI};
-    int sizeai[] = {na,ni};
+    vector<int> NN = vec(NS,NS);
+    vector<int> sizeII = vec(nI,nI);
+    vector<int> sizeii = vec(ni,ni);
+    vector<int> sizeAI = vec(nA,nI);
+    vector<int> sizeai = vec(na,ni);
 
     const DistTensor<U>& CA = uhf.getCA();
     const DistTensor<U>& Ca = uhf.getCa();
     const DistTensor<U>& CI = uhf.getCI();
     const DistTensor<U>& Ci = uhf.getCi();
 
-    DistTensor<U> DIJ(this->ctf, 2, sizeII, NN);
-    DistTensor<U> Dij(this->ctf, 2, sizeii, NN);
-    DistTensor<U> DAI(this->ctf, 2, sizeAI, NN);
-    DistTensor<U> Dai(this->ctf, 2, sizeai, NN);
+    DistTensor<U> DIJ(this->arena, 2, sizeII, NN);
+    DistTensor<U> Dij(this->arena, 2, sizeii, NN);
+    DistTensor<U> DAI(this->arena, 2, sizeAI, NN);
+    DistTensor<U> Dai(this->arena, 2, sizeai, NN);
 
     DIJ["IJ"] = CI["pI"]*CI["pJ"];
     Dij["ij"] = Ci["pi"]*Ci["pj"];

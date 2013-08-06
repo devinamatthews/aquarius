@@ -22,29 +22,53 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_OPERATOR_ST1EOPERATOR_HPP_
-#define _AQUARIUS_OPERATOR_ST1EOPERATOR_HPP_
+#ifndef _AQUARIUS_OPERATOR_MOINTS_HPP_
+#define _AQUARIUS_OPERATOR_MOINTS_HPP_
 
-#include "1eoperator.hpp"
-#include "exponentialoperator.hpp"
+#include "2eoperator.hpp"
+
+#include "scf/scf.hpp"
 
 namespace aquarius
 {
 namespace op
 {
 
-/*
- *      _    -T   T       T
- * Form X = e  X e  = (X e ) , up to one-electron terms
- *                          c
- */
-template <typename U, int nex> class STOneElectronOperator;
-
-template <typename U>
-class STOneElectronOperator<U,2> : public OneElectronOperator<U>
+template <typename T>
+class MOIntegrals : public TwoElectronOperator<T>
 {
-    public:
-        STOneElectronOperator(const OneElectronOperator<U>& X, const ExponentialOperator<U,2>& T);
+    protected:
+        tensor::DistTensor<T> *fAB_;
+        tensor::DistTensor<T> *fab_;
+        tensor::DistTensor<T> *fAI_;
+        tensor::DistTensor<T> *fai_;
+        tensor::DistTensor<T> *fIJ_;
+        tensor::DistTensor<T> *fij_;
+        tensor::DistTensor<T> *IJKL_;
+        tensor::DistTensor<T> *IjKl_;
+        tensor::DistTensor<T> *ijkl_;
+        tensor::DistTensor<T> *IJKA_;
+        tensor::DistTensor<T> *IjKa_;
+        tensor::DistTensor<T> *iJkA_;
+        tensor::DistTensor<T> *ijka_;
+        tensor::DistTensor<T> *ABIJ_;
+        tensor::DistTensor<T> *AbIj_;
+        tensor::DistTensor<T> *abij_;
+        tensor::DistTensor<T> *AIBJ_;
+        tensor::DistTensor<T> *AiBj_;
+        tensor::DistTensor<T> *aIbJ_;
+        tensor::DistTensor<T> *aibj_;
+        tensor::DistTensor<T> *AibJ_;
+        tensor::DistTensor<T> *aIBj_;
+        tensor::DistTensor<T> *ABCI_;
+        tensor::DistTensor<T> *AbCi_;
+        tensor::DistTensor<T> *aBcI_;
+        tensor::DistTensor<T> *abci_;
+        tensor::DistTensor<T> *ABCD_;
+        tensor::DistTensor<T> *AbCd_;
+        tensor::DistTensor<T> *abcd_;
+
+        MOIntegrals(const scf::UHF<T>& uhf);
 };
 
 }

@@ -39,9 +39,9 @@ CCD<U>::CCD(const Config& config, TwoElectronOperator<U>& moints)
 
     energy = 0.25*real(scalar(moints.getABIJ()*T(2)));
 
-    conv =          T(2)(0).reduce(CTF_OP_MAXABS);
-    conv = max(conv,T(2)(1).reduce(CTF_OP_MAXABS));
-    conv = max(conv,T(2)(2).reduce(CTF_OP_MAXABS));
+    conv =          T(2)(0).norm(00);
+    conv = max(conv,T(2)(1).norm(00));
+    conv = max(conv,T(2)(2).norm(00));
 }
 
 template <typename U>
@@ -122,11 +122,11 @@ void CCD<U>::_iterate()
 
     energy = 0.25*real(scalar(H.getABIJ()*T(2)));
 
-    conv =          Z(1)(0).reduce(CTF_OP_MAXABS);
-    conv = max(conv,Z(1)(1).reduce(CTF_OP_MAXABS));
-    conv = max(conv,Z(2)(0).reduce(CTF_OP_MAXABS));
-    conv = max(conv,Z(2)(1).reduce(CTF_OP_MAXABS));
-    conv = max(conv,Z(2)(2).reduce(CTF_OP_MAXABS));
+    conv =          Z(1)(0).norm(00);
+    conv = max(conv,Z(1)(1).norm(00));
+    conv = max(conv,Z(2)(0).norm(00));
+    conv = max(conv,Z(2)(1).norm(00));
+    conv = max(conv,Z(2)(2).norm(00));
 
     this->diis.extrapolate(T, Z);
 

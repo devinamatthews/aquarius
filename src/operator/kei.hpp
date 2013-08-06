@@ -22,55 +22,37 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#include "lambdaccsd.hpp"
+#ifndef _AQUARIUS_OPERATOR_KEI_HPP_
+#define _AQUARIUS_OPERATOR_KEI_HPP_
 
-using namespace std;
-using namespace aquarius::op;
-using namespace aquarius::cc;
-using namespace aquarius::scf;
-using namespace aquarius::input;
-using namespace aquarius::tensor;
+#include "slide/slide.hpp"
+#include "input/molecule.hpp"
+#include "memory/memory.h"
+#include "tensor/dist_tensor.hpp"
+
+#include "aooperator.hpp"
+
+#define TMP_BUFSIZE 100
+#define INTEGRAL_CUTOFF 1e-14
+
+namespace aquarius
+{
+namespace op
+{
 
 template <typename U>
-LambdaCCSD<U>::LambdaCCSD(const Config& config, const STTwoElectronOperator<U,2>& H,
-                          const ExponentialOperator<U,2>& T, const double Ecc)
-: Iterative(config), DeexcitationOperator<U,2>(H.getSCF()), L(*this),
-  Z(this->uhf), D(this->uhf),
-  H(H), T(T), Ecc(Ecc), diis(config.get("diis"))
+class KEI : public AOOperator<U>
 {
-    D(0) = (U)1.0;
-    D(1)["ia"]  = H.getIJ()["ii"];
-    D(1)["ia"] -= H.getAB()["aa"];
-    D(2)["ijab"]  = H.getIJ()["ii"];
-    D(2)["ijab"] += H.getIJ()["jj"];
-    D(2)["ijab"] -= H.getAB()["aa"];
-    D(2)["ijab"] -= H.getAB()["bb"];
+    protected:
+        tensor::DistTensor<U> T;
 
-    D = 1/D;
+    public:
+        KEI(Arena<U>& arena, const input::Molecule& molecule);
 
-    L(0) = (U)1.0;
-    L(1) = H.getIA()*D(1);
-    L(2) = H.getIJAB()*D(2);
+        const tensor::DistTensor<U>& getT() const { return T; }
+};
+
+}
 }
 
-template <typename U>
-void LambdaCCSD<U>::_iterate()
-{
-    Z = (U)0.0;
-    H.contract(L, Z);
-
-    energy = Ecc + real(scalar(Z*conj(L))/scalar(L*conj(L)));
-
-    Z *= D;
-    L += Z;
-
-    conv =          Z(1)(0).norm(00);
-    conv = max(conv,Z(1)(1).norm(00));
-    conv = max(conv,Z(2)(0).norm(00));
-    conv = max(conv,Z(2)(1).norm(00));
-    conv = max(conv,Z(2)(2).norm(00));
-
-    diis.extrapolate(L, Z);
-}
-
-INSTANTIATE_SPECIALIZATIONS(LambdaCCSD);
+#endif

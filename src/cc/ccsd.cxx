@@ -57,11 +57,11 @@ CCSD<U>::CCSD(const Config& config, TwoElectronOperator<U>& H)
 
     energy = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
 
-    conv =          T(1)(0).reduce(CTF_OP_MAXABS);
-    conv = max(conv,T(1)(1).reduce(CTF_OP_MAXABS));
-    conv = max(conv,T(2)(0).reduce(CTF_OP_MAXABS));
-    conv = max(conv,T(2)(1).reduce(CTF_OP_MAXABS));
-    conv = max(conv,T(2)(2).reduce(CTF_OP_MAXABS));
+    conv =          T(1)(0).norm(00);
+    conv = max(conv,T(1)(1).norm(00));
+    conv = max(conv,T(2)(0).norm(00));
+    conv = max(conv,T(2)(1).norm(00));
+    conv = max(conv,T(2)(2).norm(00));
 }
 
 template <typename U>
@@ -78,11 +78,11 @@ void CCSD<U>::_iterate()
 
     energy = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
 
-    conv =          Z(1)(0).reduce(CTF_OP_MAXABS);
-    conv = max(conv,Z(1)(1).reduce(CTF_OP_MAXABS));
-    conv = max(conv,Z(2)(0).reduce(CTF_OP_MAXABS));
-    conv = max(conv,Z(2)(1).reduce(CTF_OP_MAXABS));
-    conv = max(conv,Z(2)(2).reduce(CTF_OP_MAXABS));
+    conv =          Z(1)(0).norm(00);
+    conv = max(conv,Z(1)(1).norm(00));
+    conv = max(conv,Z(2)(0).norm(00));
+    conv = max(conv,Z(2)(1).norm(00));
+    conv = max(conv,Z(2)(2).norm(00));
 
     diis.extrapolate(T, Z);
 }
@@ -92,7 +92,7 @@ double CCSD<U>::getProjectedS2(const UHF<U>& uhf,
                                const SpinorbitalTensor<U>& T1,
                                const SpinorbitalTensor<U>& T2)
 {
-    tCTF_World<U>& ctf = T1(0).ctf;
+    Arena<U>& arena = T1(0).arena;
 
     int N = uhf.getMolecule().getNumOrbitals();
     int nI = uhf.getMolecule().getNumAlphaElectrons();
@@ -100,30 +100,30 @@ double CCSD<U>::getProjectedS2(const UHF<U>& uhf,
     int nA = N-nI;
     int na = N-ni;
 
-    int shapeNN[] = {NS,NS};
-    int shapeNNNN[] = {NS,NS,NS,NS};
-    int sizeAI[] = {nA,nI};
-    int sizeAi[] = {nA,ni};
-    int sizeaI[] = {na,nI};
-    int sizeai[] = {na,ni};
-    int sizeIi[] = {nI,ni};
-    int sizeIn[] = {nI,N};
-    int sizein[] = {ni,N};
-    int sizeAaIi[] = {nA,na,nI,ni};
+    vector<int> shapeNN = vec(NS,NS);
+    vector<int> shapeNNNN = vec(NS,NS,NS,NS);
+    vector<int> sizeAI = vec(nA,nI);
+    vector<int> sizeAi = vec(nA,ni);
+    vector<int> sizeaI = vec(na,nI);
+    vector<int> sizeai = vec(na,ni);
+    vector<int> sizeIi = vec(nI,ni);
+    vector<int> sizeIn = vec(nI,N);
+    vector<int> sizein = vec(ni,N);
+    vector<int> sizeAaIi = vec(nA,na,nI,ni);
 
     const DistTensor<U>& CA = uhf.getCA();
     const DistTensor<U>& Ca = uhf.getCa();
     const DistTensor<U>& CI = uhf.getCI();
     const DistTensor<U>& Ci = uhf.getCi();
     const DistTensor<U>& S = uhf.getOverlap();
-    DistTensor<U> DAI(ctf, 2, sizeAI, shapeNN, false);
-    DistTensor<U> DAi(ctf, 2, sizeAi, shapeNN, false);
-    DistTensor<U> DaI(ctf, 2, sizeaI, shapeNN, false);
-    DistTensor<U> Dai(ctf, 2, sizeai, shapeNN, false);
-    DistTensor<U> DIj(ctf, 2, sizeIi, shapeNN, false);
-    DistTensor<U> DAbIj(ctf, 4, sizeAaIi, shapeNNNN, false);
-    DistTensor<U> tmp1(ctf, 2, sizeIn, shapeNN, false);
-    DistTensor<U> tmp2(ctf, 2, sizein, shapeNN, false);
+    DistTensor<U> DAI(arena, 2, sizeAI, shapeNN, false);
+    DistTensor<U> DAi(arena, 2, sizeAi, shapeNN, false);
+    DistTensor<U> DaI(arena, 2, sizeaI, shapeNN, false);
+    DistTensor<U> Dai(arena, 2, sizeai, shapeNN, false);
+    DistTensor<U> DIj(arena, 2, sizeIi, shapeNN, false);
+    DistTensor<U> DAbIj(arena, 4, sizeAaIi, shapeNNNN, false);
+    DistTensor<U> tmp1(arena, 2, sizeIn, shapeNN, false);
+    DistTensor<U> tmp2(arena, 2, sizein, shapeNN, false);
 
     tmp1["Iq"] = CI["pI"]*S["pq"];
     DIj["Ij"] = tmp1["Iq"]*Ci["qj"];

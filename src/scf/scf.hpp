@@ -79,7 +79,7 @@ class UHF : public Iterative, public Distributed<T>
         #endif
 
     public:
-        UHF(tCTF_World<T>& ctf, const input::Config& config, const input::Molecule& molecule);
+        UHF(Arena<T>& arena, const input::Config& config, const input::Molecule& molecule);
 
         ~UHF();
 

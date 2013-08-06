@@ -47,6 +47,12 @@ template class name<std::complex<float> >;
 #define INSTANTIATE_SPECIALIZATIONS(name) \
 template class name<double>;
 
+#define INSTANTIATE_SPECIALIZATIONS_2(name,extra1) \
+template class name<double,extra1>;
+
+#define INSTANTIATE_SPECIALIZATIONS_3(name,extra1,extra2) \
+template class name<double,extra1,extra2>;
+
 #define CONCAT(...) __VA_ARGS__
 
 #define ASSERT(x,...)               \

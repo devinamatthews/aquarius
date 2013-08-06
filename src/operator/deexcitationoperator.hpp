@@ -75,7 +75,7 @@ class DeexcitationOperator
                 int npex = (np > nh ? ex+np-nh : ex);
                 int nhex = (nh > np ? ex+nh-np : ex);
 
-                tensors_[idx].tensor_ = new tensor::SpinorbitalTensor<T>(0, autocc::Manifold(npex,nhex), -spin);
+                tensors[idx].tensor = new tensor::SpinorbitalTensor<T>(0, autocc::Manifold(npex,nhex), -spin);
 
                 for (int pspin = std::max(-npex,spin-nhex);pspin <= std::min(npex,spin+nhex);pspin++)
                 {
@@ -102,7 +102,7 @@ class DeexcitationOperator
                     if (ha+hb+pa > 0) sym[ha+hb+pa-1] = NS;
                     if (ha+hb+pa+pb > 0) sym[ha+hb+pa+pb-1] = NS;
 
-                    tensors_[idx].tensor_->addSpinCase(new tensor::DistTensor<T>(uhf.ctf, ndim, len.data(), sym.data(), true),
+                    tensors[idx].tensor->addSpinCase(new tensor::DistTensor<T>(uhf.arena, ndim, len, sym, true),
                                                        0, autocc::Manifold(pa, ha));
                 }
             }

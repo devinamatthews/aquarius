@@ -82,18 +82,16 @@ MOIntegrals<T>::MOIntegrals(const UHF<T>& uhf)
 
     const T* ea = uhf.getAlphaEigenvalues();
     const T* eb = uhf.getBetaEigenvalues();
-    int rank = this->comm.Get_rank();
-    int np = this->comm.Get_size();
 
     {
         vector< tkv_pair<T> > pairs;
 
         for (int i = 0;i < nI;i++)
         {
-            if (i%np == rank) pairs.push_back(tkv_pair<T>(i+i*nI, ea[i]));
+            if (i%this->nproc == this->rank) pairs.push_back(tkv_pair<T>(i+i*nI, ea[i]));
         }
 
-        fIJ_->writeRemoteData(pairs.size(), pairs.data());
+        fIJ_->writeRemoteData(pairs);
     }
 
     {
@@ -101,10 +99,10 @@ MOIntegrals<T>::MOIntegrals(const UHF<T>& uhf)
 
         for (int i = 0;i < ni;i++)
         {
-            if (i%np == rank) pairs.push_back(tkv_pair<T>(i+i*ni, eb[i]));
+            if (i%this->nproc == this->rank) pairs.push_back(tkv_pair<T>(i+i*ni, eb[i]));
         }
 
-        fij_->writeRemoteData(pairs.size(), pairs.data());
+        fij_->writeRemoteData(pairs);
     }
 
     {
@@ -112,10 +110,10 @@ MOIntegrals<T>::MOIntegrals(const UHF<T>& uhf)
 
         for (int i = 0;i < nA;i++)
         {
-            if (i%np == rank) pairs.push_back(tkv_pair<T>(i+i*nA, ea[i+nI]));
+            if (i%this->nproc == this->rank) pairs.push_back(tkv_pair<T>(i+i*nA, ea[i+nI]));
         }
 
-        fAB_->writeRemoteData(pairs.size(), pairs.data());
+        fAB_->writeRemoteData(pairs);
     }
 
     {
@@ -123,10 +121,10 @@ MOIntegrals<T>::MOIntegrals(const UHF<T>& uhf)
 
         for (int i = 0;i < na;i++)
         {
-            if (i%np == rank) pairs.push_back(tkv_pair<T>(i+i*na, eb[i+ni]));
+            if (i%this->nproc == this->rank) pairs.push_back(tkv_pair<T>(i+i*na, eb[i+ni]));
         }
 
-        fab_->writeRemoteData(pairs.size(), pairs.data());
+        fab_->writeRemoteData(pairs);
     }
 }
 

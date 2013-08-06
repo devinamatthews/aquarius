@@ -72,23 +72,23 @@ class OneElectronOperatorBase : public MOOperator<T>,
             int nA = N-nI;
             int na = N-ni;
 
-            int sizeAA[] = {nA, nA};
-            int sizeaa[] = {na, na};
-            int sizeAI[] = {nA, nI};
-            int sizeai[] = {na, ni};
-            int sizeII[] = {nI, nI};
-            int sizeii[] = {ni, ni};
+            std::vector<int> sizeAA = vec(nA, nA);
+            std::vector<int> sizeaa = vec(na, na);
+            std::vector<int> sizeAI = vec(nA, nI);
+            std::vector<int> sizeai = vec(na, ni);
+            std::vector<int> sizeII = vec(nI, nI);
+            std::vector<int> sizeii = vec(ni, ni);
 
-            int shapeNN[] = {NS, NS};
+            std::vector<int> shapeNN = vec(NS, NS);
 
-            ab.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeAA, shapeNN, true), "A,B", "AB");
-            ab.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeaa, shapeNN, true), "a,b", "ab");
+            ab.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeAA, shapeNN, true), "A,B", "AB");
+            ab.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeaa, shapeNN, true), "a,b", "ab");
 
-            ij.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeII, shapeNN, true), "I,J", "IJ");
-            ij.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeii, shapeNN, true), "i,j", "ij");
+            ij.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeII, shapeNN, true), "I,J", "IJ");
+            ij.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeii, shapeNN, true), "i,j", "ij");
 
-            ai.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeAI, shapeNN, true), "A,I", "AI");
-            ai.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeai, shapeNN, true), "a,i", "ai");
+            ai.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeAI, shapeNN, true), "A,I", "AI");
+            ai.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeai, shapeNN, true), "a,i", "ai");
 
             if (hermitian)
             {
@@ -97,8 +97,8 @@ class OneElectronOperatorBase : public MOOperator<T>,
             }
             else
             {
-                ia.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeAI, shapeNN, true), "I,A", "AI");
-                ia.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeai, shapeNN, true), "i,a", "ai");
+                ia.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeAI, shapeNN, true), "I,A", "AI");
+                ia.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeai, shapeNN, true), "i,a", "ai");
             }
         }
 
@@ -121,43 +121,44 @@ class OneElectronOperatorBase : public MOOperator<T>,
             int nA = N-nI;
             int na = N-ni;
 
-            int sizeAA[] = {nA, nA};
-            int sizeaa[] = {na, na};
-            int sizeAI[] = {nA, nI};
-            int sizeai[] = {na, ni};
-            int sizeII[] = {nI, nI};
-            int sizeii[] = {ni, ni};
-            int sizeAN[] = {nA, N};
-            int sizeaN[] = {na, N};
-            int sizeIN[] = {nI, N};
-            int sizeiN[] = {ni, N};
 
-            int shapeNN[] = {NS, NS};
+            std::vector<int> sizeAA = vec(nA, nA);
+            std::vector<int> sizeaa = vec(na, na);
+            std::vector<int> sizeAI = vec(nA, nI);
+            std::vector<int> sizeai = vec(na, ni);
+            std::vector<int> sizeII = vec(nI, nI);
+            std::vector<int> sizeii = vec(ni, ni);
+            std::vector<int> sizeAN = vec(nA, N);
+            std::vector<int> sizeaN = vec(na, N);
+            std::vector<int> sizeIN = vec(nI, N);
+            std::vector<int> sizeiN = vec(ni, N);
 
-            tensor::DistTensor<T> Aq(this->ctf, 2, sizeAN, shapeNN, false);
-            tensor::DistTensor<T> aq(this->ctf, 2, sizeaN, shapeNN, false);
-            tensor::DistTensor<T> Iq(this->ctf, 2, sizeIN, shapeNN, false);
-            tensor::DistTensor<T> iq(this->ctf, 2, sizeiN, shapeNN, false);
+            std::vector<int>tor<int> shapeNN = vec(NS, NS);
+
+            tensor::DistTensor<T> Aq(this->arena, 2, sizeAN, shapeNN, false);
+            tensor::DistTensor<T> aq(this->arena, 2, sizeaN, shapeNN, false);
+            tensor::DistTensor<T> Iq(this->arena, 2, sizeIN, shapeNN, false);
+            tensor::DistTensor<T> iq(this->arena, 2, sizeiN, shapeNN, false);
 
             Aq["Aq"] = cA["pA"]*ao["pq"];
             aq["aq"] = ca["pa"]*ao["pq"];
             Iq["Iq"] = cI["pI"]*ao["pq"];
             iq["iq"] = ci["pi"]*ao["pq"];
 
-            ab.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeAA, shapeNN, true), "A,B", "AB");
-            ab.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeaa, shapeNN, true), "a,b", "ab");
+            ab.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeAA, shapeNN, true), "A,B", "AB");
+            ab.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeaa, shapeNN, true), "a,b", "ab");
 
             ab(1,0,1,0)["AB"] = Aq["Aq"]*cA["qB"];
             ab(0,0,0,0)["ab"] = aq["aq"]*ca["qb"];
 
-            ij.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeII, shapeNN, true), "I,J", "IJ");
-            ij.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeii, shapeNN, true), "i,j", "ij");
+            ij.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeII, shapeNN, true), "I,J", "IJ");
+            ij.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeii, shapeNN, true), "i,j", "ij");
 
             ij(0,1,0,1)["IJ"] = Iq["Iq"]*cI["qJ"];
             ij(0,0,0,0)["ij"] = iq["iq"]*ci["qj"];
 
-            ai.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeAI, shapeNN, true), "A,I", "AI");
-            ai.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeai, shapeNN, true), "a,i", "ai");
+            ai.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeAI, shapeNN, true), "A,I", "AI");
+            ai.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeai, shapeNN, true), "a,i", "ai");
 
             ai(1,0,0,1)["AI"] = Aq["Aq"]*cI["qI"];
             ai(0,0,0,0)["ai"] = aq["aq"]*ci["qi"];
@@ -169,8 +170,8 @@ class OneElectronOperatorBase : public MOOperator<T>,
             }
             else
             {
-                ia.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeAI, shapeNN, true), "I,A", "AI");
-                ia.addSpinCase(new tensor::DistTensor<T>(this->ctf, 2, sizeai, shapeNN, true), "i,a", "ai");
+                ia.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeAI, shapeNN, true), "I,A", "AI");
+                ia.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeai, shapeNN, true), "i,a", "ai");
 
                 ia(0,1,1,0)["IA"] = Iq["Iq"]*cA["qA"];
                 ia(0,0,0,0)["ia"] = iq["iq"]*ca["qa"];

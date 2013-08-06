@@ -76,7 +76,7 @@ class ExcitationOperator
                 int npex = (np > nh ? ex+np-nh : ex);
                 int nhex = (nh > np ? ex+nh-np : ex);
 
-                tensors_[idx].tensor_ = new tensor::SpinorbitalTensor<T>(autocc::Manifold(npex,nhex), 0, spin);
+                tensors[idx].tensor = new tensor::SpinorbitalTensor<T>(autocc::Manifold(npex,nhex), 0, spin);
 
                 for (int pspin = std::max(-npex,spin-nhex);pspin <= std::min(npex,spin+nhex);pspin++)
                 {
@@ -103,7 +103,7 @@ class ExcitationOperator
                     if (pa+pb+ha > 0) sym[pa+pb+ha-1] = NS;
                     if (pa+pb+ha+hb > 0) sym[pa+pb+ha+hb-1] = NS;
 
-                    tensors_[idx].tensor_->addSpinCase(new tensor::DistTensor<T>(uhf.ctf, ndim, len.data(), sym.data(), true),
+                    tensors[idx].tensor->addSpinCase(new tensor::DistTensor<T>(uhf.arena, ndim, len, sym, true),
                                                        autocc::Manifold(pa, ha), 0);
                 }
             }

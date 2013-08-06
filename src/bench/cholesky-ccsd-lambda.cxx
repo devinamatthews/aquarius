@@ -24,11 +24,11 @@
 
 #include "input/config.hpp"
 #include "input/molecule.hpp"
-#include "scf/aoints.hpp"
+#include "operator/eri.hpp"
 #include "scf/aoscf.hpp"
-#include "scf/aomoints.hpp"
+#include "operator/aomoints.hpp"
 #include "scf/choleskyscf.hpp"
-#include "scf/choleskymoints.hpp"
+#include "operator/choleskymoints.hpp"
 #include "cc/ccsd.hpp"
 #include "cc/ccsdt.hpp"
 #include "cc/lambdaccsd.hpp"
@@ -45,6 +45,7 @@ using namespace elem;
 
 using namespace std;
 using namespace MPI;
+using namespace aquarius;
 using namespace aquarius::slide;
 using namespace aquarius::input;
 using namespace aquarius::scf;
@@ -64,7 +65,7 @@ int main(int argc, char **argv)
     {
         int i;
         double dt;
-        tCTF_World<double> ctf;
+        Arena<double> world(argc, argv);
 
         assert(argc > 1);
         Schema schema(TOPDIR "/input_schema");
@@ -79,7 +80,7 @@ int main(int argc, char **argv)
         PRINT("ni: %d\n", mol.getNumBetaElectrons());
 
         tic();
-        CholeskyIntegrals<double> chol(ctf, config.get("cholesky"), mol);
+        CholeskyIntegrals<double> chol(world, config.get("cholesky"), mol);
         dt = todouble(toc());
         PRINT("\nCholesky integrals took: %8.3f s\n", dt);
 

@@ -113,22 +113,33 @@ struct MPI_TYPE_<unsigned long long>
 };
 
 template <typename T>
-class Distributed
+class Arena
 {
     public:
-        tCTF_World<T>& ctf;
+        tCTF_World<T> ctf;
         MPI::Intracomm comm;
-        const MPI::Datatype type;
         const int rank;
         const int nproc;
 
-        Distributed(tCTF_World<T>& ctf)
-        : ctf(ctf), comm(ctf.comm), type(MPI_TYPE_<T>::value()),
-          rank(comm.Get_rank()), nproc(comm.Get_size()) {}
+        Arena(MPI::Intracomm& comm = MPI::COMM_WORLD)
+        : ctf(comm), comm(comm), rank(comm.Get_rank()), nproc(comm.Get_size()) {}
 
-        Distributed(const Distributed<T>& other)
-        : ctf(other.ctf), comm(ctf.comm), type(MPI_TYPE_<T>::value()),
-          rank(comm.Get_rank()), nproc(comm.Get_size()) {}
+        Arena(int argc, char** argv)
+        : ctf(MPI::COMM_WORLD, argc, argv), comm(MPI::COMM_WORLD), rank(MPI::COMM_WORLD.Get_rank()), nproc(MPI::COMM_WORLD.Get_size()) {}
+};
+
+template <typename T>
+class Distributed
+{
+    public:
+        Arena<T>& arena;
+        MPI::Intracomm comm;
+        const int rank;
+        const int nproc;
+        MPI::Datatype type;
+
+        Distributed(Arena<T>& arena)
+        : arena(arena), comm(arena.comm), rank(arena.rank), nproc(arena.nproc), type(MPI_TYPE_<T>::value()) {}
 };
 
 }

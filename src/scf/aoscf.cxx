@@ -32,45 +32,42 @@ using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
 using namespace aquarius::slide;
+using namespace aquarius::op;
 
 template <typename T>
-AOUHF<T>::AOUHF(const Config& config, const AOIntegrals<T>& ints)
-: UHF<T>(ints.ctf, config, ints.molecule), ints(ints) {}
+AOUHF<T>::AOUHF(const Config& config, const ERI<T>& ints)
+: UHF<T>(ints.arena, config, ints.molecule), ints(ints) {}
 
 template <typename T>
 void AOUHF<T>::buildFock()
 {
-    T *focka, *fockb;
-    T *densa, *densb;
+    vector<T> focka, fockb;
+    vector<T> densa, densb;
 
     int64_t npair;
 
-    this->H->getAllData(npair, focka, 0);
-    assert(this->rank != 0 || npair == norb*norb);
-    this->H->getAllData(npair, fockb, 0);
-    assert(this->rank != 0 || npair == norb*norb);
+    this->H->getAllData(focka, 0);
+    assert(this->rank != 0 || focka.size() == norb*norb);
+    this->H->getAllData(fockb, 0);
+    assert(this->rank != 0 || focka.size() == norb*norb);
 
     if (this->rank != 0)
     {
-        focka = SAFE_MALLOC(T, norb*norb);
-        fockb = SAFE_MALLOC(T, norb*norb);
-        fill(focka, focka+norb*norb, 0.0);
-        fill(fockb, fockb+norb*norb, 0.0);
+        focka.resize(norb*norb, (T)0);
+        fockb.resize(norb*norb, (T)0);
     }
 
-    this->Da->getAllData(npair, densa);
-    assert(npair == norb*norb);
-    this->Db->getAllData(npair, densb);
-    assert(npair == norb*norb);
+    this->Da->getAllData(densa);
+    assert(densa.size() == norb*norb);
+    this->Db->getAllData(densb);
+    assert(densa.size() == norb*norb);
 
-    T *densab = SAFE_MALLOC(T, norb*norb);
+    vector<T> densab(densa);
+    axpy(norb*norb, 1.0, densb.data(), 1, densab.data(), 1);
 
-    copy(norb*norb,      densa, 1, densab, 1);
-    axpy(norb*norb, 1.0, densb, 1, densab, 1);
-
-    size_t neris = ints.getNumInts();
-    const T* eris = ints.getInts();
-    const idx4_t* idxs = ints.getIndices();
+    const vector<T>& eris = ints.getInts();
+    const vector<idx4_t>& idxs = ints.getIndices();
+    size_t neris = eris.size();
 
     for (size_t n = 0;n < neris;n++)
     {
@@ -149,10 +146,10 @@ void AOUHF<T>::buildFock()
 
     if (this->rank == 0)
     {
-        this->comm.Reduce(MPI::IN_PLACE, focka, norb*norb, this->type, MPI::SUM, 0);
-        this->comm.Reduce(MPI::IN_PLACE, fockb, norb*norb, this->type, MPI::SUM, 0);
+        this->comm.Reduce(MPI::IN_PLACE, focka.data(), norb*norb, this->type, MPI::SUM, 0);
+        this->comm.Reduce(MPI::IN_PLACE, fockb.data(), norb*norb, this->type, MPI::SUM, 0);
 
-        tkv_pair<T>* pairs = SAFE_MALLOC(tkv_pair<T>, norb*norb);
+        vector<tkv_pair<T> > pairs(norb*norb);
 
         for (int p = 0;p < norb*norb;p++)
         {
@@ -160,7 +157,7 @@ void AOUHF<T>::buildFock()
             pairs[p].k = p;
         }
 
-        this->Fa->writeRemoteData(norb*norb, pairs);
+        this->Fa->writeRemoteData(pairs);
 
         for (int p = 0;p < norb*norb;p++)
         {
@@ -168,24 +165,16 @@ void AOUHF<T>::buildFock()
             pairs[p].k = p;
         }
 
-        this->Fb->writeRemoteData(norb*norb, pairs);
-
-        FREE(pairs);
+        this->Fb->writeRemoteData(pairs);
     }
     else
     {
-        this->comm.Reduce(focka, NULL, norb*norb, this->type, MPI::SUM, 0);
-        this->comm.Reduce(fockb, NULL, norb*norb, this->type, MPI::SUM, 0);
+        this->comm.Reduce(focka.data(), NULL, norb*norb, this->type, MPI::SUM, 0);
+        this->comm.Reduce(fockb.data(), NULL, norb*norb, this->type, MPI::SUM, 0);
 
-        this->Fa->writeRemoteData(0, NULL);
-        this->Fb->writeRemoteData(0, NULL);
+        this->Fa->writeRemoteData();
+        this->Fb->writeRemoteData();
     }
-
-    FREE(densab);
-    FREE(focka);
-    FREE(fockb);
-    FREE(densa);
-    FREE(densb);
 }
 
 INSTANTIATE_SPECIALIZATIONS(AOUHF);

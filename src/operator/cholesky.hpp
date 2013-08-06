@@ -22,8 +22,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_SCF_CHOLESKY_HPP_
-#define _AQUARIUS_SCF_CHOLESKY_HPP_
+#ifndef _AQUARIUS_OPERATOR_CHOLESKY_HPP_
+#define _AQUARIUS_OPERATOR_CHOLESKY_HPP_
 
 #include "tensor/dist_tensor.hpp"
 #include "tensor/dense_tensor.hpp"
@@ -36,7 +36,7 @@
 
 namespace aquarius
 {
-namespace scf
+namespace op
 {
 
 template <typename T>
@@ -77,7 +77,7 @@ class CholeskyIntegrals : public Distributed<T>
         slide::Context* context;
 
     public:
-        CholeskyIntegrals(tCTF_World<T>& ctf, const input::Config& config, const input::Molecule& molecule);
+        CholeskyIntegrals(Arena<T>& arena, const input::Config& config, const input::Molecule& molecule);
 
         ~CholeskyIntegrals();
 

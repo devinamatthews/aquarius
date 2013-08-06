@@ -22,30 +22,22 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#include "aoints.hpp"
+#include "eri.hpp"
 
 using namespace std;
 using namespace aquarius;
-using namespace aquarius::scf;
 using namespace aquarius::input;
 using namespace aquarius::slide;
+using namespace aquarius::op;
 
 template <typename T>
-AOIntegrals<T>::AOIntegrals(tCTF_World<T>& ctf, const Molecule& molecule)
-: Distributed<T>(ctf), molecule(molecule)
+ERI<T>::ERI(Arena<T>& arena, const Molecule& molecule)
+: AOOperator<T>(arena, molecule.getNumOrbitals()), molecule(molecule)
 {
-    generateInts();
-    loadBalance();
-}
+    Context context;
 
-template <typename T>
-void AOIntegrals<T>::generateInts()
-{
-    double tmpval[TMP_BUFSIZE];
+    T tmpval[TMP_BUFSIZE];
     idx4_t tmpidx[TMP_BUFSIZE];
-
-    vector<T> tmpints;
-    vector<idx4_t> tmpidxs;
 
     int abcd = 0;
     for (Molecule::const_shell_iterator a = molecule.getShellsBegin();a != molecule.getShellsEnd();++a)
@@ -65,8 +57,8 @@ void AOIntegrals<T>::generateInts()
                         size_t n;
                         while ((n = context.process2eInts(TMP_BUFSIZE, tmpval, tmpidx, INTEGRAL_CUTOFF)) != 0)
                         {
-                            tmpints.insert(tmpints.end(), tmpval, tmpval+n);
-                            tmpidxs.insert(tmpidxs.end(), tmpidx, tmpidx+n);
+                            ints.insert(ints.end(), tmpval, tmpval+n);
+                            idxs.insert(idxs.end(), tmpidx, tmpidx+n);
                         }
                     }
                     abcd++;
@@ -75,25 +67,9 @@ void AOIntegrals<T>::generateInts()
         }
     }
 
-    nints = tmpints.size();
-    ints = SAFE_MALLOC(T, nints);
-    copy(tmpints.begin(), tmpints.end(), ints);
-    idxs = SAFE_MALLOC(idx4_t, nints);
-    copy(tmpidxs.begin(), tmpidxs.end(), idxs);
+    //TODO: load balance
 
-    PRINT("#ints: %ld\n", nints);
-}
-
-template <typename T>
-void AOIntegrals<T>::loadBalance()
-{
-    //TODO
-}
-
-template <typename T>
-void AOIntegrals<T>::canonicalize()
-{
-    for (int i = 0;i < nints;++i)
+    for (int i = 0;i < ints.size();++i)
     {
         if (idxs[i].i > idxs[i].j) swap(idxs[i].i, idxs[i].j);
         if (idxs[i].k > idxs[i].l) swap(idxs[i].k, idxs[i].l);
@@ -106,4 +82,4 @@ void AOIntegrals<T>::canonicalize()
     }
 }
 
-INSTANTIATE_SPECIALIZATIONS(AOIntegrals);
+INSTANTIATE_SPECIALIZATIONS(ERI);

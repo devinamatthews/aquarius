@@ -311,38 +311,41 @@ template<typename T> std::ostream& operator<<(std::ostream& os, const std::vecto
     return os;
 }
 
-
-template<typename T> std::vector<T> make_vector(const T& a)
+template<typename T> std::vector<T> vec(const T& a)
 {
     std::vector<T> v;
     v.push_back(a);
+    return v;
 }
 
-template<typename T> std::vector<T> make_vector(const T& a, const T& b)
+template<typename T> std::vector<T> vec(const T& a, const T& b)
 {
     std::vector<T> v;
     v.push_back(a);
     v.push_back(b);
+    return v;
 }
 
-template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c)
+template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c)
 {
     std::vector<T> v;
     v.push_back(a);
     v.push_back(b);
     v.push_back(c);
+    return v;
 }
 
-template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c, const T& d)
+template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, const T& d)
 {
     std::vector<T> v;
     v.push_back(a);
     v.push_back(b);
     v.push_back(c);
     v.push_back(d);
+    return v;
 }
 
-template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c, const T& d, const T& e)
+template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, const T& d, const T& e)
 {
     std::vector<T> v;
     v.push_back(a);
@@ -350,10 +353,11 @@ template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T&
     v.push_back(c);
     v.push_back(d);
     v.push_back(e);
+    return v;
 }
 
-template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c, const T& d, const T& e,
-                                                const T& f)
+template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, const T& d, const T& e,
+                                        const T& f)
 {
     std::vector<T> v;
     v.push_back(a);
@@ -362,10 +366,11 @@ template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T&
     v.push_back(d);
     v.push_back(e);
     v.push_back(f);
+    return v;
 }
 
-template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c, const T& d, const T& e,
-                                                const T& f, const T& g)
+template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, const T& d, const T& e,
+                                        const T& f, const T& g)
 {
     std::vector<T> v;
     v.push_back(a);
@@ -375,10 +380,11 @@ template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T&
     v.push_back(e);
     v.push_back(f);
     v.push_back(g);
+    return v;
 }
 
-template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c, const T& d, const T& e,
-                                                const T& f, const T& g, const T& h)
+template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, const T& d, const T& e,
+                                        const T& f, const T& g, const T& h)
 {
     std::vector<T> v;
     v.push_back(a);
@@ -389,10 +395,11 @@ template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T&
     v.push_back(f);
     v.push_back(g);
     v.push_back(h);
+    return v;
 }
 
-template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c, const T& d, const T& e,
-                                                const T& f, const T& g, const T& h, const T& i)
+template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, const T& d, const T& e,
+                                        const T& f, const T& g, const T& h, const T& i)
 {
     std::vector<T> v;
     v.push_back(a);
@@ -404,10 +411,11 @@ template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T&
     v.push_back(g);
     v.push_back(h);
     v.push_back(i);
+    return v;
 }
 
-template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T& c, const T& d, const T& e,
-                                                const T& f, const T& g, const T& h, const T& i, const T& j)
+template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, const T& d, const T& e,
+                                        const T& f, const T& g, const T& h, const T& i, const T& j)
 {
     std::vector<T> v;
     v.push_back(a);
@@ -420,6 +428,7 @@ template<typename T> std::vector<T> make_vector(const T& a, const T& b, const T&
     v.push_back(h);
     v.push_back(i);
     v.push_back(j);
+    return v;
 }
 template<typename T> std::string str(const T& t)
 {

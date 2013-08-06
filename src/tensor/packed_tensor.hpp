@@ -55,26 +55,28 @@ class PackedTensor : public LocalTensor<PackedTensor<T>,T>
     INHERIT_FROM_LOCAL_TENSOR(PackedTensor<T>,T)
 
     protected:
-        int* sym_;
+        std::vector<int> sym;
 
     public:
-        PackedTensor(const PackedTensor& t, const T val);
+        PackedTensor(T val = (T)0);
 
-        PackedTensor(const PackedTensor<T>& A, const typename LocalTensor<PackedTensor<T>,T>::CopyType type=CLONE);
+        PackedTensor(const PackedTensor<T>& A, T val);
 
-        PackedTensor(const int ndim, const int *len, const int *sym, T* data, const bool zero=false);
+        PackedTensor(const PackedTensor<T>& A);
 
-        PackedTensor(const int ndim, const int *len, const int *sym, const bool zero=true);
+        PackedTensor(PackedTensor<T>& A, typename LocalTensor<PackedTensor<T>,T>::CopyType type=CLONE);
 
-        PackedTensor(const int ndim, const int *len, const int *ld, const int *sym, T* data, const bool zero=false);
+        PackedTensor(int ndim, const std::vector<int>& len, const std::vector<int>& sym, T* data, bool zero=false);
 
-        PackedTensor(const int ndim, const int *len, const int *ld, const int *sym, const bool zero=true);
+        PackedTensor(int ndim, const std::vector<int>& len, const std::vector<int>& sym, bool zero=true);
 
-        ~PackedTensor();
+        PackedTensor(int ndim, const std::vector<int>& len, const std::vector<int>& ld, const std::vector<int>& sym, T* data, bool zero=false);
 
-        static uint64_t getSize(const int ndim, const int *len, const int *ld, const int *sym);
+        PackedTensor(int ndim, const std::vector<int>& len, const std::vector<int>& ld, const std::vector<int>& sym, bool zero=true);
 
-        const int* getSymmetry() const { return sym_; }
+        static uint64_t getSize(int ndim, const std::vector<int>&  len, const std::vector<int>& ld, const std::vector<int>& sym);
+
+        const std::vector<int>& getSymmetry() const { return sym; }
 
         void print(FILE* fp) const;
 

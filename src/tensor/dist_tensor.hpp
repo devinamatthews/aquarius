@@ -68,65 +68,74 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
 
     protected:
         int tid;
-        int *len_;
-        int *sym_;
+        std::vector<int> len;
+        std::vector<int> sym;
+
+        void allocate();
+
+        void free();
 
     public:
-        using Distributed<T>::ctf;
+        using Distributed<T>::arena;
 
-        DistTensor(const DistTensor& t, const T val);
+        DistTensor(Arena<T>& arena, T scalar = (T)0);
 
-        DistTensor(tCTF_World<T>& ctf);
+        DistTensor(const DistTensor<T>& A, T scalar);
 
-        DistTensor(const DistTensor<T>& A,
-                   const bool copy=true,
-                   const bool zero=false);
+        DistTensor(const DistTensor<T>& A, bool copy=true, bool zero=false);
 
-        DistTensor(tCTF_World<T>& ctf,
-                   const int ndim, const int *len, const int *sym,
-                   const bool zero=true);
+        DistTensor(Arena<T>& arena, int ndim, const std::vector<int>& len, const std::vector<int>& sym,
+                   bool zero=true);
 
         virtual ~DistTensor();
 
-        const int* getLengths() const { return len_; }
+        void resize(int ndim, const std::vector<int>& len, const std::vector<int>& sym, bool zero);
 
-        const int* getSymmetry() const { return sym_; }
+        const std::vector<int>& getLengths() const { return len; }
+
+        const std::vector<int>& getSymmetry() const { return sym; }
 
         T* getRawData(int64_t& size);
 
         const T* getRawData(int64_t& size) const;
 
-        void getLocalData(int64_t& npair, tkv_pair<T>*& pairs) const;
+        void getLocalData(std::vector<tkv_pair<T> >& pairs) const;
 
-        void getRemoteData(int64_t npair, tkv_pair<T>* pairs) const;
+        void getRemoteData(std::vector<tkv_pair<T> >& pairs) const;
 
-        void writeRemoteData(int64_t npair, tkv_pair<T>* pairs);
+        void getRemoteData() const;
 
-        void writeRemoteData(double alpha, double beta, int64_t npair, tkv_pair<T>* pairs);
+        void writeRemoteData(const std::vector<tkv_pair<T> >& pairs);
 
-        void getAllData(int64_t& npair, T*& vals) const;
+        void writeRemoteData();
 
-        void getAllData(int64_t& npair, T*& vals, const int rank) const;
+        void writeRemoteData(double alpha, double beta, const std::vector<tkv_pair<T> >& pairs);
 
-        void div(const T alpha, bool conja, const DistTensor<T>& A,
-                                bool conjb, const DistTensor<T>& B, const T beta);
+        void writeRemoteData(double alpha, double beta);
 
-        void invert(const T alpha, bool conja, const DistTensor<T>& A, const T beta);
+        void getAllData(std::vector<T>& vals) const;
+
+        void getAllData(std::vector<T>& vals, int rank) const;
+
+        void div(T alpha, bool conja, const DistTensor<T>& A,
+                          bool conjb, const DistTensor<T>& B, T beta);
+
+        void invert(T alpha, bool conja, const DistTensor<T>& A, T beta);
 
         void print(FILE* fp, double cutoff = 0.0) const;
 
         void compare(FILE* fp, const DistTensor<T>& other, double cutoff = 0.0) const;
 
-        double reduce(CTF_OP op) const;
+        typename std::real_type<T>::type norm(int p) const;
 
-        void mult(const T alpha, bool conja, const DistTensor<T>& A, const int *idx_A,
-                                 bool conjb, const DistTensor<T>& B, const int *idx_B,
-                  const T  beta,                                     const int *idx_C);
+        void mult(T alpha, bool conja, const DistTensor<T>& A, const int *idx_A,
+                           bool conjb, const DistTensor<T>& B, const int *idx_B,
+                  T  beta,                                     const int *idx_C);
 
-        void sum(const T alpha, bool conja, const DistTensor<T>& A, const int *idx_A,
-                 const T  beta,                                     const int *idx_B);
+        void sum(T alpha, bool conja, const DistTensor<T>& A, const int *idx_A,
+                 T  beta,                                     const int *idx_B);
 
-        void scale(const T alpha, const int* idx_A);
+        void scale(T alpha, const int* idx_A);
 
         T dot(bool conja, const DistTensor<T>& A, const int* idx_A,
               bool conjb,                         const int* idx_B) const;

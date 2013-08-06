@@ -30,23 +30,24 @@ using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
 using namespace aquarius::slide;
+using namespace aquarius::op;
 
 template <typename T>
 CholeskyUHF<T>::CholeskyUHF(const Config& config, const CholeskyIntegrals<T>& chol)
-: UHF<T>(chol.ctf, config, chol.molecule), chol(chol)
+: UHF<T>(chol.arena, config, chol.molecule), chol(chol)
 {
-    int shapeN[] = {NS};
-    int shapeNNN[] = {NS,NS,NS};
+    vector<int> shapeN = vec(NS);
+    vector<int> shapeNNN = vec(NS,NS,NS);
+    vector<int> sizer = vec(chol.getRank());
+    vector<int> sizenOr = vec(this->norb,this->nalpha,chol.getRank());
+    vector<int> sizenor = vec(this->norb,this->nbeta,chol.getRank());
 
-    int sizer[] = {chol.getRank()};
-    J = new DistTensor<T>(this->ctf, 1, sizer, shapeN, false);
-    JD = new DistTensor<T>(this->ctf, 1, sizer, shapeN, false);
-    int sizenOr[] = {this->norb,this->nalpha,chol.getRank()};
-    int sizenor[] = {this->norb,this->nbeta,chol.getRank()};
-    La_occ = new DistTensor<T>(this->ctf, 3, sizenOr, shapeNNN, false);
-    Lb_occ = new DistTensor<T>(this->ctf, 3, sizenor, shapeNNN, false);
-    LDa_occ = new DistTensor<T>(this->ctf, 3, sizenOr, shapeNNN, false);
-    LDb_occ = new DistTensor<T>(this->ctf, 3, sizenor, shapeNNN, false);
+    J = new DistTensor<T>(this->arena, 1, sizer, shapeN, false);
+    JD = new DistTensor<T>(this->arena, 1, sizer, shapeN, false);
+    La_occ = new DistTensor<T>(this->arena, 3, sizenOr, shapeNNN, false);
+    Lb_occ = new DistTensor<T>(this->arena, 3, sizenor, shapeNNN, false);
+    LDa_occ = new DistTensor<T>(this->arena, 3, sizenOr, shapeNNN, false);
+    LDb_occ = new DistTensor<T>(this->arena, 3, sizenor, shapeNNN, false);
 }
 
 template <typename T>

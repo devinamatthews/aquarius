@@ -43,7 +43,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& t, const T v
 
 template<class T>
 SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& other)
-: IndexableCompositeTensor<SpinorbitalTensor<T>,DistTensor<T>,T>(other.ndim_, 0)
+: IndexableCompositeTensor<SpinorbitalTensor<T>,DistTensor<T>,T>(other.ndim, 0)
 {
     logical = other.logical;
     nA = other.nA;
@@ -63,7 +63,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& other)
         newsc.nI = sc->nI;
         newsc.permFactor = sc->permFactor;
         cases.push_back(newsc);
-        tensors_.push_back(typename IndexableCompositeTensor<SpinorbitalTensor<T>,DistTensor<T>,T>::TensorRef(newsc.tensor, true));
+        tensors.push_back(typename IndexableCompositeTensor<SpinorbitalTensor<T>,DistTensor<T>,T>::TensorRef(newsc.tensor, true));
     }
 }
 
@@ -167,7 +167,7 @@ template<class T>
 void SpinorbitalTensor<T>::addSpinCase(DistTensor<T>& tensor, vector<Line> logical, vector<Line> physical, double factor, bool isAlloced)
 {
     SpinCase sc(tensor);
-    tensors_.push_back(typename IndexableCompositeTensor<SpinorbitalTensor<T>,DistTensor<T>,T>::TensorRef(&tensor, isAlloced));
+    tensors.push_back(typename IndexableCompositeTensor<SpinorbitalTensor<T>,DistTensor<T>,T>::TensorRef(&tensor, isAlloced));
 
     sc.logical = logical;
 
@@ -344,17 +344,17 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
     const SpinorbitalTensor<T>& A = A_.getDerived();
     const SpinorbitalTensor<T>& B = B_.getDerived();
 
-    int *idx_A_ = new int[A.ndim_];
-    int *idx_B_ = new int[B.ndim_];
-    int *idx_C_ = new int[ndim_];
+    int *idx_A_ = new int[A.ndim];
+    int *idx_B_ = new int[B.ndim];
+    int *idx_C_ = new int[ndim];
 
     /*
     cout << "contracting: " << alpha << " * " << A.logical << "[";
-    for (int i = 0;i < A.ndim_;i++) cout << idx_A[i] << ' ';
+    for (int i = 0;i < A.ndim;i++) cout << idx_A[i] << ' ';
     cout << "] " << B.logical << "[";
-    for (int i = 0;i < B.ndim_;i++) cout << idx_B[i] << ' ';
+    for (int i = 0;i < B.ndim;i++) cout << idx_B[i] << ' ';
     cout << "] -> " << beta_ << " " << logical << "[";
-    for (int i = 0;i <   ndim_;i++) cout << idx_C[i] << ' ';
+    for (int i = 0;i <   ndim;i++) cout << idx_C[i] << ' ';
     cout << "]\n" << endl;
     */
 
@@ -409,7 +409,7 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
                         sAout[i] = sBout[j];
                     }
                 }
-                for (;j < B.ndim_;j++)
+                for (;j < B.ndim;j++)
                 {
                     if (idx_A[i] == idx_B[j])
                     {
@@ -421,7 +421,7 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
                     }
                 }
             }
-            for (;i < A.ndim_;i++)
+            for (;i < A.ndim;i++)
             {
                 int j;
                 for (j = 0;j < B.nA+B.nM;j++)
@@ -435,7 +435,7 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
                         sAin[i-A.nA-A.nM] = sBout[j];
                     }
                 }
-                for (;j < B.ndim_;j++)
+                for (;j < B.ndim;j++)
                 {
                     if (idx_A[i] == idx_B[j])
                     {
@@ -574,40 +574,40 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
             }
             if (scB == B.cases.end()) throw logic_error("no matching spin case for tensor B");
 
-            vector<Line> lA(A.ndim_);
+            vector<Line> lA(A.ndim);
             for (int i = 0;i < A.nA+A.nM;i++)
             {
                 idx_A_[scA->log_to_phys[i]] = out_A[i].toInt();
                 lA[scA->log_to_phys[i]] = out_A[i];
             }
 
-            for (int i = A.nA+A.nM;i < A.ndim_;i++)
+            for (int i = A.nA+A.nM;i < A.ndim;i++)
             {
                 idx_A_[scA->log_to_phys[i]] = in_A[i-A.nA-A.nM].toInt();
                 lA[scA->log_to_phys[i]] = in_A[i-A.nA-A.nM];
             }
 
-            vector<Line> lB(B.ndim_);
+            vector<Line> lB(B.ndim);
             for (int i = 0;i < B.nA+B.nM;i++)
             {
                 idx_B_[scB->log_to_phys[i]] = out_B[i].toInt();
                 lB[scB->log_to_phys[i]] = out_B[i];
             }
 
-            for (int i = B.nA+B.nM;i < B.ndim_;i++)
+            for (int i = B.nA+B.nM;i < B.ndim;i++)
             {
                 idx_B_[scB->log_to_phys[i]] = in_B[i-B.nA-B.nM].toInt();
                 lB[scB->log_to_phys[i]] = in_B[i-B.nA-B.nM];
             }
 
-            vector<Line> lC(ndim_);
+            vector<Line> lC(ndim);
             for (int i = 0;i < nA+nM;i++)
             {
                 idx_C_[scC->log_to_phys[i]] = out_C[i].toInt();
                 lC[scC->log_to_phys[i]] = out_C[i];
             }
 
-            for (int i = nA+nM;i < ndim_;i++)
+            for (int i = nA+nM;i < ndim;i++)
             {
                 idx_C_[scC->log_to_phys[i]] = in_C[i-nA-nM].toInt();
                 lC[scC->log_to_phys[i]] = in_C[i-nA-nM];
@@ -644,13 +644,13 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
 {
     const SpinorbitalTensor<T>& A = A_.getDerived();
 
-    int *idx_A_ = new int[A.ndim_];
-    int *idx_B_ = new int[ndim_];
+    int *idx_A_ = new int[A.ndim];
+    int *idx_B_ = new int[ndim];
 
     //cout << "summing [";
-    //for (int i = 0;i < A.ndim_;i++) cout << idx_A[i] << ' ';
+    //for (int i = 0;i < A.ndim;i++) cout << idx_A[i] << ' ';
     //cout << "] [";
-    //for (int i = 0;i <   ndim_;i++) cout << idx_B[i] << ' ';
+    //for (int i = 0;i <   ndim;i++) cout << idx_B[i] << ' ';
     //cout << "]" << endl;
 
     vector<T> beta(cases.size(), beta_);
@@ -731,27 +731,27 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
             }
             if (scA == A.cases.end()) throw logic_error("no matching spin case for tensor A");
 
-            vector<Line> lA(A.ndim_);
+            vector<Line> lA(A.ndim);
             for (int i = 0;i < A.nA+A.nM;i++)
             {
                 idx_A_[scA->log_to_phys[i]] = out_A[i].toInt();
                 lA[scA->log_to_phys[i]] = out_A[i];
             }
 
-            for (int i = A.nA+A.nM;i < A.ndim_;i++)
+            for (int i = A.nA+A.nM;i < A.ndim;i++)
             {
                 idx_A_[scA->log_to_phys[i]] = in_A[i-A.nA-A.nM].toInt();
                 lA[scA->log_to_phys[i]] = in_A[i-A.nA-A.nM];
             }
 
-            vector<Line> lB(ndim_);
+            vector<Line> lB(ndim);
             for (int i = 0;i < nA+nM;i++)
             {
                 idx_B_[scB->log_to_phys[i]] = out_B[i].toInt();
                 lB[scB->log_to_phys[i]] = out_B[i];
             }
 
-            for (int i = nA+nM;i < ndim_;i++)
+            for (int i = nA+nM;i < ndim;i++)
             {
                 idx_B_[scB->log_to_phys[i]] = in_B[i-nA-nM].toInt();
                 lB[scB->log_to_phys[i]] = in_B[i-nA-nM];
@@ -785,7 +785,7 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
 template<class T>
 void SpinorbitalTensor<T>::scale(const T alpha, const int* idx_A)
 {
-    int *idx_A_ = new int[ndim_];
+    int *idx_A_ = new int[ndim];
 
     vector<Line> sAin(nA+nM);
     vector<Line> sAout(nE+nI);
@@ -810,14 +810,14 @@ void SpinorbitalTensor<T>::scale(const T alpha, const int* idx_A)
         vector<Line> out_A = fA.getIndicesOut();
         vector<Line>  in_A = fA.getIndicesIn();
 
-        vector<Line> lA(ndim_);
+        vector<Line> lA(ndim);
         for (int i = 0;i < nA+nM;i++)
         {
             idx_A_[scA->log_to_phys[i]] = out_A[i].toInt();
             lA[scA->log_to_phys[i]] = out_A[i];
         }
 
-        for (int i = nA+nM;i < ndim_;i++)
+        for (int i = nA+nM;i < ndim;i++)
         {
             idx_A_[scA->log_to_phys[i]] = in_A[i-nA-nM].toInt();
             lA[scA->log_to_phys[i]] = in_A[i-nA-nM];
@@ -839,9 +839,9 @@ void SpinorbitalTensor<T>::div(const T alpha, bool conja, const SpinorbitalTenso
                                               bool conjb, const SpinorbitalTensor<T>& B, const T beta)
 {
     #ifdef VALIDATE_INPUTS
-    if (ndim_ != A.getDerived().ndim_ ||
-        ndim_ != B.getDerived().ndim_) throw InvalidNdimError();
-    for (int i = 0;i < ndim_;i++)
+    if (ndim != A.getDerived().ndim ||
+        ndim != B.getDerived().ndim) throw InvalidNdimError();
+    for (int i = 0;i < ndim;i++)
     {
         if (logical[i].isParticle() != A.getDerived().logical[i].isParticle() ||
             logical[i].isParticle() != B.getDerived().logical[i].isParticle())
@@ -852,7 +852,7 @@ void SpinorbitalTensor<T>::div(const T alpha, bool conja, const SpinorbitalTenso
     for (int i = 0;i < cases.size();i++)
     {
         #ifdef VALIDATE_INPUTS
-        for (int j = 0;j < ndim_;j++)
+        for (int j = 0;j < ndim;j++)
         {
             if (cases[i].log_to_phys[j] != A.getDerived().cases[i].log_to_phys[j] ||
                 cases[i].log_to_phys[j] != B.getDerived().cases[i].log_to_phys[j])
@@ -869,19 +869,19 @@ template<class T>
 void SpinorbitalTensor<T>::invert(const T alpha, bool conja, const SpinorbitalTensor<T>& A, const T beta)
 {
     #ifdef VALIDATE_INPUTS
-    if (ndim_ != A.getDerived().ndim_ ||
-        ndim_ != B.getDerived().ndim_) throw InvalidNdimError();
-    for (int i = 0;i < ndim_;i++)
+    if (ndim != A.getDerived().ndim ||
+        ndim != B.getDerived().ndim) throw InvalidNdimError();
+    for (int i = 0;i < ndim;i++)
     {
         if (logical[i].isParticle() != A.getDerived().logical[i].isParticle())
             throw logic_error("types do not match");
     }
     #endif //VALIDATE_INPUTS
 
-    for (int i = 0;i < tensors_.size();i++)
+    for (int i = 0;i < tensors.size();i++)
     {
         #ifdef VALIDATE_INPUTS
-        for (int j = 0;j < ndim_;j++)
+        for (int j = 0;j < ndim;j++)
         {
             if (cases[i].log_to_phys[j] != A.getDerived().logical[i].log_to_phys[j])
                 throw logic_error("types do not match");

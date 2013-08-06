@@ -22,49 +22,38 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_SCF_AOINTS_HPP_
-#define _AQUARIUS_SCF_AOINTS_HPP_
+#ifndef _AQUARIUS_OPERATOR_ERI_HPP_
+#define _AQUARIUS_OPERATOR_ERI_HPP_
 
-#include "util/distributed.hpp"
 #include "slide/slide.hpp"
 #include "input/molecule.hpp"
 #include "memory/memory.h"
+
+#include "aooperator.hpp"
 
 #define TMP_BUFSIZE 100
 #define INTEGRAL_CUTOFF 1e-14
 
 namespace aquarius
 {
-namespace scf
+namespace op
 {
 
 template <typename T>
-class AOIntegrals : public Distributed<T>
+class ERI : public AOOperator<T>
 {
+    protected:
+        std::vector<T> ints;
+        std::vector<idx4_t> idxs;
+
     public:
         const input::Molecule& molecule;
 
-    protected:
-        slide::Context context;
-        size_t nints;
-        T *ints;
-        idx4_t *idxs;
+        ERI(Arena<T>& arena, const input::Molecule& molecule);
 
-    public:
-        AOIntegrals(tCTF_World<T>& ctf, const input::Molecule& molecule);
+        const std::vector<T>& getInts() const { return ints; }
 
-        size_t getNumInts() const { return nints; }
-
-        const T* getInts() const { return ints; }
-
-        const idx4_t* getIndices() const { return idxs; }
-
-    protected:
-        void generateInts();
-
-        void loadBalance();
-
-        void canonicalize();
+        const std::vector<idx4_t>& getIndices() const { return idxs; }
 };
 
 }

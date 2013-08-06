@@ -50,19 +50,20 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
     INHERIT_FROM_INDEXABLE_COMPOSITE_TENSOR(SymmetryBlockedTensor<T>,DistTensor<T>,T)
 
     protected:
-        const symmetry::PointGroup& group_;
-        std::vector< std::vector<int> > len_;
-        std::vector<int> sym_;
+        const symmetry::PointGroup& group;
+        std::vector< std::vector<int> > len;
+        std::vector<int> sym;
 
     public:
-        SymmetryBlockedTensor(tCTF_World<T>& ctf, const symmetry::PointGroup& group);
+        SymmetryBlockedTensor(Arena<T>& arena, const symmetry::PointGroup& group, T scalar = (T)0);
 
         SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other);
 
         SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other, T scalar);
 
-        SymmetryBlockedTensor(tCTF_World<T>& ctf, const symmetry::PointGroup& group,
-                              const int ndim, const int **len, const int *sym, const bool zero=true);
+        SymmetryBlockedTensor(Arena<T>& arena, const symmetry::PointGroup& group,
+                              int ndim, const std::vector<std::vector<int> >& len,
+                              const std::vector<int>& sym, bool zero=true);
 
         virtual ~SymmetryBlockedTensor() {}
 

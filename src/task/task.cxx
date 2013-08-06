@@ -24,120 +24,113 @@
 
 #include "task.hpp"
 
+#include <set>
+
 using namespace std;
 using namespace aquarius;
 using namespace aquarius::task;
 
-template <typename T>
-Resource::Resource(const std::string& type, T& data)
-: type(type), data(static_cast<void*>(&data)), revision(0), needsDelete(false) {}
-
-template <typename T>
-Resource::Resource(const std::string& type, T* data)
-: type(type), data(static_cast<void*>(data)), revision(0), needsDelete(true) {}
-
-Resource::~Resource()
-{
-    if (needsDelete) delete data;
-}
-
-template <typename T> T& Resource::get()
-{
-    return *static_cast<T*>(data);
-}
-
-template <typename T> const T& Resource::get() const
-{
-    return *static_cast<T*>(data);
-}
-
-Requirement::Requirement(const std::string& name, const std::string& type)
-: name(name), type(type) {}
-
-Requirement::Requirement(const std::string& name, const std::string& type, const std::string& defaultTask, const std::string& defaultName)
-: name(name), type(type), defaultProvider(std::make_pair(defaultTask, defaultName)) {}
-
-void Requirement::fulfil(Product& product)
-{
-    this->product.reset(&product);
-}
-
-Resource& Requirement::getResource()
-{
-    if (!product) throw std::logic_error("No resource has been provided for requirement " + name + ".");
-    return product->getResource();
-}
-
-void Product::run_check()
-{
-    for (int i = 0;i < requirements.size();i++)
-    {
-        if (!requirements[i].isFulfilled())
-            throw logic_error("Requirement " + requirements[i].getName() + " of product " + name + " is not fulfilled.");
-
-        Resource& res = requirements[i].getResource();
-
-        if (requirements[i].type != res.getType())
-            throw logic_error("Product of type " + res.getType() + " provides the wrong resource for requirement " + requirements[i].getName() + ".");
-
-        revisions[i] = res.getRevision();
-    }
-
-    if (parent == NULL) throw std::logic_error("No parent task has been assigned to product " + name + ".");
-
-    parent.run();
-}
-
-Product::Product(Task& parent, const std::string& name, const std::shared_ptr<Resource>& resource)
-: resource(resource), parent(parent), name(name) {}
-
-Product::Product(Task& parent, const std::string& name, const std::shared_ptr<Resource>& resource, const Requirement& requirement)
-: resource(resource), parent(parent), name(name), requirements(1, requirement), revisions(1, -1) {}
-
-Product::Product(Task& parent, const std::string& name, const std::shared_ptr<Resource>& resource, const std::vector<Requirement>& requirements)
-: resource(resource), parent(parent), name(name), requirements(requirements), revisions(requirements.size(), -1) {}
-
-Resource& Product::getResource()
-{
-    if (!resource) run_check();
-
-    for (int i = 0;i < requirements.size();i++)
-    {
-        if (revisions[i] != requirements[i].getResource().getRevision()) run_check();
-    }
-
-    return *resource;
-}
-
-Task::Task(const std::string& type, const std::string& name)
+Requirement::Requirement(const string& type, const string& name)
 : type(type), name(name) {}
 
-Task::Task(const std::string& type, const std::string& name, const Product& product)
-: type(type), name(name), products(1, product)
+Requirement::~Requirement()
 {
-    products.back().parent = this;
+    if (product != NULL) delete product;
 }
 
-Task::Task(const std::string& type, const std::string& name, const std::vector<Product>& products)
-: type(type), name(name), products(products)
+void Requirement::fulfil(const Product& product)
 {
-    for (std::vector<Product>::iterator i = products.begin();i != products.end();++i) i->parent = this;
+    if (this->product != NULL) delete this->product;
+    this->product = new Product(product);
 }
 
-Product& Task::getProduct(const std::string& name)
+Product& Requirement::get()
 {
-    for (std::vector<Product>::iterator i = products.begin();i != products.end();++i)
+    if (product == NULL) throw logic_error("Requirement " + name + " not fulfilled");
+    return *product;
+}
+
+Product::Product(const string& type, const string& name)
+: type(type), name(name), data(new void*(NULL)) {}
+
+template <typename T>
+void Product::put(T* resource)
+{
+    *data = static_cast<T*>(resource);
+}
+
+template <typename T>
+T& Product::get()
+{
+    if (!*data) throw logic_error("Product " + name + " does not exist.");
+    return *static_cast<T*>(*data);
+}
+
+Task::Task(const string& type, const string& name)
+: type(type), name(name) {}
+
+map<string,Task::factory_func>& Task::tasks()
+{
+    static std::map<std::string,factory_func> tasks_;
+    return tasks_;
+}
+
+void Task::addProduct(const Product& product)
+{
+    products.push_back(product);
+}
+
+bool Task::registerTask(const string& name, factory_func create)
+{
+    tasks()[name] = create;
+    return true;
+}
+
+template <typename T>
+void Task::put(const string& name, T* resource)
+{
+    getProduct(name).put(resource);
+}
+
+template <typename T>
+T& Task::get(const string& name)
+{
+    vector<Product*> to_search;
+
+    for (vector<Product>::iterator i = products.begin();i != products.end();i++) to_search += &(*i);
+
+    while (!to_search.empty())
     {
-        if (i->name == name) return *i;
+        vector<Product*> new_to_search;
+
+        for (vector<Product*>::iterator i = to_search.begin();i != to_search.end();i++)
+        {
+            if ((*i)->getName() == name) return (*i)->get<T>();
+
+            for (vector<Requirement>::iterator j = (*i)->getRequirements().begin();
+                 j != (*i)->getRequirements().end();j++) new_to_search += &j->get();
+        }
+
+        to_search = new_to_search;
     }
-    throw std::logic_error("No product " + name + " found in task " + this->name + ".");
+
+    throw logic_error("Product " + name " + not found on task " + this->name + " or its dependencies");
 }
 
-const Product& Task::getProduct(const std::string& name) const
+Product& Task::getProduct(const string& name)
 {
-    for (std::vector<Product>::const_iterator i = products.begin();i != products.end();++i)
+    for (vector<Product>::iterator i = products.begin();i != products.end();i++)
     {
-        if (i->name == name) return *i;
+        if (i->getName() == name) return *i;
     }
-    throw std::logic_error("No product " + name + " found in task " + this->name + ".");
+    throw logic_error("Product " + name + " not found on task " + this->name);
+}
+
+Task* Task::createTask(const string& type, const string& name, const input::Config& config)
+{
+    map<string,factory_func>::iterator i = tasks().find(type);
+
+    if (i == tasks().end()) throw logic_error("Task type " + type + " not found");
+
+    return i->second(name, config);
 }
