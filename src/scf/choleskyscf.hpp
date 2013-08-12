@@ -25,7 +25,7 @@
 #ifndef _AQUARIUS_SCF_CHOLESKYSCF_HPP_
 #define _AQUARIUS_SCF_CHOLESKYSCF_HPP_
 
-#include "operator/cholesky.hpp"
+#include "integrals/cholesky.hpp"
 
 #include "scf.hpp"
 
@@ -38,18 +38,18 @@ template <typename T>
 class CholeskyUHF : public UHF<T>
 {
     protected:
-        const op::CholeskyIntegrals<T>& chol;
+        const integrals::CholeskyIntegrals<T>& chol;
         tensor::DistTensor<T> *J;
         tensor::DistTensor<T> *JD;
         tensor::DistTensor<T> *La_occ, *Lb_occ;
         tensor::DistTensor<T> *LDa_occ, *LDb_occ;
 
     public:
-        CholeskyUHF(const input::Config& config, const op::CholeskyIntegrals<T>& chol);
+        CholeskyUHF(const input::Config& config, const integrals::CholeskyIntegrals<T>& chol);
 
         ~CholeskyUHF();
 
-        const op::CholeskyIntegrals<T>& getCholesky() const { return chol; }
+        const integrals::CholeskyIntegrals<T>& getCholesky() const { return chol; }
 
     protected:
         void buildFock();

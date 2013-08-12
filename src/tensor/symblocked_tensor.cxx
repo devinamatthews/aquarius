@@ -62,7 +62,8 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(Arena<T>& arena, const PointGrou
     assert(len.size() == ndim);
 
     int n = group.getNumIrreps();
-    const Representation* irreps = group.getIrreps();
+    vector<Representation> irreps;
+    for (int i = 0;i < n;i++) irreps.push_back(group.getIrrep(i));
 
     int ntensors = 1;
     vector<int> sublen(ndim);

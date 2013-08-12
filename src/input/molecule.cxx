@@ -34,12 +34,9 @@
 
 using namespace std;
 using namespace aquarius;
-using namespace aquarius::slide;
-
-namespace aquarius
-{
-namespace input
-{
+using namespace aquarius::integrals;
+using namespace aquarius::symmetry;
+using namespace aquarius::input;
 
 struct AtomSpec
 {
@@ -278,11 +275,10 @@ Molecule::Molecule(const Config& config)
     }
     PRINT("\n");
 
-    int order = SLIDE::getGroupOrder();
-    int nfunc[8] = {0};
+    norb = 0;
     for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
     {
-        Atom a(Center(it->pos, Element::getElement(it->symbol)));
+        Atom a(Center(PointGroup::C1, it->pos, Element::getElement(it->symbol)));
         if (it->basisSet != "")
         {
             BasisSet(TOPDIR "/basis/" + it->basisSet).apply(a, spherical, contaminants);
@@ -294,35 +290,10 @@ Molecule::Molecule(const Config& config)
 
         for (vector<Shell>::iterator s = a.getShellsBegin();s != a.getShellsEnd();++s)
         {
-            int *index = s->getIdx();
-
-            if (SLIDE::getOrdering() == SLIDE_ORDER_ISCF || SLIDE::getOrdering() == SLIDE_ORDER_ISFC)
-            {
-                for (int i = 0;i < order;i++) index[i] = nfunc[i];
-            }
-            else
-            {
-                int nfunctot = 0;
-                for (int i = 0;i < order;i++) nfunctot += nfunc[i];
-                for (int i = 0;i < order;i++) index[i] += nfunctot;
-            }
-
-            for (int i = 0;i < order;i++) nfunc[i] += s->getNFuncInIrrep(i)*s->getNContr();
+            norb += s->getNFunc()*s->getNContr()*s->getDegeneracy();
         }
 
         atoms.push_back(a);
-    }
-
-    for (int i = 1;i < order;i++) nfunc[i] += nfunc[i-1];
-    norb = nfunc[order-1];
-
-    if (SLIDE::getOrdering() == SLIDE_ORDER_ISCF || SLIDE::getOrdering() == SLIDE_ORDER_ISFC)
-    {
-        for (shell_iterator s = getShellsBegin();s != getShellsEnd();++s)
-        {
-            int *index = s->getIdx();
-            for (int i = 1;i < order;i++) index[i] += nfunc[i-1];
-        }
     }
 
     if ((nelec+multiplicity)%2 != 1 || multiplicity > nelec+1)
@@ -652,7 +623,4 @@ vector<Shell>::const_iterator Atom::getShellsBegin() const
 vector<Shell>::const_iterator Atom::getShellsEnd() const
 {
     return shells.end();
-}
-
-}
 }

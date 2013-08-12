@@ -29,7 +29,7 @@ using namespace aquarius;
 using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
-using namespace aquarius::slide;
+using namespace aquarius::integrals;
 using namespace aquarius::op;
 
 template <typename T>

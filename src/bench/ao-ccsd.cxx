@@ -24,19 +24,10 @@
 
 #include "input/config.hpp"
 #include "input/molecule.hpp"
-#include "operator/eri.hpp"
 #include "scf/aoscf.hpp"
 #include "operator/aomoints.hpp"
-#include "scf/choleskyscf.hpp"
-#include "operator/choleskymoints.hpp"
 #include "cc/ccsd.hpp"
-#include "cc/ccsdt.hpp"
-#include "cc/lambdaccsd.hpp"
-#include "cc/2edensity.hpp"
-#include "operator/st2eoperator.hpp"
 #include "time/time.hpp"
-#include "tensor/dist_tensor.hpp"
-#include "tensor/spinorbital_tensor.hpp"
 
 #ifdef USE_ELEMENTAL
 #include "elemental.hpp"
@@ -46,7 +37,7 @@ using namespace elem;
 using namespace std;
 using namespace MPI;
 using namespace aquarius;
-using namespace aquarius::slide;
+using namespace aquarius::integrals;
 using namespace aquarius::input;
 using namespace aquarius::scf;
 using namespace aquarius::cc;
@@ -57,7 +48,6 @@ using namespace aquarius::tensor;
 int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
-    SLIDE::init();
 #ifdef USE_ELEMENTAL
     elem::Initialize(argc, argv);
 #endif
@@ -80,7 +70,7 @@ int main(int argc, char **argv)
         PRINT("ni: %d\n", mol.getNumBetaElectrons());
 
         tic();
-        ERI<double> ints(world, mol);
+        ERI<double> ints(world, Context(), mol);
         dt = todouble(toc());
         PRINT("\nAO integrals took: %8.3f s\n", dt);
 
@@ -185,6 +175,5 @@ int main(int argc, char **argv)
 #ifdef USE_ELEMENTAL
     elem::Finalize();
 #endif
-    SLIDE::finish();
     MPI_Finalize();
 }

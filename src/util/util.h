@@ -35,6 +35,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <stdint.h>
 
 /*
 #define INSTANTIATE_SPECIALIZATIONS(name) \
@@ -85,37 +86,49 @@ if (!(x))                           \
 #define ERROR_AT(file, line, ...) \
 do \
 { \
-    MASTER \
-    { \
         fprintf(stderr, "%s(%d): ", file, line); \
         fprintf(stderr, __VA_ARGS__); \
         fprintf(stderr, "\n"); \
-    } \
     abort(); \
 } while (0)
 
 #ifdef DEBUG
-#undef DEBUG
 
-#define DEBUG(...) \
+#define DPRINTF(...) \
 MASTER \
 { \
     printf("%s(%d): ", __FILE__, __LINE__); \
     printf(__VA_ARGS__); \
 }
 
-#define ALLDEBUG(...) \
+#define DPRINTFC(...) \
+MASTER \
+{ \
+    printf(__VA_ARGS__); \
+}
+
+#define ADPRINTF(...) \
 do \
 { \
-    printf("%s(%d)[%d]: ", __FILE__, __LINE__, pid); \
+    printf("%s(%d): ", __FILE__, __LINE__); \
+    printf(__VA_ARGS__); \
+} while (0)
+
+#define ADPRINTFC(...) \
+do \
+{ \
     printf(__VA_ARGS__); \
 } while (0)
 
 #else
 
-#define DEBUG(...)
+#define DPRINTF(...)
 
-#define ALLDEBUG(...)
+#define DPRINTFC(...)
+
+#define ADPRINTF(...)
+
+#define ADPRINTFC(...)
 
 #endif
 
@@ -282,6 +295,51 @@ static inline double dist2(const double* a, const double* b)
 static inline double dist(const double* a, const double* b)
 {
     return sqrt(dist2(a, b));
+}
+
+static inline int binom(int a, int b)
+{
+    int i, j;
+
+    if (b < 0 || b > a) return 0;
+
+    j = 1;
+    for (i = 1;i <= MIN(b,a-b);i++)
+    {
+        j = (j*(a-i+1))/i;
+    }
+
+    return j;
+}
+
+static inline int64_t fact(int n)
+{
+    int i;
+    int64_t j;
+
+    j = 1;
+
+    for (i = n;i > 1;i--)
+    {
+        j = j*i;
+    }
+
+    return j;
+}
+
+static inline int64_t dfact(int n)
+{
+    int i;
+    int64_t j;
+
+    j = 1;
+
+    for (i = n;i > 1;i -= 2)
+    {
+        j = j*i;
+    }
+
+    return j;
 }
 
 #endif

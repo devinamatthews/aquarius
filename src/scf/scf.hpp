@@ -36,7 +36,8 @@
 #endif
 
 #include "tensor/dist_tensor.hpp"
-#include "slide/slide.hpp"
+#include "integrals/ovi.hpp"
+#include "integrals/1ehamiltonian.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
 #include "util/util.h"

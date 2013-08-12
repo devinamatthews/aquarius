@@ -31,8 +31,7 @@ using namespace aquarius;
 using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
-using namespace aquarius::slide;
-using namespace aquarius::op;
+using namespace aquarius::integrals;
 
 template <typename T>
 AOUHF<T>::AOUHF(const Config& config, const ERI<T>& ints)

@@ -22,116 +22,184 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#include <iostream>
+#include "input/config.hpp"
+#include "input/molecule.hpp"
+#include "integrals/eri.hpp"
+#include "scf/aoscf.hpp"
+#include "operator/aomoints.hpp"
+#include "cc/ccsd.hpp"
+#include "cc/lambdaccsd.hpp"
+#include "cc/2edensity.hpp"
+#include "operator/st2eoperator.hpp"
+#include "time/time.hpp"
 
-#include "stl_ext/stl_ext.hpp"
-#include "util/util.h"
+#ifdef USE_ELEMENTAL
+#include "elemental.hpp"
+using namespace elem;
+#endif
 
 using namespace std;
-//using namespace aquarius::tensor;
-//using namespace aquarius::slide;
-
-template <class T, class U>
-struct if_exists
-{
-    typedef U type;
-};
-
-template <class Derived, class T> class Tensor;
-template <class Derived, class T> class ScaledTensor;
-template <class Derived, class T> class TensorMult;
-
-template <class Derived, typename T>
-class Tensor
-{
-    public:
-        typedef T dtype;
-
-        virtual ~Tensor() {}
-
-        Derived& getDerived() { return static_cast<Derived&>(*this); }
-
-        const Derived& getDerived() const { return static_cast<const Derived&>(*this); }
-
-        //template <typename cvDerived> typename if_exists<typename cvDerived::dtype, TensorMult<Derived,T> >::type
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
-        operator*(const cvDerived& other) const
-        {
-            return TensorMult<Derived,T>(ScaledTensor<const Derived,T>(getDerived(), (T)1),
-                                         ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
-        }
-
-        virtual T dot(const Derived& A) const = 0;
-};
-
-template <class Derived, typename T>
-class ScaledTensor
-{
-    public:
-        Derived& tensor_;
-        T factor_;
-
-        template <typename cvDerived>
-        ScaledTensor(const ScaledTensor<cvDerived,T>& other)
-        : tensor_(other.tensor_), factor_(other.factor_) {}
-
-        ScaledTensor(Derived& tensor, const T factor)
-        : tensor_(tensor), factor_(factor) {}
-};
-
-template <class Derived, typename T>
-class TensorMult
-{
-    private:
-        const TensorMult& operator=(const TensorMult<Derived,T>& other);
-
-    public:
-        ScaledTensor<const Derived,T> A_;
-        ScaledTensor<const Derived,T> B_;
-        T factor_;
-
-        template <class Derived1, class Derived2>
-        TensorMult(const ScaledTensor<Derived1,T>& A, const ScaledTensor<Derived2,T>& B)
-        : A_(A), B_(B), factor_(B.factor_) {}
-};
-
-template <class Derived, typename T>
-T scalar(const TensorMult<Derived,T>& tm)
-{
-    return tm.factor_*tm.B_.tensor_.dot(tm.A_.tensor_);
-}
-
-template <typename T>
-class DistTensor : public Tensor<DistTensor<T>,T>
-{
-    public:
-        virtual ~DistTensor() {}
-
-        T dot(const DistTensor<T>& A) const { return (T)0; }
-};
+using namespace MPI;
+using namespace aquarius;
+using namespace aquarius::integrals;
+using namespace aquarius::input;
+using namespace aquarius::scf;
+using namespace aquarius::cc;
+using namespace aquarius::op;
+using namespace aquarius::time;
+using namespace aquarius::tensor;
 
 int main(int argc, char **argv)
 {
-    //MPI::Init(argc, argv);
-    //SLIDE::init();
-    #ifdef USE_ELEMENTAL
+    MPI_Init(&argc, &argv);
+#ifdef USE_ELEMENTAL
     elem::Initialize(argc, argv);
-    #endif
+#endif
 
-    DistTensor<double> Delta;
+    {
+        int i;
+        double dt;
+        Arena<double> world(argc, argv);
 
-    TensorMult<DistTensor<double>,double> tm = Delta*Delta;
-    cout << &tm << endl;
-    cout << tm.factor_ << endl;
-    cout << &tm.A_ << endl;
-    cout << &tm.A_.tensor_ << endl;
-    cout << &tm.B_ << endl;
-    cout << &tm.B_.tensor_ << endl;
-    double S2 = scalar(tm);
+        assert(argc > 1);
+        Schema schema(TOPDIR "/input_schema");
+        Config config(argv[1]);
+        schema.apply(config);
 
-    #ifdef USE_ELEMENTAL
+        Molecule mol(config);
+
+        PRINT("nA: %d\n", mol.getNumOrbitals()-mol.getNumAlphaElectrons());
+        PRINT("na: %d\n", mol.getNumOrbitals()-mol.getNumBetaElectrons());
+        PRINT("nI: %d\n", mol.getNumAlphaElectrons());
+        PRINT("ni: %d\n", mol.getNumBetaElectrons());
+
+        tic();
+        ERI<double> ints(world, Context(), mol);
+        dt = todouble(toc());
+        PRINT("\nAO integrals took: %8.3f s\n", dt);
+
+        tic();
+        AOUHF<double> scf(config.get("scf"), ints);
+
+        PRINT("\nUHF-SCF\n\n");
+        PRINT("It.            SCF Energy     Residual Walltime\n");
+        tic();
+        for (i = 0;scf.iterate();i++)
+        {
+            dt = todouble(toc());
+            PRINT("%3d % 21.15f %12.6e %8.3f\n", i+1, scf.getEnergy(), scf.getConvergence(), dt);
+            tic();
+        }
+        toc();
+
+        PRINT("\nUHF Orbital Energies\n\n");
+        for (int i = 0;i < mol.getNumOrbitals();i++)
+        {
+            PRINT("%4d ", i+1);
+
+            if (i < mol.getNumAlphaElectrons())
+            {
+                PRINT("%21.15f a ", scf.getAlphaEigenvalues()[i]);
+            }
+            else
+            {
+                PRINT("%21.15f   ", scf.getAlphaEigenvalues()[i]);
+            }
+
+            if (i < mol.getNumBetaElectrons())
+            {
+                PRINT("%21.15f b ", scf.getBetaEigenvalues()[i]);
+            }
+            else
+            {
+                PRINT("%21.15f   ", scf.getBetaEigenvalues()[i]);
+            }
+
+            PRINT("\n");
+        }
+
+        dt = todouble(toc());
+        PRINT("\nAO SCF took: %8.3f s (%8.3f s/it.)\n", dt, dt/i);
+
+        double s2 = scf.getS2();
+        double mult = scf.getMultiplicity();
+        double na = scf.getAvgNumAlpha();
+        double nb = scf.getAvgNumBeta();
+
+        PRINT("\n");
+        PRINT("<0|S^2|0>     = %f\n", s2);
+        PRINT("<0|2S+1|0>    = %f\n", mult);
+        PRINT("<0|n_alpha|0> = %f\n", na);
+        PRINT("<0|n_beta|0>  = %f\n", nb);
+
+        tic();
+        AOMOIntegrals<double> moints(scf);
+        dt = todouble(toc());
+        PRINT("\nAO MO took: %8.3f s\n", dt);
+
+        CCSD<double> ccsd(config.get("cc"), moints);
+
+        PRINT("\nUHF-MP2 Energy: %.15f\n", ccsd.getEnergy());
+
+        s2 = ccsd.getProjectedS2();
+        mult = ccsd.getProjectedMultiplicity();
+
+        PRINT("\n");
+        PRINT("<0|S^2|MP2>  = %f\n", s2);
+        PRINT("<0|2S+1|MP2> = %f\n", mult);
+
+        PRINT("\nUHF-CCSD\n\n");
+        PRINT("It.   Correlation Energy     Residual Walltime\n");
+        tic();
+        tic();
+        for (i = 0;ccsd.iterate();i++)
+        {
+            dt = todouble(toc());
+            PRINT("%3d % 20.15f %12.6e %8.3f\n", i+1, ccsd.getEnergy(), ccsd.getConvergence(), dt);
+            tic();
+        }
+        toc();
+
+        dt = todouble(toc());
+        PRINT("\nCCSD took: %8.3f s (%8.3f s/it.)\n", dt, dt/i);
+
+        s2 = ccsd.getProjectedS2();
+        mult = ccsd.getProjectedMultiplicity();
+
+        PRINT("\n");
+        PRINT("<0|S^2|CC>  = %f\n", s2);
+        PRINT("<0|2S+1|CC> = %f\n", mult);
+
+        tic();
+        STTwoElectronOperator<double,2> Hbar(moints, ccsd);
+        dt = todouble(toc());
+        PRINT("             _\n");
+        PRINT("Formation of H took: %8.3f s\n", dt);
+
+        LambdaCCSD<double> lambda(config.get("cc"), Hbar, ccsd, ccsd.getEnergy());
+
+        PRINT("\nUHF-Lambda-CCSD\n\n");
+        PRINT("It.   Correlation Energy     Residual Walltime\n");
+        tic();
+        tic();
+        for (i = 0;lambda.iterate();i++)
+        {
+            dt = todouble(toc());
+            PRINT("%3d % 20.15f %12.6e %8.3f\n", i+1, lambda.getEnergy(), lambda.getConvergence(), dt);
+            tic();
+        }
+        toc();
+
+        dt = todouble(toc());
+        PRINT("\nLambda-CCSD took: %8.3f s (%8.3f s/it.)\n", dt, dt/i);
+
+        PRINT("\nFinal Energy: %.15f\n\n", scf.getEnergy()+ccsd.getEnergy());
+
+        print_timers();
+    }
+
+#ifdef USE_ELEMENTAL
     elem::Finalize();
-    #endif
-    //SLIDE::finish();
-    //MPI::Finalize();
+#endif
+    MPI_Finalize();
 }

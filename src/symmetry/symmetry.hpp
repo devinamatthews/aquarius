@@ -35,7 +35,52 @@ namespace aquarius
 namespace symmetry
 {
 
-class Representation;
+class PointGroup;
+
+class Representation : public std::vector<double>
+{
+    friend class PointGroup;
+
+    protected:
+        const PointGroup& group;
+
+        Representation(const PointGroup& group);
+
+        Representation(const PointGroup& group, const std::vector<double>& rep);
+
+    public:
+        Representation(const PointGroup& group, int L, int m);
+
+        Representation(const PointGroup& group, int x, int y, int z);
+
+        const PointGroup& getPointGroup() const;
+
+        Representation& operator=(const Representation& other);
+
+        bool isReducible() const;
+
+        bool isTotallySymmetric() const;
+
+        bool transformsAs(const Representation r) const;
+
+        Representation operator^(int p) const;
+
+        Representation& operator^=(int p);
+
+        Representation operator*(const Representation& other) const;
+
+        Representation& operator*=(const Representation& other);
+
+        Representation operator+(const Representation& other) const;
+
+        Representation& operator+=(const Representation& other);
+
+        Representation operator-() const;
+
+        Representation operator-(const Representation& other) const;
+
+        Representation& operator-=(const Representation& other);
+};
 
 class PointGroup
 {
@@ -81,78 +126,78 @@ class PointGroup
 
         static const PointGroup D2d;
         static const PointGroup D3d;
-        static const PointGroup D4d;
-        static const PointGroup D5d;
-        static const PointGroup D6d;
 
         static const PointGroup S4;
         static const PointGroup S6;
-        static const PointGroup S8;
-        static const PointGroup S10;
-        static const PointGroup S12;
 
     protected:
         const int order;
         const int nirrep;
         const char *name;
-        const Representation *dirprd;
-        const Representation *irreps;
         const char **irrep_names;
-        const double *characters;
+        const int *generators;
+        const double *generator_reps;
+        std::vector<std::vector<double> > characters;
+        std::vector<std::vector<std::vector<double> > > reps;
         const int *irrep_degen;
         const mat3x3 *ops;
         const char **op_names;
+        std::vector<int> op_inverse;
+        std::vector<int> op_product;
 
-        PointGroup(int order, int nirrep, const char *name, const Representation *dirprd,
-                   const Representation *irreps, const char **irrep_names, const double *characters,
+        PointGroup(int order, int nirrep, int ngenerators, const char *name,
+                   const char **irrep_names, const int *generators, const double *generator_reps,
                    const int *irrep_degen, const mat3x3 *ops, const char **op_names);
 
     public:
-        bool operator==(const PointGroup& other) const;
+        bool operator==(const PointGroup& other) const { return this == &other; }
 
-        int getOrder() const;
+        std::vector<int> DCR(const std::vector<int>& U, const std::vector<int>& V, int& lambda) const;
 
-        int getNumIrreps() const;
+        double character(int irrep, int op) const { return characters[irrep][op]; }
 
-        const char* getName() const;
+        double sphericalParity(int L, int m, int op) const;
 
-        const Representation* getIrreps() const;
+        double cartesianParity(int x, int y, int z, int op) const;
 
-        const Representation& getIrrep(int i) const;
+        int getOrder() const { return order; }
 
-        const char * getIrrepName(int i) const;
+        int getNumIrreps() const { return nirrep; }
 
-        const mat3x3* getOps() const;
+        const char* getName() const { return name; }
 
-        const mat3x3& getOp(int i) const;
+        bool areConjugate(int i, int j) const;
 
-        const char * getOpName(int i) const;
+        int getIrrepDegeneracy(int i) const { return irrep_degen[i]; }
 
-        const Representation& totallySymmetricIrrep() const;
-};
+        /*
+         * Get the chacter representation of the given irrep
+         */
+        Representation getIrrep(int i) const;
 
-class Representation
-{
-    protected:
-        const PointGroup& group;
-        uint_fast32_t bits;
+        /*
+         * Get the representation of the given row of the given irrep
+         */
+        Representation getIrrep(int i, int r) const;
 
-    public:
-        Representation(const PointGroup& group, uint_fast32_t bits);
+        /*
+         * Get the off-diagonal representation of the given given irrep
+         */
+        Representation getIrrep(int i, int r, int s) const;
 
-        Representation& operator=(const Representation& other);
+        const char * getIrrepName(int i) const { return irrep_names[i]; }
 
-        bool isReducible() const;
+        const mat3x3* getOps() const { return ops; }
 
-        bool isTotallySymmetric() const;
+        const mat3x3& getOp(int i) const { return ops[i]; }
 
-        Representation operator*(const Representation& other) const;
+        const char * getOpName(int i) const { return op_names[i]; }
 
-        Representation& operator*=(const Representation& other);
+        int getOpInverse(int i) const { return op_inverse[i]; }
 
-        Representation operator+(const Representation& other) const;
+        int getOpProduct(int i, int j) const { return op_product[i*order+j]; }
 
-        Representation& operator+=(const Representation& other);
+        Representation totallySymmetricIrrep() const { return getIrrep(0); }
 };
 
 }

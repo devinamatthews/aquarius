@@ -241,7 +241,7 @@ DistTensor<T>::~DistTensor()
 template <typename T>
 void DistTensor<T>::allocate()
 {
-    int ret = arena.ctf.ctf->define_tensor(ndim, len.data(), sym.data(), &tid);
+    int ret = arena.ctf.ctf->define_tensor(ndim, len.data(), sym.data(), &tid, "FIXME", 1);
     assert(ret == DIST_TENSOR_SUCCESS);
 }
 

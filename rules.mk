@@ -19,13 +19,13 @@ UPPER_UNDERSCORE = 4
 bindir = $(topdir)/bin
 libdir = $(topdir)/lib
 
-ALL_LIBS_LINK = -ltask -lcc -lop -lscf -linput -ltime -lslide -ltensor -lautocc -lmemory -lutil
+ALL_LIBS_LINK = -ltask -lcc -lop -lscf -linput -ltime -lintegrals -lsymmetry -ltensor -lautocc -lmemory -lutil
 ALL_LIBS_DEPS = $(libdir)/libautocc.a $(libdir)/libinput.a \
-                $(libdir)/libtime.a $(libdir)/libslide.a \
+                $(libdir)/libtime.a $(libdir)/libintegrals.a \
                 $(libdir)/libmemory.a $(libdir)/libtensor.a \
                 $(libdir)/libutil.a $(libdir)/libcc.a \
                 $(libdir)/libscf.a $(libdir)/libtask.a \
-                $(libdir)/libop.a
+                $(libdir)/libop.a $(libdir)/libsymmetry.a
 
 DEPDIR = .deps
 DEPS += $(topdir)/.dummy $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard *.o))))

@@ -30,7 +30,6 @@ using namespace aquarius::op;
 using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
-using namespace aquarius::slide;
 
 template <typename T>
 MOIntegrals<T>::MOIntegrals(const UHF<T>& uhf)

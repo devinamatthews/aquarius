@@ -35,7 +35,7 @@ using namespace aquarius::op;
 using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
-using namespace aquarius::slide;
+using namespace aquarius::integrals;
 
 /*
 static bool sortIntsByRS(const idx4_t& i1, const idx4_t& i2)

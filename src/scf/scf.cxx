@@ -29,7 +29,7 @@ using namespace aquarius;
 using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
-using namespace aquarius::slide;
+using namespace aquarius::integrals;
 
 template <typename T>
 UHF<T>::UHF(Arena<T>& arena, const Config& config, const Molecule& molecule)
@@ -161,47 +161,8 @@ T UHF<T>::getAvgNumBeta() const
 template <typename T>
 void UHF<T>::calcOverlap()
 {
-    Context context;
-
-    vector< tkv_pair<T> > pairs;
-
-    int pid = this->comm.Get_rank();
-    int nproc = this->comm.Get_size();
-    int block = 0;
-    for (Molecule::const_shell_iterator i = molecule.getShellsBegin();i != molecule.getShellsEnd();++i)
-    {
-        for (Molecule::const_shell_iterator j = molecule.getShellsBegin();j != molecule.getShellsEnd();++j)
-        {
-            if (i < j) continue;
-
-            if (block%nproc == pid)
-            {
-                context.calcOVI(1.0, 0.0, *i, *j);
-
-                size_t nint = context.getNumIntegrals();
-                vector<T> ints(nint);
-                vector<idx2_t> idxs(nint);
-
-                size_t nproc = context.process1eInts(nint, ints.data(), idxs.data(), -1.0);
-                for (int i = 0;i < nproc;i++)
-                {
-                    //printf("%d %d %25.15f\n", idxs[i].i+1, idxs[i].j+1, ints[i]);
-
-                    pairs.push_back(tkv_pair<T>(idxs[i].i*norb+idxs[i].j, ints[i]));
-                    if (idxs[i].i != idxs[i].j)
-                    {
-                        pairs.push_back(tkv_pair<T>(idxs[i].j*norb+idxs[i].i, ints[i]));
-                    }
-                }
-            }
-
-            block++;
-        }
-    }
-
-    S->writeRemoteData(pairs);
-
-    pairs.clear();
+    OVI<T> ovi(this->arena, Context(), molecule);
+    (*S) = ovi.getS();
 
     #ifdef USE_ELEMENTAL
 
@@ -289,52 +250,8 @@ void UHF<T>::calcOverlap()
 template <typename T>
 void UHF<T>::calc1eHamiltonian()
 {
-    Context context;
-
-    vector<Center> centers;
-    for (vector<Atom>::const_iterator a = molecule.getAtomsBegin();a != molecule.getAtomsEnd();++a)
-    {
-        centers.push_back(a->getCenter());
-    }
-
-    vector< tkv_pair<T> > pairs;
-
-    int pid = this->comm.Get_rank();
-    int nproc = this->comm.Get_size();
-    int block = 0;
-    for (Molecule::const_shell_iterator i = molecule.getShellsBegin();i != molecule.getShellsEnd();++i)
-    {
-        for (Molecule::const_shell_iterator j = molecule.getShellsBegin();j != molecule.getShellsEnd();++j)
-        {
-            if (i < j) continue;
-
-            if (block%nproc == pid)
-            {
-                context.calcKEI(1.0, 0.0, *i, *j);
-                context.calcNAI(1.0, 1.0, *i, *j, centers.data(), centers.size());
-
-                size_t nint = context.getNumIntegrals();
-                vector<T> ints(nint);
-                vector<idx2_t> idxs(nint);
-
-                size_t nproc = context.process1eInts(nint, ints.data(), idxs.data(), -1.0);
-                for (int i = 0;i < nproc;i++)
-                {
-                    //printf("%d %d %25.15f\n", idxs[i].i+1, idxs[i].j+1, ints[i]);
-
-                    pairs.push_back(tkv_pair<T>(idxs[i].i*norb+idxs[i].j, ints[i]));
-                    if (idxs[i].i != idxs[i].j)
-                    {
-                        pairs.push_back(tkv_pair<T>(idxs[i].j*norb+idxs[i].i, ints[i]));
-                    }
-                }
-            }
-
-            block++;
-        }
-    }
-
-    H->writeRemoteData(pairs);
+    OneElectronHamiltonian<T> h(this->arena, Context(), molecule);
+    (*H) = h.getH();
 }
 
 template <typename T>

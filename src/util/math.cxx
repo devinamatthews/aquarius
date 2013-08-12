@@ -303,6 +303,36 @@ mat3x3 mat3x3::operator*(const mat3x3& other) const
     return r;
 }
 
+mat3x3 mat3x3::operator+(const mat3x3& other) const
+{
+    mat3x3 r;
+    r[0][0] = (*this)[0][0] + other[0][0];
+    r[0][1] = (*this)[0][1] + other[0][1];
+    r[0][2] = (*this)[0][2] + other[0][2];
+    r[1][0] = (*this)[1][0] + other[1][0];
+    r[1][1] = (*this)[1][1] + other[1][1];
+    r[1][2] = (*this)[1][2] + other[1][2];
+    r[2][0] = (*this)[2][0] + other[2][0];
+    r[2][1] = (*this)[2][1] + other[2][1];
+    r[2][2] = (*this)[2][2] + other[2][2];
+    return r;
+}
+
+mat3x3 mat3x3::operator-(const mat3x3& other) const
+{
+    mat3x3 r;
+    r[0][0] = (*this)[0][0] - other[0][0];
+    r[0][1] = (*this)[0][1] - other[0][1];
+    r[0][2] = (*this)[0][2] - other[0][2];
+    r[1][0] = (*this)[1][0] - other[1][0];
+    r[1][1] = (*this)[1][1] - other[1][1];
+    r[1][2] = (*this)[1][2] - other[1][2];
+    r[2][0] = (*this)[2][0] - other[2][0];
+    r[2][1] = (*this)[2][1] - other[2][1];
+    r[2][2] = (*this)[2][2] - other[2][2];
+    return r;
+}
+
 vec3 mat3x3::operator*(const vec3& other) const
 {
     vec3 r;
@@ -334,6 +364,18 @@ mat3x3 mat3x3::identity()
     i[1][1] = 1;
     i[2][2] = 1;
     return i;
+}
+
+double mat3x3::norm() const
+{
+    return sqrt(m[0][0]*m[0][0] + m[0][1]*m[0][1] + m[0][2]*m[0][2] +
+                m[1][0]*m[1][0] + m[1][1]*m[1][1] + m[1][2]*m[1][2] +
+                m[2][0]*m[2][0] + m[2][1]*m[2][1] + m[2][2]*m[2][2]);
+}
+
+double norm(const mat3x3& m)
+{
+    return m.norm();
 }
 
 ostream& operator<<(ostream& os, const mat3x3& m)

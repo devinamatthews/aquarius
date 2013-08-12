@@ -26,8 +26,8 @@
 #define _AQUARIUS_OPERATOR_CHOLESKYMOINTS_HPP_
 
 #include "scf/choleskyscf.hpp"
+#include "integrals/cholesky.hpp"
 
-#include "cholesky.hpp"
 #include "moints.hpp"
 
 namespace aquarius
@@ -42,7 +42,7 @@ class CholeskyMOIntegrals : public MOIntegrals<T>
         CholeskyMOIntegrals(const scf::CholeskyUHF<T>& uhf);
 
     protected:
-        void doTransformation(const CholeskyIntegrals<T>& chol);
+        void doTransformation(const integrals::CholeskyIntegrals<T>& chol);
 };
 
 }

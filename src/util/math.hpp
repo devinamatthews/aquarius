@@ -144,6 +144,10 @@ class mat3x3
 
         mat3x3 operator*(const mat3x3& other) const;
 
+        mat3x3 operator+(const mat3x3& other) const;
+
+        mat3x3 operator-(const mat3x3& other) const;
+
         vec3 operator*(const vec3& other) const;
 
         operator double*();
@@ -153,7 +157,11 @@ class mat3x3
         void diagonalize(vec3& eigenvalues, mat3x3& eigenvectors) const;
 
         static mat3x3 identity();
+
+        double norm() const;
 };
+
+double norm(const mat3x3& m);
 
 std::ostream& operator<<(std::ostream& os, const mat3x3& v);
 

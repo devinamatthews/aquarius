@@ -29,8 +29,7 @@ using namespace aquarius;
 using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
-using namespace aquarius::slide;
-using namespace aquarius::op;
+using namespace aquarius::integrals;
 
 template <typename T>
 CholeskyUHF<T>::CholeskyUHF(const Config& config, const CholeskyIntegrals<T>& chol)

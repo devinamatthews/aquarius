@@ -28,7 +28,8 @@
 #include <vector>
 #include <iterator>
 
-#include "slide/slide.hpp"
+#include "integrals/shell.hpp"
+#include "symmetry/symmetry.hpp"
 #include "util/util.h"
 #include "config.hpp"
 
@@ -65,19 +66,21 @@ class Molecule
 
         double getNuclearRepulsion() const;
 
-        class shell_iterator : public std::iterator<std::forward_iterator_tag, slide::Shell>
+        const symmetry::PointGroup& getPointGroup() const { return symmetry::PointGroup::C1; }
+
+        class shell_iterator : public std::iterator<std::forward_iterator_tag, integrals::Shell>
         {
             friend class Molecule;
 
             private:
                 std::vector<Atom>::iterator atom_it;
                 std::vector<Atom>::iterator atom_it_end;
-                std::vector<slide::Shell>::iterator shell_it;
+                std::vector<integrals::Shell>::iterator shell_it;
 
             protected:
                 shell_iterator(const std::vector<Atom>::iterator& atom_it,
                                const std::vector<Atom>::iterator& atom_it_end,
-                               const std::vector<slide::Shell>::iterator& shell_it);
+                               const std::vector<integrals::Shell>::iterator& shell_it);
 
             public:
                 shell_iterator();
@@ -94,9 +97,9 @@ class Molecule
 
                 shell_iterator operator-(int x);
 
-                slide::Shell& operator*();
+                integrals::Shell& operator*();
 
-                slide::Shell* operator->();
+                integrals::Shell* operator->();
 
                 bool operator<(const shell_iterator& other) const;
 
@@ -105,19 +108,19 @@ class Molecule
                 bool operator!=(const shell_iterator& other) const;
         };
 
-        class const_shell_iterator : public std::iterator<std::forward_iterator_tag, const slide::Shell>
+        class const_shell_iterator : public std::iterator<std::forward_iterator_tag, const integrals::Shell>
         {
             friend class Molecule;
 
             private:
                 std::vector<Atom>::const_iterator atom_it;
                 std::vector<Atom>::const_iterator atom_it_end;
-                std::vector<slide::Shell>::const_iterator shell_it;
+                std::vector<integrals::Shell>::const_iterator shell_it;
 
             protected:
                 const_shell_iterator(const std::vector<Atom>::const_iterator& atom_it,
                                const std::vector<Atom>::const_iterator& atom_it_end,
-                               const std::vector<slide::Shell>::const_iterator& shell_it);
+                               const std::vector<integrals::Shell>::const_iterator& shell_it);
 
             public:
                 const_shell_iterator();
@@ -134,9 +137,9 @@ class Molecule
 
                 const_shell_iterator operator-(int x);
 
-                const slide::Shell& operator*();
+                const integrals::Shell& operator*();
 
-                const slide::Shell* operator->();
+                const integrals::Shell* operator->();
 
                 bool operator<(const const_shell_iterator& other) const;
 
@@ -165,25 +168,25 @@ class Molecule
 class Atom
 {
     private:
-        slide::Center center;
-        std::vector<slide::Shell> shells;
+        integrals::Center center;
+        std::vector<integrals::Shell> shells;
 
     public:
-        Atom(const slide::Center& center);
+        Atom(const integrals::Center& center);
 
-        void addShell(const slide::Shell& shell);
+        void addShell(const integrals::Shell& shell);
 
-        slide::Center& getCenter();
+        integrals::Center& getCenter();
 
-        const slide::Center& getCenter() const;
+        const integrals::Center& getCenter() const;
 
-        std::vector<slide::Shell>::iterator getShellsBegin();
+        std::vector<integrals::Shell>::iterator getShellsBegin();
 
-        std::vector<slide::Shell>::iterator getShellsEnd();
+        std::vector<integrals::Shell>::iterator getShellsEnd();
 
-        std::vector<slide::Shell>::const_iterator getShellsBegin() const;
+        std::vector<integrals::Shell>::const_iterator getShellsBegin() const;
 
-        std::vector<slide::Shell>::const_iterator getShellsEnd() const;
+        std::vector<integrals::Shell>::const_iterator getShellsEnd() const;
 };
 
 }

@@ -26,8 +26,8 @@
 #define _AQUARIUS_OPERATOR_AOMOINTS_HPP_
 
 #include "scf/aoscf.hpp"
+#include "integrals/eri.hpp"
 
-#include "eri.hpp"
 #include "moints.hpp"
 
 namespace aquarius
@@ -62,7 +62,7 @@ class AOMOIntegrals : public MOIntegrals<T>
             /*
              * Read integrals in and break (pq|rs)=(rs|pq) symmetry
              */
-            pqrs_integrals(const ERI<T>& aoints);
+            pqrs_integrals(const integrals::ERI<T>& aoints);
 
             pqrs_integrals(abrs_integrals& abrs);
 
@@ -103,7 +103,7 @@ class AOMOIntegrals : public MOIntegrals<T>
         };
 
     protected:
-        void doTransformation(const ERI<T>& ints);
+        void doTransformation(const integrals::ERI<T>& ints);
 };
 
 }
