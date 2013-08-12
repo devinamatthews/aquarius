@@ -313,7 +313,9 @@ void CholeskyIntegrals<T>::decompose()
                 {
                     for (int m = 0;m < shells[i].getNContr();m++)
                     {
-                        if (i == j && m > n) break;
+                        if (i == j &&
+                            e*shells[i].getNContr()+m >
+                            f*shells[j].getNContr()+n) break;
 
                         int o = shells[i].getIndex(ctx, idx[i], e, m, 0);
                         int p = shells[j].getIndex(ctx, idx[j], f, n, 0);
