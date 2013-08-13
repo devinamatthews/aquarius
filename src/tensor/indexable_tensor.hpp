@@ -340,6 +340,8 @@ class IndexedTensor
         {
             if (idx.size() != tensor.getDimension()) throw InvalidNdimError();
         }
+      
+        void set_name(char const * name_) { tensor_.set_name(name_); }
 
         /**********************************************************************
          *

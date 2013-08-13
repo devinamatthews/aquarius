@@ -270,7 +270,7 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
     assert(recvoff[nproc-1]+recvcount[nproc-1] == nnewints);
     assert(sendoff[nproc-1]+sendcount[nproc-1] == nints);
 
-    assert(allsum(nints) == allsum(nnewints));
+//    assert(allsum(nints) == allsum(nnewints));
 
     T* newints = SAFE_MALLOC(T, nnewints);
     idx4_t* newidxs = SAFE_MALLOC(idx4_t, nnewints);

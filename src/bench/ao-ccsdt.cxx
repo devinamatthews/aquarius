@@ -172,7 +172,7 @@ int main(int argc, char **argv)
             tic();
         }
         toc();
-        t_ccsd.stop();
+        t_ccsdt.stop();
 
         dt = todouble(toc());
         PRINT("\nCCSDT took: %8.3f s (%8.3f s/it.)\n", dt, dt/i);
