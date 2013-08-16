@@ -32,9 +32,10 @@ using namespace aquarius::input;
 using namespace aquarius::integrals;
 
 template <typename T>
-UHF<T>::UHF(Arena<T>& arena, const Config& config, const Molecule& molecule)
+UHF<T>::UHF(const Arena& arena, const Config& config, const Molecule& molecule,
+            DistTensor<T>& S, DistTensor<T>& H)
 : Iterative(config),
-  Distributed<T>(arena),
+  Distributed(arena),
   molecule(molecule),
   norb(molecule.getNumOrbitals()),
   nalpha(molecule.getNumAlphaElectrons()),
@@ -42,7 +43,8 @@ UHF<T>::UHF(Arena<T>& arena, const Config& config, const Molecule& molecule)
   damping(config.get<T>("damping")),
   Ea(norb),
   Eb(norb),
-  diis(config.get("diis"), 2)
+  diis(config.get("diis"), 2),
+  S(&S), H(&H)
   #ifdef USE_ELEMENTAL
   ,grid(comm),
   C_elem(norb, norb, grid),
@@ -71,12 +73,9 @@ UHF<T>::UHF(Arena<T>& arena, const Config& config, const Molecule& molecule)
     Db = new DistTensor<T>(arena, 2, sizenn, shapeNN, true);
     dDa = new DistTensor<T>(arena, 2, sizenn, shapeNN, false);
     dDb = new DistTensor<T>(arena, 2, sizenn, shapeNN, false);
-    S = new DistTensor<T>(arena, 2, sizenn, shapeNN, false);
     Smhalf = new DistTensor<T>(arena, 2, sizenn, shapeNN, false);
-    H = new DistTensor<T>(arena, 2, sizenn, shapeNN, false);
 
     calcOverlap();
-    calc1eHamiltonian();
 }
 
 template <typename T>
@@ -93,9 +92,7 @@ UHF<T>::~UHF()
     delete Db;
     delete dDa;
     delete dDb;
-    delete S;
     delete Smhalf;
-    delete H;
 }
 
 template <typename T>
@@ -161,9 +158,6 @@ T UHF<T>::getAvgNumBeta() const
 template <typename T>
 void UHF<T>::calcOverlap()
 {
-    OVI<T> ovi(this->arena, Context(), molecule);
-    (*S) = ovi.getS();
-
     #ifdef USE_ELEMENTAL
 
     int cshift = S_elem.ColShift();
@@ -245,13 +239,6 @@ void UHF<T>::calcOverlap()
     }
 
     #endif
-}
-
-template <typename T>
-void UHF<T>::calc1eHamiltonian()
-{
-    OneElectronHamiltonian<T> h(this->arena, Context(), molecule);
-    (*H) = h.getH();
 }
 
 template <typename T>
@@ -471,15 +458,13 @@ void UHF<T>::diagonalizeFock()
 template <typename T>
 void UHF<T>::fixPhase(DistTensor<T>& C)
 {
-    int rank = this->comm.Get_rank();
-    int np = this->comm.Get_size();
     int nr = C.getLengths()[1];
 
     vector< tkv_pair<T> > pairs(norb);
 
-    for (int b = 0;b*np < nr;b++)
+    for (int b = 0;b*nproc < nr;b++)
     {
-        int r = b*np+rank;
+        int r = b*nproc+rank;
 
         if (r < nr)
         {

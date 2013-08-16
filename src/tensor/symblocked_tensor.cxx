@@ -29,8 +29,8 @@ using namespace aquarius::tensor;
 using namespace aquarius::symmetry;
 
 template <class T>
-SymmetryBlockedTensor<T>::SymmetryBlockedTensor(Arena<T>& arena, const PointGroup& group, T scalar)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(0, 0), Distributed<T>(arena),
+SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const Arena& arena, const PointGroup& group, T scalar)
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(0, 0), Distributed(arena),
   group(group), len(0), sym(0)
 {
     tensors.resize(1, NULL);
@@ -39,12 +39,12 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(Arena<T>& arena, const PointGrou
 
 template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(other), Distributed<T>(other.arena),
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(other), Distributed(other.arena),
   group(other.group), len(other.len), sym(other.sym) {}
 
 template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other, T scalar)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(0, 0), Distributed<T>(other.arena),
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(0, 0), Distributed(other.arena),
   group(other.group), len(0), sym(0)
 {
     tensors.resize(1, NULL);
@@ -52,10 +52,10 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& 
 }
 
 template <class T>
-SymmetryBlockedTensor<T>::SymmetryBlockedTensor(Arena<T>& arena, const PointGroup& group,
+SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const Arena& arena, const PointGroup& group,
                                                 int ndim, const vector<vector<int> >& len,
                                                 const vector<int>& sym, bool zero)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(ndim, 0), Distributed<T>(arena),
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(ndim, 0), Distributed(arena),
   group(group), len(len), sym(sym)
 {
     assert(sym.size() == ndim);

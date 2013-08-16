@@ -30,11 +30,16 @@
 #include <vector>
 #include <stdexcept>
 #include <cstring>
+#include <algorithm>
 
 #include "memory/memory.h"
 #include "util/math.hpp"
 #include "util/blas.h"
 #include "symmetry/symmetry.hpp"
+#include "task/task.hpp"
+#include "input/molecule.hpp"
+#include "input/config.hpp"
+#include "stl_ext/stl_ext.hpp"
 
 #include "shell.hpp"
 
@@ -109,6 +114,25 @@ class TwoElectronIntegrals
         void prim2contr4r(size_t nother, double* buf1, double* buf2);
 
         void prim2contr4l(size_t nother, double* buf1, double* buf2);
+};
+
+class ERI : public task::Resource
+{
+    public:
+        std::vector<double> ints;
+        std::vector<idx4_t> idxs;
+
+        ERI(const Arena& arena) : Resource(arena) {}
+
+        void print(task::Printer& p) const;
+};
+
+class TwoElectronIntegralsTask : public task::Task
+{
+    public:
+        TwoElectronIntegralsTask(const std::string& name, const input::Config& config);
+
+        void run(task::TaskDAG& dag, Arena& arena);
 };
 
 }

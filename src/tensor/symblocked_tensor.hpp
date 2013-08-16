@@ -45,7 +45,7 @@ namespace tensor
 {
 
 template <class T>
-class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>, public Distributed<T>
+class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>, public Distributed
 {
     INHERIT_FROM_INDEXABLE_COMPOSITE_TENSOR(SymmetryBlockedTensor<T>,DistTensor<T>,T)
 
@@ -55,13 +55,13 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
         std::vector<int> sym;
 
     public:
-        SymmetryBlockedTensor(Arena<T>& arena, const symmetry::PointGroup& group, T scalar = (T)0);
+        SymmetryBlockedTensor(const Arena& arena, const symmetry::PointGroup& group, T scalar = (T)0);
 
         SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other);
 
         SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other, T scalar);
 
-        SymmetryBlockedTensor(Arena<T>& arena, const symmetry::PointGroup& group,
+        SymmetryBlockedTensor(const Arena& arena, const symmetry::PointGroup& group,
                               int ndim, const std::vector<std::vector<int> >& len,
                               const std::vector<int>& sym, bool zero=true);
 

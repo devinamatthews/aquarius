@@ -19,7 +19,8 @@ UPPER_UNDERSCORE = 4
 bindir = $(topdir)/bin
 libdir = $(topdir)/lib
 
-ALL_LIBS_LINK = -ltask -lcc -lop -lscf -linput -ltime -lintegrals -lsymmetry -ltensor -lautocc -lmemory -lutil
+ALL_LIBS_LINK = $(LDFLAGS_PRE) -ltask -lcc -lop -lscf -linput -ltime \
+                -lintegrals -lsymmetry -ltensor -lautocc -lmemory -lutil $(LDFLAGS_POST)
 ALL_LIBS_DEPS = $(libdir)/libautocc.a $(libdir)/libinput.a \
                 $(libdir)/libtime.a $(libdir)/libintegrals.a \
                 $(libdir)/libmemory.a $(libdir)/libtensor.a \

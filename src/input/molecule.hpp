@@ -31,6 +31,8 @@
 #include "integrals/shell.hpp"
 #include "symmetry/symmetry.hpp"
 #include "util/util.h"
+#include "task/task.hpp"
+
 #include "config.hpp"
 
 namespace aquarius
@@ -40,7 +42,7 @@ namespace input
 
 class Atom;
 
-class Molecule
+class Molecule : public task::Resource
 {
     private:
         std::vector<Atom> atoms;
@@ -52,7 +54,9 @@ class Molecule
         void addAtom(const Atom& atom);
 
     public:
-        Molecule(const Config& config);
+        Molecule(const Arena& arena, const Config& config);
+
+        void print(task::Printer& p) const {}
 
         int getNumElectrons() const;
 
@@ -66,7 +70,7 @@ class Molecule
 
         double getNuclearRepulsion() const;
 
-        const symmetry::PointGroup& getPointGroup() const { return symmetry::PointGroup::C1; }
+        const symmetry::PointGroup& getPointGroup() const { return symmetry::PointGroup::C1(); }
 
         class shell_iterator : public std::iterator<std::forward_iterator_tag, integrals::Shell>
         {

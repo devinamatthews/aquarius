@@ -45,7 +45,8 @@ class CholeskyUHF : public UHF<T>
         tensor::DistTensor<T> *LDa_occ, *LDb_occ;
 
     public:
-        CholeskyUHF(const input::Config& config, const integrals::CholeskyIntegrals<T>& chol);
+        CholeskyUHF(const input::Config& config, const integrals::CholeskyIntegrals<T>& chol,
+                    tensor::DistTensor<T>& S, tensor::DistTensor<T>& H);
 
         ~CholeskyUHF();
 

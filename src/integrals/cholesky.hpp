@@ -41,7 +41,7 @@ namespace integrals
 {
 
 template <typename T>
-class CholeskyIntegrals : public Distributed<T>
+class CholeskyIntegrals : public Distributed
 {
     public:
         const input::Molecule& molecule;
@@ -67,7 +67,7 @@ class CholeskyIntegrals : public Distributed<T>
         };
 
         const Context& ctx;
-        int rank;
+        int nvec;
         std::vector<Shell> shells;
         T delta;
         T cond;
@@ -78,13 +78,13 @@ class CholeskyIntegrals : public Distributed<T>
         int nblock;
 
     public:
-        CholeskyIntegrals(Arena<T>& arena, const Context& ctx, const input::Config& config, const input::Molecule& molecule);
+        CholeskyIntegrals(const Arena& arena, const Context& ctx, const input::Config& config, const input::Molecule& molecule);
 
         ~CholeskyIntegrals();
 
         void test();
 
-        int getRank() const { return rank; }
+        int getRank() const { return nvec; }
 
         const tensor::DistTensor<T>& getL() const { return *L; }
 

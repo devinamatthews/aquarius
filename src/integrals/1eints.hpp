@@ -35,6 +35,11 @@
 #include "util/math.hpp"
 #include "util/blas.h"
 #include "symmetry/symmetry.hpp"
+#include "tensor/dist_tensor.hpp"
+#include "stl_ext/stl_ext.hpp"
+#include "task/task.hpp"
+#include "input/molecule.hpp"
+#include "input/config.hpp"
 
 #include "shell.hpp"
 
@@ -135,6 +140,51 @@ class OneElectronIntegrals
         void prim2contr2r(size_t nother, double* buf1, double* buf2);
 
         void prim2contr2l(size_t nother, double* buf1, double* buf2);
+};
+
+class OneElectronIntegralsTask : public task::Task
+{
+    public:
+        class OneElectronIntegral : public tensor::DistTensor<double>, public task::Resource
+        {
+            protected:
+                std::string name;
+
+            public:
+                OneElectronIntegral(const Arena& arena, const std::string& name, int norb)
+                : tensor::DistTensor<double>(arena, 2, std::vec(norb,norb), std::vec(NS,NS), true),
+                  Resource(arena), name(name) {}
+
+                void print(task::Printer& p) const;
+        };
+
+        OneElectronIntegralsTask(const std::string& name, const input::Config& config);
+
+        void run(task::TaskDAG& dag, Arena& arena);
+};
+
+struct OVI : public OneElectronIntegralsTask::OneElectronIntegral
+{
+    OVI(const Arena& arena, int norb)
+    : OneElectronIntegral(arena, "Overlap Integrals", norb) {}
+};
+
+struct NAI : public OneElectronIntegralsTask::OneElectronIntegral
+{
+    NAI(const Arena& arena, int norb)
+    : OneElectronIntegral(arena, "Nuclear Attraction Integrals", norb) {}
+};
+
+struct KEI : public OneElectronIntegralsTask::OneElectronIntegral
+{
+    KEI(const Arena& arena, int norb)
+    : OneElectronIntegral(arena, "Kinetic Energy Integrals", norb) {}
+};
+
+struct OneElectronHamiltonian : public OneElectronIntegralsTask::OneElectronIntegral
+{
+    OneElectronHamiltonian(const Arena& arena, int norb)
+    : OneElectronIntegral(arena, "One-electron Hamiltonian", norb) {}
 };
 
 }

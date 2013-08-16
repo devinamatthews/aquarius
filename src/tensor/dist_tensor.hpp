@@ -62,7 +62,7 @@ int conv_idx(const int ndim_A, const T* cidx_A, int*& iidx_A,
              const int ndim_C, const T* cidx_C, int*& iidx_C);
 
 template <typename T>
-class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed<T>
+class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
 {
     INHERIT_FROM_INDEXABLE_TENSOR(DistTensor<T>,T)
 
@@ -76,15 +76,15 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
         void free();
 
     public:
-        using Distributed<T>::arena;
+        using Distributed::arena;
 
-        DistTensor(Arena<T>& arena, T scalar = (T)0);
+        DistTensor(const Arena& arena, T scalar = (T)0);
 
         DistTensor(const DistTensor<T>& A, T scalar);
 
         DistTensor(const DistTensor<T>& A, bool copy=true, bool zero=false);
 
-        DistTensor(Arena<T>& arena, int ndim, const std::vector<int>& len, const std::vector<int>& sym,
+        DistTensor(const Arena& arena, int ndim, const std::vector<int>& len, const std::vector<int>& sym,
                    bool zero=true);
 
         virtual ~DistTensor();

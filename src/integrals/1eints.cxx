@@ -46,6 +46,8 @@ using namespace aquarius;
 using namespace aquarius::integrals;
 using namespace aquarius::input;
 using namespace aquarius::symmetry;
+using namespace aquarius::task;
+using namespace aquarius::tensor;
 
 void OVIEvaluator::operator()(int la, const double* ca, int na, const double *za,
                               int lb, const double* cb, int nb, const double *zb,
@@ -428,3 +430,107 @@ void OneElectronIntegrals::prim2contr2l(size_t nother, double* buf1, double* buf
 
     copy(m*n, buf1, 1, buf2, 1);
 }
+
+void OneElectronIntegralsTask::OneElectronIntegral::print(Printer& p) const
+{
+    //TODO
+}
+
+OneElectronIntegralsTask::OneElectronIntegralsTask(const string& name, const Config& config)
+: Task("1eints", name)
+{
+    vector<Requirement> reqs;
+    reqs.push_back(Requirement("molecule", "molecule"));
+    addProduct(Product("ovi", "S", reqs));
+    addProduct(Product("kei", "T", reqs));
+    addProduct(Product("nai", "G", reqs));
+    addProduct(Product("1ehamiltonian", "H", reqs));
+}
+
+void OneElectronIntegralsTask::run(TaskDAG& dag, Arena& arena)
+{
+    const Molecule& molecule = get<Molecule>("molecule");
+
+    Context ctx;
+
+    vector<vector<int> > idx = Shell::setupIndices(ctx, molecule);
+    vector<Shell> shells(molecule.getShellsBegin(), molecule.getShellsEnd());
+    vector<tkv_pair<double> > ovi_pairs, nai_pairs, kei_pairs;
+    vector<Center> centers;
+
+    for (vector<Atom>::const_iterator i = molecule.getAtomsBegin();i != molecule.getAtomsEnd();++i)
+    {
+        centers.push_back(i->getCenter());
+    }
+
+    int block = 0;
+    for (int a = 0;a < shells.size();++a)
+    {
+        for (int b = 0;b <= a;++b)
+        {
+            if (block%arena.nproc == arena.rank)
+            {
+                OneElectronIntegrals s(shells[a], shells[b], OVIEvaluator());
+                OneElectronIntegrals t(shells[a], shells[b], KEIEvaluator());
+                OneElectronIntegrals g(shells[a], shells[b], NAIEvaluator(centers));
+
+                size_t nint = s.getNumInts();
+                vector<double> ints(nint);
+                vector<idx2_t> idxs(nint);
+                size_t nproc;
+
+                nproc = s.process(ctx, idx[a], idx[b], nint, ints.data(), idxs.data());
+                for (int i = 0;i < nproc;i++)
+                {
+                    ovi_pairs.push_back(tkv_pair<double>(idxs[i].i*molecule.getNumOrbitals()+idxs[i].j, ints[i]));
+                    if (idxs[i].i != idxs[i].j)
+                    {
+                        ovi_pairs.push_back(tkv_pair<double>(idxs[i].j*molecule.getNumOrbitals()+idxs[i].i, ints[i]));
+                    }
+                }
+
+                nproc = t.process(ctx, idx[a], idx[b], nint, ints.data(), idxs.data());
+                for (int i = 0;i < nproc;i++)
+                {
+                    kei_pairs.push_back(tkv_pair<double>(idxs[i].i*molecule.getNumOrbitals()+idxs[i].j, ints[i]));
+                    if (idxs[i].i != idxs[i].j)
+                    {
+                        kei_pairs.push_back(tkv_pair<double>(idxs[i].j*molecule.getNumOrbitals()+idxs[i].i, ints[i]));
+                    }
+                }
+
+                nproc = g.process(ctx, idx[a], idx[b], nint, ints.data(), idxs.data());
+                for (int i = 0;i < nproc;i++)
+                {
+                    nai_pairs.push_back(tkv_pair<double>(idxs[i].i*molecule.getNumOrbitals()+idxs[i].j, ints[i]));
+                    if (idxs[i].i != idxs[i].j)
+                    {
+                        nai_pairs.push_back(tkv_pair<double>(idxs[i].j*molecule.getNumOrbitals()+idxs[i].i, ints[i]));
+                    }
+                }
+            }
+
+            block++;
+        }
+    }
+
+    OVI *ovi = new OVI(arena, molecule.getNumOrbitals());
+    ovi->writeRemoteData(ovi_pairs);
+
+    KEI *kei = new KEI(arena, molecule.getNumOrbitals());
+    kei->writeRemoteData(kei_pairs);
+
+    NAI *nai = new NAI(arena, molecule.getNumOrbitals());
+    nai->writeRemoteData(nai_pairs);
+
+    OneElectronHamiltonian *oeh = new OneElectronHamiltonian(arena, molecule.getNumOrbitals());
+    oeh->writeRemoteData(kei_pairs);
+    oeh->writeRemoteData(1.0, 1.0, nai_pairs);
+
+    put("S", ovi);
+    put("T", kei);
+    put("G", nai);
+    put("H", oeh);
+}
+
+REGISTER_TASK(OneElectronIntegralsTask,"1eints");

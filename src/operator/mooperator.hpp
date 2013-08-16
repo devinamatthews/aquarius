@@ -33,17 +33,17 @@ namespace op
 {
 
 template <typename T>
-class MOOperator : public Distributed<T>
+class MOOperator : public Distributed
 {
     protected:
         const scf::UHF<T>& uhf;
 
     public:
         MOOperator(const scf::UHF<T>& uhf)
-        : Distributed<T>(uhf), uhf(uhf) {}
+        : Distributed(uhf), uhf(uhf) {}
 
         MOOperator(const MOOperator<T>& other)
-        : Distributed<T>(other), uhf(other.uhf) {}
+        : Distributed(other), uhf(other.uhf) {}
 
         const scf::UHF<T>& getSCF() const { return uhf; }
 };

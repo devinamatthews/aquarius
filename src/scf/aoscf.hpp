@@ -26,7 +26,7 @@
 #define _AQUARIUS_SCF_AOSCF_HPP_
 
 #include "stl_ext/stl_ext.hpp"
-#include "integrals/eri.hpp"
+#include "integrals/2eints.hpp"
 
 #include "scf.hpp"
 
@@ -40,14 +40,16 @@ class AOUHF : public UHF<T>
 {
     protected:
         using UHF<T>::norb;
-        const integrals::ERI<T>& ints;
+        const integrals::ERI& ints;
 
         void buildFock();
 
     public:
-        AOUHF(const input::Config& config, const integrals::ERI<T>& ints);
+        AOUHF(const input::Config& config, const input::Molecule& molecule,
+              const integrals::ERI& ints,
+              tensor::DistTensor<T>& S, tensor::DistTensor<T>& H);
 
-        const integrals::ERI<T>& getIntegrals() const { return ints; }
+        const integrals::ERI& getIntegrals() const { return ints; }
 };
 
 }

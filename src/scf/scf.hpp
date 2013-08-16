@@ -36,8 +36,7 @@
 #endif
 
 #include "tensor/dist_tensor.hpp"
-#include "integrals/ovi.hpp"
-#include "integrals/1ehamiltonian.hpp"
+#include "integrals/1eints.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
 #include "util/util.h"
@@ -53,7 +52,7 @@ namespace scf
 {
 
 template <typename T>
-class UHF : public Iterative, public Distributed<T>
+class UHF : public Iterative, public Distributed
 {
     protected:
         const input::Molecule& molecule;
@@ -80,7 +79,8 @@ class UHF : public Iterative, public Distributed<T>
         #endif
 
     public:
-        UHF(Arena<T>& arena, const input::Config& config, const input::Molecule& molecule);
+        UHF(const Arena& arena, const input::Config& config, const input::Molecule& molecule,
+            tensor::DistTensor<T>& S, tensor::DistTensor<T>& H);
 
         ~UHF();
 
@@ -110,8 +110,6 @@ class UHF : public Iterative, public Distributed<T>
 
     protected:
         void calcOverlap();
-
-        void calc1eHamiltonian();
 
         void diagonalizeFock();
 

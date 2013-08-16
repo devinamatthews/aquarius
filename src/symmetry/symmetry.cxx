@@ -172,6 +172,30 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
     }
 
     /*
+     * Check that characters of elements are the same within classes
+     */
+    int nclasses = 1;
+    for (int g = 1;g < order;g++)
+    {
+        if (!areConjugate(g-1, g))
+        {
+            nclasses++;
+        }
+        else
+        {
+            for (int irrep = 0;irrep < nirrep;irrep++)
+            {
+                if (abs(characters[irrep][g-1]-characters[irrep][g]) > 1e-10)
+                {
+                    ERROR("Characters of same-class operations %s and %s are not the same for irrep %s of group %s",
+                          op_names[g-1], op_names[g], irrep_names[irrep], name);
+                }
+            }
+        }
+    }
+    if (nclasses != nirrep) ERROR("The number of classes and irreps is not the same for group %s", name);
+
+    /*
      * Check normalization of character table
      */
     for (int irrep = 0;irrep < nirrep;irrep++)
@@ -219,28 +243,6 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
             }
         }
     }
-
-    /*
-     * Check that characters of elements are the same within classes
-     */
-    int nclasses = 1;
-    for (int g = 1;g < order;g++)
-    {
-        if (!areConjugate(g-1, g))
-        {
-            nclasses++;
-        }
-        else
-        {
-            for (int irrep = 0;irrep < nirrep;irrep++)
-            {
-                if (abs(characters[irrep][g-1]-characters[irrep][g]) > 1e-10)
-                    ERROR("Characters of same-class operations %s and %s are not the same for irrep %s of group %s",
-                          op_names[g-1], op_names[g], irrep_names[irrep], name);
-            }
-        }
-    }
-    if (nclasses != nirrep) ERROR("The number of classes and irreps is not the same for group %s", name);
 }
 
 bool PointGroup::areConjugate(int i, int j) const
@@ -542,9 +544,13 @@ static const int c1_irrep_degen[] = {1};
 static const mat3x3 c1_ops[] = {Identity()};
 static const char *c1_op_names[] = {"E"};
 
-const PointGroup PointGroup::C1 = PointGroup(1, 1, 0, c1_name, c1_irrep_names,
-                                             NULL, NULL, c1_irrep_degen,
-                                             c1_ops, c1_op_names);
+const PointGroup& PointGroup::C1()
+{
+    static PointGroup C1_(1, 1, 0, c1_name, c1_irrep_names,
+                          NULL, NULL, c1_irrep_degen,
+                          c1_ops, c1_op_names);
+    return C1_;
+}
 
 /*
  * Cs
@@ -558,9 +564,13 @@ static const mat3x3 cs_ops[] = {Identity(),
                                 Reflection(vec3(0,0,1))};
 static const char *cs_op_names[] = {"E", "sxy"};
 
-const PointGroup PointGroup::Cs = PointGroup(2, 2, 1, cs_name, cs_irrep_names,
-                                             cs_generators, cs_generator_reps, cs_irrep_degen,
-                                             cs_ops, cs_op_names);
+const PointGroup& PointGroup::Cs()
+{
+    static PointGroup Cs_(2, 2, 1, cs_name, cs_irrep_names,
+                          cs_generators, cs_generator_reps, cs_irrep_degen,
+                          cs_ops, cs_op_names);
+    return Cs_;
+}
 
 /*
  * Ci
@@ -574,9 +584,13 @@ static const mat3x3 ci_ops[] = {Identity(),
                                 Inversion()};
 static const char *ci_op_names[] = {"E", "i"};
 
-const PointGroup PointGroup::Ci = PointGroup(2, 2, 1, ci_name, ci_irrep_names,
-                                             ci_generators, ci_generator_reps, ci_irrep_degen,
-                                             ci_ops, ci_op_names);
+const PointGroup& PointGroup::Ci()
+{
+    static PointGroup Ci_(2, 2, 1, ci_name, ci_irrep_names,
+                          ci_generators, ci_generator_reps, ci_irrep_degen,
+                          ci_ops, ci_op_names);
+    return Ci_;
+}
 
 /*
  * Td
@@ -637,9 +651,13 @@ static const char *td_op_names[] = {"E",
                                     "S4x", "S4x^3", "S4y", "S4y^3", "S4z", "S4z^3",
                                     "sx+y", "sx-y", "sx+z", "sx-z", "sy+z", "sy-z"};
 
-const PointGroup PointGroup::Td = PointGroup(24, 5, 2, td_name, td_irrep_names,
-                                             td_generators, td_generator_reps, td_irrep_degen,
-                                             td_ops, td_op_names);
+const PointGroup& PointGroup::Td()
+{
+    static PointGroup Td_(24, 5, 2, td_name, td_irrep_names,
+                          td_generators, td_generator_reps, td_irrep_degen,
+                          td_ops, td_op_names);
+    return Td_;
+}
 
 /*
  * Oh
@@ -770,9 +788,13 @@ static const char *oh_op_names[] = {"E",
                                     "sxy", "sxz", "syz",
                                     "sx+y", "sx-y", "sx+z", "sx-z", "sy+z", "sy-z"};
 
-const PointGroup PointGroup::Oh = PointGroup(48, 10, 3, oh_name, oh_irrep_names,
-                                             oh_generators, oh_generator_reps, oh_irrep_degen,
-                                             oh_ops, oh_op_names);
+const PointGroup& PointGroup::Oh()
+{
+    static PointGroup Oh_(48, 10, 3, oh_name, oh_irrep_names,
+                          oh_generators, oh_generator_reps, oh_irrep_degen,
+                          oh_ops, oh_op_names);
+    return Oh_;
+}
 
 /*
  * Ih
@@ -793,10 +815,173 @@ const PointGroup PointGroup::Oh = PointGroup(48, 10, 3, oh_name, oh_irrep_names,
 #define i cos( avf+aff/2) // vector to midpoint of upper edge perp. to yz plane
 #define j sin(-avf-aff/2) //
 
+#define  c3 0.2
+#define  c4 0.4
+#define  c5 0.5
+#define  c8 0.052786404500042060718 // (5-2*sqrt(5))/10
+#define  c9 0.085410196624968454461 // (3*sqrt(5)-5)/20
+#define c14 0.162459848116453163080 // sqrt((5-2*sqrt(5))/5)/2
+#define c16 0.214093253863853959170 // sqrt(3)*(sqrt(5)-1)/10
+#define c19 0.262865556059566803010 // sqrt((5-sqrt(5))/10)/2
+#define c20 0.276393202250021030360 // (5-sqrt(5))/10
+#define c21 0.309016994374947424100 // (sqrt(5)-1)/4
+#define c26 0.407229568364101746760 // sqrt(3)*sqrt(10-2*sqrt(5))/10
+#define c27 0.425325404176019966090 // sqrt((5+sqrt(5))/10)/2
+#define c28 0.447213595499957939280 // sqrt(5)/5
+#define c31 0.525731112119133606030 // sqrt((5-sqrt(5))/10)
+#define c33 0.560503415377629417870 // sqrt(3)*(sqrt(5)+1)/10
+#define c35 0.585410196624968454460 // (3*sqrt(5)+5)/20
+#define c36 0.587785252292473129170 // sqrt((5-sqrt(5))/2)/2
+#define c39 0.658911282837065540700 // sqrt(3)*sqrt(10+2*sqrt(5))/10
+#define c40 0.670820393249936908920 // 3*sqrt(5)/10
+#define c41 0.688190960235586769100 // sqrt((5+2*sqrt(5))/5)/2
+#define c43 0.723606797749978969640 // (5+sqrt(5))/10
+#define c44 0.760845213036122857690 // sqrt(10+2*sqrt(5))/5
+#define c46 0.809016994374947424100 // (sqrt(5)+1)/4
+#define c48 0.850650808352039932180 // sqrt((5+sqrt(5))/10)
+#define c51 0.947213595499957939280 // (5+2*sqrt(5))/10
+#define c52 0.951056516295153572120 // sqrt((5+sqrt(5))/2)/2
+#define c55 0.072654252800536088590 // sqrt(5-2*sqrt(5))/10
+#define c57 0.307768353717525340260 // sqrt(5+2*sqrt(5))/10
+#define c58 0.347213595499957939280 // (2*sqrt(5)-1)/10
+#define c60 0.470228201833978503330 // sqrt(10-2*sqrt(5))/5
+#define c62 0.547213595499957939280 // (2*sqrt(5)+1)/10
+
 static const char *ih_name = "Ih";
-static const char *ih_irrep_names[] = {"Ag","T1g","T2g","Hg","Gg","Au","T1u","T2u","Hu","Gu"};
-static const int ih_generators[] = {};
-static const double ih_generator_reps[] = {};
+static const char *ih_irrep_names[] = {"Ag","T1g","T2g","Gg","Hg","Au","T1u","T2u","Gu","Hu"};
+static const int ih_generators[] = {2,25,56,60};
+static const double ih_generator_reps[] = {// C5z
+                                            1,                       // Ag
+                                            c21,-c52,   0,           // T1g
+                                            c52, c21,   0,
+                                              0,   0,   1,
+                                           -c46, c36,   0,           // T2g
+                                           -c36,-c46,   0,
+                                              0,   0,   1,
+                                            c21,-c52,   0,   0,      // Gg
+                                            c52, c21,   0,   0,
+                                              0,   0,-c46,-c36,
+                                              0,   0, c36,-c46,
+                                              1,   0,   0,   0,   0, // Hg
+                                              0,-c46,-c36,   0,   0,
+                                              0, c36,-c46,   0,   0,
+                                              0,   0,   0, c21, c52,
+                                              0,   0,   0,-c52, c21,
+                                            1,                       // Au
+                                            c21,-c52,   0,           // T1u
+                                            c52, c21,   0,
+                                              0,   0,   1,
+                                           -c46, c36,   0,           // T2u
+                                           -c36,-c46,   0,
+                                              0,   0,   1,
+                                            c21,-c52,   0,   0,      // Gu
+                                            c52, c21,   0,   0,
+                                              0,   0,-c46,-c36,
+                                              0,   0, c36,-c46,
+                                              1,   0,   0,   0,   0, // Hu
+                                              0,-c46,-c36,   0,   0,
+                                              0, c36,-c46,   0,   0,
+                                              0,   0,   0, c21, c52,
+                                              0,   0,   0,-c52, c21,
+                                           // C3
+                                            1,                       // Ag
+                                            c8 , c41, c43,           // T1g
+                                           -c41,-c5 , c31,
+                                            c43,-c31, c28,
+                                            c51,-c14,-c20,           // T2g
+                                            c14,-c5 , c48,
+                                           -c20,-c48,-c28,
+                                            c35,-c27, c40,-c14,      // Gg
+                                            c27,-c21,-c41,-c5 ,
+                                            c40, c41,-c9 , c19,
+                                            c14,-c5 ,-c19, c46,
+                                           -c3 , c16,-c39,-c26, c33, // Hg
+                                            c16,-c58,-c57, c44, c4 ,
+                                            c39, c57,-c5 , 0  ,-c60,
+                                            c26,-c44, 0  ,-c5 , c55,
+                                            c33, c4 , c60,-c55, c62,
+                                            1,                       // Au
+                                            c8 , c41, c43,           // T1u
+                                           -c41,-c5 , c31,
+                                            c43,-c31, c28,
+                                            c51,-c14,-c20,           // T2u
+                                            c14,-c5 , c48,
+                                           -c20,-c48,-c28,
+                                            c35,-c27, c40,-c14,      // Gu
+                                            c27,-c21,-c41,-c5 ,
+                                            c40, c41,-c9 , c19,
+                                            c14,-c5 ,-c19, c46,
+                                           -c3 , c16,-c39,-c26, c33, // Hu
+                                            c16,-c58,-c57, c44, c4 ,
+                                            c39, c57,-c5 , 0  ,-c60,
+                                            c26,-c44, 0  ,-c5 , c55,
+                                            c33, c4 , c60,-c55, c62,
+                                           // C2x
+                                            1,             // Ag
+                                           -1, 0, 0,       // T1g
+                                            0, 1, 0,
+                                            0, 0,-1,
+                                           -1, 0, 0,       // T2g
+                                            0, 1, 0,
+                                            0, 0,-1,
+                                           -1, 0, 0, 0,    // Gg
+                                            0, 1, 0, 0,
+                                            0, 0,-1, 0,
+                                            0, 0, 0, 1,
+                                            1, 0, 0, 0, 0, // Hg
+                                            0, 1, 0, 0, 0,
+                                            0, 0,-1, 0, 0,
+                                            0, 0, 0,-1, 0,
+                                            0, 0, 0, 0, 1,
+                                            1,             // Au
+                                           -1, 0, 0,       // T1u
+                                            0, 1, 0,
+                                            0, 0,-1,
+                                           -1, 0, 0,       // T2u
+                                            0, 1, 0,
+                                            0, 0,-1,
+                                           -1, 0, 0, 0,    // Gu
+                                            0, 1, 0, 0,
+                                            0, 0,-1, 0,
+                                            0, 0, 0, 1,
+                                            1, 0, 0, 0, 0, // Hu
+                                            0, 1, 0, 0, 0,
+                                            0, 0,-1, 0, 0,
+                                            0, 0, 0,-1, 0,
+                                            0, 0, 0, 0, 1,
+                                           // i
+                                            1,             // Ag
+                                            1, 0, 0,       // T1g
+                                            0, 1, 0,
+                                            0, 0, 1,
+                                            1, 0, 0,       // T2g
+                                            0, 1, 0,
+                                            0, 0, 1,
+                                            1, 0, 0, 0,    // Gg
+                                            0, 1, 0, 0,
+                                            0, 0, 1, 0,
+                                            0, 0, 0, 1,
+                                            1, 0, 0, 0, 0, // Hg
+                                            0, 1, 0, 0, 0,
+                                            0, 0, 1, 0, 0,
+                                            0, 0, 0, 1, 0,
+                                            0, 0, 0, 0, 1,
+                                           -1,             // Au
+                                           -1, 0, 0,       // T1u
+                                            0,-1, 0,
+                                            0, 0,-1,
+                                           -1, 0, 0,       // T2u
+                                            0,-1, 0,
+                                            0, 0,-1,
+                                           -1, 0, 0, 0,    // Gu
+                                            0,-1, 0, 0,
+                                            0, 0,-1, 0,
+                                            0, 0, 0,-1,
+                                           -1, 0, 0, 0, 0, // Hu
+                                            0,-1, 0, 0, 0,
+                                            0, 0,-1, 0, 0,
+                                            0, 0, 0,-1, 0,
+                                            0, 0, 0, 0,-1};
 static const int ih_irrep_degen[] = {1,3,3,4,5,1,3,3,4,5};
 static const mat3x3 ih_ops[] = {Identity(),
                                 C<5>(vec3( 0, 0, 1)),
@@ -811,10 +996,10 @@ static const mat3x3 ih_ops[] = {Identity(),
                                 C<5>(vec3( 0,-b,-a)*(C<5>(vec3(0,0, 1))^2)),
                                 C<5>(vec3( 0, b, a)*(C<5>(vec3(0,0,-1))^2)),
                                 C<5>(vec3( 0,-b,-a)*(C<5>(vec3(0,0,-1))^2)),
-                                (C<5>(vec3( 0, 0, 1))^2),
-                                (C<5>(vec3( 0, 0,-1))^2),
-                                (C<5>(vec3( 0, b, a))^2),
-                                (C<5>(vec3( 0,-b,-a))^2),
+                                C<5>(vec3( 0, 0, 1))^2,
+                                C<5>(vec3( 0, 0,-1))^2,
+                                C<5>(vec3( 0, b, a))^2,
+                                C<5>(vec3( 0,-b,-a))^2,
                                 C<5>(vec3( 0, b, a)*C<5>(vec3(0,0, 1)))^2,
                                 C<5>(vec3( 0,-b,-a)*C<5>(vec3(0,0, 1)))^2,
                                 C<5>(vec3( 0, b, a)*C<5>(vec3(0,0,-1)))^2,
@@ -919,34 +1104,23 @@ static const mat3x3 ih_ops[] = {Identity(),
                                 Reflection(vec3( 0, 1, 0)*C<20>(vec3(0,0,1))*(C<5>(vec3(0,0, 1))^2)),
                                 Reflection(vec3( 0, 1, 0)*C<20>(vec3(0,0,1))*(C<5>(vec3(0,0,-1))^2))};
 static const char *ih_op_names[] = {"E",
-                                    "C5", "C5", "C5", "C5", "C5", "C5", "C5", "C5", "C5", "C5", "C5", "C5",
-                                    "C5^2", "C5^2", "C5^2", "C5^2", "C5^2", "C5^2", "C5^2", "C5^2", "C5^2", "C5^2", "C5^2", "C5^2",
-                                    "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3", "C3",
-                                    "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2", "C2",
+                                    "C5a", "C5b", "C5c", "C5d", "C5e", "C5f", "C5g", "C5h", "C5i", "C5j", "C5k", "C5l",
+                                    "C5a^2", "C5b^2", "C5c^2", "C5d^2", "C5e^2", "C5f^2", "C5g^2", "C5h^2", "C5i^2", "C5j^2", "C5k^2", "C5l^2",
+                                    "C3a", "C3b", "C3c", "C3d", "C3e", "C3f", "C3g", "C3h", "C3i", "C3j", "C3k", "C3l", "C3m", "C3n", "C3o", "C3p", "C3q", "C3r", "C3s", "C3t",
+                                    "C2a", "C2b", "C2c", "C2d", "C2e", "C2f", "C2g", "C2h", "C2i", "C2j", "C2k", "C2l", "C2m", "C2n", "C2o",
                                     "i",
-                                    "S10", "S10", "S10", "S10", "S10", "S10", "S10", "S10", "S10", "S10", "S10", "S10",
-                                    "S10^3", "S10^3", "S10^3", "S10^3", "S10^3", "S10^3", "S10^3", "S10^3", "S10^3", "S10^3", "S10^3", "S10^3",
-                                    "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6", "S6",
-                                    "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg", "sg"};
+                                    "S10a", "S10b", "S10c", "S10d", "S10e", "S10f", "S10g", "S10h", "S10i", "S10j", "S10k", "S10l",
+                                    "S10a^3", "S10b^3", "S10c^3", "S10d^3", "S10e^3", "S10f^3", "S10g^3", "S10h^3", "S10i^3", "S10j^3", "S10k^3", "S10l^3",
+                                    "S6a", "S6b", "S6c", "S6d", "S6e", "S6f", "S6g", "S6h", "S6i", "S6j", "S6k", "S6l", "S6m", "S6n", "S6o", "S6p", "S6q", "S6r", "S6s", "S6t",
+                                    "sga", "sgb", "sgc", "sgd", "sge", "sgf", "sgg", "sgh", "sgi", "sgj", "sgk", "sgl", "sgm", "sgn", "sgo"};
 
-//const PointGroup PointGroup::Ih = PointGroup(120, 10, 0, ih_name, ih_irrep_names,
-//                                             ih_generators, ih_generator_reps, ih_irrep_degen,
-//                                             ih_ops, ih_op_names);
-
-#undef a
-#undef b
-#undef c
-#undef d
-#undef e
-#undef f
-#undef g
-#undef h
-#undef i
-#undef j
-
-#undef avv
-#undef avf
-#undef aff
+const PointGroup& PointGroup::Ih()
+{
+    static PointGroup Ih_(120, 10, 4, ih_name, ih_irrep_names,
+                          ih_generators, ih_generator_reps, ih_irrep_degen,
+                          ih_ops, ih_op_names);
+    return Ih_;
+}
 
 /*
  * C2
@@ -960,9 +1134,13 @@ static const mat3x3 c2_ops[] = {Identity(),
                                 C<2>(vec3(0,0,1))};
 static const char *c2_op_names[] = {"E", "C2z"};
 
-const PointGroup PointGroup::C2 = PointGroup(2, 2, 1, c2_name, c2_irrep_names,
-                                             c2_generators, c2_generator_reps, c2_irrep_degen,
-                                             c2_ops, c2_op_names);
+const PointGroup& PointGroup::C2()
+{
+    static PointGroup C2_(2, 2, 1, c2_name, c2_irrep_names,
+                          c2_generators, c2_generator_reps, c2_irrep_degen,
+                          c2_ops, c2_op_names);
+    return C2_;
+}
 
 /*
  * C3
@@ -979,9 +1157,13 @@ static const mat3x3 c3_ops[] = {Identity(),
                                 C<3>(vec3( 0, 0,-1))};
 static const char *c3_op_names[] = {"E", "C3z", "C3z^2"};
 
-const PointGroup PointGroup::C3 = PointGroup(3, 3, 3, c3_name, c3_irrep_names,
+const PointGroup& PointGroup::C3()
+{
+	static PointGroup C3_(3, 3, 3, c3_name, c3_irrep_names,
                                              c3_generators, c3_generator_reps, c3_irrep_degen,
                                              c3_ops, c3_op_names);
+	return C3_;
+}
 
 /*
  * C4
@@ -1000,9 +1182,13 @@ static const mat3x3 c4_ops[] = {Identity(),
                                 C<4>(vec3( 0, 0,-1))};
 static const char *c4_op_names[] = {"E", "C4z", "C2z", "C4z^3"};
 
-const PointGroup PointGroup::C4 = PointGroup(4, 4, 4, c4_name, c4_irrep_names,
+const PointGroup& PointGroup::C4()
+{
+	static PointGroup C4_(4, 4, 4, c4_name, c4_irrep_names,
                                              c4_generators, c4_generator_reps, c4_irrep_degen,
                                              c4_ops, c4_op_names);
+	return C4_;
+}
 
 /*
  * C5
@@ -1028,14 +1214,13 @@ static const mat3x3 c5_ops[] = {Identity(),
                                 C<5>(vec3( 0, 0,-1))};
 static const char *c5_op_names[] = {"E", "C5z", "C5z^2", "C5z^3", "C5z^4"};
 
-const PointGroup PointGroup::C5 = PointGroup(5, 5, 5, c5_name, c5_irrep_names,
+const PointGroup& PointGroup::C5()
+{
+	static PointGroup C5_(5, 5, 5, c5_name, c5_irrep_names,
                                              c5_generators, c5_generator_reps, c5_irrep_degen,
                                              c5_ops, c5_op_names);
-
-#undef ce
-#undef se
-#undef c2e
-#undef s2e
+	return C5_;
+}
 
 /*
  * C6
@@ -1058,9 +1243,13 @@ static const mat3x3 c6_ops[] = {Identity(),
                                 C<6>(vec3( 0, 0,-1))};
 static const char *c6_op_names[] = {"E", "C6z", "C3z", "C2z", "C3z^2", "C6z^5"};
 
-const PointGroup PointGroup::C6 = PointGroup(6, 6, 6, c6_name, c6_irrep_names,
+const PointGroup& PointGroup::C6()
+{
+	static PointGroup C6_(6, 6, 6, c6_name, c6_irrep_names,
                                              c6_generators, c6_generator_reps, c6_irrep_degen,
                                              c6_ops, c6_op_names);
+	return C6_;
+}
 
 /*
  * C2v
@@ -1077,9 +1266,13 @@ static const mat3x3 c2v_ops[] = {Identity(),
                                  Reflection(vec3(1,0,0))};
 static const char *c2v_op_names[] = {"E", "C2z", "sxz", "syz"};
 
-const PointGroup PointGroup::C2v = PointGroup(4, 4, 2, c2v_name, c2v_irrep_names,
+const PointGroup& PointGroup::C2v()
+{
+	static PointGroup C2v_(4, 4, 2, c2v_name, c2v_irrep_names,
                                               c2v_generators, c2v_generator_reps, c2v_irrep_degen,
                                               c2v_ops, c2v_op_names);
+	return C2v_;
+}
 
 /*
  * C3v
@@ -1106,9 +1299,13 @@ static const mat3x3 c3v_ops[] = {Identity(),
                                  Reflection(vec3(0,1,0)*C<3>(vec3(0,0,-1)))};
 static const char *c3v_op_names[] = {"E", "C3z", "C3z^2", "sxz", "s2", "s3"};
 
-const PointGroup PointGroup::C3v = PointGroup(6, 3, 2, c3v_name, c3v_irrep_names,
+const PointGroup& PointGroup::C3v()
+{
+	static PointGroup C3v_(6, 3, 2, c3v_name, c3v_irrep_names,
                                               c3v_generators, c3v_generator_reps, c3v_irrep_degen,
                                               c3v_ops, c3v_op_names);
+	return C3v_;
+}
 
 /*
  * C4v
@@ -1141,9 +1338,13 @@ static const mat3x3 c4v_ops[] = {Identity(),
                                  Reflection(vec3(1,-1,0))};
 static const char *c4v_op_names[] = {"E", "C4z", "C4z^3", "C2z", "sxz", "syz", "sx+y", "sx-y"};
 
-const PointGroup PointGroup::C4v = PointGroup(8, 5, 2, c4v_name, c4v_irrep_names,
+const PointGroup& PointGroup::C4v()
+{
+	static PointGroup C4v_(8, 5, 2, c4v_name, c4v_irrep_names,
                                               c4v_generators, c4v_generator_reps, c4v_irrep_degen,
                                               c4v_ops, c4v_op_names);
+	return C4v_;
+}
 
 /*
  * C5v
@@ -1178,9 +1379,13 @@ static const mat3x3 c5v_ops[] = {Identity(),
                                  Reflection(vec3(0,1,0)*(C<5>(vec3(0,0,-1))^2))};
 static const char *c5v_op_names[] = {"E", "C5z", "C5z^4", "C5z^2", "C5z^3", "sxz", "s2", "s3", "s4", "s5"};
 
-const PointGroup PointGroup::C5v = PointGroup(10, 4, 2, c5v_name, c5v_irrep_names,
+const PointGroup& PointGroup::C5v()
+{
+	static PointGroup C5v_(10, 4, 2, c5v_name, c5v_irrep_names,
                                               c5v_generators, c5v_generator_reps, c5v_irrep_degen,
                                               c5v_ops, c5v_op_names);
+	return C5v_;
+}
 
 /*
  * C6v
@@ -1221,9 +1426,13 @@ static const mat3x3 c6v_ops[] = {Identity(),
                                  Reflection(vec3(0,1,0)*(C<12>(vec3(0,0,1))^5))};
 static const char *c6v_op_names[] = {"E", "C6z", "C6z^5", "C3z", "C3z^2", "C2z", "sxz", "s2", "s3", "syz", "s5", "s6"};
 
-const PointGroup PointGroup::C6v = PointGroup(12, 6, 2, c6v_name, c6v_irrep_names,
+const PointGroup& PointGroup::C6v()
+{
+	static PointGroup C6v_(12, 6, 2, c6v_name, c6v_irrep_names,
                                               c6v_generators, c6v_generator_reps, c6v_irrep_degen,
                                               c6v_ops, c6v_op_names);
+	return C6v_;
+}
 
 /*
  * C2h
@@ -1240,9 +1449,13 @@ static const mat3x3 c2h_ops[] = {Identity(),
                                  Reflection(vec3(0,0,1))};
 static const char *c2h_op_names[] = {"E", "C2z", "i", "sxy"};
 
-const PointGroup PointGroup::C2h = PointGroup(4, 4, 2, c2h_name, c2h_irrep_names,
+const PointGroup& PointGroup::C2h()
+{
+	static PointGroup C2h_(4, 4, 2, c2h_name, c2h_irrep_names,
                                               c2h_generators, c2h_generator_reps, c2h_irrep_degen,
                                               c2h_ops, c2h_op_names);
+	return C2h_;
+}
 
 /*
  * C3h
@@ -1265,9 +1478,13 @@ static const mat3x3 c3h_ops[] = {Identity(),
                                  S<3>(vec3( 0, 0,-1))};
 static const char *c3h_op_names[] = {"E", "C3z", "C3z^2", "sxy", "S3z", "S3z^5"};
 
-const PointGroup PointGroup::C3h = PointGroup(6, 6, 6, c3h_name, c3h_irrep_names,
+const PointGroup& PointGroup::C3h()
+{
+	static PointGroup C3h_(6, 6, 6, c3h_name, c3h_irrep_names,
                                               c3h_generators, c3h_generator_reps, c3h_irrep_degen,
                                               c3h_ops, c3h_op_names);
+	return C3h_;
+}
 
 /*
  * C4h
@@ -1294,18 +1511,17 @@ static const mat3x3 c4h_ops[] = {Identity(),
                                  S<4>(vec3( 0, 0, 1))};
 static const char *c4h_op_names[] = {"E", "C4z", "C2z", "C4z^3", "i", "S4z^3", "sxy", "S4z"};
 
-const PointGroup PointGroup::C4h = PointGroup(8, 8, 8, c4h_name, c4h_irrep_names,
+const PointGroup& PointGroup::C4h()
+{
+	static PointGroup C4h_(8, 8, 8, c4h_name, c4h_irrep_names,
                                               c4h_generators, c4h_generator_reps, c4h_irrep_degen,
                                               c4h_ops, c4h_op_names);
+	return C4h_;
+}
 
 /*
  * C5h
  */
-#define ce  sqrt(2)*cos(0.4*M_PI)
-#define se  sqrt(2)*sin(0.4*M_PI)
-#define c2e sqrt(2)*cos(0.8*M_PI)
-#define s2e sqrt(2)*sin(0.8*M_PI)
-
 static const char *c5h_name = "C5h";
 static const char *c5h_irrep_names[] = {"A'","E1'+","E1'-","E2'+","E2'-","A''","E1''+","E1''-","E2''+","E2''-"};
 static const int c5h_generators[] = {0,1,2,3,4,5,6,7,8,9};
@@ -1332,14 +1548,13 @@ static const mat3x3 c5h_ops[] = {Identity(),
                                  S<5>(vec3( 0, 0,-1))};
 static const char *c5h_op_names[] = {"E", "C5z", "C5z^2", "C5z^3", "C5z^4", "sxy", "S5z", "S5z^7", "S5z^3", "S5z^9"};
 
-const PointGroup PointGroup::C5h = PointGroup(10, 10, 10, c5h_name, c5h_irrep_names,
+const PointGroup& PointGroup::C5h()
+{
+	static PointGroup C5h_(10, 10, 10, c5h_name, c5h_irrep_names,
                                               c5h_generators, c5h_generator_reps, c5h_irrep_degen,
                                               c5h_ops, c5h_op_names);
-
-#undef ce
-#undef se
-#undef c2e
-#undef s2e
+	return C5h_;
+}
 
 /*
  * C6h
@@ -1374,9 +1589,13 @@ static const mat3x3 c6h_ops[] = {Identity(),
                                  S<3>(vec3( 0, 0, 1))};
 static const char *c6h_op_names[] = {"E", "C6z", "C3z", "C2z", "C3z^2", "C6z^5", "i", "S3^5", "S6^5", "sxy", "S6", "S3"};
 
-const PointGroup PointGroup::C6h = PointGroup(12, 12, 12, c6h_name, c6h_irrep_names,
+const PointGroup& PointGroup::C6h()
+{
+	static PointGroup C6h_(12, 12, 12, c6h_name, c6h_irrep_names,
                                               c6h_generators, c6h_generator_reps, c6h_irrep_degen,
                                               c6h_ops, c6h_op_names);
+	return C6h_;
+}
 
 /*
  * D2
@@ -1393,9 +1612,13 @@ static const mat3x3 d2_ops[] = {Identity(),
                                 C<2>(vec3(1,0,0))};
 static const char *d2_op_names[] = {"E", "C2z", "C2y", "C2x"};
 
-const PointGroup PointGroup::D2 = PointGroup(4, 4, 2, d2_name, d2_irrep_names,
+const PointGroup& PointGroup::D2()
+{
+	static PointGroup D2_(4, 4, 2, d2_name, d2_irrep_names,
                                              d2_generators, d2_generator_reps, d2_irrep_degen,
                                              d2_ops, d2_op_names);
+	return D2_;
+}
 
 /*
  * D3
@@ -1422,9 +1645,13 @@ static const mat3x3 d3_ops[] = {Identity(),
                                 C<2>(vec3(1,0,0)*C<3>(vec3(0,0,-1)))};
 static const char *d3_op_names[] = {"E", "C3z", "C3z^2", "C2x", "C22", "C23"};
 
-const PointGroup PointGroup::D3 = PointGroup(6, 3, 2, d3_name, d3_irrep_names,
+const PointGroup& PointGroup::D3()
+{
+	static PointGroup D3_(6, 3, 2, d3_name, d3_irrep_names,
                                              d3_generators, d3_generator_reps, d3_irrep_degen,
                                              d3_ops, d3_op_names);
+	return D3_;
+}
 
 /*
  * D4
@@ -1457,9 +1684,13 @@ static const mat3x3 d4_ops[] = {Identity(),
                                 C<2>(vec3(1,-1,0))};
 static const char *d4_op_names[] = {"E", "C4z", "C4z^3", "C2z", "C2x", "C2y", "C2x+y", "C2x-y"};
 
-const PointGroup PointGroup::D4 = PointGroup(8, 5, 2, d4_name, d4_irrep_names,
+const PointGroup& PointGroup::D4()
+{
+	static PointGroup D4_(8, 5, 2, d4_name, d4_irrep_names,
                                              d4_generators, d4_generator_reps, d4_irrep_degen,
                                              d4_ops, d4_op_names);
+	return D4_;
+}
 
 /*
  * D5
@@ -1494,9 +1725,13 @@ static const mat3x3 d5_ops[] = {Identity(),
                                 C<2>(vec3(1,0,0)*(C<5>(vec3(0,0,-1))^2))};
 static const char *d5_op_names[] = {"E", "C5z", "C5z^4", "C5z^2", "C5z^3", "C2x", "C22", "C23", "C24", "C25"};
 
-const PointGroup PointGroup::D5 = PointGroup(10, 4, 2, d5_name, d5_irrep_names,
+const PointGroup& PointGroup::D5()
+{
+	static PointGroup D5_(10, 4, 2, d5_name, d5_irrep_names,
                                              d5_generators, d5_generator_reps, d5_irrep_degen,
                                              d5_ops, d5_op_names);
+	return D5_;
+}
 
 /*
  * D6
@@ -1537,9 +1772,13 @@ static const mat3x3 d6_ops[] = {Identity(),
                                 C<2>(vec3(0,1,0)*C<6>(vec3(0,0,-1)))};
 static const char *d6_op_names[] = {"E", "C6z", "C6z^5", "C3z", "C3z^2", "C2z", "C2x", "C22", "C23", "C2y", "C25", "C26"};
 
-const PointGroup PointGroup::D6 = PointGroup(12, 6, 2, d6_name, d6_irrep_names,
+const PointGroup& PointGroup::D6()
+{
+	static PointGroup D6_(12, 6, 2, d6_name, d6_irrep_names,
                                              d6_generators, d6_generator_reps, d6_irrep_degen,
                                              d6_ops, d6_op_names);
+	return D6_;
+}
 
 /*
  * D2h
@@ -1561,9 +1800,13 @@ static const mat3x3 d2h_ops[] = {Identity(),
                                  Reflection(vec3(1,0,0))};
 static const char *d2h_op_names[] = {"E", "C2z", "C2y", "C2x", "i", "sxy", "sxz", "syz"};
 
-const PointGroup PointGroup::D2h = PointGroup(8, 8, 3, d2h_name, d2h_irrep_names,
+const PointGroup& PointGroup::D2h()
+{
+	static PointGroup D2h_(8, 8, 3, d2h_name, d2h_irrep_names,
                                               d2h_generators, d2h_generator_reps, d2h_irrep_degen,
                                               d2h_ops, d2h_op_names);
+	return D2h_;
+}
 
 /*
  * D3h
@@ -1614,9 +1857,13 @@ static const mat3x3 d3h_ops[] = {Identity(),
 static const char *d3h_op_names[] = {"E", "C3z", "C3z^2", "C2x", "C22", "C23",
                                      "sxy", "S3z", "S3z^5", "sxz", "s2", "s3"};
 
-const PointGroup PointGroup::D3h = PointGroup(12, 6, 3, d3h_name, d3h_irrep_names,
+const PointGroup& PointGroup::D3h()
+{
+	static PointGroup D3h_(12, 6, 3, d3h_name, d3h_irrep_names,
                                               d3h_generators, d3h_generator_reps, d3h_irrep_degen,
                                               d3h_ops, d3h_op_names);
+	return D3h_;
+}
 
 /*
  * D4h
@@ -1683,9 +1930,13 @@ static const mat3x3 d4h_ops[] = {Identity(),
 static const char *d4h_op_names[] = {"E", "C4z", "C4z^3", "C2z", "C2x", "C2y", "C2x+y", "C2x-y",
                                      "i", "S4z", "S4z^7", "sxy", "syz", "sxz", "sx+y", "sx-y"};
 
-const PointGroup PointGroup::D4h = PointGroup(16, 10, 3, d4h_name, d4h_irrep_names,
+const PointGroup& PointGroup::D4h()
+{
+	static PointGroup D4h_(16, 10, 3, d4h_name, d4h_irrep_names,
                                               d4h_generators, d4h_generator_reps, d4h_irrep_degen,
                                               d4h_ops, d4h_op_names);
+	return D4h_;
+}
 
 /*
  * D5h
@@ -1756,9 +2007,13 @@ static const mat3x3 d5h_ops[] = {Identity(),
 static const char *d5h_op_names[] = {"E", "C5z", "C5z^4", "C5z^2", "C5z^3", "C2x", "C22", "C23", "C24", "C25",
                                      "sxy", "S5z", "S5z^9", "S5z^3", "S5z^7", "sxz", "s2", "s3", "s4", "s5"};
 
-const PointGroup PointGroup::D5h = PointGroup(20, 8, 3, d5h_name, d5h_irrep_names,
+const PointGroup& PointGroup::D5h()
+{
+	static PointGroup D5h_(20, 8, 3, d5h_name, d5h_irrep_names,
                                               d5h_generators, d5h_generator_reps, d5h_irrep_degen,
                                               d5h_ops, d5h_op_names);
+	return D5h_;
+}
 
 /*
  * D6h
@@ -1845,9 +2100,13 @@ static const mat3x3 d6h_ops[] = {Identity(),
 static const char *d6h_op_names[] = {"E", "C6z", "C6z^5", "C3z", "C3z^2", "C2z", "C2x", "C22", "C23", "C2y", "C25", "C26",
                                      "i", "S3z", "S3z^5", "S6z", "S6z^5", "sxy", "syz", "s2", "s3", "sxz", "s5", "s6"};
 
-const PointGroup PointGroup::D6h = PointGroup(24, 12, 3, d6h_name, d6h_irrep_names,
+const PointGroup& PointGroup::D6h()
+{
+	static PointGroup D6h_(24, 12, 3, d6h_name, d6h_irrep_names,
                                               d6h_generators, d6h_generator_reps, d6h_irrep_degen,
                                               d6h_ops, d6h_op_names);
+	return D6h_;
+}
 
 /*
  * D2d
@@ -1880,9 +2139,13 @@ static const mat3x3 d2d_ops[] = {Identity(),
                                 Reflection(vec3(1,-1,0))};
 static const char *d2d_op_names[] = {"E", "S4z", "S4z^3", "C2z", "C2x", "C2y", "sx+y", "sx-y"};
 
-const PointGroup PointGroup::D2d = PointGroup(8, 5, 2, d2d_name, d2d_irrep_names,
+const PointGroup& PointGroup::D2d()
+{
+	static PointGroup D2d_(8, 5, 2, d2d_name, d2d_irrep_names,
                                               d2d_generators, d2d_generator_reps, d2d_irrep_degen,
                                               d2d_ops, d2d_op_names);
+	return D2d_;
+}
 
 /*
  * D3d
@@ -1923,9 +2186,13 @@ static const mat3x3 d3d_ops[] = {Identity(),
                                  Reflection(vec3(1,0,0)*C<6>(vec3(0,0,-1)))};
 static const char *d3d_op_names[] = {"E", "S6z", "S6z^5", "C3z", "C3z^2", "i", "C2x", "C22", "C23", "syz", "s2", "s3"};
 
-const PointGroup PointGroup::D3d = PointGroup(12, 6, 2, d3d_name, d3d_irrep_names,
+const PointGroup& PointGroup::D3d()
+{
+	static PointGroup D3d_(12, 6, 2, d3d_name, d3d_irrep_names,
                                               d3d_generators, d3d_generator_reps, d3d_irrep_degen,
                                               d3d_ops, d3d_op_names);
+	return D3d_;
+}
 
 /*
  * S4
@@ -1944,9 +2211,13 @@ static const mat3x3 s4_ops[] = {Identity(),
                                 S<4>(vec3( 0, 0,-1))};
 static const char *s4_op_names[] = {"E", "S4z", "C2z", "S4z^3"};
 
-const PointGroup PointGroup::S4 = PointGroup(4, 4, 4, s4_name, s4_irrep_names,
+const PointGroup& PointGroup::S4()
+{
+	static PointGroup S4_(4, 4, 4, s4_name, s4_irrep_names,
                                              s4_generators, s4_generator_reps, s4_irrep_degen,
                                              s4_ops, s4_op_names);
+	return S4_;
+}
 
 /*
  * S6
@@ -1969,9 +2240,13 @@ static const mat3x3 s6_ops[] = {Identity(),
                                 S<6>(vec3( 0, 0,-1))};
 static const char *s6_op_names[] = {"E", "S6z", "C3z", "i", "C3z^2", "S6z^5"};
 
-const PointGroup PointGroup::S6 = PointGroup(6, 6, 6, s6_name, s6_irrep_names,
+const PointGroup& PointGroup::S6()
+{
+	static PointGroup S6_(6, 6, 6, s6_name, s6_irrep_names,
                                              s6_generators, s6_generator_reps, s6_irrep_degen,
                                              s6_ops, s6_op_names);
+	return S6_;
+}
 
 }
 }

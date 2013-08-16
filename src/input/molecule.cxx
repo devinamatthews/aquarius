@@ -37,6 +37,7 @@ using namespace aquarius;
 using namespace aquarius::integrals;
 using namespace aquarius::symmetry;
 using namespace aquarius::input;
+using namespace aquarius::task;
 
 struct AtomSpec
 {
@@ -175,7 +176,8 @@ class Config::Extractor<AtomCartSpec>
     }
 };
 
-Molecule::Molecule(const Config& config)
+Molecule::Molecule(const Arena& arena, const Config& config)
+: Resource(arena)
 {
     string name;
     bool hasDefaultBasis;
@@ -278,7 +280,7 @@ Molecule::Molecule(const Config& config)
     norb = 0;
     for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
     {
-        Atom a(Center(PointGroup::C1, it->pos, Element::getElement(it->symbol)));
+        Atom a(Center(PointGroup::C1(), it->pos, Element::getElement(it->symbol)));
         if (it->basisSet != "")
         {
             BasisSet(TOPDIR "/basis/" + it->basisSet).apply(a, spherical, contaminants);

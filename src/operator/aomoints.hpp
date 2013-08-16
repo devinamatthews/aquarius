@@ -26,7 +26,7 @@
 #define _AQUARIUS_OPERATOR_AOMOINTS_HPP_
 
 #include "scf/aoscf.hpp"
-#include "integrals/eri.hpp"
+#include "integrals/2eints.hpp"
 
 #include "moints.hpp"
 
@@ -42,27 +42,22 @@ class AOMOIntegrals : public MOIntegrals<T>
         AOMOIntegrals(const scf::AOUHF<T>& uhf);
 
     private:
-        using Distributed<T>::nproc;
-        using Distributed<T>::rank;
         enum Side {PQ, RS};
         enum Index {A, B};
 
         struct abrs_integrals;
 
-        struct pqrs_integrals : Distributed<T>
+        struct pqrs_integrals : Distributed
         {
             int np, nq, nr, ns;
             size_t nints;
             T *ints;
             idx4_t *idxs;
 
-            using Distributed<T>::nproc;
-            using Distributed<T>::rank;
-
             /*
              * Read integrals in and break (pq|rs)=(rs|pq) symmetry
              */
-            pqrs_integrals(const integrals::ERI<T>& aoints);
+            pqrs_integrals(int norb, const integrals::ERI& aoints);
 
             pqrs_integrals(abrs_integrals& abrs);
 
@@ -76,7 +71,7 @@ class AOMOIntegrals : public MOIntegrals<T>
             void collect(bool rles);
         };
 
-        struct abrs_integrals : Distributed<T>
+        struct abrs_integrals : Distributed
         {
             int na, nb, nr, ns;
             size_t nints;
@@ -103,7 +98,7 @@ class AOMOIntegrals : public MOIntegrals<T>
         };
 
     protected:
-        void doTransformation(const integrals::ERI<T>& ints);
+        void doTransformation(const integrals::ERI& ints);
 };
 
 }

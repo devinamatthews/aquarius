@@ -67,15 +67,15 @@ AOMOIntegrals<T>::AOMOIntegrals(const AOUHF<T>& uhf)
 }
 
 template <typename T>
-AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(const ERI<T>& aoints)
-: Distributed<T>(aoints.arena)
+AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(int norb, const ERI& aoints)
+: Distributed(aoints.arena)
 {
     PROFILE_FUNCTION
 
-    ns = nr = nq = np = aoints.norb;
+    ns = nr = nq = np = norb;
 
-    const vector<T>& oldints = aoints.getInts();
-    const vector<idx4_t>& oldidxs = aoints.getIndices();
+    const vector<T>& oldints = aoints.ints;
+    const vector<idx4_t>& oldidxs = aoints.idxs;
     size_t noldints = oldints.size();
     nints = noldints;
 
@@ -129,7 +129,7 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(const ERI<T>& aoints)
 
 template <typename T>
 AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(abrs_integrals& abrs)
-: Distributed<T>(abrs.arena)
+: Distributed(abrs.arena)
 {
     PROFILE_FUNCTION
 
@@ -248,15 +248,10 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
     size_t *rscount;
     sortInts(rles, nrs, rscount);
 
-    size_t nnewints = 0;
     size_t *sendcount = SAFE_MALLOC(size_t, nproc);
-    size_t *sendoff = SAFE_MALLOC(size_t, nproc);
     size_t *recvcount = SAFE_MALLOC(size_t, nproc);
-    size_t *recvoff = SAFE_MALLOC(size_t, nproc);
     fill(sendcount, sendcount+nproc, 0);
-    sendoff[0] = 0;
     fill(recvcount, recvcount+nproc, 0);
-    recvoff[0] = 0;
 
     for (int i = 0;i < nproc;i++)
     {
@@ -265,24 +260,16 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
             assert(rs >= 0 && rs < nrs);
             sendcount[i] += rscount[rs];
         }
-        if (i > 0) sendoff[i] = sendoff[i-1]+sendcount[i-1];
     }
 
     FREE(rscount);
 
     PROFILE_SECTION(collect_comm)
-    this->comm.Alltoall(sendcount, 1, MPI_TYPE_<size_t>::value(),
-                        recvcount, 1, MPI_TYPE_<size_t>::value());
+    this->arena.Alltoall(sendcount, recvcount, 1);
     PROFILE_STOP
 
-    for (int i = 1;i < nproc;i++)
-    {
-        recvoff[i] = recvoff[i-1]+recvcount[i-1];
-    }
-    nnewints = recvoff[nproc-1]+recvcount[nproc-1];
-
-    assert(recvoff[nproc-1]+recvcount[nproc-1] == nnewints);
-    assert(sendoff[nproc-1]+sendcount[nproc-1] == nints);
+    size_t nnewints = 0;
+    for (int i = 0;i < nproc;i++) nnewints += recvcount[i];
 
     assert(allsum(nints) == allsum(nnewints));
 
@@ -291,37 +278,25 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
 
     int *realsendcount = SAFE_MALLOC(int, nproc);
     int *realrecvcount = SAFE_MALLOC(int, nproc);
-    int *realsendoff = SAFE_MALLOC(int, nproc);
-    int *realrecvoff = SAFE_MALLOC(int, nproc);
 
     for (int i = 0;i < nproc;i++)
     {
         assert(sendcount[i] <= INT_MAX);
         assert(recvcount[i] <= INT_MAX);
-        assert(sendoff[i] <= INT_MAX);
-        assert(recvoff[i] <= INT_MAX);
         realsendcount[i] = (int)sendcount[i];
         realrecvcount[i] = (int)recvcount[i];
-        realsendoff[i] = (int)sendoff[i];
-        realrecvoff[i] = (int)recvoff[i];
     }
 
     PROFILE_SECTION(collect_comm)
-    this->comm.Alltoallv(   ints, realsendcount, realsendoff, MPI_TYPE_<T>::value(),
-                         newints, realrecvcount, realrecvoff, MPI_TYPE_<T>::value());
+    this->arena.Alltoallv(ints, realsendcount, newints, realrecvcount);
 
-    this->comm.Alltoallv(   idxs, realsendcount, realsendoff, IDX4_T_TYPE,
-                         newidxs, realrecvcount, realrecvoff, IDX4_T_TYPE);
+    this->arena.Alltoallv(idxs, realsendcount, newidxs, realrecvcount, IDX4_T_TYPE);
     PROFILE_STOP
 
     FREE(realsendcount);
-    FREE(realsendoff);
     FREE(realrecvcount);
-    FREE(realrecvoff);
     FREE(sendcount);
-    FREE(sendoff);
     FREE(recvcount);
-    FREE(recvoff);
 
     nints = nnewints;
     swap(ints, newints);
@@ -337,7 +312,7 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
 
 template <typename T>
 AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const bool pleq)
-: Distributed<T>(pqrs.arena)
+: Distributed(pqrs.arena)
 {
     PROFILE_FUNCTION
 
@@ -708,7 +683,7 @@ void AOMOIntegrals<T>::abrs_integrals::free()
 }
 
 template <typename T>
-void AOMOIntegrals<T>::doTransformation(const ERI<T>& ints)
+void AOMOIntegrals<T>::doTransformation(const ERI& ints)
 {
     int N = this->uhf.getMolecule().getNumOrbitals();
     int nI = this->uhf.getMolecule().getNumAlphaElectrons();
@@ -738,7 +713,7 @@ void AOMOIntegrals<T>::doTransformation(const ERI<T>& ints)
      * Resort integrals so that each node has (pq|r_k s_l) where pq
      * are dense blocks for each sparse rs pair
      */
-    pqrs_integrals pqrs(ints);
+    pqrs_integrals pqrs(N, ints);
     pqrs.collect(true);
     abrs_integrals PQrs(pqrs, true);
 

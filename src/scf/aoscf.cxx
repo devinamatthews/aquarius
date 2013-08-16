@@ -34,8 +34,9 @@ using namespace aquarius::input;
 using namespace aquarius::integrals;
 
 template <typename T>
-AOUHF<T>::AOUHF(const Config& config, const ERI<T>& ints)
-: UHF<T>(ints.arena, config, ints.molecule), ints(ints) {}
+AOUHF<T>::AOUHF(const Config& config, const Molecule& molecule, const ERI& ints,
+                DistTensor<T>& S, DistTensor<T>& H)
+: UHF<T>(ints.arena, config, molecule, S, H), ints(ints) {}
 
 template <typename T>
 void AOUHF<T>::buildFock()
@@ -64,8 +65,8 @@ void AOUHF<T>::buildFock()
     vector<T> densab(densa);
     axpy(norb*norb, 1.0, densb.data(), 1, densab.data(), 1);
 
-    const vector<T>& eris = ints.getInts();
-    const vector<idx4_t>& idxs = ints.getIndices();
+    const vector<T>& eris = ints.ints;
+    const vector<idx4_t>& idxs = ints.idxs;
     size_t neris = eris.size();
 
     for (size_t n = 0;n < neris;n++)
@@ -145,8 +146,8 @@ void AOUHF<T>::buildFock()
 
     if (this->rank == 0)
     {
-        this->comm.Reduce(MPI::IN_PLACE, focka.data(), norb*norb, this->type, MPI::SUM, 0);
-        this->comm.Reduce(MPI::IN_PLACE, fockb.data(), norb*norb, this->type, MPI::SUM, 0);
+        this->arena.Reduce(focka, MPI::SUM);
+        this->arena.Reduce(fockb, MPI::SUM);
 
         vector<tkv_pair<T> > pairs(norb*norb);
 
@@ -168,8 +169,8 @@ void AOUHF<T>::buildFock()
     }
     else
     {
-        this->comm.Reduce(focka.data(), NULL, norb*norb, this->type, MPI::SUM, 0);
-        this->comm.Reduce(fockb.data(), NULL, norb*norb, this->type, MPI::SUM, 0);
+        this->arena.Reduce(focka, MPI::SUM, 0);
+        this->arena.Reduce(fockb, MPI::SUM, 0);
 
         this->Fa->writeRemoteData();
         this->Fb->writeRemoteData();

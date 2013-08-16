@@ -87,48 +87,41 @@ class PointGroup
     friend class Representation;
 
     public:
-        static const PointGroup C1;
-        static const PointGroup Cs;
-        static const PointGroup Ci;
-        static const PointGroup Td;
-        static const PointGroup Oh;
-        static const PointGroup Ih;
-
-        static const PointGroup C2;
-        static const PointGroup C3;
-        static const PointGroup C4;
-        static const PointGroup C5;
-        static const PointGroup C6;
-
-        static const PointGroup C2v;
-        static const PointGroup C3v;
-        static const PointGroup C4v;
-        static const PointGroup C5v;
-        static const PointGroup C6v;
-
-        static const PointGroup C2h;
-        static const PointGroup C3h;
-        static const PointGroup C4h;
-        static const PointGroup C5h;
-        static const PointGroup C6h;
-
-        static const PointGroup D2;
-        static const PointGroup D3;
-        static const PointGroup D4;
-        static const PointGroup D5;
-        static const PointGroup D6;
-
-        static const PointGroup D2h;
-        static const PointGroup D3h;
-        static const PointGroup D4h;
-        static const PointGroup D5h;
-        static const PointGroup D6h;
-
-        static const PointGroup D2d;
-        static const PointGroup D3d;
-
-        static const PointGroup S4;
-        static const PointGroup S6;
+        static const PointGroup& C1();
+        static const PointGroup& Cs();
+        static const PointGroup& Ci();
+        static const PointGroup& Td();
+        static const PointGroup& Oh();
+        static const PointGroup& Ih();
+        static const PointGroup& C2();
+        static const PointGroup& C3();
+        static const PointGroup& C4();
+        static const PointGroup& C5();
+        static const PointGroup& C6();
+        static const PointGroup& C2v();
+        static const PointGroup& C3v();
+        static const PointGroup& C4v();
+        static const PointGroup& C5v();
+        static const PointGroup& C6v();
+        static const PointGroup& C2h();
+        static const PointGroup& C3h();
+        static const PointGroup& C4h();
+        static const PointGroup& C5h();
+        static const PointGroup& C6h();
+        static const PointGroup& D2();
+        static const PointGroup& D3();
+        static const PointGroup& D4();
+        static const PointGroup& D5();
+        static const PointGroup& D6();
+        static const PointGroup& D2h();
+        static const PointGroup& D3h();
+        static const PointGroup& D4h();
+        static const PointGroup& D5h();
+        static const PointGroup& D6h();
+        static const PointGroup& D2d();
+        static const PointGroup& D3d();
+        static const PointGroup& S4();
+        static const PointGroup& S6();
 
     protected:
         const int order;

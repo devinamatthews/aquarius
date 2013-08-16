@@ -163,27 +163,30 @@ function defaultflags
             if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
             if [ "x$WARN"     = "x" ]; then WARN='-Wall'; fi
             if [ "x$OPT"      = "x" ]; then OPT=''; fi
+            PASS_TO_LINKER='-Wl,'
             ;;
-        cray)
-            depstype=stupid
-            if [ "x$AR"       = "x" ]; then AR='ar -crs'; fi
-            if [ "x$CFLAGS"   = "x" ]; then CFLAGS=''; fi
-            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-D__STDC_LIMIT_MACROS -Drestrict='; fi
-            if [ "x$DEPS"     = "x" ]; then DEPS='-M'; fi
-            if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
-            if [ "x$WARN"     = "x" ]; then WARN=''; fi
-            if [ "x$OPT"      = "x" ]; then OPT=''; fi
-            ;;
-        pgi)
-            depstype=stupid
-            if [ "x$AR"       = "x" ]; then AR='ar -crs'; fi
-            if [ "x$CFLAGS"   = "x" ]; then CFLAGS='-mp=nonuma -c99'; fi
-            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-mp=nonuma -D__STDC_LIMIT_MACROS -Drestrict='; fi
-            if [ "x$DEPS"     = "x" ]; then DEPS='-M'; fi
-            if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
-            if [ "x$WARN"     = "x" ]; then WARN=''; fi
-            if [ "x$OPT"      = "x" ]; then OPT='-fast'; fi
-            ;;
+#        cray)
+#            depstype=stupid
+#            if [ "x$AR"       = "x" ]; then AR='ar -crs'; fi
+#            if [ "x$CFLAGS"   = "x" ]; then CFLAGS=''; fi
+#            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-D__STDC_LIMIT_MACROS -Drestrict='; fi
+#            if [ "x$DEPS"     = "x" ]; then DEPS='-M'; fi
+#            if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
+#            if [ "x$WARN"     = "x" ]; then WARN=''; fi
+#            if [ "x$OPT"      = "x" ]; then OPT=''; fi
+#            PASS_TO_LINKER='-Wl,'
+#            ;;
+#        pgi)
+#            depstype=stupid
+#            if [ "x$AR"       = "x" ]; then AR='ar -crs'; fi
+#            if [ "x$CFLAGS"   = "x" ]; then CFLAGS='-mp=nonuma -c99'; fi
+#            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-mp=nonuma -D__STDC_LIMIT_MACROS -Drestrict='; fi
+#            if [ "x$DEPS"     = "x" ]; then DEPS='-M'; fi
+#            if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
+#            if [ "x$WARN"     = "x" ]; then WARN=''; fi
+#            if [ "x$OPT"      = "x" ]; then OPT='-fast'; fi
+#            PASS_TO_LINKER='-Wl,'
+#            ;;
         gnu)
             if [ "x$AR"       = "x" ]; then AR='ar -crs'; fi
             if [ "x$CFLAGS"   = "x" ]; then CFLAGS='-fopenmp -std=c99'; fi
@@ -192,6 +195,7 @@ function defaultflags
             if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
             if [ "x$WARN"     = "x" ]; then WARN='-Wall -Wno-comment -Wno-sign-compare'; fi
             if [ "x$OPT"      = "x" ]; then OPT='-g -O3'; fi
+            PASS_TO_LINKER='-Wl,'
             ;;
         *)
             echo 'No default flags known for given compilers. Make sure that you have set the'
@@ -204,9 +208,27 @@ function defaultflags
             if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
             if [ "x$WARN"     = "x" ]; then WARN='-Wall'; fi
             if [ "x$OPT"      = "x" ]; then OPT='-g -O2'; fi
+            PASS_TO_LINKER='-Wl,'
+            ;;
+    esac
+    
+    case `uname` in
+        *GNU*|*Linux*)
+            if [ "x$LDFLAGS_PRE"  = "x" ]; then LDFLAGS_PRE="$PASS_TO_LINKER--whole-archive"; fi
+            if [ "x$LDFLAGS_POST" = "x" ]; then LDFLAGS_POST="$PASS_TO_LINKER--no-whole-archive"; fi
+            ;;
+        *Darwin*)
+            if [ "x$LDFLAGS_PRE"  = "x" ]; then LDFLAGS_PRE="$PASS_TO_LINKER-all_load"; fi
+            if [ "x$LDFLAGS_POST" = "x" ]; then LDFLAGS_POST=''; fi
+            ;;
+        *)
+            if [ "x$LDFLAGS_PRE"  = "x" ]; then LDFLAGS_PRE="$PASS_TO_LINKER--whole-archive"; fi
+            if [ "x$LDFLAGS_POST" = "x" ]; then LDFLAGS_POST="$PASS_TO_LINKER--no-whole-archive"; fi
             ;;
     esac
 }
+
+echo $0 $* > how-did-i-configure
 
 #
 # Parse command-line arguments
@@ -470,6 +492,8 @@ CTF_LIBS    = -L\$(CTFDIR)/lib -lctf
 AR          = $AR
 
 LDFLAGS     = $LDFLAGS
+LDFLAGS_PRE = $LDFLAGS_PRE
+LDFLAGS_POST= $LDFLAGS_POST
 INCLUDES    = $INCLUDES
 
 DEPFLAGS    = $DEPS
@@ -501,3 +525,5 @@ DEPSTYPE    = $depstype
 EOF
 
 cp Makefile.in Makefile
+
+echo 'Configure was successful.'

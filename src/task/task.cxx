@@ -33,37 +33,36 @@ using namespace aquarius::task;
 Requirement::Requirement(const string& type, const string& name)
 : type(type), name(name) {}
 
-Requirement::~Requirement()
-{
-    if (product != NULL) delete product;
-}
-
 void Requirement::fulfil(const Product& product)
 {
-    if (this->product != NULL) delete this->product;
-    this->product = new Product(product);
+    this->product.reset(new Product(product));
+}
+
+bool Requirement::exists() const
+{
+    return product->exists();
 }
 
 Product& Requirement::get()
 {
-    if (product == NULL) throw logic_error("Requirement " + name + " not fulfilled");
+    if (!product) throw logic_error("Requirement " + name + " not fulfilled");
     return *product;
 }
 
 Product::Product(const string& type, const string& name)
-: type(type), name(name), data(new void*(NULL)) {}
+: type(type), name(name), requirements(), used(new bool(false)) {}
 
-template <typename T>
-void Product::put(T* resource)
+Product::Product(const string& type, const string& name, const vector<Requirement>& reqs)
+: type(type), name(name), requirements(reqs), used(new bool(false)) {}
+
+void Product::addRequirement(const Requirement& req)
 {
-    *data = static_cast<T*>(resource);
+    requirements.push_back(req);
 }
 
-template <typename T>
-T& Product::get()
+void Product::addRequirements(const std::vector<Requirement>& reqs)
 {
-    if (!*data) throw logic_error("Product " + name + " does not exist.");
-    return *static_cast<T*>(*data);
+    requirements.insert(requirements.end(), reqs.begin(), reqs.end());
 }
 
 Task::Task(const string& type, const string& name)
@@ -86,37 +85,6 @@ bool Task::registerTask(const string& name, factory_func create)
     return true;
 }
 
-template <typename T>
-void Task::put(const string& name, T* resource)
-{
-    getProduct(name).put(resource);
-}
-
-template <typename T>
-T& Task::get(const string& name)
-{
-    vector<Product*> to_search;
-
-    for (vector<Product>::iterator i = products.begin();i != products.end();i++) to_search += &(*i);
-
-    while (!to_search.empty())
-    {
-        vector<Product*> new_to_search;
-
-        for (vector<Product*>::iterator i = to_search.begin();i != to_search.end();i++)
-        {
-            if ((*i)->getName() == name) return (*i)->get<T>();
-
-            for (vector<Requirement>::iterator j = (*i)->getRequirements().begin();
-                 j != (*i)->getRequirements().end();j++) new_to_search += &j->get();
-        }
-
-        to_search = new_to_search;
-    }
-
-    throw logic_error("Product " + name " + not found on task " + this->name + " or its dependencies");
-}
-
 Product& Task::getProduct(const string& name)
 {
     for (vector<Product>::iterator i = products.begin();i != products.end();i++)
@@ -133,4 +101,95 @@ Task* Task::createTask(const string& type, const string& name, const input::Conf
     if (i == tasks().end()) throw logic_error("Task type " + type + " not found");
 
     return i->second(name, config);
+}
+
+TaskDAG::~TaskDAG()
+{
+    for (vector<Task*>::iterator i = tasks.begin();i != tasks.end();++i) delete *i;
+    tasks.clear();
+}
+
+void TaskDAG::addTask(Task* task)
+{
+    tasks.push_back(task);
+}
+
+void TaskDAG::execute(Arena& world)
+{
+    /*
+     * Attempy to satisfy task requirements greedily. If we are not careful, this could produce cycles.
+     */
+    for (vector<Task*>::iterator t1 = tasks.begin();t1 != tasks.end();++t1)
+    {
+        for (vector<Product>::iterator p1 = (*t1)->getProducts().begin();p1 != (*t1)->getProducts().end();++p1)
+        {
+            for (vector<Requirement>::iterator r = p1->getRequirements().begin();r != p1->getRequirements().end();++r)
+            {
+                if (r->isFulfilled()) continue;
+                for (vector<Task*>::iterator t2 = tasks.begin();t2 != tasks.end();++t2)
+                {
+                    for (vector<Product>::iterator p2 = (*t2)->getProducts().begin();p2 != (*t2)->getProducts().end();++p2)
+                    {
+                        if (r->getType() == p2->getType())
+                        {
+                            r->fulfil(*p2);
+                        }
+                    }
+                }
+                if (!r->isFulfilled()) ERROR("Could not fulfil requirement %s of task %s", r->getName().c_str(),(*t1)->getName().c_str());
+            }
+        }
+    }
+
+    //TODO: check for cycles
+
+    /*
+     * Successively search for executable tasks
+     */
+    while (true)
+    {
+        set<Task*> to_execute;
+
+        for (vector<Task*>::iterator t = tasks.begin();t != tasks.end();++t)
+        {
+            bool can_execute = true;
+
+            for (vector<Product>::iterator p = (*t)->getProducts().begin();p != (*t)->getProducts().end();++p)
+            {
+                for (vector<Requirement>::iterator r = p->getRequirements().begin();r != p->getRequirements().end();++r)
+                {
+                    if (!r->exists())
+                    {
+                        can_execute = false;
+                        break;
+                    }
+                }
+                if (!can_execute) break;
+            }
+
+            if (can_execute) to_execute.insert(*t);
+        }
+
+        if (to_execute.empty()) break;
+
+        for (set<Task*>::iterator t = to_execute.begin();t != to_execute.end();++t)
+        {
+            PRINT("Executing task %s...", (*t)->getName().c_str());
+            (*t)->run(*this, world);
+            PRINT("done\n");
+
+            for (vector<Product>::iterator p = (*t)->getProducts().begin();p != (*t)->getProducts().end();++p)
+            {
+                if (p->isUsed() && !p->exists()) ERROR("Product %s of task %s was not successfully produced", p->getName().c_str(), (*t)->getName().c_str());
+            }
+
+            tasks.erase(std::find(tasks.begin(), tasks.end(), *t));
+            delete *t;
+        }
+    }
+
+    if (!tasks.empty())
+    {
+        ERROR("Some tasks were not executed");
+    }
 }

@@ -32,8 +32,9 @@ using namespace aquarius::input;
 using namespace aquarius::integrals;
 
 template <typename T>
-CholeskyUHF<T>::CholeskyUHF(const Config& config, const CholeskyIntegrals<T>& chol)
-: UHF<T>(chol.arena, config, chol.molecule), chol(chol)
+CholeskyUHF<T>::CholeskyUHF(const Config& config, const CholeskyIntegrals<T>& chol,
+                            DistTensor<T>& S, DistTensor<T>& H)
+: UHF<T>(chol.arena, config, chol.molecule, S, H), chol(chol)
 {
     vector<int> shapeN = vec(NS);
     vector<int> shapeNNN = vec(NS,NS,NS);

@@ -92,7 +92,7 @@ double CCSD<U>::getProjectedS2(const UHF<U>& uhf,
                                const SpinorbitalTensor<U>& T1,
                                const SpinorbitalTensor<U>& T2)
 {
-    Arena<U>& arena = T1(0).arena;
+    Arena arena = T1(0).arena;
 
     int N = uhf.getMolecule().getNumOrbitals();
     int nI = uhf.getMolecule().getNumAlphaElectrons();

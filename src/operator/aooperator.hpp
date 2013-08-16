@@ -32,13 +32,12 @@ namespace aquarius
 namespace op
 {
 
-template <typename T>
-class AOOperator : public Distributed<T>
+class AOOperator : public Distributed
 {
     public:
         const int norb;
 
-        AOOperator(Arena<T>& arena, int norb) : Distributed<T>(arena), norb(norb) {}
+        AOOperator(const Arena& arena, int norb) : Distributed(arena), norb(norb) {}
 };
 
 }

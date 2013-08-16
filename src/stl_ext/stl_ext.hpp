@@ -29,6 +29,7 @@
 #include <string>
 #include <sstream>
 #include <ostream>
+#include <iostream>
 #include <algorithm>
 #include <functional>
 #include <stdexcept>
@@ -41,7 +42,25 @@
 #include <type_traits>
 #include <memory>
 
+#define NON_COPYABLE(name) \
+public: \
+    name() = delete; \
+private:
+
+#define NON_ASSIGNABLE(name) \
+public: \
+    name& operator=(const name&) = delete; \
+private:
+
 #else
+
+#define NON_COPYABLE(name) \
+private: \
+    name(const name&);
+
+#define NON_ASSIGNABLE(name) \
+private: \
+    void operator=(const name&);
 
 namespace std
 {
@@ -302,6 +321,83 @@ template <typename new_type > return_type
 namespace std
 {
 
+template<typename T>
+class global_ptr : public shared_ptr<T*>
+{
+    public:
+        global_ptr(const global_ptr& other) : shared_ptr<T*>(other) {}
+
+        global_ptr() : shared_ptr<T*>(new T*(NULL)) {}
+
+        global_ptr(T* ptr) : shared_ptr<T*>(new T*(ptr)) {}
+
+        ~global_ptr()
+        {
+            if (this->unique() && *shared_ptr<T*>::get())
+            {
+                delete *shared_ptr<T*>::get();
+            }
+        }
+
+        global_ptr& operator=(const global_ptr& other)
+        {
+            if (this->unique() && *shared_ptr<T*>::get())
+            {
+                delete *shared_ptr<T*>::get();
+            }
+            shared_ptr<T*>::operator=(other);
+            return *this;
+        }
+
+        void reset()
+        {
+            if (*shared_ptr<T*>::get()) delete *shared_ptr<T*>::get();
+            *shared_ptr<T*>::get() = NULL;
+        }
+
+        void reset(T* p)
+        {
+            if (p == *shared_ptr<T*>::get()) return;
+            if (*shared_ptr<T*>::get()) delete *shared_ptr<T*>::get();
+            *shared_ptr<T*>::get() = p;
+        }
+
+        T* get()
+        {
+            return *shared_ptr<T*>::get();
+        }
+
+        const T* get() const
+        {
+            return *shared_ptr<T*>::get();
+        }
+
+        T& operator*()
+        {
+            return **shared_ptr<T*>::get();
+        }
+
+        const T& operator*() const
+        {
+            return **shared_ptr<T*>::get();
+        }
+
+        T* operator->()
+        {
+            return *shared_ptr<T*>::get();
+        }
+
+        const T* operator->() const
+        {
+            return *shared_ptr<T*>::get();
+        }
+
+        operator bool() const
+        {
+            return *shared_ptr<T*>::get() != NULL;
+        }
+};
+
 template<typename T> std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 {
     os << "[";
@@ -555,9 +651,14 @@ template<typename T> std::vector<T> uniq_copy(const std::vector<T>& v)
 template<typename T> std::vector<T> intersection(const std::vector<T>& v1, const std::vector<T>& v2)
 {
     typename std::vector<T> v(v1.size()+v2.size());
+    typename std::vector<T> v3(v1);
+    typename std::vector<T> v4(v2);
     typename std::vector<T>::iterator end;
 
-    end = std::set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(), v.begin());
+    sort(v3.begin(),v3.end());
+    sort(v4.begin(),v4.end());
+
+    end = std::set_intersection(v3.begin(), v3.end(), v4.begin(), v4.end(), v.begin());
     v.resize(end-v.begin());
 
     return v;

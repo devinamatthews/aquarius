@@ -22,10 +22,11 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#include "stl_ext/stl_ext.hpp"
-
 #include "2eints.hpp"
 #include "internal.h"
+
+#define TMP_BUFSIZE 100
+#define INTEGRAL_CUTOFF 1e-14
 
 /**
  * Compute the index of a function in cartesian angular momentum.
@@ -48,6 +49,7 @@ using namespace aquarius;
 using namespace aquarius::integrals;
 using namespace aquarius::input;
 using namespace aquarius::symmetry;
+using namespace aquarius::task;
 
 void ERIEvaluator::operator()(int la, const double* ca, int na, const double *za,
                               int lb, const double* cb, int nb, const double *zb,
@@ -501,3 +503,76 @@ void TwoElectronIntegrals::prim2contr4l(size_t nother, double* buf1, double* buf
 
     copy(m*n, buf1, 1, buf2, 1);
 }
+
+void ERI::print(Printer& p) const
+{
+    //TODO
+}
+
+TwoElectronIntegralsTask::TwoElectronIntegralsTask(const string& name, const Config& config)
+: Task("2eints", name)
+{
+    vector<Requirement> reqs;
+    reqs.push_back(Requirement("molecule", "molecule"));
+    addProduct(Product("eri", "I", reqs));
+}
+
+void TwoElectronIntegralsTask::run(TaskDAG& dag, Arena& arena)
+{
+    const Molecule& molecule = get<Molecule>("molecule");
+
+    ERI* eri = new ERI(arena);
+
+    double tmpval[TMP_BUFSIZE];
+    idx4_t tmpidx[TMP_BUFSIZE];
+
+    vector<vector<int> > idx = Shell::setupIndices(Context(), molecule);
+    vector<Shell> shells(molecule.getShellsBegin(), molecule.getShellsEnd());
+
+    int abcd = 0;
+    for (int a = 0;a < shells.size();++a)
+    {
+        for (int b = 0;b <= a;++b)
+        {
+            for (int c = 0;c <= a;++c)
+            {
+                int dmax = c;
+                if (a == c) dmax = b;
+                for (int d = 0;d <= dmax;++d)
+                {
+                    if (abcd%arena.nproc == arena.rank)
+                    {
+                        TwoElectronIntegrals block(shells[a], shells[b], shells[c], shells[d], ERIEvaluator());
+
+                        size_t n;
+                        while ((n = block.process(Context(), idx[a], idx[b], idx[c], idx[d],
+                                                  TMP_BUFSIZE, tmpval, tmpidx, INTEGRAL_CUTOFF)) != 0)
+                        {
+                            eri->ints.insert(eri->ints.end(), tmpval, tmpval+n);
+                            eri->idxs.insert(eri->idxs.end(), tmpidx, tmpidx+n);
+                        }
+                    }
+                    abcd++;
+                }
+            }
+        }
+    }
+
+    //TODO: load balance
+
+    for (int i = 0;i < eri->ints.size();++i)
+    {
+        if (eri->idxs[i].i > eri->idxs[i].j) swap(eri->idxs[i].i, eri->idxs[i].j);
+        if (eri->idxs[i].k > eri->idxs[i].l) swap(eri->idxs[i].k, eri->idxs[i].l);
+        if (eri->idxs[i].i > eri->idxs[i].k ||
+            (eri->idxs[i].i == eri->idxs[i].j && eri->idxs[i].j > eri->idxs[i].l))
+        {
+            swap(eri->idxs[i].i, eri->idxs[i].k);
+            swap(eri->idxs[i].j, eri->idxs[i].l);
+        }
+    }
+
+    put("I", eri);
+}
+
+REGISTER_TASK(TwoElectronIntegralsTask,"2eints");

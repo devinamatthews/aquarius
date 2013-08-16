@@ -31,11 +31,11 @@ using namespace aquarius::input;
 using namespace aquarius::integrals;
 
 template <typename T>
-CholeskyIntegrals<T>::CholeskyIntegrals(Arena<T>& arena, const Context& ctx, const Config& config, const Molecule& molecule)
-: Distributed<T>(arena),
+CholeskyIntegrals<T>::CholeskyIntegrals(const Arena& arena, const Context& ctx, const Config& config, const Molecule& molecule)
+: Distributed(arena),
   ctx(ctx),
   molecule(molecule),
-  rank(0),
+  nvec(0),
   shells(molecule.getShellsBegin(),molecule.getShellsEnd()),
   delta(config.get<T>("delta")),
   cond(config.get<T>("cond_max"))
@@ -99,7 +99,7 @@ void CholeskyIntegrals<T>::test()
                         }
                     }
 
-                    if (this->comm.Get_rank() == 0)
+                    if (rank == 0)
                     {
                         ints.getRemoteData(pairs);
 
@@ -134,7 +134,7 @@ void CholeskyIntegrals<T>::test()
         m += shells[i].getNFunc()*shells[i].getNContr();
     }
 
-    if (this->comm.Get_rank() == 0)
+    if (rank == 0)
     {
         err = sqrt(err / ndiag / ndiag);
         printf("RMS error: %.15e\n\n", err);
@@ -144,11 +144,6 @@ void CholeskyIntegrals<T>::test()
 template <typename T>
 void CholeskyIntegrals<T>::decompose()
 {
-    int nproc, pid;
-
-    pid = this->comm.Get_rank();
-    nproc = this->comm.Get_size();
-
     diag_elem_t* diag = new diag_elem_t[ndiag];
     for (int j = 0, elem = 0;j < shells.size();j++)
     {
@@ -165,7 +160,7 @@ void CholeskyIntegrals<T>::decompose()
     int nblock_local = 0;
     for (int elem = 0;;)
     {
-        int block = pid+nblock_local*nproc;
+        int block = rank+nblock_local*nproc;
 
         if (block >= nblock) break;
 
@@ -186,7 +181,7 @@ void CholeskyIntegrals<T>::decompose()
         fill(block_data[block], block_data[block]+block_size[block]*ndiag, 0.0);
     }
 
-    this->comm.Allreduce(MPI::IN_PLACE, &max_block_size, 1, MPI::INT, MPI::MAX);
+    arena.Allreduce(&max_block_size, 1, MPI::MAX);
 
     //for (l = 0;l < ndiag;l++)
     //{
@@ -196,7 +191,7 @@ void CholeskyIntegrals<T>::decompose()
     T* D = new T[ndiag];
     T* tmp_block_data = new T[ndiag*max_block_size];
     diag_elem_t* tmp_diag = new diag_elem_t[max_block_size];
-    for (rank = 0;;)
+    for (nvec = 0;;)
     {
         int converged = 1;
         T local_max = -2;
@@ -216,11 +211,11 @@ void CholeskyIntegrals<T>::decompose()
         //printf("max block: %d\n", max_block);
         //printf("max elem: %e\n", local_max);
 
-        this->comm.Allreduce(MPI::IN_PLACE, &converged, 1, MPI::INT, MPI::BAND);
+        arena.Allreduce(&converged, 1, MPI::BAND);
         if (converged) break;
 
         T* maxes = new T[nproc];
-        this->comm.Allgather(&local_max, 1, this->type, maxes, 1, this->type);
+        arena.Allgather(&local_max, maxes, 1);
 
         int pmax = 0;
         T global_max = 0;
@@ -235,12 +230,12 @@ void CholeskyIntegrals<T>::decompose()
 
         delete[] maxes;
 
-        int old_rank = rank;
+        int old_rank = nvec;
         int nactive;
 
-        if (pmax == pid)
+        if (pmax == rank)
         {
-            //cout << "Decomposing block " << pid+max_block*nproc << endl;
+            //cout << "Decomposing block " << rank+max_block*nproc << endl;
 
             decomposeBlock(block_size[max_block], block_data[max_block], D, diag+block_start[max_block]);
 
@@ -248,26 +243,26 @@ void CholeskyIntegrals<T>::decompose()
                                         tmp_block_data, tmp_diag);
         }
 
-        this->comm.Bcast(&rank, 1, MPI::INT, pmax);
+        arena.Bcast(&nvec, 1, pmax);
         if (rank == old_rank) continue;
 
-        this->comm.Bcast(&nactive, 1, MPI::INT, pmax);
-        this->comm.Bcast(tmp_block_data, nactive*ndiag, this->type, pmax);
-        this->comm.Bcast(tmp_diag, nactive*sizeof(diag_elem_t), MPI::BYTE, pmax);
-        this->comm.Bcast(D+old_rank, rank-old_rank, this->type, pmax);
+        arena.Bcast(&nactive, 1, pmax);
+        arena.Bcast(tmp_block_data, nactive*ndiag, pmax);
+        arena.Bcast(tmp_diag, nactive*sizeof(diag_elem_t), pmax, MPI::BYTE);
+        arena.Bcast(D+old_rank, nvec-old_rank, pmax);
 
         for (int next_block = 0;next_block < nblock_local;next_block++)
         {
-            if (next_block == max_block && pid == pmax) continue;
+            if (next_block == max_block && rank == pmax) continue;
 
             updateBlock(old_rank, block_size[next_block], block_data[next_block], diag+block_start[next_block],
                                   nactive,                tmp_block_data,         tmp_diag,                     D);
         }
     }
 
-    ASSERT(rank > 0, "rank is 0");
+    ASSERT(nvec > 0, "rank is 0");
 
-    PRINT("rank: full, partial: %d %d\n\n", ndiag, rank);
+    PRINT("rank: full, partial: %d %d\n\n", ndiag, nvec);
 
     for (int block = 0;block < nblock_local;block++)
         resortBlock(block_size[block], block_data[block], diag+block_start[block], tmp_block_data);
@@ -275,13 +270,13 @@ void CholeskyIntegrals<T>::decompose()
     delete[] tmp_block_data;
     delete[] tmp_diag;
 
-    this->D = new DistTensor<T>(this->arena, 1, vec(rank), vec(NS), false);
-    this->L = new DistTensor<T>(this->arena, 3, vec(nfunc,nfunc,rank), vec(SY,NS,NS), false);
+    this->D = new DistTensor<T>(this->arena, 1, vec(nvec), vec(NS), false);
+    this->L = new DistTensor<T>(this->arena, 3, vec(nfunc,nfunc,nvec), vec(SY,NS,NS), false);
 
-    if (pid == 0)
+    if (rank == 0)
     {
-        vector<tkv_pair<T> > pairs(rank);
-        for (int i = 0;i < rank;i++)
+        vector<tkv_pair<T> > pairs(nvec);
+        for (int i = 0;i < nvec;i++)
         {
             pairs[i].k = i;
             pairs[i].d = D[i];
@@ -322,10 +317,10 @@ void CholeskyIntegrals<T>::decompose()
                         //key idx = max(o,p)*(max(o,p)+1)/2 + min(o,p);
                         key idx = max(o,p)*nfunc + min(o,p);
                         //printf("%d %d %d %d\n", i, j, shells[i].getIdx()[0], shells[j].getIdx()[0]);
-                        for (int r = 0;r < rank;r++)
+                        for (int r = 0;r < nvec;r++)
                         {
-                            //printf("%d %d %d %d %d %d %d %d %d %d\n", pid, idx, o, p, i, j, m, n, r, block);
-                            pairs.push_back(tkv_pair<T>(idx, block_data[block][elem*rank+r]));
+                            //printf("%d %d %d %d %d %d %d %d %d %d\n", rank, idx, o, p, i, j, m, n, r, block);
+                            pairs.push_back(tkv_pair<T>(idx, block_data[block][elem*nvec+r]));
                             //idx += ndiag;
                             idx += nfunc*nfunc;
                         }
@@ -359,10 +354,10 @@ void CholeskyIntegrals<T>::resortBlock(const int block_size, T* L, diag_elem_t* 
 {
     for (int elem = 0;elem < block_size;elem++)
     {
-        dcopy(rank, L+elem*ndiag, 1, tmp+diag[elem].idx*rank, 1);
+        dcopy(nvec, L+elem*ndiag, 1, tmp+diag[elem].idx*nvec, 1);
     }
 
-    dcopy(rank*block_size, tmp, 1, L, 1);
+    dcopy(nvec*block_size, tmp, 1, L, 1);
 }
 
 template <typename T>
@@ -378,7 +373,7 @@ int CholeskyIntegrals<T>::collectActiveRows(const int block_size, const T* L, di
             //printf("finishing row: %d\n", elem);
             diag[elem].status = DONE;
             diag_active[cur] = diag[elem];
-            dcopy(rank, L+elem*ndiag, 1, L_active+cur*ndiag, 1);
+            dcopy(nvec, L+elem*ndiag, 1, L_active+cur*ndiag, 1);
             cur++;
         }
     }
@@ -618,7 +613,7 @@ void CholeskyIntegrals<T>::decomposeBlock(int block_size, T* L_, T* D, diag_elem
         diag[elem].status = ACTIVE;
 
         //printf("updating L[%d][%d] (out of %d %d, addr=0x%x)\n", rank, elem, ndiag, block_size, L_);
-        L[elem][rank] = 1.0;
+        L[elem][nvec] = 1.0;
         D[rank] = diag[elem].elem;
 
         #pragma omp parallel for schedule(dynamic) default(shared)
@@ -627,17 +622,17 @@ void CholeskyIntegrals<T>::decomposeBlock(int block_size, T* L_, T* D, diag_elem
             if (diag[row].status != TODO) continue;
 
             //printf("updating L[%d][%d]\n", rank, row);
-            L[row][rank] = intbuf[diag[elem].contri*controffi+diag[elem].funci*funcoffi+
+            L[row][nvec] = intbuf[diag[elem].contri*controffi+diag[elem].funci*funcoffi+
                                   diag[elem].contrj*controffj+diag[elem].funcj*funcoffj+
                                   diag[ row].contri*controffk+diag[ row].funci*funcoffk+
                                   diag[ row].contrj*controffl+diag[ row].funcj*funcoffl];
-            for (int col = 0;col < rank;col++)
-                L[row][rank] -= D[col] * L[row][col] * L[elem][col];
-            L[row][rank] /= D[rank];
-            diag[row].elem -= D[rank] * L[row][rank] * L[row][rank];
+            for (int col = 0;col < nvec;col++)
+                L[row][nvec] -= D[col] * L[row][col] * L[elem][col];
+            L[row][nvec] /= D[nvec];
+            diag[row].elem -= D[nvec] * L[row][nvec] * L[row][nvec];
         }
 
-        rank++;
+        nvec++;
     }
 }
 
