@@ -36,6 +36,7 @@
 #include <stdexcept>
 #include <exception>
 #include <cstring>
+#include <strings.h>
 
 namespace aquarius
 {
