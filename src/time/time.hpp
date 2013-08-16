@@ -45,6 +45,13 @@ timespec __time = time::toc(); \
 time::inc_timer(__timer, __time); \
 }
 
+#define PROFILE_RETURN \
+{ \
+timespec __time = time::toc(); \
+time::inc_timer(__timer, __time); \
+return; \
+}
+
 #else
 
 #define PROFILE_FUNCTION
@@ -52,6 +59,8 @@ time::inc_timer(__timer, __time); \
 #define PROFILE_SECTION(name)
 
 #define PROFILE_STOP
+
+#define PROFILE_RETURN return
 
 #endif
 
@@ -67,6 +76,8 @@ int register_timer(const std::string& name);
 void inc_timer(const int timer, const timespec& time);
 
 void print_timers();
+
+void clear_timers();
 
 void tic();
 
