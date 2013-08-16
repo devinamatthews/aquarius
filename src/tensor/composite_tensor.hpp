@@ -125,8 +125,8 @@ class CompositeTensor : public Tensor<Derived,T>
     public:
         void set_name(const char * name_){
             int i;
-            for (i=0; i<tensors_.size(); i++){
-                tensors_[i].tensor_->set_name(name_);
+            for (i=0; i<tensors.size(); i++){
+                tensors[i].tensor->set_name(name_);
             }
         }
 
@@ -203,8 +203,8 @@ class CompositeTensor : public Tensor<Derived,T>
                                  bool conjb, const Derived& B, const T beta)
         {
             #ifdef VALIDATE_INPUTS
-            if (tensors.size() != A.tensors_.size() ||
-                tensors.size() != B.tensors_.size()) throw LengthMismatchError();
+            if (tensors.size() != A.tensors.size() ||
+                tensors.size() != B.tensors.size()) throw LengthMismatchError();
             #endif //VALIDATE_INPUTS
 
             for (int i = 0;i < tensors.size();i++)
@@ -223,8 +223,8 @@ class CompositeTensor : public Tensor<Derived,T>
                                 bool conjb, const Derived& B, const T beta)
         {
             #ifdef VALIDATE_INPUTS
-            if (tensors.size() != A.tensors_.size() ||
-                tensors.size() != B.tensors_.size()) throw LengthMismatchError();
+            if (tensors.size() != A.tensors.size() ||
+                tensors.size() != B.tensors.size()) throw LengthMismatchError();
             #endif //VALIDATE_INPUTS
 
             for (int i = 0;i < tensors.size();i++)
@@ -253,7 +253,7 @@ class CompositeTensor : public Tensor<Derived,T>
         void sum(const T alpha, bool conja, const Derived& A, const T beta)
         {
             #ifdef VALIDATE_INPUTS
-            if (tensors.size() != A.tensors_.size()) throw LengthMismatchError();
+            if (tensors.size() != A.tensors.size()) throw LengthMismatchError();
             #endif //VALIDATE_INPUTS
 
             for (int i = 0;i < tensors.size();i++)
@@ -269,7 +269,7 @@ class CompositeTensor : public Tensor<Derived,T>
         void invert(const T alpha, bool conja, const Derived& A, const T beta)
         {
             #ifdef VALIDATE_INPUTS
-            if (tensors.size() != A.tensors_.size()) throw LengthMismatchError();
+            if (tensors.size() != A.tensors.size()) throw LengthMismatchError();
             #endif //VALIDATE_INPUTS
 
             for (int i = 0;i < tensors.size();i++)
@@ -285,7 +285,7 @@ class CompositeTensor : public Tensor<Derived,T>
         T dot(bool conja, const Derived& A, bool conjb) const
         {
             #ifdef VALIDATE_INPUTS
-            if (tensors.size() != A.tensors_.size()) throw LengthMismatchError();
+            if (tensors.size() != A.tensors.size()) throw LengthMismatchError();
             #endif //VALIDATE_INPUTS
 
             T s = (T)0;

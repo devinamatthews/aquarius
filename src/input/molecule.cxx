@@ -39,6 +39,11 @@ using namespace aquarius::symmetry;
 using namespace aquarius::input;
 using namespace aquarius::task;
 
+namespace aquarius
+{
+namespace input
+{
+
 struct AtomSpec
 {
     string symbol;
@@ -175,6 +180,9 @@ class Config::Extractor<AtomCartSpec>
         return s;
     }
 };
+
+}
+}
 
 Molecule::Molecule(const Arena& arena, const Config& config)
 : Resource(arena)

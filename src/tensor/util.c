@@ -194,7 +194,6 @@ void dzero(const int n, double* a, const int inca)
 {
     int i;
     int ia;
-    int m;
 
     if (inca == 1)
     {
@@ -234,7 +233,6 @@ void izero(const int n, int* a, const int inca)
 {
     int i;
     int ia;
-    int m;
 
     if (inca == 1)
     {
@@ -758,7 +756,7 @@ int validate_tensor(const int ndim, const int* len, const int* ld, const int* sy
 
 int connected_components(const int n, const bool G[n][n], int cc[n], int len[n])
 {
-    int i, j;
+    int i;
     int ncc = 0;
     bool seen[n];
     int *curcc = cc;
@@ -776,7 +774,7 @@ int connected_components(const int n, const bool G[n][n], int cc[n], int len[n])
 
 int connected_component(const int n, const bool G[n][n], const int i, bool seen[n], int** cc)
 {
-    int tmplen, len = 1;
+    int len = 1;
     int j;
 
     if (seen[i]) return 0;

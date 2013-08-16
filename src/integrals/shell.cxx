@@ -353,7 +353,7 @@ double Shell::cartcoef(int l, int m, int lx, int ly, int lz)
 
     double c = sqrt((double)(binom(2*lx,lx)*binom(2*ly,ly)*binom(2*lz,lz)*binom(l+am,am))/
                     (double)(binom(2*l,l)*binom(l,am)*binom(lx+ly+lz,lx)*binom(ly+lz,ly))/
-                    (double)(dfact(2*lx-1)*dfact(2*ly-1)*dfact(2*lz-1)))/pow(2,l);
+                    (double)(dfact(2*lx-1)*dfact(2*ly-1)*dfact(2*lz-1)))/pow(2.0,l);
     if (m != 0) c *= sqrt(2.0);
 
     if (m >= 0)

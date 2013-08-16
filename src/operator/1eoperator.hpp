@@ -26,6 +26,7 @@
 #define _AQUARIUS_OPERATOR_1EOPERATOR_HPP_
 
 #include "tensor/spinorbital_tensor.hpp"
+#include "stl_ext/stl_ext.hpp"
 
 #include "mooperator.hpp"
 
@@ -79,14 +80,14 @@ class OneElectronOperatorBase : public MOOperator<T>,
             int nA = N-nI;
             int na = N-ni;
 
-            std::vector<int> sizeAA = vec(nA, nA);
-            std::vector<int> sizeaa = vec(na, na);
-            std::vector<int> sizeAI = vec(nA, nI);
-            std::vector<int> sizeai = vec(na, ni);
-            std::vector<int> sizeII = vec(nI, nI);
-            std::vector<int> sizeii = vec(ni, ni);
+            std::vector<int> sizeAA = std::vec(nA, nA);
+            std::vector<int> sizeaa = std::vec(na, na);
+            std::vector<int> sizeAI = std::vec(nA, nI);
+            std::vector<int> sizeai = std::vec(na, ni);
+            std::vector<int> sizeII = std::vec(nI, nI);
+            std::vector<int> sizeii = std::vec(ni, ni);
 
-            std::vector<int> shapeNN = vec(NS, NS);
+            std::vector<int> shapeNN = std::vec(NS, NS);
 
             ab.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeAA, shapeNN, true), "A,B", "AB");
             ab.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeaa, shapeNN, true), "a,b", "ab");
@@ -129,18 +130,18 @@ class OneElectronOperatorBase : public MOOperator<T>,
             int na = N-ni;
 
 
-            std::vector<int> sizeAA = vec(nA, nA);
-            std::vector<int> sizeaa = vec(na, na);
-            std::vector<int> sizeAI = vec(nA, nI);
-            std::vector<int> sizeai = vec(na, ni);
-            std::vector<int> sizeII = vec(nI, nI);
-            std::vector<int> sizeii = vec(ni, ni);
-            std::vector<int> sizeAN = vec(nA, N);
-            std::vector<int> sizeaN = vec(na, N);
-            std::vector<int> sizeIN = vec(nI, N);
-            std::vector<int> sizeiN = vec(ni, N);
+            std::vector<int> sizeAA = std::vec(nA, nA);
+            std::vector<int> sizeaa = std::vec(na, na);
+            std::vector<int> sizeAI = std::vec(nA, nI);
+            std::vector<int> sizeai = std::vec(na, ni);
+            std::vector<int> sizeII = std::vec(nI, nI);
+            std::vector<int> sizeii = std::vec(ni, ni);
+            std::vector<int> sizeAN = std::vec(nA, N);
+            std::vector<int> sizeaN = std::vec(na, N);
+            std::vector<int> sizeIN = std::vec(nI, N);
+            std::vector<int> sizeiN = std::vec(ni, N);
 
-            std::vector<int>tor<int> shapeNN = vec(NS, NS);
+            std::vector<int> shapeNN = std::vec(NS, NS);
 
             tensor::DistTensor<T> Aq(this->arena, 2, sizeAN, shapeNN, false);
             tensor::DistTensor<T> aq(this->arena, 2, sizeaN, shapeNN, false);

@@ -262,11 +262,7 @@ size_t TwoElectronIntegrals::process(const Context& ctx, const vector<int>& idxa
 
 void TwoElectronIntegrals::ao2so4(size_t nother, int r, int t, int st, double* aointegrals, double* sointegrals)
 {
-    const Center& ca = a.getCenter();
-    const Center& cb = b.getCenter();
-    const Center& cc = c.getCenter();
-    const Center& cd = d.getCenter();
-    const PointGroup& group = ca.getPointGroup();
+    const PointGroup& group = a.getCenter().getPointGroup();
 
     for (int l = 0;l < d.getNFunc();l++)
     {

@@ -291,9 +291,7 @@ size_t OneElectronIntegrals::process(const Context& ctx, const vector<int>& idxa
 
 void OneElectronIntegrals::ao2so2(size_t nother, int r, double* aointegrals, double* sointegrals)
 {
-    const Center& ca = a.getCenter();
-    const Center& cb = b.getCenter();
-    const PointGroup& group = ca.getPointGroup();
+    const PointGroup& group = a.getCenter().getPointGroup();
 
     for (int j = 0;j < b.getNFunc();j++)
     {

@@ -43,8 +43,8 @@ UHF<T>::UHF(const Arena& arena, const Config& config, const Molecule& molecule,
   damping(config.get<T>("damping")),
   Ea(norb),
   Eb(norb),
-  diis(config.get("diis"), 2),
-  S(&S), H(&H)
+  S(&S), H(&H),
+  diis(config.get("diis"), 2)
   #ifdef USE_ELEMENTAL
   ,grid(comm),
   C_elem(norb, norb, grid),
@@ -353,7 +353,6 @@ void UHF<T>::diagonalizeFock()
 
     #else
 
-    int64_t size;
     int info;
     vector<T> fock, s;
 

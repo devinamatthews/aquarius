@@ -44,8 +44,6 @@ void AOUHF<T>::buildFock()
     vector<T> focka, fockb;
     vector<T> densa, densb;
 
-    int64_t npair;
-
     this->H->getAllData(focka, 0);
     assert(this->rank != 0 || focka.size() == norb*norb);
     this->H->getAllData(fockb, 0);

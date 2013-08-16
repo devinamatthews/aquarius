@@ -33,8 +33,8 @@ using namespace aquarius::integrals;
 template <typename T>
 CholeskyIntegrals<T>::CholeskyIntegrals(const Arena& arena, const Context& ctx, const Config& config, const Molecule& molecule)
 : Distributed(arena),
-  ctx(ctx),
   molecule(molecule),
+  ctx(ctx),
   nvec(0),
   shells(molecule.getShellsBegin(),molecule.getShellsEnd()),
   delta(config.get<T>("delta")),

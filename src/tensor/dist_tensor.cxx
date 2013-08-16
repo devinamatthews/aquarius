@@ -276,8 +276,8 @@ void DistTensor<T>::resize(int ndim, const vector<int>& len, const vector<int>& 
 template <typename T>
 void DistTensor<T>::set_name(char const * name_){
   if (name_ != NULL){
-    ctf.ctf->set_name(tid, name_);
-    ctf.ctf->profile_on(tid);
+    arena.ctf<T>().ctf->set_name(tid, name_);
+    arena.ctf<T>().ctf->profile_on(tid);
     this->name = name_;
   }
 }
@@ -507,7 +507,7 @@ void DistTensor<T>::compare(FILE* fp, const DistTensor<T>& other, double cutoff)
 template <typename T>
 typename real_type<T>::type DistTensor<T>::norm(int p) const
 {
-    int ret;
+    int ret = 0;
     T ans = (T)0;
     if (p == 00)
     {
@@ -521,6 +521,10 @@ typename real_type<T>::type DistTensor<T>::norm(int p) const
     {
         ret = arena.ctf<T>().ctf->reduce_tensor(tid, CTF_OP_SQNRM2, &ans);
     }
+	else
+	{
+		ERROR("unknown norm: %d", p);
+	}
     assert(ret == DIST_TENSOR_SUCCESS);
     return abs(ans);
 }
@@ -586,7 +590,6 @@ T DistTensor<T>::dot(bool conja, const DistTensor<T>& A, const int* idx_A,
                      bool conjb,                         const int* idx_B) const
 {
     DistTensor<T> dt(A.arena);
-    int64_t n;
     vector<T> val;
     dt.mult(1, conja,     A, idx_A,
                conjb, *this, idx_B,

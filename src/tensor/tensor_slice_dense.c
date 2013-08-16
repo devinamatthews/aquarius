@@ -29,7 +29,7 @@ int tensor_slice_dense(const double*  A, const int  ndim_A, const int* len_A, co
                              double** B,       int* ndim_B,       int* len_B,       int* ldb,
                        const int* start, const int* len)
 {
-    int i, j;
+    int i;
     size_t ld, stride;
 
 #ifdef VALIDATE_INPUTS

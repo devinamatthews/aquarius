@@ -102,10 +102,10 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(int norb, const ERI& aoints)
         if (idx.i > idx.j) swap(idx.i, idx.j);
         if (idx.k > idx.l) swap(idx.k, idx.l);
 
-        assert(idx.i >= 0 && idx.i < np);
-        assert(idx.j >= 0 && idx.j < nq);
-        assert(idx.k >= 0 && idx.k < nr);
-        assert(idx.l >= 0 && idx.l < ns);
+        assert(idx.i < np);
+        assert(idx.j < nq);
+        assert(idx.k < nr);
+        assert(idx.l < ns);
 
         assert(j < nints);
         ints[j] = val;
@@ -343,8 +343,8 @@ AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const boo
     {
         rs[0].i = pqrs.idxs[0].k;
         rs[0].j = pqrs.idxs[0].l;
-        assert(rs[0].i >= 0 && rs[0].i < nr);
-        assert(rs[0].j >= 0 && rs[0].j < ns);
+        assert(rs[0].i < nr);
+        assert(rs[0].j < ns);
     }
     for (;ipqrs < pqrs.nints;ipqrs++)
     {
@@ -358,8 +358,8 @@ AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const boo
             assert(irs >= 0 && irs < nrs);
             rs[irs].i = pqrs.idxs[ipqrs].k;
             rs[irs].j = pqrs.idxs[ipqrs].l;
-            assert(rs[irs].i >= 0 && rs[irs].i < nr);
-            assert(rs[irs].j >= 0 && rs[irs].j < ns);
+            assert(rs[irs].i < nr);
+            assert(rs[irs].j < ns);
         }
 
         int p = pqrs.idxs[ipqrs].i;

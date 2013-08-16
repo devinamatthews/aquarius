@@ -30,6 +30,7 @@
 #include <vector>
 #include <stdexcept>
 #include <cstring>
+#include <strings.h>
 
 #include "memory/memory.h"
 #include "util/math.hpp"

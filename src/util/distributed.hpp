@@ -1037,7 +1037,7 @@ class Arena
         template <typename T>
         void Scatter(std::vector<T>& recvbuf, int root, const MPI::Datatype& type) const
         {
-            comm.Scatter(NULL, 0, type, recvbuf.data(), recvbuf.size(), type, root, const MPI::Datatype& type);
+            comm.Scatter(NULL, 0, type, recvbuf.data(), recvbuf.size(), type, root);
         }
 
         template <typename T>

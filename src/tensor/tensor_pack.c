@@ -40,7 +40,7 @@
  */
 int tensor_pack(const double* restrict A, double* restrict B, const int ndim, const int* restrict len, const int* restrict sym)
 {
-    int i, j;
+    int i;
     int idx[ndim];
     size_t stride[ndim];
     bool done;

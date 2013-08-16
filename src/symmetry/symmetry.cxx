@@ -363,10 +363,10 @@ Representation PointGroup::getIrrep(int i, int r, int s) const
 }
 
 Representation::Representation(const PointGroup& group)
-: group(group), vector<double>(group.getOrder(), 0.0) {}
+: vector<double>(group.getOrder(), 0.0), group(group) {}
 
 Representation::Representation(const PointGroup& group, const vector<double>& rep)
-: group(group), vector<double>(rep) {}
+: vector<double>(rep), group(group) {}
 
 Representation::Representation(const PointGroup& group, int L, int m)
 : group(group)
