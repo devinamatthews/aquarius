@@ -271,7 +271,7 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
     size_t nnewints = 0;
     for (int i = 0;i < nproc;i++) nnewints += recvcount[i];
 
-    assert(allsum(nints) == allsum(nnewints));
+//    assert(allsum(nints) == allsum(nnewints));
 
     T* newints = SAFE_MALLOC(T, nnewints);
     idx4_t* newidxs = SAFE_MALLOC(idx4_t, nnewints);

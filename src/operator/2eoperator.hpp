@@ -49,6 +49,18 @@ class TwoElectronOperator : public OneElectronOperatorBase<T,TwoElectronOperator
         void initialize();
 
     public:
+        void set_name(char const * name_){
+            ijkl.set_name(name_);
+            iajk.set_name(name_);
+            ijka.set_name(name_);
+            abij.set_name(name_);
+            ijab.set_name(name_);
+            aibj.set_name(name_);
+            aibc.set_name(name_);
+            abci.set_name(name_);
+            abcd.set_name(name_);
+        }
+
         enum
         {
             IJKL = 0x0010,

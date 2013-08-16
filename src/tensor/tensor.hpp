@@ -27,6 +27,7 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <string.h>
 
 #include "stl_ext/stl_ext.hpp"
 #include "util/util.h"
@@ -83,12 +84,19 @@ class Tensor
 {
     public:
         typedef T dtype;
+        
+        char const * name;
 
-        virtual ~Tensor() {}
-
+        ~Tensor() {}
+        
+        Tensor() { name = NULL; }
+        
         Derived& getDerived() { return static_cast<Derived&>(*this); }
 
         const Derived& getDerived() const { return static_cast<const Derived&>(*this); }
+        
+        
+        virtual void set_name(char const * name_) { name = name_; }
 
         /**********************************************************************
          *

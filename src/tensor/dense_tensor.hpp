@@ -54,6 +54,8 @@ class DenseTensor : public LocalTensor< DenseTensor<T>,T >
 
     INHERIT_FROM_LOCAL_TENSOR(DenseTensor<T>,T)
 
+	typedef typename LocalTensor<DenseTensor<T>,T>::CopyType CopyType_;
+
     public:
         DenseTensor(T val = (T)0);
 
@@ -61,8 +63,7 @@ class DenseTensor : public LocalTensor< DenseTensor<T>,T >
 
         DenseTensor(const DenseTensor<T>& A);
 
-        DenseTensor(DenseTensor<T>& A,
-                 typename LocalTensor<DenseTensor<T>,T>::CopyType type=LocalTensor<DenseTensor<T>,T>::CLONE);
+        DenseTensor(DenseTensor<T>& A, CopyType_ type=CLONE);
 
         DenseTensor(int ndim, const std::vector<int>& len, T* data, bool zero=false);
 

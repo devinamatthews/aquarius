@@ -123,6 +123,14 @@ class CompositeTensor : public Tensor<Derived,T>
         }
 
     public:
+        void set_name(const char * name_){
+            int i;
+            for (i=0; i<tensors_.size(); i++){
+                tensors_[i].tensor_->set_name(name_);
+            }
+        }
+
+
         CompositeTensor(const CompositeTensor<Derived,Base,T>& other)
         : tensors(other.tensors)
         {

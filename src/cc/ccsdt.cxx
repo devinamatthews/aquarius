@@ -36,6 +36,10 @@ CCSDT<U>::CCSDT(const Config& config, TwoElectronOperator<U>& H)
 : Iterative(config), ExponentialOperator<U,3>(H.getSCF()),
   T(*this), D(H.getSCF()), Z(H.getSCF()), H(H), diis(config.get("diis"))
 {
+    T.set_name("T");
+    Z.set_name("Z");
+    H.set_name("H");
+    D.set_name("D");
     D(0) = (U)1.0;
     D(1)["ai"]  = H.getIJ()["ii"];
     D(1)["ai"] -= H.getAB()["aa"];
@@ -84,6 +88,7 @@ void CCSDT<U>::_iterate()
                                 TwoElectronOperator<U>::IAJK|
                                 TwoElectronOperator<U>::AIBJ);
 
+    W.set_name("W");
     SpinorbitalTensor<U>& FAI = W.getAI();
     SpinorbitalTensor<U>& FME = W.getIA();
     SpinorbitalTensor<U>& FAE = W.getAB();
@@ -102,6 +107,7 @@ void CCSDT<U>::_iterate()
     //FMI["ii"] = (U)0.0;
 
     SpinorbitalTensor<U> Tau(T(2));
+    Tau.set_name("Tau");
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
     /**************************************************************************

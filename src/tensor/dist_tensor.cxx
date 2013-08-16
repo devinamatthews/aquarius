@@ -205,6 +205,7 @@ DistTensor<T>::DistTensor(const DistTensor<T>& A, bool copy, bool zero)
         T* raw_data = getRawData(size);
         fill(raw_data, raw_data+size, (T)0);
     }
+    set_name(A.name);
 }
 
 /*
@@ -270,6 +271,15 @@ void DistTensor<T>::resize(int ndim, const vector<int>& len, const vector<int>& 
         T* raw_data = getRawData(size);
         fill(raw_data, raw_data+size, (T)0);
     }
+}
+
+template <typename T>
+void DistTensor<T>::set_name(char const * name_){
+  if (name_ != NULL){
+    ctf.ctf->set_name(tid, name_);
+    ctf.ctf->profile_on(tid);
+    this->name = name_;
+  }
 }
 
 template <typename T>

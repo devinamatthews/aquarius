@@ -126,6 +126,15 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& logical, const int spin)
 }
 
 template<class T>
+void SpinorbitalTensor<T>::set_name(char const * name_){
+    int i;
+    for (i=0; i<cases.size(); i++){
+        cases[i].tensor->set_name(name_);
+    }
+}
+
+
+template<class T>
 void SpinorbitalTensor<T>::addSpinCase(DistTensor<T>* tensor, string logical, string physical, double factor, bool isAlloced)
 {
     addSpinCase(*tensor, logical, physical, factor, isAlloced);

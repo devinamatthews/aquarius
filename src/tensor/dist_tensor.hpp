@@ -87,7 +87,9 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
         DistTensor(const Arena& arena, int ndim, const std::vector<int>& len, const std::vector<int>& sym,
                    bool zero=true);
 
-        virtual ~DistTensor();
+        ~DistTensor();
+
+        void set_name(char const * name_);
 
         void resize(int ndim, const std::vector<int>& len, const std::vector<int>& sym, bool zero);
 
