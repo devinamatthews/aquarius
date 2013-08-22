@@ -67,6 +67,8 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,D
         std::vector<SpinCase> cases;
 
     public:
+        void set_name(char const * name_);
+
         SpinorbitalTensor(const SpinorbitalTensor<T>& t, const T val);
 
         SpinorbitalTensor(const SpinorbitalTensor<T>& other);

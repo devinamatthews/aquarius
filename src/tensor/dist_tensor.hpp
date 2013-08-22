@@ -86,7 +86,9 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
                    const int ndim, const int *len, const int *sym,
                    const bool zero=true);
 
-        virtual ~DistTensor();
+        ~DistTensor();
+
+        void set_name(char const * name_);
 
         const int* getLengths() const { return len_; }
 

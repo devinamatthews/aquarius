@@ -214,6 +214,7 @@ DistTensor<T>::DistTensor(const DistTensor<T>& A, const bool copy, const bool ze
         T* raw_data = getRawData(size);
         fill(raw_data, raw_data+size, (T)0);
     }
+    set_name(A.name);
 }
 
 template <typename T>
@@ -249,6 +250,15 @@ DistTensor<T>::~DistTensor()
     FREE(len_);
     FREE(sym_);
     ctf.ctf->clean_tensor(tid);
+}
+
+template <typename T>
+void DistTensor<T>::set_name(char const * name_){
+  if (name_ != NULL){
+    ctf.ctf->set_name(tid, name_);
+    ctf.ctf->profile_on(tid);
+    this->name = name_;
+  }
 }
 
 template <typename T>

@@ -108,6 +108,7 @@ class CompositeTensor : public Tensor<Derived,T>
             bool operator!=(const Base* other) const { return tensor_ != other; }
         };
 
+
         std::vector<TensorRef> tensors_;
 
         Base& addTensor(Base* new_tensor, bool isAlloced=true)
@@ -123,6 +124,14 @@ class CompositeTensor : public Tensor<Derived,T>
         }
 
     public:
+        void set_name(const char * name_){
+            int i;
+            for (i=0; i<tensors_.size(); i++){
+                tensors_[i].tensor_->set_name(name_);
+            }
+        }
+
+
         CompositeTensor(const CompositeTensor<Derived,Base,T>& other)
         : tensors_(other.tensors_)
         {

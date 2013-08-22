@@ -48,6 +48,13 @@ class OneElectronOperatorBase : public MOOperator<T>,
         tensor::SpinorbitalTensor<T>& ia;
 
     public:
+        void set_name(char const * name_){
+            ab.set_name(name_);
+            ij.set_name(name_);
+            ai.set_name(name_);
+            ia.set_name(name_);
+        }
+
         enum
         {
             NONE = 0x0000,

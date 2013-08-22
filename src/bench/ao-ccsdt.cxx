@@ -86,6 +86,8 @@ int main(int argc, char **argv)
         tic();
         AOUHF<double> scf(config.get("scf"), ints);
 
+        CTF_Timer t_scf("SCF");
+        t_scf.start();
         PRINT("\nUHF-SCF\n\n");
         PRINT("It.            SCF Energy     Residual Walltime\n");
         tic();
@@ -125,6 +127,7 @@ int main(int argc, char **argv)
 
         dt = todouble(toc());
         PRINT("\nAO SCF took: %8.3f s (%8.3f s/it.)\n", dt, dt/i);
+        t_scf.stop();
 
         double s2 = scf.getS2();
         double mult = scf.getMultiplicity();
@@ -142,7 +145,10 @@ int main(int argc, char **argv)
         dt = todouble(toc());
         PRINT("\nAO MO took: %8.3f s\n", dt);
 
+        CTF_Timer t_mp2("MP2");
+        t_mp2.start();
         CCSDT<double> ccsdt(config.get("cc"), moints);
+        t_mp2.stop();
 
         PRINT("\nUHF-MP2 Energy: %.15f\n", ccsdt.getEnergy());
 
@@ -153,6 +159,8 @@ int main(int argc, char **argv)
         PRINT("<0|S^2|MP2>  = %f\n", s2);
         PRINT("<0|2S+1|MP2> = %f\n", mult);
 
+        CTF_Timer t_ccsdt("CCSD");
+        t_ccsdt.start();
         PRINT("\nUHF-CCSDT\n\n");
         PRINT("It.   Correlation Energy     Residual Walltime\n");
         tic();
@@ -164,6 +172,7 @@ int main(int argc, char **argv)
             tic();
         }
         toc();
+        t_ccsdt.stop();
 
         dt = todouble(toc());
         PRINT("\nCCSDT took: %8.3f s (%8.3f s/it.)\n", dt, dt/i);

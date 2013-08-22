@@ -69,11 +69,15 @@ void CCSD<U>::_iterate()
 {
     STExcitationOperator<U,2>::transform(H, T, Z);
     //Z(0) = (U)0.0;
+    T.set_name("T");
+    Z.set_name("Z");
+    H.set_name("H");
 
     Z *= D;
     T += Z;
 
     SpinorbitalTensor<U> Tau(T(2));
+    Tau.set_name("Tau");
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
     energy = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
