@@ -25,9 +25,9 @@
 #ifndef _AQUARIUS_OPERATOR_MOINTS_HPP_
 #define _AQUARIUS_OPERATOR_MOINTS_HPP_
 
-#include "2eoperator.hpp"
+#include "task/task.hpp"
 
-#include "scf/scf.hpp"
+#include "2eoperator.hpp"
 
 namespace aquarius
 {
@@ -35,40 +35,10 @@ namespace op
 {
 
 template <typename T>
-class MOIntegrals : public TwoElectronOperator<T>
+class MOIntegrals : public task::Task
 {
     protected:
-        tensor::DistTensor<T> *fAB_;
-        tensor::DistTensor<T> *fab_;
-        tensor::DistTensor<T> *fAI_;
-        tensor::DistTensor<T> *fai_;
-        tensor::DistTensor<T> *fIJ_;
-        tensor::DistTensor<T> *fij_;
-        tensor::DistTensor<T> *IJKL_;
-        tensor::DistTensor<T> *IjKl_;
-        tensor::DistTensor<T> *ijkl_;
-        tensor::DistTensor<T> *IJKA_;
-        tensor::DistTensor<T> *IjKa_;
-        tensor::DistTensor<T> *iJkA_;
-        tensor::DistTensor<T> *ijka_;
-        tensor::DistTensor<T> *ABIJ_;
-        tensor::DistTensor<T> *AbIj_;
-        tensor::DistTensor<T> *abij_;
-        tensor::DistTensor<T> *AIBJ_;
-        tensor::DistTensor<T> *AiBj_;
-        tensor::DistTensor<T> *aIbJ_;
-        tensor::DistTensor<T> *aibj_;
-        tensor::DistTensor<T> *AibJ_;
-        tensor::DistTensor<T> *aIBj_;
-        tensor::DistTensor<T> *ABCI_;
-        tensor::DistTensor<T> *AbCi_;
-        tensor::DistTensor<T> *aBcI_;
-        tensor::DistTensor<T> *abci_;
-        tensor::DistTensor<T> *ABCD_;
-        tensor::DistTensor<T> *AbCd_;
-        tensor::DistTensor<T> *abcd_;
-
-        MOIntegrals(const scf::UHF<T>& uhf);
+        MOIntegrals(const std::string& type, const std::string& name, const input::Config& config);
 };
 
 }

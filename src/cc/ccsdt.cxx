@@ -27,14 +27,13 @@
 using namespace std;
 using namespace aquarius::op;
 using namespace aquarius::cc;
-using namespace aquarius::scf;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
 
 template <typename U>
 CCSDT<U>::CCSDT(const Config& config, TwoElectronOperator<U>& H)
-: Iterative(config), ExponentialOperator<U,3>(H.getSCF()),
-  T(*this), D(H.getSCF()), Z(H.getSCF()), H(H), diis(config.get("diis"))
+: Iterative(config), ExcitationOperator<U,3>(H.arena, H.occ, H.vrt),
+  T(*this), D(H.arena, H.occ, H.vrt), Z(H.arena, H.occ, H.vrt), H(H), diis(config.get("diis"))
 {
     T.set_name("T");
     Z.set_name("Z");
@@ -88,7 +87,6 @@ void CCSDT<U>::_iterate()
                                 TwoElectronOperator<U>::IAJK|
                                 TwoElectronOperator<U>::AIBJ);
 
-    W.set_name("W");
     SpinorbitalTensor<U>& FAI = W.getAI();
     SpinorbitalTensor<U>& FME = W.getIA();
     SpinorbitalTensor<U>& FAE = W.getAB();
@@ -241,16 +239,18 @@ void CCSDT<U>::_iterate()
     diis.extrapolate(T, Z);
 }
 
+/*
 template <typename U>
 double CCSDT<U>::getProjectedS2() const
 {
-    return CCSD<U>::getProjectedS2(this->uhf, T(1), T(2));
+    return CCSD<U>::getProjectedS2(this->occ, this->vrt, T(1), T(2));
 }
 
 template <typename U>
 double CCSDT<U>::getProjectedMultiplicity() const
 {
-    return CCSD<U>::getProjectedMultiplicity(this->uhf, T(1), T(2));
+    return CCSD<U>::getProjectedS2(this->occ, this->vrt, T(1), T(2));
 }
+*/
 
 INSTANTIATE_SPECIALIZATIONS(CCSDT);

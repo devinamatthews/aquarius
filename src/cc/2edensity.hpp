@@ -45,32 +45,33 @@ class TwoElectronDensity : public op::TwoElectronOperator<U>
          *
          * P2_abcd = P1_ab P1_cd + 1/2 P1_ac P1_bd
          */
-        TwoElectronDensity(const scf::UHF<U>& uhf);
+        TwoElectronDensity(const op::MOSpace<U>& occ, const op::MOSpace<U>& vrt,
+                           const tensor::DistTensor<U>& Da, const tensor::DistTensor<U>& Db);
 
         /*
          * Form the unrelaxed CCSD Density
          */
-        TwoElectronDensity(const op::ExponentialOperator<U,2>& T);
+        TwoElectronDensity(const op::ExcitationOperator<U,2>& T);
 
         /*
          * Form the mixed perturbed CCSD Density
          */
         TwoElectronDensity(const op::DeexcitationOperator<U,2>& L,
-                           const op::ExponentialOperator<U,2>& T,
+                           const op::ExcitationOperator<U,2>& T,
                            const op::ExcitationOperator<U,2>& TA);
 
         /*
          * Form the relaxed CCSD Density
          */
         TwoElectronDensity(const op::DeexcitationOperator<U,2>& L,
-                           const op::ExponentialOperator<U,2>& T);
+                           const op::ExcitationOperator<U,2>& T);
 
         /*
          * Form the relaxed perturbed CCSD Density
          */
         TwoElectronDensity(const op::DeexcitationOperator<U,2>& L,
                            const op::DeexcitationOperator<U,2>& LA,
-                           const op::ExponentialOperator<U,2>& T,
+                           const op::ExcitationOperator<U,2>& T,
                            const op::ExcitationOperator<U,2>& TA);
 
         double getS2() const;

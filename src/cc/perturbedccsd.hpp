@@ -27,7 +27,7 @@
 
 #include "operator/2eoperator.hpp"
 #include "operator/st2eoperator.hpp"
-#include "operator/exponentialoperator.hpp"
+#include "operator/excitationoperator.hpp"
 
 #include "ccsd.hpp"
 
@@ -59,10 +59,10 @@ class PerturbedCCSD : public Iterative, public op::ExcitationOperator<U,2>
 
     public:
         PerturbedCCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
-                      const op::ExponentialOperator<U,2>& T, const op::OneElectronOperator<U>& A, const U omega=0);
+                      const op::ExcitationOperator<U,2>& T, const op::OneElectronOperator<U>& A, const U omega=0);
 
         PerturbedCCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
-                      const op::ExponentialOperator<U,2>& T, const op::TwoElectronOperator<U>& A, const U omega=0);
+                      const op::ExcitationOperator<U,2>& T, const op::TwoElectronOperator<U>& A, const U omega=0);
 
         void _iterate();
 };

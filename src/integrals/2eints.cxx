@@ -513,7 +513,7 @@ TwoElectronIntegralsTask::TwoElectronIntegralsTask(const string& name, const Con
     addProduct(Product("eri", "I", reqs));
 }
 
-void TwoElectronIntegralsTask::run(TaskDAG& dag, Arena& arena)
+void TwoElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
 {
     const Molecule& molecule = get<Molecule>("molecule");
 
@@ -558,13 +558,13 @@ void TwoElectronIntegralsTask::run(TaskDAG& dag, Arena& arena)
 
     for (int i = 0;i < eri->ints.size();++i)
     {
-        if (eri->idxs[i].i > eri->idxs[i].j) swap(eri->idxs[i].i, eri->idxs[i].j);
-        if (eri->idxs[i].k > eri->idxs[i].l) swap(eri->idxs[i].k, eri->idxs[i].l);
+        if (eri->idxs[i].i > eri->idxs[i].j) std::swap(eri->idxs[i].i, eri->idxs[i].j);
+        if (eri->idxs[i].k > eri->idxs[i].l) std::swap(eri->idxs[i].k, eri->idxs[i].l);
         if (eri->idxs[i].i > eri->idxs[i].k ||
             (eri->idxs[i].i == eri->idxs[i].j && eri->idxs[i].j > eri->idxs[i].l))
         {
-            swap(eri->idxs[i].i, eri->idxs[i].k);
-            swap(eri->idxs[i].j, eri->idxs[i].l);
+            std::swap(eri->idxs[i].i, eri->idxs[i].k);
+            std::swap(eri->idxs[i].j, eri->idxs[i].l);
         }
     }
 

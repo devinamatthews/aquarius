@@ -33,6 +33,83 @@ namespace aquarius
 namespace input
 {
 
+class Tokenizer
+{
+    protected:
+        int lineno;
+        istream& is;
+        string line;
+        istringstream iss;
+
+        bool nextLine()
+        {
+            while (true)
+            {
+                if (!is) return false;
+                lineno++;
+                getline(is, line);
+                iss.clear();
+                iss.str(line);
+                char c;
+                while (!(!iss.get(c)))
+                {
+                    if (c != ' ' && c != '\t' && c != '\r')
+                    {
+                        if (c == '#')
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            iss.unget();
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+    public:
+        Tokenizer(istream& is)
+        : lineno(0), is(is) {}
+
+        int getLine() const { return lineno; }
+
+        bool next(string& str)
+        {
+            ostringstream oss;
+            string token;
+
+            iss >> token;
+            while (token.size() == 0)
+            {
+                if (!nextLine()) return false;
+                iss >> token;
+            }
+
+            if (token[0] == '"')
+            {
+                oss << token.substr(1);
+                char c;
+                while (!(!iss.get(c)))
+                {
+                    if (c == '"') break;
+                    oss << c;
+                }
+                if (!iss) throw FormatError("End of line reached while looking for closing \" character", lineno);
+            }
+            else
+            {
+                oss << token;
+            }
+
+            str = oss.str();
+
+            return true;
+        }
+};
+
 Config::Config(node_t* node)
 {
     root = node;
@@ -244,51 +321,7 @@ Config::node_t* Config::resolve(node_t* node, const string& path, const bool cre
     }
 }
 
-string Config::readEntry(istream& is, string& line, int& lineno)
-{
-    int pos;
-    string entry;
-
-    if (line[0] == '"')
-    {
-        line = line.substr(1);
-        entry = "";
-
-        while ((pos = line.find('"', 1)) == string::npos)
-        {
-            entry += line;
-            lineno++;
-            if (!getline(is, line)) throw FormatError("unbalanced quotation marks", lineno);
-        }
-
-        entry += line.substr(pos);
-    }
-    else
-    {
-        pos = line.find(' ');
-        entry = line.substr(0, pos);
-        if (pos == string::npos)
-        {
-            line = "";
-        }
-        else
-        {
-            pos = line.find_first_not_of(' ', pos);
-            if (pos == string::npos)
-            {
-                line = "";
-            }
-            else
-            {
-                line = line.substr(pos);
-            }
-        }
-    }
-
-    return entry;
-}
-
-void Config::addNode(node_t* parent, string& data)
+Config::node_t* Config::addNode(node_t* parent, string& data)
 {
     node_t* child = new node_t;
 
@@ -297,6 +330,8 @@ void Config::addNode(node_t* parent, string& data)
     child->ref_count = parent->ref_count;
 
     addNode(parent, child);
+
+    return child;
 }
 
 void Config::addNode(node_t* parent, node_t* child)
@@ -327,14 +362,6 @@ void Config::read(const string& file)
 
 void Config::read(istream& is)
 {
-    string line;
-    node_t* current;
-    int oldindent = -1;
-    int newindent;
-    int lineno;
-    int i;
-    string entry;
-
     deleteNode(root);
     root = new node_t;
     root->data = "root";
@@ -344,30 +371,44 @@ void Config::read(istream& is)
     root->prev = NULL;
     root->ref_count = 1;
 
-    current = root;
+    vector<node_t*> current(2, root);
 
-    for (lineno = 1;getline(is, line);lineno++)
+    Tokenizer t(is);
+    string token;
+
+    while (t.next(token))
     {
-        newindent = line.find_first_not_of("\t");
-
-        if (newindent == string::npos || line[0] == '#') continue;
-        if (newindent > oldindent + 1) throw FormatError("too much indentation", lineno);
-
-        line = line.substr(newindent);
-
-        for (i = 0;i < (oldindent+1) - newindent;i++) current = current->parent;
-
-        entry = readEntry(is, line, lineno);
-        addNode(current, entry);
-        for (current = current->children;current->next != NULL;current = current->next);
-
-        while ((entry = readEntry(is, line, lineno)).length() > 0)
+        if (token == "{")
         {
-            addNode(current, entry);
+            current.push_back(current.back());
+            token = token.substr(1);
+        }
+        else if (token == "}" || token == "},")
+        {
+            if (current.size() <= 2) throw FormatError("Too many }'s", t.getLine());
+            current.pop_back();
+            token = token.substr(1);
         }
 
-        oldindent = newindent;
+        bool reset = token.size() > 0 && token[token.size()-1] == ',';
+
+        if (reset)
+        {
+            token.resize(token.size()-1);
+        }
+
+        if (!token.empty())
+        {
+            current.back() = addNode(current.back(), token);
+        }
+
+        if (reset)
+        {
+            current[current.size()-1] = current[current.size()-2];
+        }
     }
+
+    if (current.size() != 2) throw FormatError("Too few }'s", t.getLine());
 }
 
 void Config::write(const string& file) const
@@ -486,6 +527,11 @@ string Config::Extractor<string>::extract(node_t* node, int which)
     if (node == NULL) throw NoValueError(path(node));
 
     return node->data;
+}
+
+Config Config::Extractor<Config>::extract(node_t* node, int which)
+{
+    return Config(node);
 }
 
 template<>

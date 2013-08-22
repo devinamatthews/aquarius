@@ -36,6 +36,8 @@
 #include <cctype>
 #include <iterator>
 #include <complex>
+#include <cstdarg>
+#include <cstdio>
 
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || _MSC_VER >= 1600 || __cplusplus >= 201103l
 
@@ -397,6 +399,23 @@ class global_ptr : public shared_ptr<T*>
             return *shared_ptr<T*>::get() != NULL;
         }
 };
+
+inline std::string strprintf(const char* fmt, ...)
+{
+    va_list list;
+
+    va_start(list, fmt);
+    char fake[1];
+    int n = vsnprintf(fake, 1, fmt, list);
+    va_end(list);
+
+    std::vector<char> s(n+1);
+    va_start(list, fmt);
+    vsnprintf(s.data(), n+1, fmt, list);
+    va_end(list);
+
+    return std::string(s.begin(), s.end());
+}
 
 template<typename T> std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 {

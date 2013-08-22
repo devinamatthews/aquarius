@@ -33,13 +33,13 @@
 #include <algorithm>
 
 #include "memory/memory.h"
-#include "util/math.hpp"
+#include "util/math_ext.h"
 #include "util/blas.h"
+#include "util/stl_ext.hpp"
 #include "symmetry/symmetry.hpp"
 #include "task/task.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
-#include "stl_ext/stl_ext.hpp"
 
 #include "shell.hpp"
 
@@ -132,7 +132,7 @@ class TwoElectronIntegralsTask : public task::Task
     public:
         TwoElectronIntegralsTask(const std::string& name, const input::Config& config);
 
-        void run(task::TaskDAG& dag, Arena& arena);
+        void run(task::TaskDAG& dag, const Arena& arena);
 };
 
 }

@@ -27,7 +27,6 @@
 using namespace std;
 using namespace aquarius::op;
 using namespace aquarius::cc;
-using namespace aquarius::scf;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
 

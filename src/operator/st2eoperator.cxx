@@ -31,8 +31,8 @@ using namespace aquarius::tensor;
 
 template <typename U>
 STTwoElectronOperator<U,2>::STTwoElectronOperator(const OneElectronOperator<U>& X,
-                                                  const ExponentialOperator<U,2>& T)
-: TwoElectronOperator<U>(X), T(T)
+                                                  const ExcitationOperator<U,2>& T)
+: TwoElectronOperator<U>(X, true), T(T)
 {
     this->ij["mi"] += this->ia["me"]*T(1)["ei"];
 
@@ -52,9 +52,9 @@ STTwoElectronOperator<U,2>::STTwoElectronOperator(const OneElectronOperator<U>& 
 
 template <typename U>
 STTwoElectronOperator<U,2>::STTwoElectronOperator(const TwoElectronOperator<U>& X,
-                                                  const ExponentialOperator<U,2>& T,
+                                                  const ExcitationOperator<U,2>& T,
                                                   bool isHbar)
-: TwoElectronOperator<U>(X), T(T)
+: TwoElectronOperator<U>(X, true), T(T)
 {
     SpinorbitalTensor<U> Tau(T(2));
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
@@ -136,7 +136,7 @@ void STTwoElectronOperator<U,2>::contract(const ExcitationOperator<U,2>& R,
                                                 ExcitationOperator<U,2>& Z,
                                           bool connected) const
 {
-    OneElectronOperator<U> I(this->uhf);
+    OneElectronOperator<U> I(this->arena, this->occ, this->vrt);
 
     SpinorbitalTensor<U>& IMI = I.getIJ();
     SpinorbitalTensor<U>& IAE = I.getAB();
@@ -178,7 +178,7 @@ void STTwoElectronOperator<U,2>::contract(const DeexcitationOperator<U,2>& L,
                                                 DeexcitationOperator<U,2>& Z,
                                           bool connected) const
 {
-    OneElectronOperator<U> I(this->uhf);
+    OneElectronOperator<U> I(this->arena, this->occ, this->vrt);
 
     SpinorbitalTensor<U>& IMN = I.getIJ();
     SpinorbitalTensor<U>& IEF = I.getAB();

@@ -31,7 +31,7 @@ using namespace aquarius::tensor;
 
 template <typename U>
 STOneElectronOperator<U,2>::STOneElectronOperator(const OneElectronOperator<U>& X,
-                                                  const ExponentialOperator<U,2>& T)
+                                                  const ExcitationOperator<U,2>& T)
 : OneElectronOperator<U>(X)
 {
     this->ij["mi"] += this->ia["me"]*T(1)["ei"];

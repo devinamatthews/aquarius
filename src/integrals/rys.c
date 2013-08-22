@@ -87,7 +87,7 @@ void quadrature(int n, double* restrict a, double* restrict b, double mu0, doubl
     double Z[n * n];
 
     info = dstev('V', n, a, b, Z, n);
-    if (info != 0) ERROR("info in dstev = %d\n", info);
+    assert(info == 0);
 
     for (i = 0;i < n;i++)
     {

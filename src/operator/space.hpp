@@ -22,22 +22,40 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_OPERATOR_EXPONENTIALOPERATOR_HPP_
-#define _AQUARIUS_OPERATOR_EXPONENTIALOPERATOR_HPP_
+#ifndef _AQUARIUS_OPERATOR_SPACE_HPP_
+#define _AQUARIUS_OPERATOR_SPACE_HPP_
 
-#include "excitationoperator.hpp"
+#include "tensor/dist_tensor.hpp"
+#include "util/stl_ext.hpp"
+#include "util/distributed.hpp"
+#include "task/task.hpp"
 
 namespace aquarius
 {
 namespace op
 {
 
-template <typename T, int np, int nh=np>
-class ExponentialOperator : public ExcitationOperator<T,np,nh>
+struct Space
 {
-    public:
-        ExponentialOperator(const scf::UHF<T>& uhf)
-        : ExcitationOperator<T,np,nh>(uhf) {}
+    const int nalpha;
+    const int nbeta;
+
+    Space(int nalpha, int nbeta) : nalpha(nalpha), nbeta(nbeta) {}
+};
+
+template <class T>
+struct MOSpace : public Space, public task::Resource
+{
+    const int nao;
+    const tensor::DistTensor<T> Calpha;
+    const tensor::DistTensor<T> Cbeta;
+
+    MOSpace(const tensor::DistTensor<T>& Calpha, const tensor::DistTensor<T>& Cbeta)
+    : Space(Calpha.getLengths()[1], Cbeta.getLengths()[1]),
+      Resource(Calpha.arena),
+      nao(Calpha.getLengths()[0]),
+      Calpha(Calpha),
+      Cbeta(Cbeta) {}
 };
 
 }

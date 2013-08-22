@@ -28,6 +28,8 @@
 #include <string>
 #include <ctime>
 
+typedef double time_type;
+
 #ifdef PROFILE
 
 #define PROFILE_FUNCTION \
@@ -41,13 +43,13 @@ static int __timer = time::register_timer(#name); \
 time::tic();
 
 #define PROFILE_STOP \
-timespec __time = time::toc(); \
+time_type __time = time::toc(); \
 time::inc_timer(__timer, __time); \
 }
 
 #define PROFILE_RETURN \
 { \
-timespec __time = time::toc(); \
+time_type __time = time::toc(); \
 time::inc_timer(__timer, __time); \
 return; \
 }
@@ -69,11 +71,11 @@ namespace aquarius
 namespace time
 {
 
-double todouble(const timespec& t);
+double todouble(const time_type& t);
 
 int register_timer(const std::string& name);
 
-void inc_timer(const int timer, const timespec& time);
+void inc_timer(const int timer, const time_type& time);
 
 void print_timers();
 
@@ -81,7 +83,7 @@ void clear_timers();
 
 void tic();
 
-timespec toc();
+time_type toc();
 
 }
 }

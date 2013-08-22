@@ -49,18 +49,6 @@ class TwoElectronOperator : public OneElectronOperatorBase<T,TwoElectronOperator
         void initialize();
 
     public:
-        void set_name(char const * name_){
-            ijkl.set_name(name_);
-            iajk.set_name(name_);
-            ijka.set_name(name_);
-            abij.set_name(name_);
-            ijab.set_name(name_);
-            aibj.set_name(name_);
-            aibc.set_name(name_);
-            abci.set_name(name_);
-            abcd.set_name(name_);
-        }
-
         enum
         {
             IJKL = 0x0010,
@@ -74,15 +62,15 @@ class TwoElectronOperator : public OneElectronOperatorBase<T,TwoElectronOperator
             ABCD = 0x1000
         };
 
-        TwoElectronOperator(const scf::UHF<T>& uhf, bool hermitian=true);
+        TwoElectronOperator(const Arena& arena, const Space& occ, const Space& vrt, bool hermitian=true);
 
-        TwoElectronOperator(OneElectronOperator<T>& other, int copy);
+        TwoElectronOperator(OneElectronOperator<T>& other, int copy, bool breakhermicity=false);
 
-        TwoElectronOperator(const OneElectronOperator<T>& other);
+        TwoElectronOperator(const OneElectronOperator<T>& other, bool breakhermicity=false);
 
-        TwoElectronOperator(TwoElectronOperator<T>& other, int copy);
+        TwoElectronOperator(TwoElectronOperator<T>& other, int copy, bool breakhermicity=false);
 
-        TwoElectronOperator(const TwoElectronOperator<T>& other);
+        TwoElectronOperator(const TwoElectronOperator<T>& other, bool breakhermicity=false);
 
         T dot(bool conja, const TwoElectronOperator<T>& A, bool conjb) const;
 

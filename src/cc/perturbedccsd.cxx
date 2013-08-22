@@ -27,15 +27,14 @@
 using namespace std;
 using namespace aquarius::op;
 using namespace aquarius::cc;
-using namespace aquarius::scf;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
 
 template <typename U>
 PerturbedCCSD<U>::PerturbedCCSD(const Config& config, const STTwoElectronOperator<U,2>& H,
-                                const ExponentialOperator<U,2>& T, const OneElectronOperator<U>& A, const U omega)
-: Iterative(config), ExcitationOperator<U,2>(T.getSCF()),
-  H(H), omega(omega), TA(*this), D(this->uhf), Z(this->uhf), X(this->uhf),
+                                const ExcitationOperator<U,2>& T, const OneElectronOperator<U>& A, const U omega)
+: Iterative(config), ExcitationOperator<U,2>(T.arena, T.occ, T.vrt),
+  H(H), omega(omega), TA(*this), D(T.arena, T.occ, T.vrt), Z(T.arena, T.occ, T.vrt), X(T.arena, T.occ, T.vrt),
   diis(config.get("diis"))
 {
     D(0) = (U)1.0;
@@ -57,9 +56,9 @@ PerturbedCCSD<U>::PerturbedCCSD(const Config& config, const STTwoElectronOperato
 
 template <typename U>
 PerturbedCCSD<U>::PerturbedCCSD(const Config& config, const STTwoElectronOperator<U,2>& H,
-                                const ExponentialOperator<U,2>& T, const TwoElectronOperator<U>& A, const U omega)
-: Iterative(config), ExcitationOperator<U,2>(T.getSCF()),
-  H(H), omega(omega), TA(*this), D(this->uhf), Z(this->uhf), X(this->uhf),
+                                const ExcitationOperator<U,2>& T, const TwoElectronOperator<U>& A, const U omega)
+: Iterative(config), ExcitationOperator<U,2>(T.arena, T.occ, T.vrt),
+  H(H), omega(omega), TA(*this), D(T.arena, T.occ, T.vrt), Z(T.arena, T.occ, T.vrt), X(T.arena, T.occ, T.vrt),
   diis(config.get("diis"))
 {
     D(0) = (U)1.0;

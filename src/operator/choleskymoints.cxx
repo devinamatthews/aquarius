@@ -31,29 +31,41 @@ using namespace aquarius::tensor;
 using namespace aquarius::input;
 using namespace aquarius::integrals;
 using namespace aquarius::op;
+using namespace aquarius::task;
 
 template <typename T>
-CholeskyMOIntegrals<T>::CholeskyMOIntegrals(const CholeskyUHF<T>& uhf)
-: MOIntegrals<T>(uhf)
+CholeskyMOIntegrals<T>::CholeskyMOIntegrals(const string& name, const Config& config)
+: MOIntegrals<T>("choleskymoints", name, config)
 {
-    doTransformation(uhf.getCholesky());
+    this->getProduct("H").addRequirement(Requirement("cholesky","cholesky"));
 }
 
 template <typename T>
-void CholeskyMOIntegrals<T>::doTransformation(const CholeskyIntegrals<T>& chol)
+void CholeskyMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
 {
-    const DistTensor<T>& cA = this->uhf.getCA();
-    const DistTensor<T>& ca = this->uhf.getCa();
-    const DistTensor<T>& cI = this->uhf.getCI();
-    const DistTensor<T>& ci = this->uhf.getCi();
+    const MOSpace<T>& occ = this->template get<MOSpace<T> >("occ");
+    const MOSpace<T>& vrt = this->template get<MOSpace<T> >("vrt");
+
+    const DistTensor<T>& Fa = this->template get<DistTensor<T> >("Fa");
+    const DistTensor<T>& Fb = this->template get<DistTensor<T> >("Fb");
+
+    this->put("H", new TwoElectronOperator<T>(OneElectronOperator<T>(occ, vrt, Fa, Fb, true)));
+    TwoElectronOperator<T>& H = this->template get<TwoElectronOperator<T> >("H");
+
+    const CholeskyIntegrals<T>& chol = this->template get<CholeskyIntegrals<T> >("cholesky");
+
+    const DistTensor<T>& cA = vrt.Calpha;
+    const DistTensor<T>& ca = vrt.Cbeta;
+    const DistTensor<T>& cI = occ.Calpha;
+    const DistTensor<T>& ci = occ.Cbeta;
     const DistTensor<T>& Lpq = chol.getL();
     const DistTensor<T>& D = chol.getD();
 
-    int N = this->uhf.getMolecule().getNumOrbitals();
-    int nI = this->uhf.getMolecule().getNumAlphaElectrons();
-    int ni = this->uhf.getMolecule().getNumBetaElectrons();
-    int nA = N-nI;
-    int na = N-ni;
+    int N = occ.nao;
+    int nI = occ.nalpha;
+    int ni = occ.nbeta;
+    int nA = vrt.nalpha;
+    int na = vrt.nbeta;
     int R = chol.getRank();
 
     vector<int> sizeIIR = vec(nI, nI, R);
@@ -65,12 +77,12 @@ void CholeskyMOIntegrals<T>::doTransformation(const CholeskyIntegrals<T>& chol)
 
     vector<int> shapeNNN = vec(NS, NS, NS);
 
-    DistTensor<T> LIJ(this->arena, 3, sizeIIR, shapeNNN, false);
-    DistTensor<T> Lij(this->arena, 3, sizeiiR, shapeNNN, false);
-    DistTensor<T> LAB(this->arena, 3, sizeAAR, shapeNNN, false);
-    DistTensor<T> Lab(this->arena, 3, sizeaaR, shapeNNN, false);
-    DistTensor<T> LAI(this->arena, 3, sizeAIR, shapeNNN, false);
-    DistTensor<T> Lai(this->arena, 3, sizeaiR, shapeNNN, false);
+    DistTensor<T> LIJ(arena, 3, sizeIIR, shapeNNN, false);
+    DistTensor<T> Lij(arena, 3, sizeiiR, shapeNNN, false);
+    DistTensor<T> LAB(arena, 3, sizeAAR, shapeNNN, false);
+    DistTensor<T> Lab(arena, 3, sizeaaR, shapeNNN, false);
+    DistTensor<T> LAI(arena, 3, sizeAIR, shapeNNN, false);
+    DistTensor<T> Lai(arena, 3, sizeaiR, shapeNNN, false);
 
     {
         vector<int> sizeNIR = vec(N, nI, R);
@@ -78,10 +90,10 @@ void CholeskyMOIntegrals<T>::doTransformation(const CholeskyIntegrals<T>& chol)
         vector<int> sizeNAR = vec(N, nA, R);
         vector<int> sizeNaR = vec(N, na, R);
 
-        DistTensor<T> LpI(this->arena, 3, sizeNIR, shapeNNN, false);
-        DistTensor<T> Lpi(this->arena, 3, sizeNiR, shapeNNN, false);
-        DistTensor<T> LpA(this->arena, 3, sizeNAR, shapeNNN, false);
-        DistTensor<T> Lpa(this->arena, 3, sizeNaR, shapeNNN, false);
+        DistTensor<T> LpI(arena, 3, sizeNIR, shapeNNN, false);
+        DistTensor<T> Lpi(arena, 3, sizeNiR, shapeNNN, false);
+        DistTensor<T> LpA(arena, 3, sizeNAR, shapeNNN, false);
+        DistTensor<T> Lpa(arena, 3, sizeNaR, shapeNNN, false);
 
         LpI["pIR"] = Lpq["pqR"]*cI["qI"];
         Lpi["piR"] = Lpq["pqR"]*ci["qi"];
@@ -96,12 +108,12 @@ void CholeskyMOIntegrals<T>::doTransformation(const CholeskyIntegrals<T>& chol)
         Lab["abR"] = Lpa["pbR"]*ca["pa"];
     }
 
-    DistTensor<T> LDIJ(this->arena, 3, sizeIIR, shapeNNN, false);
-    DistTensor<T> LDij(this->arena, 3, sizeiiR, shapeNNN, false);
-    DistTensor<T> LDAB(this->arena, 3, sizeAAR, shapeNNN, false);
-    DistTensor<T> LDab(this->arena, 3, sizeaaR, shapeNNN, false);
-    DistTensor<T> LDAI(this->arena, 3, sizeAIR, shapeNNN, false);
-    DistTensor<T> LDai(this->arena, 3, sizeaiR, shapeNNN, false);
+    DistTensor<T> LDIJ(arena, 3, sizeIIR, shapeNNN, false);
+    DistTensor<T> LDij(arena, 3, sizeiiR, shapeNNN, false);
+    DistTensor<T> LDAB(arena, 3, sizeAAR, shapeNNN, false);
+    DistTensor<T> LDab(arena, 3, sizeaaR, shapeNNN, false);
+    DistTensor<T> LDAI(arena, 3, sizeAIR, shapeNNN, false);
+    DistTensor<T> LDai(arena, 3, sizeaiR, shapeNNN, false);
 
     LDIJ["IJR"] = D["R"]*LIJ["IJR"];
     LDij["ijR"] = D["R"]*Lij["ijR"];
@@ -110,36 +122,37 @@ void CholeskyMOIntegrals<T>::doTransformation(const CholeskyIntegrals<T>& chol)
     LDAB["ABR"] = D["R"]*LAB["ABR"];
     LDab["abR"] = D["R"]*Lab["abR"];
 
-    (*this->IJKL_)["IJKL"] = 0.5*LDIJ["IKR"]*LIJ["JLR"];
-    (*this->IjKl_)["IjKl"] =     LDIJ["IKR"]*Lij["jlR"];
-    (*this->ijkl_)["ijkl"] = 0.5*LDij["ikR"]*Lij["jlR"];
+    H.getIJKL()(0,2,0,2)["IJKL"] = 0.5*LDIJ["IKR"]*LIJ["JLR"];
+    H.getIJKL()(0,1,0,1)["IjKl"] =     LDIJ["IKR"]*Lij["jlR"];
+    H.getIJKL()(0,0,0,0)["ijkl"] = 0.5*LDij["ikR"]*Lij["jlR"];
 
-    (*this->IJKA_)["IJKA"] = LDIJ["IKR"]*LAI["AJR"];
-    (*this->IjKa_)["IjKa"] = LDIJ["IKR"]*Lai["ajR"];
-    (*this->iJkA_)["iJkA"] = LDij["ikR"]*LAI["AJR"];
-    (*this->ijka_)["ijka"] = LDij["ikR"]*Lai["ajR"];
+    H.getIJKA()(2,0,1,1)["IJKA"] = LDIJ["IKR"]*LAI["AJR"];
+    H.getIJKA()(0,1,0,1)["IjKa"] = LDIJ["IKR"]*Lai["ajR"];
+    H.getIJKA()(0,1,1,0)["iJkA"] = LDij["ikR"]*LAI["AJR"];
+    H.getIJKA()(0,0,0,0)["ijka"] = LDij["ikR"]*Lai["ajR"];
 
-    (*this->ABIJ_)["ABIJ"] = 0.5*LDAI["AIR"]*LAI["BJR"];
-    (*this->AbIj_)["AbIj"] =     LDAI["AIR"]*Lai["bjR"];
-    (*this->abij_)["abij"] = 0.5*LDai["aiR"]*Lai["bjR"];
+    H.getABIJ()(2,0,0,2)["ABIJ"] = 0.5*LDAI["AIR"]*LAI["BJR"];
+    H.getABIJ()(1,0,0,1)["AbIj"] =     LDAI["AIR"]*Lai["bjR"];
+    H.getABIJ()(0,0,0,0)["abij"] = 0.5*LDai["aiR"]*Lai["bjR"];
 
-    (*this->AIBJ_)["AIBJ"]  = LDAB["ABR"]*LIJ["IJR"];
-    (*this->AIBJ_)["AIBJ"] -= LDAI["AJR"]*LAI["BIR"];
-    (*this->AiBj_)["AiBj"]  = LDAB["ABR"]*Lij["ijR"];
-    (*this->aIbJ_)["aIbJ"]  = LDab["abR"]*LIJ["IJR"];
-    (*this->aibj_)["aibj"]  = LDab["abR"]*Lij["ijR"];
-    (*this->aibj_)["aibj"] -= LDai["ajR"]*Lai["biR"];
-    (*this->AibJ_)["AbJi"] -= (*this->AbIj_)["AbJi"];
-    (*this->aIBj_)["BaIj"] -= (*this->AbIj_)["BaIj"];
+    H.getAIBJ()(1,1,1,1)["AIBJ"]  = LDAB["ABR"]*LIJ["IJR"];
+    H.getAIBJ()(1,1,1,1)["AIBJ"] -= LDAI["AJR"]*LAI["BIR"];
+    H.getAIBJ()(1,0,1,0)["AiBj"]  = LDAB["ABR"]*Lij["ijR"];
+    H.getAIBJ()(0,1,0,1)["aIbJ"]  = LDab["abR"]*LIJ["IJR"];
+    H.getAIBJ()(0,0,0,0)["aibj"]  = LDab["abR"]*Lij["ijR"];
+    H.getAIBJ()(0,0,0,0)["aibj"] -= LDai["ajR"]*Lai["biR"];
+    H.getAIBJ()(1,0,0,1)["AbJi"]  = -H.getABIJ()(1,0,0,1)["AbJi"];
+    H.getAIBJ()(0,1,1,0)["BaIj"]  = -H.getABIJ()(1,0,0,1)["BaIj"];
 
-    (*this->ABCI_)["ABCI"] = LDAB["ACR"]*LAI["BIR"];
-    (*this->AbCi_)["AbCi"] = LDAB["ACR"]*Lai["biR"];
-    (*this->aBcI_)["aBcI"] = LDab["acR"]*LAI["BIR"];
-    (*this->abci_)["abci"] = LDab["acR"]*Lai["biR"];
+    H.getABCI()(2,0,1,1)["ABCI"] = LDAB["ACR"]*LAI["BIR"];
+    H.getABCI()(1,0,1,0)["AbCi"] = LDAB["ACR"]*Lai["biR"];
+    H.getABCI()(1,0,0,1)["aBcI"] = LDab["acR"]*LAI["BIR"];
+    H.getABCI()(0,0,0,0)["abci"] = LDab["acR"]*Lai["biR"];
 
-    (*this->ABCD_)["ABCD"] = 0.5*LDAB["ACR"]*LAB["BDR"];
-    (*this->AbCd_)["AbCd"] =     LDAB["ACR"]*Lab["bdR"];
-    (*this->abcd_)["abcd"] = 0.5*LDab["acR"]*Lab["bdR"];
+    H.getABCD()(2,0,2,0)["ABCD"] = 0.5*LDAB["ACR"]*LAB["BDR"];
+    H.getABCD()(1,0,1,0)["AbCd"] =     LDAB["ACR"]*Lab["bdR"];
+    H.getABCD()(0,0,0,0)["abcd"] = 0.5*LDab["acR"]*Lab["bdR"];
 }
 
 INSTANTIATE_SPECIALIZATIONS(CholeskyMOIntegrals);
+REGISTER_TASK(CholeskyMOIntegrals<double>,"choleskymoints");

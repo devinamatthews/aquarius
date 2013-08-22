@@ -429,11 +429,6 @@ void OneElectronIntegrals::prim2contr2l(size_t nother, double* buf1, double* buf
     copy(m*n, buf1, 1, buf2, 1);
 }
 
-void OneElectronIntegralsTask::OneElectronIntegral::print(Printer& p) const
-{
-    //TODO
-}
-
 OneElectronIntegralsTask::OneElectronIntegralsTask(const string& name, const Config& config)
 : Task("1eints", name)
 {
@@ -445,7 +440,7 @@ OneElectronIntegralsTask::OneElectronIntegralsTask(const string& name, const Con
     addProduct(Product("1ehamiltonian", "H", reqs));
 }
 
-void OneElectronIntegralsTask::run(TaskDAG& dag, Arena& arena)
+void OneElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
 {
     const Molecule& molecule = get<Molecule>("molecule");
 

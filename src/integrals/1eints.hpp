@@ -32,11 +32,11 @@
 #include <cstring>
 
 #include "memory/memory.h"
-#include "util/math.hpp"
+#include "util/math_ext.h"
 #include "util/blas.h"
+#include "util/stl_ext.hpp"
 #include "symmetry/symmetry.hpp"
 #include "tensor/dist_tensor.hpp"
-#include "stl_ext/stl_ext.hpp"
 #include "task/task.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
@@ -145,7 +145,7 @@ class OneElectronIntegrals
 class OneElectronIntegralsTask : public task::Task
 {
     public:
-        class OneElectronIntegral : public tensor::DistTensor<double>, public task::Resource
+        class OneElectronIntegral : public tensor::DistTensor<double>
         {
             protected:
                 std::string name;
@@ -153,14 +153,12 @@ class OneElectronIntegralsTask : public task::Task
             public:
                 OneElectronIntegral(const Arena& arena, const std::string& name, int norb)
                 : tensor::DistTensor<double>(arena, 2, std::vec(norb,norb), std::vec(NS,NS), true),
-                  Resource(arena), name(name) {}
-
-                void print(task::Printer& p) const;
+                  name(name) {}
         };
 
         OneElectronIntegralsTask(const std::string& name, const input::Config& config);
 
-        void run(task::TaskDAG& dag, Arena& arena);
+        void run(task::TaskDAG& dag, const Arena& arena);
 };
 
 struct OVI : public OneElectronIntegralsTask::OneElectronIntegral

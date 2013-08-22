@@ -36,34 +36,13 @@ using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
 using namespace aquarius::integrals;
-
-/*
-static bool sortIntsByRS(const idx4_t& i1, const idx4_t& i2)
-{
-    if (i1.l < i2.l)
-    {
-        return true;
-    }
-    else if (i1.l > i2.l)
-    {
-        return false;
-    }
-    if (i1.k < i2.k)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-*/
+using namespace aquarius::task;
 
 template <typename T>
-AOMOIntegrals<T>::AOMOIntegrals(const AOUHF<T>& uhf)
-: MOIntegrals<T>(uhf)
+AOMOIntegrals<T>::AOMOIntegrals(const string& name, const Config& config)
+: MOIntegrals<T>("aomoints", name, config)
 {
-    doTransformation(uhf.getIntegrals());
+    this->getProduct("H").addRequirement(Requirement("eri","I"));
 }
 
 template <typename T>
@@ -331,8 +310,6 @@ AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const boo
             pqrs.idxs[ipqrs].l != pqrs.idxs[ipqrs-1].l) nrs++;
     }
 
-    assert(allsum((long)nrs) <= nr*ns);
-
     rs = SAFE_MALLOC(idx2_t, nrs);
     nints = nrs*na*nb;
     ints = SAFE_MALLOC(T, nints);
@@ -478,8 +455,6 @@ template <typename T>
 void AOMOIntegrals<T>::abrs_integrals::transcribe(DistTensor<T>& tensor, bool assymij, bool assymkl, bool reverse)
 {
     PROFILE_FUNCTION
-
-    assert(nr*ns == allsum((long)nrs));
 
     if (reverse)
     {
@@ -683,16 +658,32 @@ void AOMOIntegrals<T>::abrs_integrals::free()
 }
 
 template <typename T>
-void AOMOIntegrals<T>::doTransformation(const ERI& ints)
+void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
 {
-    int N = this->uhf.getMolecule().getNumOrbitals();
-    int nI = this->uhf.getMolecule().getNumAlphaElectrons();
-    int ni = this->uhf.getMolecule().getNumBetaElectrons();
-    int nA = N-nI;
-    int na = N-ni;
+    const MOSpace<T>& occ = this->template get<MOSpace<T> >("occ");
+    const MOSpace<T>& vrt = this->template get<MOSpace<T> >("vrt");
 
-    DistTensor<T> ABIJ__(this->arena, 4, vec(nA,nA,nI,nI), vec(NS,NS,NS,NS), false);
-    DistTensor<T> abij__(this->arena, 4, vec(na,na,ni,ni), vec(NS,NS,NS,NS), false);
+    const DistTensor<T>& Fa = this->template get<DistTensor<T> >("Fa");
+    const DistTensor<T>& Fb = this->template get<DistTensor<T> >("Fb");
+
+    this->put("H", new TwoElectronOperator<T>(OneElectronOperator<T>(occ, vrt, Fa, Fb, true)));
+    TwoElectronOperator<T>& H = this->template get<TwoElectronOperator<T> >("H");
+
+    const ERI& ints = this->template get<ERI>("I");
+
+    const DistTensor<T>& cA_ = vrt.Calpha;
+    const DistTensor<T>& ca_ = vrt.Cbeta;
+    const DistTensor<T>& cI_ = occ.Calpha;
+    const DistTensor<T>& ci_ = occ.Cbeta;
+
+    int N = occ.nao;
+    int nI = occ.nalpha;
+    int ni = occ.nbeta;
+    int nA = vrt.nalpha;
+    int na = vrt.nbeta;
+
+    DistTensor<T> ABIJ__(arena, 4, vec(nA,nA,nI,nI), vec(NS,NS,NS,NS), false);
+    DistTensor<T> abij__(arena, 4, vec(na,na,ni,ni), vec(NS,NS,NS,NS), false);
 
     int64_t npair;
     vector<T> cA, ca, cI, ci;
@@ -700,13 +691,13 @@ void AOMOIntegrals<T>::doTransformation(const ERI& ints)
     /*
      * Read transformation coefficients
      */
-    this->uhf.getCA().getAllData(cA);
+    cA_.getAllData(cA);
     assert(cA.size() == N*nA);
-    this->uhf.getCa().getAllData(ca);
+    ca_.getAllData(ca);
     assert(ca.size() == N*na);
-    this->uhf.getCI().getAllData(cI);
+    cI_.getAllData(cI);
     assert(cI.size() == N*nI);
-    this->uhf.getCi().getAllData(ci);
+    ci_.getAllData(ci);
     assert(ci.size() == N*ni);
 
     /*
@@ -753,7 +744,7 @@ void AOMOIntegrals<T>::doTransformation(const ERI& ints)
     abrs_integrals CDAB = RDAB.transform(A, 'N', nA, cA.data(), N);
     RDAB.free();
     PROFILE_SECTION(j)
-    CDAB.transcribe(*this->ABCD_, true, true, false);
+    CDAB.transcribe(H.getABCD()(2,0,2,0), true, true, false);
     PROFILE_STOP
     CDAB.free();
 
@@ -771,14 +762,14 @@ void AOMOIntegrals<T>::doTransformation(const ERI& ints)
     abrs_integrals CDab = RDab.transform(A, 'N', nA, cA.data(), N);
     RDab.free();
     PROFILE_SECTION(k)
-    CDab.transcribe(*this->AbCd_, false, false, false);
+    CDab.transcribe(H.getABCD()(1,0,1,0), false, false, false);
     PROFILE_STOP
     CDab.free();
 
     abrs_integrals cdab = Rdab.transform(A, 'N', na, ca.data(), N);
     Rdab.free();
     PROFILE_SECTION(l)
-    cdab.transcribe(*this->abcd_, true, true, false);
+    cdab.transcribe(H.getABCD()(0,0,0,0), true, true, false);
     PROFILE_STOP
     cdab.free();
 
@@ -797,14 +788,14 @@ void AOMOIntegrals<T>::doTransformation(const ERI& ints)
     abrs_integrals BCAI = RCAI.transform(A, 'N', nA, cA.data(), N);
     RCAI.free();
     PROFILE_SECTION(m)
-    BCAI.transcribe(*this->ABCI_, true, false, false);
+    BCAI.transcribe(H.getABCI()(2,0,1,1), true, false, false);
     PROFILE_STOP
     BCAI.free();
 
     abrs_integrals bcAI = RcAI.transform(A, 'N', na, ca.data(), N);
     RcAI.free();
     PROFILE_SECTION(n)
-    bcAI.transcribe(*this->aBcI_, false, false, false);
+    bcAI.transcribe(H.getABCI()(1,0,0,1), false, false, false);
     PROFILE_STOP
     bcAI.free();
 
@@ -831,21 +822,21 @@ void AOMOIntegrals<T>::doTransformation(const ERI& ints)
     abrs_integrals BCai = RCai.transform(A, 'N', nA, cA.data(), N);
     RCai.free();
     PROFILE_SECTION(p)
-    BCai.transcribe(*this->AbCi_, false, false, false);
+    BCai.transcribe(H.getABCI()(1,0,1,0), false, false, false);
     PROFILE_STOP
     BCai.free();
 
     abrs_integrals bcai = Rcai.transform(A, 'N', na, ca.data(), N);
     Rcai.free();
     PROFILE_SECTION(q)
-    bcai.transcribe(*this->abci_, true, false, false);
+    bcai.transcribe(H.getABCI()(0,0,0,0), true, false, false);
     PROFILE_STOP
     bcai.free();
 
     abrs_integrals BJai = RJai.transform(A, 'N', nA, cA.data(), N);
     RJai.free();
     PROFILE_SECTION(r)
-    BJai.transcribe(*this->AbIj_, false, false, false);
+    BJai.transcribe(H.getABIJ()(1,0,0,1), false, false, false);
     PROFILE_STOP
     BJai.free();
 
@@ -872,21 +863,21 @@ void AOMOIntegrals<T>::doTransformation(const ERI& ints)
     abrs_integrals ABIJ = RBIJ.transform(A, 'N', nA, cA.data(), N);
     RBIJ.free();
     PROFILE_SECTION(t)
-    ABIJ.transcribe(*this->AIBJ_, false, false, false);
+    ABIJ.transcribe(H.getAIBJ()(1,1,1,1), false, false, false);
     PROFILE_STOP
     ABIJ.free();
 
     abrs_integrals abIJ = RbIJ.transform(A, 'N', na, ca.data(), N);
     RbIJ.free();
     PROFILE_SECTION(u)
-    abIJ.transcribe(*this->aIbJ_, false, false, false);
+    abIJ.transcribe(H.getAIBJ()(0,1,0,1), false, false, false);
     PROFILE_STOP
     abIJ.free();
 
     abrs_integrals akIJ = RlIJ.transform(A, 'N', na, ca.data(), N);
     RlIJ.free();
     PROFILE_SECTION(v)
-    akIJ.transcribe(*this->IjKa_, false, false, true);
+    akIJ.transcribe(H.getIJKA()(0,1,0,1), false, false, true);
     PROFILE_STOP
     akIJ.free();
 
@@ -894,11 +885,11 @@ void AOMOIntegrals<T>::doTransformation(const ERI& ints)
     abrs_integrals KLIJ = RLIJ.transform(A, 'N', nI, cI.data(), N);
     RLIJ.free();
     PROFILE_SECTION(w)
-    AKIJ.transcribe(*this->IJKA_, true, false, true);
+    AKIJ.transcribe(H.getIJKA()(0,2,1,1), true, false, true);
     PROFILE_STOP
     AKIJ.free();
     PROFILE_SECTION(x)
-    KLIJ.transcribe(*this->IJKL_, true, true, false);
+    KLIJ.transcribe(H.getIJKL()(0,2,0,2), true, true, false);
     PROFILE_STOP
     KLIJ.free();
 
@@ -918,14 +909,14 @@ void AOMOIntegrals<T>::doTransformation(const ERI& ints)
     abrs_integrals ABij = RBij.transform(A, 'N', nA, cA.data(), N);
     RBij.free();
     PROFILE_SECTION(a)
-    ABij.transcribe(*this->AiBj_, false, false, false);
+    ABij.transcribe(H.getAIBJ()(1,0,1,0), false, false, false);
     PROFILE_STOP
     ABij.free();
 
     abrs_integrals abij = Rbij.transform(A, 'N', na, ca.data(), N);
     Rbij.free();
     PROFILE_SECTION(b)
-    abij.transcribe(*this->aibj_, false, false, false);
+    abij.transcribe(H.getAIBJ()(0,0,0,0), false, false, false);
     PROFILE_STOP
     abij.free();
 
@@ -933,11 +924,11 @@ void AOMOIntegrals<T>::doTransformation(const ERI& ints)
     abrs_integrals KLij = RLij.transform(A, 'N', nI, cI.data(), N);
     RLij.free();
     PROFILE_SECTION(c)
-    AKij.transcribe(*this->iJkA_, false, false, true);
+    AKij.transcribe(H.getIJKA()(0,1,1,0), false, false, true);
     PROFILE_STOP
     AKij.free();
     PROFILE_SECTION(d)
-    KLij.transcribe(*this->IjKl_, false, false, false);
+    KLij.transcribe(H.getIJKL()(0,1,0,1), false, false, false);
     PROFILE_STOP
     KLij.free();
 
@@ -945,11 +936,11 @@ void AOMOIntegrals<T>::doTransformation(const ERI& ints)
     abrs_integrals klij = Rlij.transform(A, 'N', ni, ci.data(), N);
     Rlij.free();
     PROFILE_SECTION(e)
-    akij.transcribe(*this->ijka_, true, false, true);
+    akij.transcribe(H.getIJKA()(0,0,0,0), true, false, true);
     PROFILE_STOP
     akij.free();
     PROFILE_SECTION(f)
-    klij.transcribe(*this->ijkl_, true, true, false);
+    klij.transcribe(H.getIJKL()(0,0,0,0), true, true, false);
     PROFILE_STOP
     klij.free();
 
@@ -957,29 +948,30 @@ void AOMOIntegrals<T>::doTransformation(const ERI& ints)
      * Make <AI||BJ> and <ai||bj>
      */
     PROFILE_SECTION(g)
-    (*this->AIBJ_)["AIBJ"] -= ABIJ__["ABJI"];
-    (*this->aibj_)["aibj"] -= abij__["abji"];
+    H.getAIBJ()(1,1,1,1)["AIBJ"] -= ABIJ__["ABJI"];
+    H.getAIBJ()(0,0,0,0)["aibj"] -= abij__["abji"];
     PROFILE_STOP
 
     /*
      * Make <AB||IJ> and <ab||ij>
      */
     //(*this->ABIJ_)["ABIJ"] = 0.5*ABIJ__["ABIJ"];
-    //(*this->abij_)["abij"] = 0.5*abij__["abij"];
+    //(*H.getABIJ()_)["abij"] = 0.5*abij__["abij"];
     PROFILE_SECTION(h)
-    (*this->ABIJ_)["ABIJ"]  = ABIJ__["ABIJ"];
-    (*this->ABIJ_)["ABIJ"] -= ABIJ__["ABJI"];
-    (*this->abij_)["abij"]  = abij__["abij"];
-    (*this->abij_)["abij"] -= abij__["abji"];
+    H.getABIJ()(2,0,0,2)["ABIJ"]  = ABIJ__["ABIJ"];
+    H.getABIJ()(2,0,0,2)["ABIJ"] -= ABIJ__["ABJI"];
+    H.getABIJ()(0,0,0,0)["abij"]  = abij__["abij"];
+    H.getABIJ()(0,0,0,0)["abij"] -= abij__["abji"];
     PROFILE_STOP
 
     /*
      * Make <Ai|bJ> = -<Ab|Ji> and <aI|Bj> = -<Ba|Ij>
      */
     PROFILE_SECTION(i)
-    (*this->AibJ_)["AbJi"] -= (*this->AbIj_)["AbJi"];
-    (*this->aIBj_)["BaIj"] -= (*this->AbIj_)["BaIj"];
+    H.getAIBJ()(1,0,0,1)["AbJi"] = -H.getABIJ()(1,0,0,1)["AbJi"];
+    H.getAIBJ()(0,1,1,0)["BaIj"] = -H.getABIJ()(1,0,0,1)["BaIj"];
     PROFILE_STOP
 }
 
 INSTANTIATE_SPECIALIZATIONS(AOMOIntegrals);
+REGISTER_TASK(AOMOIntegrals<double>,"aomoints");

@@ -22,13 +22,47 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_UTIL_MATH_HPP_
-#define _AQUARIUS_UTIL_MATH_HPP_
+#ifndef _AQUARIUS_UTIL_MATH_EXT_H_
+#define _AQUARIUS_UTIL_MATH_EXT_H_
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+#include <cmath>
+#else
+#include <math.h>
+#endif
+
+#include "util.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+int roundup(int x, int y);
+
+double dist2(const double* a, const double* b);
+
+double dist(const double* a, const double* b);
+
+int binom(int a, int b);
+
+int64_t fact(int n);
+
+int64_t dfact(int n);
+
+#ifdef __cplusplus
+}
 
 #include <ostream>
 
 namespace aquarius
 {
+
+template <typename T>
+void transpose(const size_t m, const size_t n, const T alpha, const T* A, const size_t lda,
+                                               const T  beta,       T* B, const size_t ldb);
 
 class vec3;
 class mat3x3;
@@ -166,5 +200,7 @@ double norm(const mat3x3& m);
 std::ostream& operator<<(std::ostream& os, const mat3x3& v);
 
 }
+
+#endif
 
 #endif

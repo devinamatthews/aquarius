@@ -39,10 +39,10 @@ template <typename T>
 class CholeskyMOIntegrals : public MOIntegrals<T>
 {
     public:
-        CholeskyMOIntegrals(const scf::CholeskyUHF<T>& uhf);
+        CholeskyMOIntegrals(const std::string& name, const input::Config& config);
 
     protected:
-        void doTransformation(const integrals::CholeskyIntegrals<T>& chol);
+        void run(task::TaskDAG& dag, const Arena& arena);
 };
 
 }

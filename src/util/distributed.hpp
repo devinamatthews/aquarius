@@ -29,12 +29,13 @@
 #include <complex>
 
 #include "mpi.h"
-#ifdef USE_ELEMENTAL
+
+#ifdef ELEMENTAL
 #include "elemental.hpp"
 #endif
 
 #include "ctf.hpp"
-#include "stl_ext/stl_ext.hpp"
+#include "util/stl_ext.hpp"
 
 namespace aquarius
 {

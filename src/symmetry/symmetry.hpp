@@ -28,7 +28,7 @@
 #include <stdint.h>
 #include <cassert>
 
-#include "util/math.hpp"
+#include "util/math_ext.h"
 
 namespace aquarius
 {

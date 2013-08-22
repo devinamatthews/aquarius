@@ -28,7 +28,6 @@
 #include "2eoperator.hpp"
 #include "deexcitationoperator.hpp"
 #include "excitationoperator.hpp"
-#include "exponentialoperator.hpp"
 
 namespace aquarius
 {
@@ -46,12 +45,12 @@ template <typename U>
 class STTwoElectronOperator<U,2> : public TwoElectronOperator<U>
 {
     protected:
-        const ExponentialOperator<U,2>& T;
+        const ExcitationOperator<U,2>& T;
 
     public:
-        STTwoElectronOperator(const OneElectronOperator<U>& X, const ExponentialOperator<U,2>& T);
+        STTwoElectronOperator(const OneElectronOperator<U>& X, const ExcitationOperator<U,2>& T);
 
-        STTwoElectronOperator(const TwoElectronOperator<U>& X, const ExponentialOperator<U,2>& T, bool isHbar=false);
+        STTwoElectronOperator(const TwoElectronOperator<U>& X, const ExcitationOperator<U,2>& T, bool isHbar=false);
 
         void contract(const ExcitationOperator<U,2>& R, ExcitationOperator<U,2>& Z, bool connected=true) const;
 

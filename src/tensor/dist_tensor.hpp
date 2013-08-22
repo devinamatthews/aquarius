@@ -40,6 +40,7 @@
 
 #include "memory/memory.h"
 #include "util/distributed.hpp"
+#include "task/task.hpp"
 
 #include "util.h"
 #include "indexable_tensor.hpp"
@@ -62,7 +63,7 @@ int conv_idx(const int ndim_A, const T* cidx_A, int*& iidx_A,
              const int ndim_C, const T* cidx_C, int*& iidx_C);
 
 template <typename T>
-class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
+class DistTensor : public IndexableTensor< DistTensor<T>,T >, public task::Resource
 {
     INHERIT_FROM_INDEXABLE_TENSOR(DistTensor<T>,T)
 
@@ -88,8 +89,6 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed
                    bool zero=true);
 
         ~DistTensor();
-
-        void set_name(char const * name_);
 
         void resize(int ndim, const std::vector<int>& len, const std::vector<int>& sym, bool zero);
 

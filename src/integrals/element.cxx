@@ -22,6 +22,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
+#include "util/stl_ext.hpp"
+
 #include "element.hpp"
 #include "internal.h"
 
@@ -46,10 +48,10 @@ Element Element::getElement(const string& symbol, int A)
                                    elements[i].mass[is]);
                 }
             }
-            ERROR("Isotope A=%d not found for element %s", A, symbol.c_str());
+            throw runtime_error(strprintf("Isotope A=%d not found for element %s", A, symbol.c_str()));
         }
     }
-    ERROR("Element %s not found", symbol.c_str());
+    throw runtime_error(strprintf("Element %s not found", symbol.c_str()));
 }
 
 Element Element::getElement(const string& symbol)
@@ -64,5 +66,5 @@ Element Element::getElement(const string& symbol)
                            elements[i].mass[is]);
         }
     }
-    ERROR("Element %s not found", symbol.c_str());
+    throw runtime_error(strprintf("Element %s not found", symbol.c_str()));
 }

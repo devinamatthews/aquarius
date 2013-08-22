@@ -1,0 +1,109 @@
+molecule
+{
+	angstrom2bohr?
+		double 1.88972612456506198632428439,
+	units?
+		enum { angstrom, bohr },
+	coords?
+		enum { internal, cartesian },
+	multiplicity?
+		int 1,
+	charge?
+		int 0,
+	atom+
+	{
+		basis_set? string,
+		truncation? string,
+		# ZMAT specification, e.g. H 2 R 1 A
+		# or xyz position
+		*+
+	},
+	basis?
+	{
+		contaminants?
+			bool false,
+		spherical?
+			bool true,
+		basis_set? string,
+		truncation*
+		{
+			# elements affected, e.g. H-Ne
+			*,
+			# same format as molecule.atom.truncation
+			*
+		}
+	}
+},
+aoscf
+{
+	damping?
+		double 0.0,
+	convergence?
+		double 1e-10,
+	max_iterations?
+		int 150,
+	conv_type?
+		enum { MAXE, RMSE, MAE },
+	diis?
+	{
+		start?
+			int 8,
+		order?
+			int 6,
+		jacobi?
+			bool false
+	}
+},
+aomoints,
+choleskymoints,
+ccsd
+{
+	convergence?
+		double 1e-9,
+	max_iterations?
+		int 150,
+	conv_type?
+		enum { MAXE, RMSE, MAE },
+	diis?
+	{
+		start?
+			int 1,
+		order?
+			int 5,
+		jacobi?
+			bool false
+	}
+},
+lambdaccsd
+{
+	convergence?
+		double 1e-9,
+	max_iterations?
+		int 150,
+	conv_type?
+		enum { MAXE, RMSE, MAE },
+	diis?
+	{
+		start?
+			int 1,
+		order?
+			int 5,
+		jacobi?
+			bool false
+	}
+},
+cholesky
+{
+	delta?
+		double 1e-12,
+	cond_max?
+		double 1000,
+},
+1eints,
+2eints
+{
+	storage_cutoff?
+		double 1e-14,
+	calc_cutoff?
+		double 1e-15
+}

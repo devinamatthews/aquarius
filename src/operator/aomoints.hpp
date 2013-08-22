@@ -39,7 +39,7 @@ template <typename T>
 class AOMOIntegrals : public MOIntegrals<T>
 {
     public:
-        AOMOIntegrals(const scf::AOUHF<T>& uhf);
+        AOMOIntegrals(const std::string& name, const input::Config& config);
 
     private:
         enum Side {PQ, RS};
@@ -98,7 +98,7 @@ class AOMOIntegrals : public MOIntegrals<T>
         };
 
     protected:
-        void doTransformation(const integrals::ERI& ints);
+        void run(task::TaskDAG& dag, const Arena& arena);
 };
 
 }

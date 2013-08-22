@@ -27,7 +27,10 @@
 
 #include "omp.h"
 
+#include <assert.h>
+
 #include "util/util.h"
+#include "util/math_ext.h"
 #include "util/lapack.h"
 #include "memory/memory.h"
 

@@ -22,17 +22,162 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#include "math.hpp"
 #include <stdexcept>
-#include <cmath>
 #include <iomanip>
 #include <ios>
 #include <iostream>
+#include <cassert>
+
+#include "math_ext.h"
+
+extern "C"
+{
+
+int roundup(int x, int y)
+{
+    return ((x+y-1)/y)*y;
+}
+
+double dist2(const double* a, const double* b)
+{
+    return (a[0]-b[0])*(a[0]-b[0]) +
+           (a[1]-b[1])*(a[1]-b[1]) +
+           (a[2]-b[2])*(a[2]-b[2]);
+}
+
+double dist(const double* a, const double* b)
+{
+    return sqrt(dist2(a, b));
+}
+
+int binom(int a, int b)
+{
+    int i, j;
+
+    if (b < 0 || b > a) return 0;
+
+    j = 1;
+    for (i = 1;i <= MIN(b,a-b);i++)
+    {
+        j = (j*(a-i+1))/i;
+    }
+
+    return j;
+}
+
+int64_t fact(int n)
+{
+    int i;
+    int64_t j;
+
+    j = 1;
+
+    for (i = n;i > 1;i--)
+    {
+        j = j*i;
+    }
+
+    return j;
+}
+
+int64_t dfact(int n)
+{
+    int i;
+    int64_t j;
+
+    j = 1;
+
+    for (i = n;i > 1;i -= 2)
+    {
+        j = j*i;
+    }
+
+    return j;
+}
+
+}
 
 using namespace std;
 
 namespace aquarius
 {
+
+template <typename T>
+void transpose(const size_t m, const size_t n, const T alpha, const T* A, const size_t lda,
+                                               const T  beta,       T* B, const size_t ldb)
+{
+    size_t i, j;
+
+    if (alpha == 1.0)
+    {
+        if (beta == 0.0)
+        {
+            for (i = 0;i < m;i++)
+            {
+                for (j = 0;j < n;j++)
+                {
+                    B[i*ldb + j] = A[j*lda + i];
+                }
+            }
+        }
+        else if (beta == 1.0)
+        {
+            for (i = 0;i < m;i++)
+            {
+                for (j = 0;j < n;j++)
+                {
+                    B[i*ldb + j] += A[j*lda + i];
+                }
+            }
+        }
+        else
+        {
+            for (i = 0;i < m;i++)
+            {
+                for (j = 0;j < n;j++)
+                {
+                    B[i*ldb + j] = beta*B[i*ldb + j] + A[j*lda + i];
+                }
+            }
+        }
+    }
+    else
+    {
+        if (beta == 0.0)
+        {
+            for (i = 0;i < m;i++)
+            {
+                for (j = 0;j < n;j++)
+                {
+                    B[i*ldb + j] = alpha*A[j*lda + i];
+                }
+            }
+        }
+        else if (beta == 1.0)
+        {
+            for (i = 0;i < m;i++)
+            {
+                for (j = 0;j < n;j++)
+                {
+                    B[i*ldb + j] += alpha*A[j*lda + i];
+                }
+            }
+        }
+        else
+        {
+            for (i = 0;i < m;i++)
+            {
+                for (j = 0;j < n;j++)
+                {
+                    B[i*ldb + j] = beta*B[i*ldb + j] + alpha*A[j*lda + i];
+                }
+            }
+        }
+    }
+}
+
+template void transpose(const size_t m, const size_t n, const double alpha, const double* A, const size_t lda,
+                                                        const double  beta,       double* B, const size_t ldb);
 
 vec3::vec3()
 {
@@ -260,7 +405,7 @@ mat3x3::mat3x3(double m00, double m01, double m02,
 
 const mat3x3 mat3x3::operator^(int p) const
 {
-    if (p < 0) throw logic_error("negative exponent");
+    assert(p >= 0);
 
     mat3x3 ret(1,0,0,
                0,1,0,

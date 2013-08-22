@@ -37,20 +37,10 @@ namespace scf
 template <typename T>
 class CholeskyUHF : public UHF<T>
 {
-    protected:
-        const integrals::CholeskyIntegrals<T>& chol;
-        tensor::DistTensor<T> *J;
-        tensor::DistTensor<T> *JD;
-        tensor::DistTensor<T> *La_occ, *Lb_occ;
-        tensor::DistTensor<T> *LDa_occ, *LDb_occ;
-
     public:
-        CholeskyUHF(const input::Config& config, const integrals::CholeskyIntegrals<T>& chol,
-                    tensor::DistTensor<T>& S, tensor::DistTensor<T>& H);
+        CholeskyUHF(const std::string& name, const input::Config& config);
 
-        ~CholeskyUHF();
-
-        const integrals::CholeskyIntegrals<T>& getCholesky() const { return chol; }
+        void run(task::TaskDAG& dag, const Arena& arena);
 
     protected:
         void buildFock();

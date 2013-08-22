@@ -29,16 +29,87 @@
 #include <utility>
 #include <string>
 #include <stdexcept>
+#include <ostream>
+#include <streambuf>
+#include <ios>
+#include <iostream>
+#include <ctime>
+#include <vector>
+#include <stdexcept>
+#include <unistd.h>
 
 #include "input/config.hpp"
-#include "stl_ext/stl_ext.hpp"
+#include "util/stl_ext.hpp"
 #include "util/util.h"
 #include "util/distributed.hpp"
+#include "time/time.hpp"
 
 namespace aquarius
 {
 namespace task
 {
+
+class Logger
+{
+    protected:
+        class LogToStreamBuffer : public std::streambuf
+        {
+            protected:
+                std::ostream& os;
+
+                int sync();
+
+                std::streamsize xsputn (const char* s, std::streamsize n);
+
+                int overflow (int c = EOF);
+
+            public:
+                LogToStreamBuffer(std::ostream& os);
+        };
+
+        class SelfDestructBuffer : public LogToStreamBuffer
+        {
+            protected:
+                int sync();
+
+            public:
+                SelfDestructBuffer();
+        };
+
+        class NullBuffer : public std::streambuf
+        {
+            protected:
+                std::streamsize xsputn (const char* s, std::streamsize n);
+
+                int overflow (int c = EOF);
+        };
+
+        class NullStream : public std::ostream
+        {
+            public:
+                NullStream();
+
+                ~NullStream();
+        };
+
+        class SelfDestructStream : public std::ostream
+        {
+            public:
+                SelfDestructStream();
+        };
+
+        static std::string dateTime();
+
+        static NullStream nullstream;
+        static SelfDestructStream sddstream;
+
+    public:
+        static std::ostream& log(const Arena& arena);
+
+        static std::ostream& warn(const Arena& arena);
+
+        static std::ostream& error(const Arena& arena);
+};
 
 class Printer
 {
@@ -69,8 +140,16 @@ class Resource : public Distributed
         : Distributed(arena) {}
 
         virtual ~Resource() {}
+};
 
-        virtual void print(Printer& p) const = 0;
+struct Scalar : public Resource
+{
+    double value;
+
+    Scalar(const Arena& arena, double value = 0)
+    : Resource(arena), value(value) {}
+
+    operator double() { return value; }
 };
 
 class Product;
@@ -98,15 +177,18 @@ class Requirement
         Product& get();
 };
 
+class Task;
+
 class Product
 {
     friend class Requirement;
+    friend class Task;
 
     protected:
         std::string type;
         std::string name;
         std::global_ptr<Resource> data;
-        std::vector<Requirement> requirements;
+        std::shared_ptr<std::vector<Requirement> > requirements;
         std::shared_ptr<bool> used;
 
     public:
@@ -137,7 +219,7 @@ class Product
 
         void addRequirements(const std::vector<Requirement>& reqs);
 
-        std::vector<Requirement>& getRequirements() { return requirements; }
+        std::vector<Requirement>& getRequirements() { return *requirements; }
 };
 
 class TaskDAG;
@@ -150,21 +232,62 @@ class Task
         std::string type;
         std::string name;
         std::vector<Product> products;
+        std::vector<Product> temporaries;
 
         static std::map<std::string,factory_func>& tasks();
 
         void addProduct(const Product& product);
 
+        template <typename T> void puttmp(const std::string& name, T* resource)
+        {
+            for (std::vector<Product>::iterator i = temporaries.begin();i != temporaries.end();++i)
+            {
+                if (i->getName() == name)
+                {
+                    i->put(resource);
+                    return;
+                }
+            }
+
+            temporaries.push_back(Product("temporary", name));
+            temporaries.back().put(resource);
+        }
+
+        template <typename T> T& gettmp(const std::string& name)
+        {
+            for (std::vector<Product>::iterator i = temporaries.begin();i != temporaries.end();++i)
+            {
+                if (i->getName() == name)
+                {
+                    return i->get<T>();
+                }
+            }
+
+            throw std::logic_error("Temporary " + name + " not found on task " + this->name);
+        }
+
     public:
         Task(const std::string& type, const std::string& name);
 
-        virtual ~Task() {}
+        virtual ~Task()
+        {
+            for (std::vector<Product>::iterator i = products.begin();i != products.end();++i)
+            {
+                i->requirements->clear();
+            }
+        }
 
         const std::string& getType() const { return type; }
 
         const std::string& getName() const { return name; }
 
+        bool isUsed(const std::string& name) const { return getProduct(name).isUsed(); }
+
+        template <typename T> static std::string type_string();
+
         static bool registerTask(const std::string& name, factory_func create);
+
+        static const input::Schema& getSchema(const std::string& name);
 
         template <typename T> void put(const std::string& name, T* resource)
         {
@@ -197,9 +320,13 @@ class Task
 
         Product& getProduct(const std::string& name);
 
+        const Product& getProduct (const std::string& name) const;
+
         std::vector<Product>& getProducts() { return products; }
 
-        virtual void run(TaskDAG& dag, Arena& arena) = 0;
+        const std::vector<Product>& getProducts() const { return products; }
+
+        virtual void run(TaskDAG& dag, const Arena& arena) = 0;
 
         static Task* createTask(const std::string& type, const std::string& name, const input::Config& config);
 };
@@ -232,6 +359,8 @@ class TaskDAG
 
     public:
         TaskDAG() {}
+
+        TaskDAG(const std::string& file);
 
         ~TaskDAG();
 

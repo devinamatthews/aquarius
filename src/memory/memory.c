@@ -51,14 +51,14 @@ void* aq_malloc(const size_t size_, const char *file, const int line, const int 
 
 	if (mem_limit > 0 && mem_used+size+ALIGNMENT > mem_limit)
     {
-        if (bailout) ERROR_AT(file, line, "Could not allocate memory");
+        if (bailout) abort();
 	    return NULL;
     }
 
     void* mem;
     if (posix_memalign(&mem, ALIGNMENT, size+ALIGNMENT) != 0)
     {
-        if (bailout) ERROR_AT(file, line, "Could not allocate memory");
+        if (bailout) abort();
         return NULL;
     }
 
@@ -84,14 +84,14 @@ void* aq_realloc(void* ptr, const size_t size_, const char *file, const int line
 
 	if (mem_limit > 0 && mem_used+size-old_size > mem_limit)
     {
-        if (bailout) ERROR_AT(file, line, "Could not allocate memory");
+        if (bailout) abort();
 	    return NULL;
     }
 
     void* mem = aq_malloc(size, file, line, bailout);
     if (mem == NULL)
     {
-        if (bailout) ERROR_AT(file, line, "Could not allocate memory");
+        if (bailout) abort();
         return NULL;
     }
 

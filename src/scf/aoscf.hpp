@@ -25,7 +25,7 @@
 #ifndef _AQUARIUS_SCF_AOSCF_HPP_
 #define _AQUARIUS_SCF_AOSCF_HPP_
 
-#include "stl_ext/stl_ext.hpp"
+#include "util/stl_ext.hpp"
 #include "integrals/2eints.hpp"
 
 #include "scf.hpp"
@@ -39,17 +39,10 @@ template <typename T>
 class AOUHF : public UHF<T>
 {
     protected:
-        using UHF<T>::norb;
-        const integrals::ERI& ints;
-
         void buildFock();
 
     public:
-        AOUHF(const input::Config& config, const input::Molecule& molecule,
-              const integrals::ERI& ints,
-              tensor::DistTensor<T>& S, tensor::DistTensor<T>& H);
-
-        const integrals::ERI& getIntegrals() const { return ints; }
+        AOUHF(const std::string& name, const input::Config& config);
 };
 
 }

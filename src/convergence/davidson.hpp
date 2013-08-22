@@ -25,11 +25,11 @@
 #ifndef _AQUARIUS_DAVIDSON_HPP_
 #define _AQUARIUS_DAVIDSON_HPP_
 
-//#include "tensor/tensor.hpp"
-#include "stl_ext/stl_ext.hpp"
+#include "util/stl_ext.hpp"
 #include "input/config.hpp"
 #include "util/lapack.h"
 #include "util/util.h"
+#include "task/task.hpp"
 
 #include <vector>
 #include <cassert>
@@ -179,7 +179,7 @@ class Davidson
             std::copy(e.begin(), e.end(), tmp.begin());
             info = geev('N', 'V', nextrap_real, tmp.data(), nextrap, l.data(),
                         NULL, 1, vr.data(), nextrap);
-            ASSERT(info == 0, "failure in dgeev, info = %d", info);
+            if (info != 0) throw std::runtime_error(std::strprintf("davidson: Info in geev: %d", info));
 
             int bestev = 0;
             double mincrit = DBL_MAX;
@@ -207,7 +207,8 @@ class Davidson
                 }
             }
 
-            ASSERT(std::abs(std::imag(l[bestev])) < 1e-10, "Complex eigenvalue");
+            if (std::abs(std::imag(l[bestev])) > 1e-10)
+                throw std::runtime_error("davidson: complex eigenvalue");
 
             for (int j = 0;j < nvec;j++)
             {

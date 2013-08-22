@@ -29,7 +29,7 @@
 #include <iostream>
 #include <string.h>
 
-#include "stl_ext/stl_ext.hpp"
+#include "util/stl_ext.hpp"
 #include "util/util.h"
 #include "util/blas.h"
 

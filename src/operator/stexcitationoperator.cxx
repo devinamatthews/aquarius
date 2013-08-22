@@ -30,22 +30,22 @@ using namespace aquarius::op;
 using namespace aquarius::tensor;
 
 template <typename U>
-STExcitationOperator<U,2>::STExcitationOperator(const OneElectronOperator<U>& X, const ExponentialOperator<U,2>& T)
-: ExcitationOperator<U,2>(X.getSCF())
+STExcitationOperator<U,2>::STExcitationOperator(const OneElectronOperator<U>& X, const ExcitationOperator<U,2>& T)
+: ExcitationOperator<U,2>(X.arena, X.occ, X.vrt)
 {
     transform(X, T, *this);
 }
 
 template <typename U>
-STExcitationOperator<U,2>::STExcitationOperator(const TwoElectronOperator<U>& X, const ExponentialOperator<U,2>& T)
-: ExcitationOperator<U,2>(X.getSCF())
+STExcitationOperator<U,2>::STExcitationOperator(const TwoElectronOperator<U>& X, const ExcitationOperator<U,2>& T)
+: ExcitationOperator<U,2>(X.arena, X.occ, X.vrt)
 {
     transform(X, T, *this);
 }
 
 template <typename U>
 void STExcitationOperator<U,2>::transform(const OneElectronOperator<U>& X,
-                                          const ExponentialOperator<U,2>& T,
+                                          const ExcitationOperator<U,2>& T,
                                                 ExcitationOperator<U,2>& Z)
 {
     OneElectronOperator<U> W(const_cast<OneElectronOperator<U>&>(X),
@@ -73,7 +73,7 @@ void STExcitationOperator<U,2>::transform(const OneElectronOperator<U>& X,
 
 template <typename U>
 void STExcitationOperator<U,2>::transform(const TwoElectronOperator<U>& X,
-                                          const ExponentialOperator<U,2>& T,
+                                          const ExcitationOperator<U,2>& T,
                                                 ExcitationOperator<U,2>& Z)
 {
     TwoElectronOperator<U> W(const_cast<TwoElectronOperator<U>&>(X), TwoElectronOperator<U>::AB|

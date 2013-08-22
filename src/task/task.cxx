@@ -28,7 +28,119 @@
 
 using namespace std;
 using namespace aquarius;
-using namespace aquarius::task;
+using namespace aquarius::time;
+using namespace aquarius::input;
+
+namespace aquarius
+{
+namespace task
+{
+
+Logger::NullStream Logger::nullstream;
+Logger::SelfDestructStream Logger::sddstream;
+
+int Logger::LogToStreamBuffer::sync()
+{
+    if (os.flush()) return 0;
+    else return -1;
+}
+
+std::streamsize Logger::LogToStreamBuffer::xsputn (const char* s, std::streamsize n)
+{
+    if (os.write(s, n)) return n;
+    else return 0;
+}
+
+int Logger::LogToStreamBuffer::overflow (int c)
+{
+    if (c != EOF) os << traits_type::to_char_type(c);
+    if (c == EOF || !os) return EOF;
+    else return traits_type::to_int_type(c);
+}
+
+Logger::LogToStreamBuffer::LogToStreamBuffer(std::ostream& os)
+: os(os) {}
+
+int Logger::SelfDestructBuffer::sync()
+{
+    LogToStreamBuffer::sync();
+    abort();
+    return -1;
+}
+
+Logger::SelfDestructBuffer::SelfDestructBuffer()
+: LogToStreamBuffer(std::cerr) {}
+
+std::streamsize Logger::NullBuffer::xsputn (const char* s, std::streamsize n)
+{
+    return n;
+}
+
+int Logger::NullBuffer::overflow (int c)
+{
+    if (c == EOF) return EOF;
+    else return traits_type::to_int_type(c);
+}
+
+Logger::NullStream::NullStream()
+: std::ostream(new NullBuffer()) {}
+
+Logger::NullStream::~NullStream()
+{
+    delete rdbuf();
+}
+
+Logger::SelfDestructStream::SelfDestructStream()
+: std::ostream(new SelfDestructBuffer()) {}
+
+std::string Logger::dateTime()
+{
+    char buf[256];
+    time_t t = ::time(NULL);
+    tm* timeptr = localtime(&t);
+    strftime(buf, 256, "%c", timeptr);
+    return std::string(buf);
+}
+
+std::ostream& Logger::log(const Arena& arena)
+{
+    if (arena.rank == 0)
+    {
+        std::cout << dateTime() << ": ";
+        return std::cout;
+    }
+    else
+    {
+        return nullstream;
+    }
+}
+
+std::ostream& Logger::warn(const Arena& arena)
+{
+    if (arena.rank == 0)
+    {
+        std::cerr << dateTime() << ": warning: ";
+        return std::cerr;
+    }
+    else
+    {
+        return nullstream;
+    }
+}
+
+std::ostream& Logger::error(const Arena& arena)
+{
+    if (arena.rank == 0)
+    {
+        sddstream << dateTime() << ": error: ";
+        return sddstream;
+    }
+    else
+    {
+        pause();
+        return nullstream;
+    }
+}
 
 Requirement::Requirement(const string& type, const string& name)
 : type(type), name(name) {}
@@ -36,6 +148,7 @@ Requirement::Requirement(const string& type, const string& name)
 void Requirement::fulfil(const Product& product)
 {
     this->product.reset(new Product(product));
+    *this->product->used = true;
 }
 
 bool Requirement::exists() const
@@ -50,20 +163,25 @@ Product& Requirement::get()
 }
 
 Product::Product(const string& type, const string& name)
-: type(type), name(name), requirements(), used(new bool(false)) {}
+: type(type), name(name), requirements(new vector<Requirement>()), used(new bool(false)) {}
 
 Product::Product(const string& type, const string& name, const vector<Requirement>& reqs)
-: type(type), name(name), requirements(reqs), used(new bool(false)) {}
+: type(type), name(name), requirements(new vector<Requirement>(reqs)), used(new bool(false)) {}
 
 void Product::addRequirement(const Requirement& req)
 {
-    requirements.push_back(req);
+    requirements->push_back(req);
 }
 
 void Product::addRequirements(const std::vector<Requirement>& reqs)
 {
-    requirements.insert(requirements.end(), reqs.begin(), reqs.end());
+    requirements->insert(requirements->end(), reqs.begin(), reqs.end());
 }
+
+template <> string Task::type_string<float>() { return "<float>"; }
+template <> string Task::type_string<double>() { return ""; }
+template <> string Task::type_string<complex<float> >() { return "<scomplex>"; }
+template <> string Task::type_string<complex<double> >() { return "<dcomplex>"; }
 
 Task::Task(const string& type, const string& name)
 : type(type), name(name) {}
@@ -85,6 +203,27 @@ bool Task::registerTask(const string& name, factory_func create)
     return true;
 }
 
+const Schema& Task::getSchema(const string& name)
+{
+    static map<string,Schema> schemas;
+
+    if (schemas.empty())
+    {
+        Config master(TOPDIR "/desc/schemas");
+
+        vector<pair<string,Config> > configs = master.find<Config>("*");
+        for (vector<pair<string,Config> >::iterator i = configs.begin();i != configs.end();++i)
+        {
+            Config schema = master.get(i->first);
+            schemas[i->first] = Schema(schema);
+        }
+    }
+
+    map<string,Schema>::iterator i = schemas.find(name);
+    if (i == schemas.end()) throw logic_error("Cannot find schema for task " + name);
+    return i->second;
+}
+
 Product& Task::getProduct(const string& name)
 {
     for (vector<Product>::iterator i = products.begin();i != products.end();i++)
@@ -94,6 +233,11 @@ Product& Task::getProduct(const string& name)
     throw logic_error("Product " + name + " not found on task " + this->name);
 }
 
+const Product& Task::getProduct(const string& name) const
+{
+    return const_cast<Task&>(*this).getProduct(name);
+}
+
 Task* Task::createTask(const string& type, const string& name, const input::Config& config)
 {
     map<string,factory_func>::iterator i = tasks().find(type);
@@ -101,6 +245,25 @@ Task* Task::createTask(const string& type, const string& name, const input::Conf
     if (i == tasks().end()) throw logic_error("Task type " + type + " not found");
 
     return i->second(name, config);
+}
+
+TaskDAG::TaskDAG(const std::string& file)
+{
+    Config input(file);
+
+    vector<pair<string,Config> > taskconfs = input.find<Config>("*");
+
+    for (vector<pair<string,Config> >::iterator i = taskconfs.begin();i != taskconfs.end();++i)
+    {
+        int num = 0;
+        for (vector<Task*>::iterator t = tasks.begin();t != tasks.end();++t)
+        {
+            if ((*t)->getType() == i->first) num++;
+        }
+
+        Task::getSchema(i->first).apply(i->second);
+        tasks.push_back(Task::createTask(i->first, i->first+str(num), i->second));
+    }
 }
 
 TaskDAG::~TaskDAG()
@@ -123,20 +286,35 @@ void TaskDAG::execute(Arena& world)
     {
         for (vector<Product>::iterator p1 = (*t1)->getProducts().begin();p1 != (*t1)->getProducts().end();++p1)
         {
-            for (vector<Requirement>::iterator r = p1->getRequirements().begin();r != p1->getRequirements().end();++r)
+            for (vector<Requirement>::iterator r1 = p1->getRequirements().begin();r1 != p1->getRequirements().end();++r1)
             {
-                if (r->isFulfilled()) continue;
+                if (r1->isFulfilled()) continue;
+
                 for (vector<Task*>::iterator t2 = tasks.begin();t2 != tasks.end();++t2)
                 {
                     for (vector<Product>::iterator p2 = (*t2)->getProducts().begin();p2 != (*t2)->getProducts().end();++p2)
                     {
-                        if (r->getType() == p2->getType())
+                        if (r1->isFulfilled()) continue;
+                        if (r1->getType() == p2->getType())
                         {
-                            r->fulfil(*p2);
+                            r1->fulfil(*p2);
+                        }
+
+                        for (vector<Requirement>::iterator r2 = p2->getRequirements().begin();r2 != p2->getRequirements().end();++r2)
+                        {
+                            if (r1->isFulfilled()) continue;
+                            if (!r2->isFulfilled()) continue;
+                            if (r1->getType() == r2->getType())
+                            {
+                                r1->fulfil(r2->get());
+                            }
                         }
                     }
                 }
-                if (!r->isFulfilled()) ERROR("Could not fulfil requirement %s of task %s", r->getName().c_str(),(*t1)->getName().c_str());
+
+                if (!r1->isFulfilled())
+                    Logger::error(world) << "Could not fulfil requirement " << r1->getName() <<
+                                            " of task " << (*t1)->getName() << endl;
             }
         }
     }
@@ -174,13 +352,27 @@ void TaskDAG::execute(Arena& world)
 
         for (set<Task*>::iterator t = to_execute.begin();t != to_execute.end();++t)
         {
-            PRINT("Executing task %s...", (*t)->getName().c_str());
-            (*t)->run(*this, world);
-            PRINT("done\n");
+            Logger::log(world) << "Starting task: " << (*t)->getName() << endl;
+            tic();
+
+            try
+            {
+                (*t)->run(*this, world);
+            }
+            catch (runtime_error& e)
+            {
+                Logger::error(world) << e.what() << endl;
+            }
+
+            double dt = todouble(toc());
+            Logger::log(world) << "Finished task: " << (*t)->getName() << " in " << dt << " s" << endl;
 
             for (vector<Product>::iterator p = (*t)->getProducts().begin();p != (*t)->getProducts().end();++p)
             {
-                if (p->isUsed() && !p->exists()) ERROR("Product %s of task %s was not successfully produced", p->getName().c_str(), (*t)->getName().c_str());
+                if (p->isUsed() && !p->exists())
+                    Logger::error(world) << "Product " << p->getName() <<
+                                            " of task " << (*t)->getName() <<
+                                            " was not successfully produced" << endl;
             }
 
             tasks.erase(std::find(tasks.begin(), tasks.end(), *t));
@@ -190,6 +382,9 @@ void TaskDAG::execute(Arena& world)
 
     if (!tasks.empty())
     {
-        ERROR("Some tasks were not executed");
+        Logger::error(world) << "Some tasks were not executed" << endl;
     }
+}
+
+}
 }

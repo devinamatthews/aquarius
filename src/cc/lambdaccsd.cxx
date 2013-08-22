@@ -27,17 +27,39 @@
 using namespace std;
 using namespace aquarius::op;
 using namespace aquarius::cc;
-using namespace aquarius::scf;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
+using namespace aquarius::task;
+using namespace aquarius::time;
 
 template <typename U>
-LambdaCCSD<U>::LambdaCCSD(const Config& config, const STTwoElectronOperator<U,2>& H,
-                          const ExponentialOperator<U,2>& T, const double Ecc)
-: Iterative(config), DeexcitationOperator<U,2>(H.getSCF()), L(*this),
-  Z(this->uhf), D(this->uhf),
-  H(H), T(T), Ecc(Ecc), diis(config.get("diis"))
+LambdaCCSD<U>::LambdaCCSD(const string& name, const Config& config)
+: Iterative(config), Task("lambdaccsd", name), diis(config.get("diis"))
 {
+    vector<Requirement> reqs;
+    reqs.push_back(Requirement("ccsd.Hbar", "Hbar"));
+    reqs.push_back(Requirement("ccsd.T", "T"));
+    addProduct(Product("double", "energy", reqs));
+    addProduct(Product("double", "convergence", reqs));
+    addProduct(Product("ccsd.L", "L", reqs));
+}
+
+template <typename U>
+void LambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
+{
+    const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
+
+    const Space& occ = H.occ;
+    const Space& vrt = H.vrt;
+
+    put("L", new DeexcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("D", new DeexcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("Z", new DeexcitationOperator<U,2>(arena, occ, vrt));
+
+    ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
+    DeexcitationOperator<U,2>& L = get<DeexcitationOperator<U,2> >("L");
+    DeexcitationOperator<U,2>& D = gettmp<DeexcitationOperator<U,2> >("D");
+
     D(0) = (U)1.0;
     D(1)["ia"]  = H.getIJ()["ii"];
     D(1)["ia"] -= H.getAB()["aa"];
@@ -51,11 +73,38 @@ LambdaCCSD<U>::LambdaCCSD(const Config& config, const STTwoElectronOperator<U,2>
     L(0) = (U)1.0;
     L(1) = H.getIA()*D(1);
     L(2) = H.getIJAB()*D(2);
+
+    {
+        SpinorbitalTensor<U> mTau(T(2));
+        mTau["abij"] -= 0.5*T(1)["ai"]*T(1)["bj"];
+        Ecc = scalar(T(1)["ai"]*H.getIA()["ia"]) + 0.25*scalar(mTau["abij"]*H.getIJAB()["ijab"]);
+    }
+
+    tic();
+    for (int i = 0;iterate();i++)
+    {
+        double dt = todouble(toc());
+        Logger::log(arena) << "Iteration " << (i+1) << " took " << dt << " s" << endl;
+        Logger::log(arena) << "Iteration " << (i+1) <<
+                              " energy = " << setprecision(15) << energy <<
+                              ", convergence = " << setprecision(8) << conv << endl;
+        tic();
+    }
+    toc();
+
+    put("energy", new Scalar(arena, energy));
+    put("convergence", new Scalar(arena, conv));
 }
 
 template <typename U>
 void LambdaCCSD<U>::_iterate()
 {
+    const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
+
+    DeexcitationOperator<U,2>& L = get<DeexcitationOperator<U,2> >("L");
+    DeexcitationOperator<U,2>& D = gettmp<DeexcitationOperator<U,2> >("D");
+    DeexcitationOperator<U,2>& Z = gettmp<DeexcitationOperator<U,2> >("Z");
+
     Z = (U)0.0;
     H.contract(L, Z);
 
@@ -74,3 +123,4 @@ void LambdaCCSD<U>::_iterate()
 }
 
 INSTANTIATE_SPECIALIZATIONS(LambdaCCSD);
+REGISTER_TASK(LambdaCCSD<double>,"lambdaccsd");

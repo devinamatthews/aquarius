@@ -26,9 +26,10 @@
 #define _AQUARIUS_CC_EOMEECCSD_HPP_
 
 #include "convergence/davidson.hpp"
+#include "util/iterative.hpp"
 #include "operator/2eoperator.hpp"
 #include "operator/st2eoperator.hpp"
-#include "operator/exponentialoperator.hpp"
+#include "operator/excitationoperator.hpp"
 
 #include "ccsd.hpp"
 
@@ -44,12 +45,12 @@ class EOMEECCSD : public Iterative, public op::ExcitationOperator<U,2>
         op::ExcitationOperator<U,2>& R;
         op::ExcitationOperator<U,2> Z, D;
         const op::STTwoElectronOperator<U,2>& H;
-        const op::ExponentialOperator<U,2>& T;
+        const op::ExcitationOperator<U,2>& T;
         convergence::Davidson< op::ExcitationOperator<U,2> > davidson;
 
     public:
         EOMEECCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
-                  const op::ExponentialOperator<U,2>& T);
+                  const op::ExcitationOperator<U,2>& T);
 
         void _iterate();
 };

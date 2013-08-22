@@ -24,6 +24,9 @@
 
 #include "internal.h"
 
+/*
+ * Redistribute angular momentum: (e=a...a+b,0|X) -> (a,b|X)
+ */
 void hrr(int la, int lb,
          const double* posa, const double* posb,
          double* integrals1, double* integrals2)
@@ -49,6 +52,13 @@ void hrr(int la, int lb,
     }
 }
 
+/*
+ * Transfer angular momentum from A to B:
+ *
+ * (a,b+1_l|X) = (a+1_l,b|X) + (A-B)_l (a,b|X)
+ *
+ * where l = x,y,z
+ */
 void hrr1(int la0, int la1, int lb,
           const double* posa, const double* posb,
           double* integrals1, double* integrals2)

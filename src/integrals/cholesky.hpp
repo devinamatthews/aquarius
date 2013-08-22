@@ -33,7 +33,7 @@
 #include "input/config.hpp"
 #include "util/util.h"
 #include "util/blas.h"
-#include "util/distributed.hpp"
+#include "task/task.hpp"
 
 namespace aquarius
 {
@@ -41,7 +41,7 @@ namespace integrals
 {
 
 template <typename T>
-class CholeskyIntegrals : public Distributed
+class CholeskyIntegrals : public task::Resource
 {
     public:
         const input::Molecule& molecule;

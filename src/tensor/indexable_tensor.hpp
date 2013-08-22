@@ -29,7 +29,7 @@
 #include <string>
 #include <algorithm>
 
-#include "stl_ext/stl_ext.hpp"
+#include "util/stl_ext.hpp"
 
 #include "tensor.hpp"
 

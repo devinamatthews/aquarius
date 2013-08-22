@@ -28,7 +28,7 @@
 #include "time/time.hpp"
 #include "util/iterative.hpp"
 #include "operator/2eoperator.hpp"
-#include "operator/exponentialoperator.hpp"
+#include "operator/excitationoperator.hpp"
 #include "convergence/diis.hpp"
 
 #include "ccsd.hpp"
@@ -39,10 +39,10 @@ namespace cc
 {
 
 template <typename U>
-class CCSDT : public Iterative, public op::ExponentialOperator<U,3>
+class CCSDT : public Iterative, public op::ExcitationOperator<U,3>
 {
     protected:
-        op::ExponentialOperator<U,3>& T;
+        op::ExcitationOperator<U,3>& T;
         op::ExcitationOperator<U,3> D, Z;
         op::TwoElectronOperator<U>& H;
         convergence::DIIS< op::ExcitationOperator<U,3> > diis;
@@ -52,9 +52,11 @@ class CCSDT : public Iterative, public op::ExponentialOperator<U,3>
 
         void _iterate();
 
+        /*
         double getProjectedS2() const;
 
         double getProjectedMultiplicity() const;
+        */
 };
 
 }

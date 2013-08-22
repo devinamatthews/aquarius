@@ -27,16 +27,42 @@
 using namespace std;
 using namespace aquarius::op;
 using namespace aquarius::cc;
-using namespace aquarius::scf;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
+using namespace aquarius::task;
+using namespace aquarius::time;
 
 template <typename U>
-CCSD<U>::CCSD(const Config& config, TwoElectronOperator<U>& H)
-: Iterative(config), ExponentialOperator<U,2>(H.getSCF()),
-  T(*this), D(H.getSCF()), Z(H.getSCF()),
-  H(H), diis(config.get("diis"))
+CCSD<U>::CCSD(const std::string& name, const Config& config)
+: Iterative(config), Task("ccsd", name), diis(config.get("diis"))
 {
+    vector<Requirement> reqs;
+    reqs.push_back(Requirement("moints", "H"));
+    addProduct(Product("double", "mp2", reqs));
+    addProduct(Product("double", "energy", reqs));
+    addProduct(Product("double", "convergence", reqs));
+    addProduct(Product("double", "S2", reqs));
+    addProduct(Product("double", "multiplicity", reqs));
+    addProduct(Product("ccsd.T", "T", reqs));
+    addProduct(Product("ccsd.Hbar", "Hbar", reqs));
+}
+
+template <typename U>
+void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
+{
+    const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
+
+    const Space& occ = H.occ;
+    const Space& vrt = H.vrt;
+
+    put("T", new ExcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("D", new ExcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("Z", new ExcitationOperator<U,2>(arena, occ, vrt));
+
+    ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
+    ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
+    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+
     D(0) = (U)1.0;
     D(1)["ai"]  = H.getIJ()["ii"];
     D(1)["ai"] -= H.getAB()["aa"];
@@ -62,16 +88,53 @@ CCSD<U>::CCSD(const Config& config, TwoElectronOperator<U>& H)
     conv = max(conv,T(2)(0).norm(00));
     conv = max(conv,T(2)(1).norm(00));
     conv = max(conv,T(2)(2).norm(00));
+
+    Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
+    put("mp2", new Scalar(arena, energy));
+
+    tic();
+    for (int i = 0;iterate();i++)
+    {
+        double dt = todouble(toc());
+        Logger::log(arena) << "Iteration " << (i+1) << " took " << dt << " s" << endl;
+        Logger::log(arena) << "Iteration " << (i+1) <<
+                              " energy = " << setprecision(15) << energy <<
+                              ", convergence = " << setprecision(8) << conv << endl;
+        tic();
+    }
+    toc();
+
+    put("energy", new Scalar(arena, energy));
+    put("convergence", new Scalar(arena, conv));
+
+    /*
+    if (isUsed("S2") || isUsed("multiplicity"))
+    {
+        double s2 = getProjectedS2(occ, vrt, T(1), T(2));
+        double mult = sqrt(4*s2+1);
+
+        put("S2", new Scalar(arena, s2));
+        put("multiplicity", new Scalar(arena, mult));
+    }
+    */
+
+    if (isUsed("Hbar"))
+    {
+        put("Hbar", new STTwoElectronOperator<U,2>(H, T, true));
+    }
 }
 
 template <typename U>
 void CCSD<U>::_iterate()
 {
+    const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
+
+    ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
+    ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
+    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+
     STExcitationOperator<U,2>::transform(H, T, Z);
     //Z(0) = (U)0.0;
-    T.set_name("T");
-    Z.set_name("Z");
-    H.set_name("H");
 
     Z *= D;
     T += Z;
@@ -91,18 +154,19 @@ void CCSD<U>::_iterate()
     diis.extrapolate(T, Z);
 }
 
+/*
 template <typename U>
-double CCSD<U>::getProjectedS2(const UHF<U>& uhf,
+double CCSD<U>::getProjectedS2(const MOSpace<U>& occ, const MOSpace<U>& vrt,
                                const SpinorbitalTensor<U>& T1,
                                const SpinorbitalTensor<U>& T2)
 {
-    Arena arena = T1(0).arena;
+    const Arena& arena = occ.arena;
 
-    int N = uhf.getMolecule().getNumOrbitals();
-    int nI = uhf.getMolecule().getNumAlphaElectrons();
-    int ni = uhf.getMolecule().getNumBetaElectrons();
-    int nA = N-nI;
-    int na = N-ni;
+    int N = occ.nao;
+    int nI = occ.nalpha;
+    int ni = occ.nbeta;
+    int nA = vrt.nalpha;
+    int na = vrt.nbeta;
 
     vector<int> shapeNN = vec(NS,NS);
     vector<int> shapeNNNN = vec(NS,NS,NS,NS);
@@ -115,11 +179,14 @@ double CCSD<U>::getProjectedS2(const UHF<U>& uhf,
     vector<int> sizein = vec(ni,N);
     vector<int> sizeAaIi = vec(nA,na,nI,ni);
 
-    const DistTensor<U>& CA = uhf.getCA();
-    const DistTensor<U>& Ca = uhf.getCa();
-    const DistTensor<U>& CI = uhf.getCI();
-    const DistTensor<U>& Ci = uhf.getCi();
-    const DistTensor<U>& S = uhf.getOverlap();
+    const DistTensor<U>& CA = vrt.Calpha;
+    const DistTensor<U>& Ca = vrt.Cbeta;
+    const DistTensor<U>& CI = occ.Calpha;
+    const DistTensor<U>& Ci = occ.Cbeta;
+
+    //TODO
+    DistTensor<U> S(arena, 2, vec(N,N), shapeNN, true);
+
     DistTensor<U> DAI(arena, 2, sizeAI, shapeNN, false);
     DistTensor<U> DAi(arena, 2, sizeAi, shapeNN, false);
     DistTensor<U> DaI(arena, 2, sizeaI, shapeNN, false);
@@ -146,7 +213,7 @@ double CCSD<U>::getProjectedS2(const UHF<U>& uhf,
 
     TauAB["AbIj"] += T1A["AI"]*T1B["bj"];
 
-    U S2 = uhf.getS2();
+    U S2 = (U)0;
 
     U S2T11 = -scalar(DAI*T1A);
     U S2T12 = -scalar(Dai*T1B);
@@ -154,25 +221,7 @@ double CCSD<U>::getProjectedS2(const UHF<U>& uhf,
 
     return abs(S2+S2T11+S2T12+S2T2);
 }
-
-template <typename U>
-double CCSD<U>::getProjectedS2() const
-{
-    return getProjectedS2(this->uhf, T(1), T(2));
-}
-
-template <typename U>
-double CCSD<U>::getProjectedMultiplicity(const UHF<U>& uhf,
-                                         const SpinorbitalTensor<U>& T1,
-                                         const SpinorbitalTensor<U>& T2)
-{
-    return sqrt(1+4*getProjectedS2(uhf, T1, T2));
-}
-
-template <typename U>
-double CCSD<U>::getProjectedMultiplicity() const
-{
-    return getProjectedMultiplicity(this->uhf, T(1), T(2));
-}
+*/
 
 INSTANTIATE_SPECIALIZATIONS(CCSD);
+REGISTER_TASK(CCSD<double>,"ccsd");

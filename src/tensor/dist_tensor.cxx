@@ -162,7 +162,7 @@ template int aquarius::tensor::conv_idx(int, const char*, int*&,
  */
 template <typename T>
 DistTensor<T>::DistTensor(const Arena& arena, T scalar)
-: IndexableTensor< DistTensor<T>,T >(), Distributed(arena), len(0), sym(0)
+: IndexableTensor< DistTensor<T>,T >(), Resource(arena), len(0), sym(0)
 {
     allocate();
 
@@ -176,7 +176,7 @@ DistTensor<T>::DistTensor(const Arena& arena, T scalar)
  */
 template <typename T>
 DistTensor<T>::DistTensor(const DistTensor<T>& A, T scalar)
-: IndexableTensor< DistTensor<T>,T >(), Distributed(A.arena), len(0), sym(0)
+: IndexableTensor< DistTensor<T>,T >(), Resource(A.arena), len(0), sym(0)
 {
     allocate();
 
@@ -190,7 +190,7 @@ DistTensor<T>::DistTensor(const DistTensor<T>& A, T scalar)
  */
 template <typename T>
 DistTensor<T>::DistTensor(const DistTensor<T>& A, bool copy, bool zero)
-: IndexableTensor< DistTensor<T>,T >(A.ndim), Distributed(A.arena), len(A.len), sym(A.sym)
+: IndexableTensor< DistTensor<T>,T >(A.ndim), Resource(A.arena), len(A.len), sym(A.sym)
 {
     allocate();
 
@@ -205,7 +205,6 @@ DistTensor<T>::DistTensor(const DistTensor<T>& A, bool copy, bool zero)
         T* raw_data = getRawData(size);
         fill(raw_data, raw_data+size, (T)0);
     }
-    set_name(A.name);
 }
 
 /*
@@ -214,7 +213,7 @@ DistTensor<T>::DistTensor(const DistTensor<T>& A, bool copy, bool zero)
 template <typename T>
 DistTensor<T>::DistTensor(const Arena& arena, int ndim, const vector<int>& len, const vector<int>& sym,
                           bool zero)
-: IndexableTensor< DistTensor<T>,T >(ndim), Distributed(arena), len(len), sym(sym)
+: IndexableTensor< DistTensor<T>,T >(ndim), Resource(arena), len(len), sym(sym)
 {
     assert(len.size() == ndim);
     assert(sym.size() == ndim);
@@ -271,15 +270,6 @@ void DistTensor<T>::resize(int ndim, const vector<int>& len, const vector<int>& 
         T* raw_data = getRawData(size);
         fill(raw_data, raw_data+size, (T)0);
     }
-}
-
-template <typename T>
-void DistTensor<T>::set_name(char const * name_){
-  if (name_ != NULL){
-    arena.ctf<T>().ctf->set_name(tid, name_);
-    arena.ctf<T>().ctf->profile_on(tid);
-    this->name = name_;
-  }
 }
 
 template <typename T>
@@ -507,7 +497,7 @@ void DistTensor<T>::compare(FILE* fp, const DistTensor<T>& other, double cutoff)
 template <typename T>
 typename real_type<T>::type DistTensor<T>::norm(int p) const
 {
-    int ret = 0;
+    int ret = DIST_TENSOR_ERROR;
     T ans = (T)0;
     if (p == 00)
     {
@@ -521,10 +511,6 @@ typename real_type<T>::type DistTensor<T>::norm(int p) const
     {
         ret = arena.ctf<T>().ctf->reduce_tensor(tid, CTF_OP_SQNRM2, &ans);
     }
-	else
-	{
-		ERROR("unknown norm: %d", p);
-	}
     assert(ret == DIST_TENSOR_SUCCESS);
     return abs(ans);
 }

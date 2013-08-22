@@ -27,15 +27,14 @@
 using namespace std;
 using namespace aquarius::op;
 using namespace aquarius::cc;
-using namespace aquarius::scf;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
 
 template <typename U>
 EOMEECCSD<U>::EOMEECCSD(const Config& config, const STTwoElectronOperator<U,2>& H,
-                        const ExponentialOperator<U,2>& T)
-: Iterative(config), ExcitationOperator<U,2>(H.getSCF()), R(*this),
-  Z(this->uhf), D(this->uhf), H(H), T(T), davidson(config.get("davidson"))
+                        const ExcitationOperator<U,2>& T)
+: Iterative(config), ExcitationOperator<U,2>(H.arena, H.occ, H.vrt), R(*this),
+  Z(H.arena, H.occ, H.vrt), D(H.arena, H.occ, H.vrt), H(H), T(T), davidson(config.get("davidson"))
 {
     D(0) = (U)1.0;
     D(1)["ai"]  = H.getIJ()["ii"];

@@ -29,10 +29,11 @@ using namespace aquarius;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
 using namespace aquarius::integrals;
+using namespace aquarius::task;
 
 template <typename T>
 CholeskyIntegrals<T>::CholeskyIntegrals(const Arena& arena, const Context& ctx, const Config& config, const Molecule& molecule)
-: Distributed(arena),
+: Resource(arena),
   molecule(molecule),
   ctx(ctx),
   nvec(0),
@@ -260,9 +261,9 @@ void CholeskyIntegrals<T>::decompose()
         }
     }
 
-    ASSERT(nvec > 0, "rank is 0");
+    assert(nvec > 0);
 
-    PRINT("rank: full, partial: %d %d\n\n", ndiag, nvec);
+    printf("rank: full, partial: %d %d\n\n", ndiag, nvec);
 
     for (int block = 0;block < nblock_local;block++)
         resortBlock(block_size[block], block_data[block], diag+block_start[block], tmp_block_data);
@@ -408,7 +409,7 @@ void CholeskyIntegrals<T>::sortBlocks(diag_elem_t* diag, int* block_start, int* 
     int block = 0;
     for (int cur = 0;cur < ndiag;cur++)
     {
-        ASSERT(block < nblock, "too many blocks");
+        assert(block < nblock);
 
         block_start[block] = cur;
 
@@ -425,7 +426,7 @@ void CholeskyIntegrals<T>::sortBlocks(diag_elem_t* diag, int* block_start, int* 
         block++;
     }
 
-    ASSERT(block == nblock, "too few blocks");
+    assert(block == nblock);
 }
 
 template <typename T>

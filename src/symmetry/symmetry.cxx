@@ -29,7 +29,7 @@
 #include "util/util.h"
 #include "util/blas.h"
 #include "symmetry.hpp"
-#include "stl_ext/stl_ext.hpp"
+#include "util/stl_ext.hpp"
 
 using namespace std;
 
@@ -46,7 +46,7 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
   irrep_degen(irrep_degen), ops(ops), op_names(op_names),
   op_inverse(order, -1), op_product(order*order, -1)
 {
-    ADPRINTF("Creating point group %s\n", name);
+    DPRINTF("Creating point group %s\n", name);
 
     /*
      * Fill in representation information for the specified generators
@@ -56,15 +56,15 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
     {
         for (int irrep = 0;irrep < nirrep;irrep++)
         {
-            ADPRINTF("Using hard-coded representation of %s(%s):\n", irrep_names[irrep], op_names[generators[i]]);
+            DPRINTF("Using hard-coded representation of %s(%s):\n", irrep_names[irrep], op_names[generators[i]]);
             int n = irrep_degen[irrep];
             for (int j = 0;j < n;j++)
             {
                 for (int k = 0;k < n;k++)
                 {
-                    ADPRINTFC("% f ", generator_reps[idx+j*n+k]);
+                    DPRINTFC("% f ", generator_reps[idx+j*n+k]);
                 }
-                ADPRINTFC("\n");
+                DPRINTFC("\n");
             }
             reps[irrep][generators[i]].assign(generator_reps+idx, generator_reps+idx+n*n);
             idx += n*n;
@@ -78,7 +78,7 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
     {
         for (int irrep = 0;irrep < nirrep;irrep++)
         {
-            ADPRINTF("Setting representation of %s(E) to I\n", irrep_names[irrep]);
+            DPRINTF("Setting representation of %s(E) to I\n", irrep_names[irrep]);
             int n = irrep_degen[irrep];
             reps[irrep][0].resize(n*n, 0.0);
             for (int i = 0;i < n;i++) reps[irrep][0][i+i*n] = 1;
@@ -102,13 +102,12 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
             {
                 if (norm(ij-ops[k]) < 1e-10) op_product[i*order+j] = k;
             }
-            if (op_product[i*order+j] == -1)
-                ERROR("No product found for operations %s and %s of group %s", op_names[i], op_names[j], name);
+            assert(op_product[i*order+j] != -1);
 
             if (op_product[i*order+j] == 0) op_inverse[i] = j;
         }
 
-        if (op_inverse[i] == -1) ERROR("No inverse found for operation %s of group %s", op_names[i], name);
+        assert(op_inverse[i] != -1);
     }
 
     /*
@@ -124,7 +123,7 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
             {
                 for (int irrep = 0;irrep < nirrep;irrep++)
                 {
-                    ADPRINTF("Generating representation of %s(%s) from %s*%s:\n",
+                    DPRINTF("Generating representation of %s(%s) from %s*%s:\n",
                             irrep_names[irrep], op_names[k], op_names[i], op_names[j]);
                     int n = irrep_degen[irrep];
                     reps[irrep][k].resize(n*n);
@@ -135,40 +134,40 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
                     {
                         for (int m = 0;m < n;m++)
                         {
-                            ADPRINTFC("% f ", reps[irrep][k][l*n+m]);
+                            DPRINTFC("% f ", reps[irrep][k][l*n+m]);
                         }
-                        ADPRINTFC("\n");
+                        DPRINTFC("\n");
                     }
                 }
             }
         }
     }
 
-    ADPRINTF("Character table:\n\n        %9s ", op_names[0]);
+    DPRINTF("Character table:\n\n        %9s ", op_names[0]);
     for (int i = 1;i < order;i++)
     {
-        if (!areConjugate(i-1,i)) ADPRINTFC("%9s ", op_names[i]);
+        if (!areConjugate(i-1,i)) DPRINTFC("%9s ", op_names[i]);
     }
-    ADPRINTFC("\n      + ");
-    for (int i = 0;i < nirrep*10-1;i++) ADPRINTFC("-");
-    ADPRINTFC("\n");
+    DPRINTFC("\n      + ");
+    for (int i = 0;i < nirrep*10-1;i++) DPRINTFC("-");
+    DPRINTFC("\n");
 
     /*
      * Form character table
      */
     for (int irrep = 0;irrep < nirrep;irrep++)
     {
-        ADPRINTFC("%5s | ", irrep_names[irrep]);
+        DPRINTFC("%5s | ", irrep_names[irrep]);
         for (int g = 0;g < order;g++)
         {
-            if (reps[irrep][g].empty()) ERROR("No representation for %s(%s)", irrep_names[irrep], op_names[g]);
+            assert(!reps[irrep][g].empty());
             double c = 0;
             int n = irrep_degen[irrep];
             for (int j = 0;j < n;j++) c += reps[irrep][g][j+j*n];
             characters[irrep][g] = c;
-            if (!areConjugate(g-1,g)) ADPRINTFC("% f ", c);
+            if (!areConjugate(g-1,g)) DPRINTFC("% f ", c);
         }
-        ADPRINTFC("\n");
+        DPRINTFC("\n");
     }
 
     /*
@@ -185,15 +184,11 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
         {
             for (int irrep = 0;irrep < nirrep;irrep++)
             {
-                if (abs(characters[irrep][g-1]-characters[irrep][g]) > 1e-10)
-                {
-                    ERROR("Characters of same-class operations %s and %s are not the same for irrep %s of group %s",
-                          op_names[g-1], op_names[g], irrep_names[irrep], name);
-                }
+                assert(abs(characters[irrep][g-1]-characters[irrep][g]) < 1e-10);
             }
         }
     }
-    if (nclasses != nirrep) ERROR("The number of classes and irreps is not the same for group %s", name);
+    assert(nclasses == nirrep);
 
     /*
      * Check normalization of character table
@@ -205,8 +200,7 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
         {
             dp += characters[irrep][g]*characters[irrep][g];
         }
-        if (abs(dp-order) > 1e-10)
-            ERROR("Characters for irrep %s of group %s have the wrong norm", irrep_names[irrep], name);
+        assert(abs(dp-order) < 1e-10);
     }
 
     /*
@@ -229,15 +223,11 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
                     }
                     if (i1 == i2 && j1 == j2)
                     {
-                        if (abs(dp-order/n1) > 1e-10)
-                            ERROR("Representation %s[%d] of group %s has the wrong norm",
-                                  irrep_names[i1], j1, name);
+                        assert(abs(dp-order/n1) < 1e-10);
                     }
                     else
                     {
-                        if (abs(dp) > 1e-10)
-                            ERROR("Representations %s[%d] and %s[%d] of group %s are not orthognal",
-                                  irrep_names[i1], j1, irrep_names[i2], j2, name);
+                        assert(abs(dp) < 1e-10);
                     }
                 }
             }
@@ -304,9 +294,9 @@ double PointGroup::sphericalParity(int L, int m, int op) const
     int yneg = (ops[op][1][1] < 0 ? 1 : 0);
     int zneg = (ops[op][2][2] < 0 ? 1 : 0);
 
-    return (xneg^yneg && m   <  0 ? -1 : 1)*
-           (xneg^zneg && m&1 == 1 ? -1 : 1)*
-           (zneg      && L&1 == 1 ? -1 : 1);
+    return ((xneg^yneg) &&  m    <  0 ? -1 : 1)*
+           ((xneg^zneg) && (m&1) == 1 ? -1 : 1)*
+           ( zneg       && (L&1) == 1 ? -1 : 1);
 }
 
 double PointGroup::cartesianParity(int x, int y, int z, int op) const
@@ -324,9 +314,9 @@ double PointGroup::cartesianParity(int x, int y, int z, int op) const
      * syz - (-1)^(lx)
      */
 
-    return (x&1 == 1 && ops[op][0][0] < 0 ? -1 : 1)*
-           (y&1 == 1 && ops[op][1][1] < 0 ? -1 : 1)*
-           (z&1 == 1 && ops[op][2][2] < 0 ? -1 : 1);
+    return ((x&1) == 1 && ops[op][0][0] < 0 ? -1 : 1)*
+           ((y&1) == 1 && ops[op][1][1] < 0 ? -1 : 1)*
+           ((z&1) == 1 && ops[op][2][2] < 0 ? -1 : 1);
 }
 
 Representation PointGroup::getIrrep(int i) const

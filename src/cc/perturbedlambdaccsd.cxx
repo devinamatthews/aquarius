@@ -27,7 +27,6 @@
 using namespace std;
 using namespace aquarius::op;
 using namespace aquarius::cc;
-using namespace aquarius::scf;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
 
@@ -35,8 +34,8 @@ template <typename U>
 PerturbedLambdaCCSD<U>::PerturbedLambdaCCSD(const Config& config, const STTwoElectronOperator<U,2>& H,
                                             const DeexcitationOperator<U,2>& L,
                                             const PerturbedSTTwoElectronOperator<U,2>& A, const U omega)
-: Iterative(config), DeexcitationOperator<U,2>(H.getSCF()), LA(*this),
-  Z(this->uhf), D(this->uhf), N(this->uhf), H(H),
+: Iterative(config), DeexcitationOperator<U,2>(H.arena, H.occ, H.vrt), LA(*this),
+  Z(H.arena, H.occ, H.vrt), D(H.arena, H.occ, H.vrt), N(H.arena, H.occ, H.vrt), H(H),
   omega(omega), diis(config.get("diis"))
 {
     D(0) = (U)1.0;

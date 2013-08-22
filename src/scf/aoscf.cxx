@@ -32,32 +32,51 @@ using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
 using namespace aquarius::integrals;
+using namespace aquarius::task;
 
 template <typename T>
-AOUHF<T>::AOUHF(const Config& config, const Molecule& molecule, const ERI& ints,
-                DistTensor<T>& S, DistTensor<T>& H)
-: UHF<T>(ints.arena, config, molecule, S, H), ints(ints) {}
+AOUHF<T>::AOUHF(const string& name, const Config& config)
+: UHF<T>("aoscf", name, config)
+{
+    for (vector<Product>::iterator i = this->products.begin();i != this->products.end();++i)
+    {
+        i->addRequirement(Requirement("eri", "I"));
+    }
+}
 
 template <typename T>
 void AOUHF<T>::buildFock()
 {
+    const Molecule& molecule =this->template get<Molecule>("molecule");
+    const ERI& ints = this->template get<ERI>("I");
+
+    int norb = molecule.getNumOrbitals();
+
+    DistTensor<T>& H = this->template get<DistTensor<T> >("H");
+    DistTensor<T>& Da = this->template get<DistTensor<T> >("Da");
+    DistTensor<T>& Db = this->template get<DistTensor<T> >("Db");
+    DistTensor<T>& Fa = this->template get<DistTensor<T> >("Fa");
+    DistTensor<T>& Fb = this->template get<DistTensor<T> >("Fb");
+
+    Arena& arena = H.arena;
+
     vector<T> focka, fockb;
     vector<T> densa, densb;
 
-    this->H->getAllData(focka, 0);
-    assert(this->rank != 0 || focka.size() == norb*norb);
-    this->H->getAllData(fockb, 0);
-    assert(this->rank != 0 || focka.size() == norb*norb);
+    H.getAllData(focka, 0);
+    assert(arena.rank != 0 || focka.size() == norb*norb);
+    H.getAllData(fockb, 0);
+    assert(arena.rank != 0 || focka.size() == norb*norb);
 
-    if (this->rank != 0)
+    if (arena.rank != 0)
     {
         focka.resize(norb*norb, (T)0);
         fockb.resize(norb*norb, (T)0);
     }
 
-    this->Da->getAllData(densa);
+    Da.getAllData(densa);
     assert(densa.size() == norb*norb);
-    this->Db->getAllData(densb);
+    Db.getAllData(densb);
     assert(densa.size() == norb*norb);
 
     vector<T> densab(densa);
@@ -142,10 +161,10 @@ void AOUHF<T>::buildFock()
         }
     }
 
-    if (this->rank == 0)
+    if (arena.rank == 0)
     {
-        this->arena.Reduce(focka, MPI::SUM);
-        this->arena.Reduce(fockb, MPI::SUM);
+        arena.Reduce(focka, MPI::SUM);
+        arena.Reduce(fockb, MPI::SUM);
 
         vector<tkv_pair<T> > pairs(norb*norb);
 
@@ -155,7 +174,7 @@ void AOUHF<T>::buildFock()
             pairs[p].k = p;
         }
 
-        this->Fa->writeRemoteData(pairs);
+        Fa.writeRemoteData(pairs);
 
         for (int p = 0;p < norb*norb;p++)
         {
@@ -163,16 +182,17 @@ void AOUHF<T>::buildFock()
             pairs[p].k = p;
         }
 
-        this->Fb->writeRemoteData(pairs);
+        Fb.writeRemoteData(pairs);
     }
     else
     {
-        this->arena.Reduce(focka, MPI::SUM, 0);
-        this->arena.Reduce(fockb, MPI::SUM, 0);
+        arena.Reduce(focka, MPI::SUM, 0);
+        arena.Reduce(fockb, MPI::SUM, 0);
 
-        this->Fa->writeRemoteData();
-        this->Fb->writeRemoteData();
+        Fa.writeRemoteData();
+        Fb.writeRemoteData();
     }
 }
 
 INSTANTIATE_SPECIALIZATIONS(AOUHF);
+REGISTER_TASK(AOUHF<double>, "aoscf");

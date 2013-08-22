@@ -28,7 +28,7 @@ using namespace std;
 using namespace aquarius;
 using namespace aquarius::op;
 using namespace aquarius::tensor;
-using namespace aquarius::slide;
+using namespace aquarius::integrals;
 using namespace aquarius::scf;
 using namespace aquarius::input;
 
@@ -72,7 +72,7 @@ Multipole<T>::Multipole(const UHF<T>& uhf, int Lmin_, int Lmax_)
         {
             ao = (T)0;
             ao.writeRemoteData(pairs[xyz]);
-            this->tensors_[xyztot++].tensor_ = new OneElectronOperator<T>(uhf, ao);
+            this->tensors[xyztot++].tensor = new OneElectronOperator<T>(uhf, ao);
         }
     }
 }

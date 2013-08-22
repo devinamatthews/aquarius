@@ -29,7 +29,9 @@
 #include "operator/st2eoperator.hpp"
 #include "operator/perturbedst2eoperator.hpp"
 #include "operator/deexcitationoperator.hpp"
-#include "operator/exponentialoperator.hpp"
+#include "operator/excitationoperator.hpp"
+#include "util/iterative.hpp"
+#include "convergence/diis.hpp"
 
 namespace aquarius
 {

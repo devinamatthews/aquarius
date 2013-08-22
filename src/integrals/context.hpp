@@ -32,7 +32,7 @@
 #include <cstring>
 
 #include "memory/memory.h"
-#include "util/math.hpp"
+#include "util/math_ext.h"
 #include "util/blas.h"
 #include "symmetry/symmetry.hpp"
 

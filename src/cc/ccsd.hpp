@@ -25,10 +25,14 @@
 #ifndef _AQUARIUS_CC_CCSD_HPP_
 #define _AQUARIUS_CC_CCSD_HPP_
 
+#include <iomanip>
+
 #include "time/time.hpp"
+#include "task/task.hpp"
 #include "util/iterative.hpp"
 #include "operator/2eoperator.hpp"
-#include "operator/exponentialoperator.hpp"
+#include "operator/excitationoperator.hpp"
+#include "operator/st2eoperator.hpp"
 #include "operator/stexcitationoperator.hpp"
 #include "convergence/diis.hpp"
 
@@ -38,30 +42,23 @@ namespace cc
 {
 
 template <typename U>
-class CCSD : public Iterative, public op::ExponentialOperator<U,2>
+class CCSD : public Iterative, public task::Task
 {
     protected:
-        op::ExponentialOperator<U,2>& T;
-        op::ExcitationOperator<U,2> D, Z;
-        op::TwoElectronOperator<U>& H;
         convergence::DIIS< op::ExcitationOperator<U,2> > diis;
 
     public:
-        CCSD(const input::Config& config, op::TwoElectronOperator<U>& H);
+        CCSD(const std::string& name, const input::Config& config);
+
+        void run(task::TaskDAG& dag, const Arena& arena);
 
         void _iterate();
 
-        static double getProjectedS2(const scf::UHF<U>& uhf,
+        /*
+        static double getProjectedS2(const op::MOSpace<U>& occ, const op::MOSpace<U>& vrt,
                                      const tensor::SpinorbitalTensor<U>& T1,
                                      const tensor::SpinorbitalTensor<U>& T2);
-
-        double getProjectedS2() const;
-
-        static double getProjectedMultiplicity(const scf::UHF<U>& uhf,
-                                               const tensor::SpinorbitalTensor<U>& T1,
-                                               const tensor::SpinorbitalTensor<U>& T2);
-
-        double getProjectedMultiplicity() const;
+         */
 };
 
 }

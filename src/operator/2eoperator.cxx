@@ -28,16 +28,14 @@ using namespace std;
 using namespace aquarius;
 using namespace aquarius::op;
 using namespace aquarius::tensor;
-using namespace aquarius::scf;
 
 template <typename T>
 void TwoElectronOperator<T>::initialize()
 {
-    int N = this->uhf.getMolecule().getNumOrbitals();
-    int nI = this->uhf.getMolecule().getNumAlphaElectrons();
-    int ni = this->uhf.getMolecule().getNumBetaElectrons();
-    int nA = N-nI;
-    int na = N-ni;
+    int nI = this->occ.nalpha;
+    int ni = this->occ.nbeta;
+    int nA = this->vrt.nalpha;
+    int na = this->vrt.nbeta;
 
     vector<int> sizeIIII = vec(nI, nI, nI, nI);
     vector<int> sizeIiIi = vec(nI, ni, nI, ni);
@@ -139,8 +137,8 @@ void TwoElectronOperator<T>::initialize()
 }
 
 template <typename T>
-TwoElectronOperator<T>::TwoElectronOperator(const UHF<T>& uhf, bool hermitian)
-: OneElectronOperatorBase<T,TwoElectronOperator<T> >(uhf, hermitian),
+TwoElectronOperator<T>::TwoElectronOperator(const Arena& arena, const Space& occ, const Space& vrt, bool hermitian)
+: OneElectronOperatorBase<T,TwoElectronOperator<T> >(arena, occ, vrt, hermitian),
   ijkl(this->addTensor(new SpinorbitalTensor<T>("ij,kl"))),
   iajk(this->addTensor(new SpinorbitalTensor<T>("ia,jk"))),
   ijka(this->addTensor(new SpinorbitalTensor<T>("ij,ka"))),
@@ -155,8 +153,8 @@ TwoElectronOperator<T>::TwoElectronOperator(const UHF<T>& uhf, bool hermitian)
 }
 
 template <typename T>
-TwoElectronOperator<T>::TwoElectronOperator(OneElectronOperator<T>& other, int copy)
-: OneElectronOperatorBase<T,TwoElectronOperator<T> >(other, copy),
+TwoElectronOperator<T>::TwoElectronOperator(OneElectronOperator<T>& other, int copy, bool breakhermicity)
+: OneElectronOperatorBase<T,TwoElectronOperator<T> >(other, copy, breakhermicity),
   ijkl(this->addTensor(new SpinorbitalTensor<T>("ij,kl"))),
   iajk(this->addTensor(new SpinorbitalTensor<T>("ia,jk"))),
   ijka(this->addTensor(new SpinorbitalTensor<T>("ij,ka"))),
@@ -171,7 +169,7 @@ TwoElectronOperator<T>::TwoElectronOperator(OneElectronOperator<T>& other, int c
 }
 
 template <typename T>
-TwoElectronOperator<T>::TwoElectronOperator(const OneElectronOperator<T>& other)
+TwoElectronOperator<T>::TwoElectronOperator(const OneElectronOperator<T>& other, bool breakhermicity)
 : OneElectronOperatorBase<T,TwoElectronOperator<T> >(other),
   ijkl(this->addTensor(new SpinorbitalTensor<T>("ij,kl"))),
   iajk(this->addTensor(new SpinorbitalTensor<T>("ia,jk"))),
@@ -187,8 +185,8 @@ TwoElectronOperator<T>::TwoElectronOperator(const OneElectronOperator<T>& other)
 }
 
 template <typename T>
-TwoElectronOperator<T>::TwoElectronOperator(TwoElectronOperator<T>& other, int copy)
-: OneElectronOperatorBase<T,TwoElectronOperator<T> >(other, copy),
+TwoElectronOperator<T>::TwoElectronOperator(TwoElectronOperator<T>& other, int copy, bool breakhermicity)
+: OneElectronOperatorBase<T,TwoElectronOperator<T> >(other, copy, breakhermicity),
   ijkl(this->addTensor(new SpinorbitalTensor<T>("ij,kl"))),
   iajk(this->addTensor(new SpinorbitalTensor<T>("ia,jk"))),
   ijka(this->addTensor(new SpinorbitalTensor<T>("ij,ka"))),
@@ -229,10 +227,20 @@ TwoElectronOperator<T>::TwoElectronOperator(TwoElectronOperator<T>& other, int c
 
     if (copy&IJKA)
     {
-        ijka.addSpinCase(new DistTensor<T>(other.getIJKA()(0)), "IJ,KA", "IJKA");
-        ijka.addSpinCase(new DistTensor<T>(other.getIJKA()(1)), "Ij,Ka", "IjKa");
-        ijka.addSpinCase(new DistTensor<T>(other.getIJKA()(2)), "iJ,kA", "iJkA");
-        ijka.addSpinCase(new DistTensor<T>(other.getIJKA()(3)), "ij,ka", "ijka");
+        if (!this->hermitian || !(copy&IAJK))
+        {
+            ijka.addSpinCase(new DistTensor<T>(other.getIJKA()(0)), "IJ,KA", "IJKA");
+            ijka.addSpinCase(new DistTensor<T>(other.getIJKA()(1)), "Ij,Ka", "IjKa");
+            ijka.addSpinCase(new DistTensor<T>(other.getIJKA()(2)), "iJ,kA", "iJkA");
+            ijka.addSpinCase(new DistTensor<T>(other.getIJKA()(3)), "ij,ka", "ijka");
+        }
+        else
+        {
+            ijka.addSpinCase(this->iajk(0), "IJ,KA", "IJKA");
+            ijka.addSpinCase(this->iajk(1), "Ij,Ka", "IjKa");
+            ijka.addSpinCase(this->iajk(2), "iJ,kA", "iJkA");
+            ijka.addSpinCase(this->iajk(3), "ij,ka", "ijka");
+        }
     }
     else
     {
@@ -257,9 +265,18 @@ TwoElectronOperator<T>::TwoElectronOperator(TwoElectronOperator<T>& other, int c
 
     if (copy&IJAB)
     {
-        ijab.addSpinCase(new DistTensor<T>(other.getIJAB()(0)), "IJ,AB", "ABIJ");
-        ijab.addSpinCase(new DistTensor<T>(other.getIJAB()(1)), "Ij,Ab", "AbIj");
-        ijab.addSpinCase(new DistTensor<T>(other.getIJAB()(2)), "ij,ab", "abij");
+        if (!this->hermitian || !(copy&ABIJ))
+        {
+            ijab.addSpinCase(new DistTensor<T>(other.getIJAB()(0)), "IJ,AB", "ABIJ");
+            ijab.addSpinCase(new DistTensor<T>(other.getIJAB()(1)), "Ij,Ab", "AbIj");
+            ijab.addSpinCase(new DistTensor<T>(other.getIJAB()(2)), "ij,ab", "abij");
+        }
+        else
+        {
+            ijab.addSpinCase(this->abij(0), "IJ,AB", "ABIJ");
+            ijab.addSpinCase(this->abij(1), "Ij,Ab", "AbIj");
+            ijab.addSpinCase(this->abij(2), "ij,ab", "abij");
+        }
     }
     else
     {
@@ -304,10 +321,20 @@ TwoElectronOperator<T>::TwoElectronOperator(TwoElectronOperator<T>& other, int c
 
     if (copy&ABCI)
     {
-        abci.addSpinCase(new DistTensor<T>(other.getABCI()(0)), "AB,CI", "ABCI");
-        abci.addSpinCase(new DistTensor<T>(other.getABCI()(1)), "Ab,Ci", "AbCi");
-        abci.addSpinCase(new DistTensor<T>(other.getABCI()(2)), "aB,cI", "aBcI");
-        abci.addSpinCase(new DistTensor<T>(other.getABCI()(3)), "ab,ci", "abci");
+        if (!this->hermitian || !(copy&AIBC))
+        {
+            abci.addSpinCase(new DistTensor<T>(other.getABCI()(0)), "AB,CI", "ABCI");
+            abci.addSpinCase(new DistTensor<T>(other.getABCI()(1)), "Ab,Ci", "AbCi");
+            abci.addSpinCase(new DistTensor<T>(other.getABCI()(2)), "aB,cI", "aBcI");
+            abci.addSpinCase(new DistTensor<T>(other.getABCI()(3)), "ab,ci", "abci");
+        }
+        else
+        {
+            abci.addSpinCase(this->aibc(0), "AB,CI", "ABCI");
+            abci.addSpinCase(this->aibc(1), "Ab,Ci", "AbCi");
+            abci.addSpinCase(this->aibc(2), "aB,cI", "aBcI");
+            abci.addSpinCase(this->aibc(3), "ab,ci", "abci");
+        }
     }
     else
     {
@@ -332,8 +359,8 @@ TwoElectronOperator<T>::TwoElectronOperator(TwoElectronOperator<T>& other, int c
 }
 
 template <typename T>
-TwoElectronOperator<T>::TwoElectronOperator(const TwoElectronOperator<T>& other)
-: OneElectronOperatorBase<T,TwoElectronOperator<T> >(other),
+TwoElectronOperator<T>::TwoElectronOperator(const TwoElectronOperator<T>& other, bool breakhermicity)
+: OneElectronOperatorBase<T,TwoElectronOperator<T> >(other, breakhermicity),
   ijkl(this->addTensor(new SpinorbitalTensor<T>("ij,kl"))),
   iajk(this->addTensor(new SpinorbitalTensor<T>("ia,jk"))),
   ijka(this->addTensor(new SpinorbitalTensor<T>("ij,ka"))),

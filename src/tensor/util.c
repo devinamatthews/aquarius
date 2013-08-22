@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 void tensor_info(const int ndim, const int* len, const int* ld, const int* sym,
                  int* group, int* skip, int* stride, size_t* size)
@@ -79,7 +80,7 @@ int tensor_iterate(const double alpha, const int ntensor, double * const restric
     int idx[ndim];
     double tmp;
 
-    ASSERT(ntensor >= 2, "too few tensors specified");
+    assert(ntensor >= 2);
 
     if (ndim > 0) idx[0] = 0;
     for (i = 1;i < ndim;i++)
