@@ -50,25 +50,13 @@ namespace aquarius
 namespace tensor
 {
 
-template<typename T>
-int conv_idx(const int ndim, const T* cidx, int*& iidx);
-
-template<typename T>
-int conv_idx(const int ndim_A, const T* cidx_A, int*& iidx_A,
-             const int ndim_B, const T* cidx_B, int*& iidx_B);
-
-template<typename T>
-int conv_idx(const int ndim_A, const T* cidx_A, int*& iidx_A,
-             const int ndim_B, const T* cidx_B, int*& iidx_B,
-             const int ndim_C, const T* cidx_C, int*& iidx_C);
-
 template <typename T>
 class DistTensor : public IndexableTensor< DistTensor<T>,T >, public task::Resource
 {
     INHERIT_FROM_INDEXABLE_TENSOR(DistTensor<T>,T)
 
     protected:
-        int tid;
+        tCTF_Tensor<T>* dt;
         std::vector<int> len;
         std::vector<int> sym;
 
@@ -123,23 +111,23 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public task::Resou
 
         void invert(T alpha, bool conja, const DistTensor<T>& A, T beta);
 
-        void print(FILE* fp, double cutoff = 0.0) const;
+        void print(FILE* fp, double cutoff = -1.0) const;
 
         void compare(FILE* fp, const DistTensor<T>& other, double cutoff = 0.0) const;
 
         typename std::real_type<T>::type norm(int p) const;
 
-        void mult(T alpha, bool conja, const DistTensor<T>& A, const int *idx_A,
-                           bool conjb, const DistTensor<T>& B, const int *idx_B,
-                  T  beta,                                     const int *idx_C);
+        void mult(T alpha, bool conja, const DistTensor<T>& A, const std::string& idx_A,
+                           bool conjb, const DistTensor<T>& B, const std::string& idx_B,
+                  T  beta,                                     const std::string& idx_C);
 
-        void sum(T alpha, bool conja, const DistTensor<T>& A, const int *idx_A,
-                 T  beta,                                     const int *idx_B);
+        void sum(T alpha, bool conja, const DistTensor<T>& A, const std::string& idx_A,
+                 T  beta,                                     const std::string& idx_B);
 
-        void scale(T alpha, const int* idx_A);
+        void scale(T alpha, const std::string& idx_A);
 
-        T dot(bool conja, const DistTensor<T>& A, const int* idx_A,
-              bool conjb,                         const int* idx_B) const;
+        T dot(bool conja, const DistTensor<T>& A, const std::string& idx_A,
+              bool conjb,                         const std::string& idx_B) const;
 };
 
 }

@@ -140,7 +140,6 @@ void CCSD<U>::_iterate()
     T += Z;
 
     SpinorbitalTensor<U> Tau(T(2));
-    Tau.set_name("Tau");
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
     energy = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));

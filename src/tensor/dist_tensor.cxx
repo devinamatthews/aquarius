@@ -27,136 +27,6 @@
 using namespace std;
 using namespace aquarius::tensor;
 
-template<typename T>
-int aquarius::tensor::conv_idx(int ndim, const T* cidx, int*& iidx)
-{
-    iidx = SAFE_MALLOC(int, ndim);
-
-    int n = 0;
-    for (int i = 0;i < ndim;i++)
-    {
-        int j;
-        for (j = 0;j < i;j++)
-        {
-            if (cidx[i] == cidx[j])
-            {
-                iidx[i] = iidx[j];
-                break;
-            }
-        }
-        if (j == i)
-        {
-            iidx[i] = n++;
-        }
-    }
-
-    return n;
-}
-
-template int aquarius::tensor::conv_idx(int, const  int*, int*&);
-template int aquarius::tensor::conv_idx(int, const char*, int*&);
-
-template<typename T>
-int aquarius::tensor::conv_idx(int ndimA, const T* cidx_A, int*& iidx_A,
-             int ndimB, const T* cidx_B, int*& iidx_B)
-{
-    iidx_B = SAFE_MALLOC(int, ndimB);
-
-    int n = conv_idx(ndimA, cidx_A, iidx_A);
-    for (int i = 0;i < ndimB;i++)
-    {
-        int j;
-        for (j = 0;j < ndimA;j++)
-        {
-            if (cidx_B[i] == cidx_A[j])
-            {
-                iidx_B[i] = iidx_A[j];
-                break;
-            }
-        }
-        if (j == ndimA)
-        {
-            for (j = 0;j < i;j++)
-            {
-                if (cidx_B[i] == cidx_B[j])
-                {
-                    iidx_B[i] = iidx_B[j];
-                    break;
-                }
-            }
-            if (j == i)
-            {
-                iidx_B[i] = n++;
-            }
-        }
-    }
-
-    return n;
-}
-
-template int aquarius::tensor::conv_idx(int, const  int*, int*&,
-                      int, const  int*, int*&);
-template int aquarius::tensor::conv_idx(int, const char*, int*&,
-                      int, const char*, int*&);
-
-template<typename T>
-int aquarius::tensor::conv_idx(int ndimA, const T* cidx_A, int*& iidx_A,
-             int ndimB, const T* cidx_B, int*& iidx_B,
-             int ndimC, const T* cidx_C, int*& iidx_C)
-{
-    iidx_C = SAFE_MALLOC(int, ndimC);
-
-    int n = conv_idx(ndimA, cidx_A, iidx_A,
-                     ndimB, cidx_B, iidx_B);
-    for (int i = 0;i < ndimC;i++)
-    {
-        int j;
-        for (j = 0;j < ndimB;j++)
-        {
-            if (cidx_C[i] == cidx_B[j])
-            {
-                iidx_C[i] = iidx_B[j];
-                break;
-            }
-        }
-        if (j == ndimB)
-        {
-            for (j = 0;j < ndimA;j++)
-            {
-                if (cidx_C[i] == cidx_A[j])
-                {
-                    iidx_C[i] = iidx_A[j];
-                    break;
-                }
-            }
-            if (j == ndimA)
-            {
-                for (j = 0;j < i;j++)
-                {
-                    if (cidx_C[i] == cidx_C[j])
-                    {
-                        iidx_C[i] = iidx_C[j];
-                        break;
-                    }
-                }
-                if (j == i)
-                {
-                    iidx_C[i] = n++;
-                }
-            }
-        }
-    }
-
-    return n;
-}
-
-template int aquarius::tensor::conv_idx(int, const  int*, int*&,
-                      int, const  int*, int*&,
-                      int, const  int*, int*&);
-template int aquarius::tensor::conv_idx(int, const char*, int*&,
-                      int, const char*, int*&,
-                      int, const char*, int*&);
-
 /*
  * Create a scalar (0-dimensional tensor)
  */
@@ -165,10 +35,7 @@ DistTensor<T>::DistTensor(const Arena& arena, T scalar)
 : IndexableTensor< DistTensor<T>,T >(), Resource(arena), len(0), sym(0)
 {
     allocate();
-
-    int64_t size;
-    T* raw_data = getRawData(size);
-    fill(raw_data, raw_data+size, scalar);
+    *dt = scalar;
 }
 
 /*
@@ -179,10 +46,7 @@ DistTensor<T>::DistTensor(const DistTensor<T>& A, T scalar)
 : IndexableTensor< DistTensor<T>,T >(), Resource(A.arena), len(0), sym(0)
 {
     allocate();
-
-    int64_t size;
-    T* raw_data = getRawData(size);
-    fill(raw_data, raw_data+size, scalar);
+    *dt = scalar;
 }
 
 /*
@@ -196,14 +60,11 @@ DistTensor<T>::DistTensor(const DistTensor<T>& A, bool copy, bool zero)
 
     if (copy)
     {
-        int ret = arena.ctf<T>().ctf->copy_tensor(A.tid, tid);
-        assert(ret == DIST_TENSOR_SUCCESS);
+        *dt = *A.dt;
     }
     else if (zero)
     {
-        int64_t size;
-        T* raw_data = getRawData(size);
-        fill(raw_data, raw_data+size, (T)0);
+        *dt = (T)0;
     }
 }
 
@@ -223,13 +84,7 @@ DistTensor<T>::DistTensor(const Arena& arena, int ndim, const vector<int>& len, 
     #endif //VALIDATE_INPUTS
 
     allocate();
-
-    if (zero)
-    {
-        int64_t size;
-        T* raw_data = getRawData(size);
-        fill(raw_data, raw_data+size, (T)0);
-    }
+    if (zero) *dt = (T)0;
 }
 
 template <typename T>
@@ -241,15 +96,13 @@ DistTensor<T>::~DistTensor()
 template <typename T>
 void DistTensor<T>::allocate()
 {
-    int ret = arena.ctf<T>().ctf->define_tensor(ndim, len.data(), sym.data(), &tid, "FIXME", 1);
-    assert(ret == DIST_TENSOR_SUCCESS);
+    dt = new tCTF_Tensor<T>(ndim, len.data(), sym.data(), arena.ctf<T>(), "FIXME", 1);
 }
 
 template <typename T>
 void DistTensor<T>::free()
 {
-    int ret = arena.ctf<T>().ctf->clean_tensor(tid);
-    assert(ret == DIST_TENSOR_SUCCESS);
+    delete dt;
 }
 
 template <typename T>
@@ -258,18 +111,13 @@ void DistTensor<T>::resize(int ndim, const vector<int>& len, const vector<int>& 
     assert(len.size() == ndim);
     assert(sym.size() == ndim);
 
-    free();
     this->ndim = ndim;
     this->len = len;
     this->sym = sym;
-    allocate();
 
-    if (zero)
-    {
-        int64_t size;
-        T* raw_data = getRawData(size);
-        fill(raw_data, raw_data+size, (T)0);
-    }
+    free();
+    allocate();
+    if (zero) *dt = (T)0;
 }
 
 template <typename T>
@@ -281,9 +129,9 @@ T* DistTensor<T>::getRawData(int64_t& size)
 template <typename T>
 const T* DistTensor<T>::getRawData(int64_t& size) const
 {
-    T *data;
-    int ret = arena.ctf<T>().ctf->get_raw_data(tid, &data, &size);
-    assert(ret == DIST_TENSOR_SUCCESS);
+    long_int size_;
+    T* data = dt->get_raw_data(&size_);
+    size = size_;
     return data;
 }
 
@@ -292,52 +140,45 @@ void DistTensor<T>::getLocalData(vector<tkv_pair<T> >& pairs) const
 {
     int64_t npair;
     tkv_pair<T> *data;
-    int ret = arena.ctf<T>().ctf->read_local_tensor(tid, &npair, &data);
-    assert(ret == DIST_TENSOR_SUCCESS);
+    dt->get_local_data(&npair, &data);
     pairs.assign(data, data+npair);
-    ::free(data);
+    if (npair > 0) ::free(data);
 }
 
 template <typename T>
 void DistTensor<T>::getRemoteData(vector<tkv_pair<T> >& pairs) const
 {
-    int ret = arena.ctf<T>().ctf->read_tensor(tid, pairs.size(), pairs.data());
-    assert(ret == DIST_TENSOR_SUCCESS);
+    dt->get_remote_data(pairs.size(), pairs.data());
 }
 
 template <typename T>
 void DistTensor<T>::getRemoteData() const
 {
-    int ret = arena.ctf<T>().ctf->read_tensor(tid, 0, NULL);
-    assert(ret == DIST_TENSOR_SUCCESS);
+    dt->get_remote_data(0, NULL);
 }
 
 template <typename T>
 void DistTensor<T>::writeRemoteData(const vector<tkv_pair<T> >& pairs)
 {
-    int ret = arena.ctf<T>().ctf->write_tensor(tid, pairs.size(), pairs.data());
-    assert(ret == DIST_TENSOR_SUCCESS);
+    dt->write_remote_data(pairs.size(), pairs.data());
 }
 
 template <typename T>
 void DistTensor<T>::writeRemoteData()
 {
-    int ret = arena.ctf<T>().ctf->write_tensor(tid, 0, NULL);
-    assert(ret == DIST_TENSOR_SUCCESS);
+    dt->write_remote_data(0, NULL);
 }
 
 template <typename T>
 void DistTensor<T>::writeRemoteData(double alpha, double beta, const vector<tkv_pair<T> >& pairs)
 {
-    int ret = arena.ctf<T>().ctf->write_tensor(tid, pairs.size(), alpha, beta, pairs.data());
-    assert(ret == DIST_TENSOR_SUCCESS);
+    dt->add_remote_data(pairs.size(), alpha, beta, pairs.data());
 }
 
 template <typename T>
 void DistTensor<T>::writeRemoteData(double alpha, double beta)
 {
-    int ret = arena.ctf<T>().ctf->write_tensor(tid, 0, alpha, beta, NULL);
-    assert(ret == DIST_TENSOR_SUCCESS);
+    dt->add_remote_data(0, alpha, beta, NULL);
 }
 
 template <typename T>
@@ -354,7 +195,7 @@ void DistTensor<T>::getAllData(vector<T>& vals) const
 template <typename T>
 void DistTensor<T>::getAllData(vector<T>& vals, int rank) const
 {
-    if (this->rank == rank)
+    if (arena.rank == rank)
     {
         vector<tkv_pair<T> > pairs;
         vector<int> idx(ndim, 0);
@@ -373,8 +214,7 @@ void DistTensor<T>::getAllData(vector<T>& vals, int rank) const
         }
         while (next_packed_indices(ndim, len.data(), sym.data(), idx.data()));
 
-        int ret = arena.ctf<T>().ctf->read_tensor(tid, pairs.size(), pairs.data());
-        assert(ret == DIST_TENSOR_SUCCESS);
+        dt->get_remote_data(pairs.size(), pairs.data());
 
         sort(pairs.begin(), pairs.end());
         size_t npair = pairs.size();
@@ -387,8 +227,7 @@ void DistTensor<T>::getAllData(vector<T>& vals, int rank) const
     }
     else
     {
-        int ret = arena.ctf<T>().ctf->read_tensor(tid, 0, NULL);
-        assert(ret == DIST_TENSOR_SUCCESS);
+        dt->get_remote_data(0, NULL);
     }
 }
 
@@ -396,8 +235,8 @@ template <typename T>
 void DistTensor<T>::div(T alpha, bool conja, const DistTensor<T>& A,
                                  bool conjb, const DistTensor<T>& B, T beta)
 {
-    arena.ctf<T>().ctf->align(A.tid, tid);
-    arena.ctf<T>().ctf->align(B.tid, tid);
+    dt->align(*A.dt);
+    dt->align(*B.dt);
     int64_t size, size_A, size_B;
     T* raw_data = getRawData(size);
     const T* raw_data_A = A.getRawData(size_A);
@@ -455,7 +294,7 @@ void DistTensor<T>::div(T alpha, bool conja, const DistTensor<T>& A,
 template <typename T>
 void DistTensor<T>::invert(T alpha, bool conja, const DistTensor<T>& A, T beta)
 {
-    arena.ctf<T>().ctf->align(tid, A.tid);
+    dt->align(*A.dt);
     int64_t size, size_A;
     T* raw_data = getRawData(size);
     const T* raw_data_A = A.getRawData(size_A);
@@ -485,101 +324,67 @@ void DistTensor<T>::invert(T alpha, bool conja, const DistTensor<T>& A, T beta)
 template <typename T>
 void DistTensor<T>::print(FILE* fp, double cutoff) const
 {
-    arena.ctf<T>().ctf->print_tensor(fp, tid, cutoff);
+    dt->print(fp, cutoff);
 }
 
 template <typename T>
 void DistTensor<T>::compare(FILE* fp, const DistTensor<T>& other, double cutoff) const
 {
-    arena.ctf<T>().ctf->compare_tensor(fp, tid, other.tid, cutoff);
+    dt->compare(*other.dt, fp, cutoff);
 }
 
 template <typename T>
 typename real_type<T>::type DistTensor<T>::norm(int p) const
 {
-    int ret = DIST_TENSOR_ERROR;
     T ans = (T)0;
     if (p == 00)
     {
-        ret = arena.ctf<T>().ctf->reduce_tensor(tid, CTF_OP_MAXABS, &ans);
+        ans = dt->reduce(CTF_OP_MAXABS);
     }
     else if (p == 1)
     {
-        ret = arena.ctf<T>().ctf->reduce_tensor(tid, CTF_OP_SUMABS, &ans);
+        ans = dt->reduce(CTF_OP_SUMABS);
     }
     else if (p == 2)
     {
-        ret = arena.ctf<T>().ctf->reduce_tensor(tid, CTF_OP_SQNRM2, &ans);
+        ans = dt->reduce(CTF_OP_SQNRM2);
     }
-    assert(ret == DIST_TENSOR_SUCCESS);
     return abs(ans);
 }
 
 template <typename T>
-void DistTensor<T>::mult(T alpha, bool conja, const DistTensor<T>& A, const int *idx_A,
-                                  bool conjb, const DistTensor<T>& B, const int *idx_B,
-                         T  beta,                                     const int *idx_C)
+void DistTensor<T>::mult(T alpha, bool conja, const DistTensor<T>& A, const string& idx_A,
+                                  bool conjb, const DistTensor<T>& B, const string& idx_B,
+                         T  beta,                                     const string& idx_C)
 {
-    int ret;
-    CTF_ctr_type_t tp;
-
-    tp.tid_A = A.tid;
-    tp.tid_B = B.tid;
-    tp.tid_C =   tid;
-    conv_idx(    A.ndim, idx_A, tp.idx_map_A,
-                 B.ndim, idx_B, tp.idx_map_B,
-                   ndim, idx_C, tp.idx_map_C);
-
-    ret = arena.ctf<T>().ctf->contract(&tp, alpha, beta);
-
-    FREE(tp.idx_map_A);
-    FREE(tp.idx_map_B);
-    FREE(tp.idx_map_C);
-    assert(ret == DIST_TENSOR_SUCCESS);
+    dt->contract(alpha, *A.dt, idx_A.c_str(),
+                        *B.dt, idx_B.c_str(),
+                  beta,        idx_C.c_str());
 }
 
 template <typename T>
-void DistTensor<T>::sum(T alpha, bool conja, const DistTensor<T>& A, const int *idx_A,
-                        T  beta,                                     const int *idx_B)
+void DistTensor<T>::sum(T alpha, bool conja, const DistTensor<T>& A, const string& idx_A,
+                        T  beta,                                     const string& idx_B)
 {
-    int ret;
-    CTF_sum_type_t st;
-
-    st.tid_A = A.tid;
-    st.tid_B =   tid;
-    conv_idx(    A.ndim, idx_A, st.idx_map_A,
-                   ndim, idx_B, st.idx_map_B);
-
-    ret = arena.ctf<T>().ctf->sum_tensors(&st, alpha, beta);
-
-    FREE(st.idx_map_A);
-    FREE(st.idx_map_B);
-    assert(ret == DIST_TENSOR_SUCCESS);
+    dt->sum(alpha, *A.dt, idx_A.c_str(),
+             beta,        idx_B.c_str());
 }
 
 template <typename T>
-void DistTensor<T>::scale(T alpha, const int* idx_A)
+void DistTensor<T>::scale(T alpha, const string& idx_A)
 {
-    int ret;
-    int * idx_map_A;
-
-    conv_idx(ndim, idx_A, idx_map_A);
-
-    ret = arena.ctf<T>().ctf->scale_tensor(alpha, tid, idx_map_A);
-
-    FREE(idx_map_A);
-    assert(ret == DIST_TENSOR_SUCCESS);
+    dt->scale(alpha, idx_A.c_str());
 }
 
 template <typename T>
-T DistTensor<T>::dot(bool conja, const DistTensor<T>& A, const int* idx_A,
-                     bool conjb,                         const int* idx_B) const
+T DistTensor<T>::dot(bool conja, const DistTensor<T>& A, const string& idx_A,
+                     bool conjb,                         const string& idx_B) const
 {
     DistTensor<T> dt(A.arena);
     vector<T> val;
     dt.mult(1, conja,     A, idx_A,
                conjb, *this, idx_B,
-            0,                NULL);
+            0,                  "");
     dt.getAllData(val);
     assert(val.size()==1);
     return val[0];

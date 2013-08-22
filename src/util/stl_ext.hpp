@@ -323,6 +323,12 @@ template <typename new_type > return_type
 namespace std
 {
 
+template <class T, class U>
+struct if_exists
+{
+    typedef U type;
+};
+
 template<typename T>
 class global_ptr : public shared_ptr<T*>
 {
@@ -626,7 +632,7 @@ template<typename T, typename U, class Functor> std::vector<U> apply(std::vector
 
 template<typename T, class Predicate> std::vector<T> filter_copy(const std::vector<T>& v, Predicate pred)
 {
-    typename std::vector<T> v2(v.size());
+    typename std::vector<T> v2(v);
     typename std::vector<T>::iterator i1;
     typename std::vector<T>::const_iterator i2;
 
@@ -644,9 +650,9 @@ template<typename T, class Predicate> std::vector<T> filter_copy(const std::vect
     return v2;
 }
 
-template<typename T> std::vector<T>& uniq(std::vector<T>& v)
+template<typename T> T& uniq(T& v)
 {
-    typename std::vector<T>::iterator i1;
+    typename T::iterator i1;
 
     std::sort(v.begin(), v.end());
     i1 = std::unique(v.begin(), v.end());
@@ -655,10 +661,10 @@ template<typename T> std::vector<T>& uniq(std::vector<T>& v)
     return v;
 }
 
-template<typename T> std::vector<T> uniq_copy(const std::vector<T>& v)
+template<typename T> T uniq_copy(const T& v)
 {
-    typename std::vector<T> v2(v.size());
-    typename std::vector<T>::iterator i1;
+    T v2(v);
+    typename T::iterator i1;
 
     std::sort(v2.begin(), v2.end());
     i1 = std::unique(v2.begin(), v2.end());
@@ -667,12 +673,14 @@ template<typename T> std::vector<T> uniq_copy(const std::vector<T>& v)
     return v2;
 }
 
-template<typename T> std::vector<T> intersection(const std::vector<T>& v1, const std::vector<T>& v2)
+template<typename T> T intersection(const T& v1, const T& v2)
 {
-    typename std::vector<T> v(v1.size()+v2.size());
-    typename std::vector<T> v3(v1);
-    typename std::vector<T> v4(v2);
-    typename std::vector<T>::iterator end;
+    T v;
+    T v3(v1);
+    T v4(v2);
+    typename T::iterator end;
+
+    v.resize(v1.size()+v2.size());
 
     sort(v3.begin(),v3.end());
     sort(v4.begin(),v4.end());
@@ -683,10 +691,10 @@ template<typename T> std::vector<T> intersection(const std::vector<T>& v1, const
     return v;
 }
 
-template<typename T> std::vector<T>& exclude(std::vector<T>& v1, const std::vector<T>& v2)
+template<typename T> T& exclude(T& v1, const T& v2)
 {
-    typename std::vector<T> v3(v2);
-    typename std::vector<T>::iterator i1, i2, i3;
+    T v3(v2);
+    typename T::iterator i1, i2, i3;
 
     std::sort(v1.begin(), v1.end());
     std::sort(v3.begin(), v3.end());
@@ -715,17 +723,17 @@ template<typename T> std::vector<T>& exclude(std::vector<T>& v1, const std::vect
     return v1;
 }
 
-template<typename T> std::vector<T> exclude_copy(const std::vector<T>& v1, const std::vector<T>& v2)
+template<typename T> T exclude_copy(const T& v1, const T& v2)
 {
-    typename std::vector<T> v3(v1);
+    T v3(v1);
     return exclude(v3, v2);
 }
 
-template<typename T, typename U> std::vector<T>& mask(std::vector<T>& v, const std::vector<U>& mask)
+template<typename T, typename U> T& mask(T& v, const U& mask)
 {
-    typename std::vector<T>::iterator i1;
-    typename std::vector<T>::const_iterator i2;
-    typename std::vector<U>::const_iterator i3;
+    typename T::iterator i1;
+    typename T::const_iterator i2;
+    typename U::const_iterator i3;
 
     i1 = v.begin();
     i2 = v.begin();
@@ -744,12 +752,12 @@ template<typename T, typename U> std::vector<T>& mask(std::vector<T>& v, const s
     return v;
 }
 
-template<typename T, typename U> std::vector<T> mask_copy(const std::vector<T>& v, const std::vector<U>& mask)
+template<typename T, typename U> T mask_copy(const T& v, const U& mask)
 {
-    typename std::vector<T> v2(v.size());
-    typename std::vector<T>::iterator i1;
-    typename std::vector<T>::const_iterator i2;
-    typename std::vector<U>::const_iterator i3;
+    T v2(v);
+    typename T::iterator i1;
+    typename T::const_iterator i2;
+    typename U::const_iterator i3;
 
     i1 = v2.begin();
     i2 = v.begin();

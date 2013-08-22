@@ -302,13 +302,13 @@ class LocalTensor : public IndexableTensor<Derived,T>
 
         const T* getData() const { return data; };
 
-        T dot(bool conja, const Derived& A, const int* idx_A,
-              bool conjb,                   const int* idx_B) const
+        T dot(bool conja, const Derived& A, const std::string& idx_A,
+              bool conjb,                   const std::string& idx_B) const
         {
             Derived dt;
             dt.mult(1, conja,            A, idx_A,
                        conjb, getDerived(), idx_B,
-                    0,                       NULL);
+                    0,                         "");
             return dt.getData()[0];
         }
 };

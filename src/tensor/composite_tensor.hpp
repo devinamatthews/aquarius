@@ -123,14 +123,6 @@ class CompositeTensor : public Tensor<Derived,T>
         }
 
     public:
-        void set_name(const char * name_){
-            int i;
-            for (i=0; i<tensors.size(); i++){
-                tensors[i].tensor->set_name(name_);
-            }
-        }
-
-
         CompositeTensor(const CompositeTensor<Derived,Base,T>& other)
         : tensors(other.tensors)
         {
@@ -143,7 +135,7 @@ class CompositeTensor : public Tensor<Derived,T>
             }
         }
 
-        CompositeTensor(const int ntensors = 0)
+        CompositeTensor(int ntensors = 0)
         : tensors(ntensors) {}
 
         virtual ~CompositeTensor()
@@ -159,7 +151,7 @@ class CompositeTensor : public Tensor<Derived,T>
 
         int getNumTensors() const { return tensors.size(); }
 
-        bool componentExists(const int idx) const
+        bool componentExists(int idx) const
         {
             return tensors[idx] != NULL;
         }
@@ -169,14 +161,14 @@ class CompositeTensor : public Tensor<Derived,T>
          * Subtensor indexing
          *
          *********************************************************************/
-        Base& operator()(const int idx)
+        Base& operator()(int idx)
         {
             if (tensors[idx] == NULL)
                 throw std::logic_error("tensor component does not exist");
             return *tensors[idx].tensor;
         }
 
-        const Base& operator()(const int idx) const
+        const Base& operator()(int idx) const
         {
             if (tensors[idx] == NULL)
                 throw std::logic_error("tensor component does not exist");
@@ -324,7 +316,7 @@ class IndexableCompositeTensor : public IndexableTensorBase<Derived,T>, public C
         using IndexableTensorBase<Derived,T>::implicit;
 
     public:
-        IndexableCompositeTensor(const int ndim=0, const int ntensors=0)
+        IndexableCompositeTensor(int ndim=0, int ntensors=0)
         : IndexableTensorBase<Derived,T>(ndim), CompositeTensor<Derived,Base,T>(ntensors) {}
 
         virtual ~IndexableCompositeTensor() {}

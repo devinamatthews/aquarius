@@ -67,20 +67,20 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
 
         virtual ~SymmetryBlockedTensor() {}
 
-        static std::vector<int> getStrides(const std::vector<int> indices, const int ndim,
-                                           const int len, const int* idx_A);
+        static std::vector<int> getStrides(const std::string& indices, const int ndim,
+                                           const int len, const std::string& idx_A);
 
-        virtual void mult(const double alpha, bool conja, const SymmetryBlockedTensor<T>& A, const int* idx_A,
-                                              bool conjb, const SymmetryBlockedTensor<T>& B, const int* idx_B,
-                          const double beta,                                                 const int* idx_C);
+        virtual void mult(const double alpha, bool conja, const SymmetryBlockedTensor<T>& A, const std::string& idx_A,
+                                              bool conjb, const SymmetryBlockedTensor<T>& B, const std::string& idx_B,
+                          const double beta,                                                 const std::string& idx_C);
 
-        virtual void sum(const double alpha, bool conja, const SymmetryBlockedTensor<T>& A, const int* idx_A,
-                         const double beta,                                                 const int* idx_B);
+        virtual void sum(const double alpha, bool conja, const SymmetryBlockedTensor<T>& A, const std::string& idx_A,
+                         const double beta,                                                 const std::string& idx_B);
 
-        virtual void scale(const double alpha, const int* idx_A);
+        virtual void scale(const double alpha, const std::string& idx_A);
 
-        virtual T dot(bool conja, const SymmetryBlockedTensor<T>& A, const int* idx_A,
-                      bool conjb,                                    const int* idx_B) const;
+        virtual T dot(bool conja, const SymmetryBlockedTensor<T>& A, const std::string& idx_A,
+                      bool conjb,                                    const std::string& idx_B) const;
 };
 
 }

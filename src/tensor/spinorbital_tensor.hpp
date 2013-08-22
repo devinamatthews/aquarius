@@ -67,8 +67,6 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,D
         std::vector<SpinCase> cases;
 
     public:
-        void set_name(char const * name_);
-
         SpinorbitalTensor(const SpinorbitalTensor<T>& t, const T val);
 
         SpinorbitalTensor(const SpinorbitalTensor<T>& other);
@@ -93,28 +91,28 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,D
 
         const DistTensor<T>& operator()(int nA, int nM, int nE, int nI) const;
 
-        void mult(const T alpha, bool conja, const SpinorbitalTensor<T>& A_, const int* idx_A,
-                                 bool conjb, const SpinorbitalTensor<T>& B_, const int* idx_B,
-                  const T beta_,                                             const int* idx_C);
+        void mult(const T alpha, bool conja, const SpinorbitalTensor<T>& A_, const std::string& idx_A,
+                                 bool conjb, const SpinorbitalTensor<T>& B_, const std::string& idx_B,
+                  const T beta_,                                             const std::string& idx_C);
 
-        void sum(const T alpha, bool conja, const SpinorbitalTensor<T>& A_, const int* idx_A,
-                 const T beta_,                                             const int* idx_B);
+        void sum(const T alpha, bool conja, const SpinorbitalTensor<T>& A_, const std::string& idx_A,
+                 const T beta_,                                             const std::string& idx_B);
 
-        void scale(const T alpha, const int* idx_A);
+        void scale(const T alpha, const std::string& idx_A);
 
         void div(const T alpha, bool conja, const SpinorbitalTensor<T>& A,
                                 bool conjb, const SpinorbitalTensor<T>& B, const T beta);
 
         void invert(const T alpha, bool conja, const SpinorbitalTensor<T>& A, const T beta);
 
-        T dot(bool conja, const SpinorbitalTensor<T>& A, const int* idx_A,
-              bool conjb,                                const int* idx_B) const;
+        T dot(bool conja, const SpinorbitalTensor<T>& A, const std::string& idx_A,
+              bool conjb,                                const std::string& idx_B) const;
 
     protected:
         void addSpinCase(DistTensor<T>& tensor, std::vector<autocc::Line> logical, std::vector<autocc::Line> physical, double factor, bool isAlloced);
 
-        static void matchTypes(const int nin_A, const int nout_A, const std::vector<autocc::Line>& log_A, const int* idx_A,
-                               const int nin_B, const int nout_B, const std::vector<autocc::Line>& log_B, const int* idx_B,
+        static void matchTypes(const int nin_A, const int nout_A, const std::vector<autocc::Line>& log_A, const std::string& idx_A,
+                               const int nin_B, const int nout_B, const std::vector<autocc::Line>& log_B, const std::string& idx_B,
                                std::vector<autocc::Line>& out_A, std::vector<autocc::Line>& in_A,
                                std::vector<autocc::Line>& pout_A, std::vector<autocc::Line>& hout_A,
                                std::vector<autocc::Line>& pin_A, std::vector<autocc::Line>& hin_A,

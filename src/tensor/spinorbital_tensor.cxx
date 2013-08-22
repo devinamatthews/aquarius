@@ -28,6 +28,120 @@ using namespace std;
 using namespace aquarius::tensor;
 using namespace aquarius::autocc;
 
+static int conv_idx(const vector<int>& cidx_A, string& iidx_A)
+{
+    iidx_A.resize(cidx_A.size());
+
+    int n = 0;
+    for (int i = 0;i < cidx_A.size();i++)
+    {
+        int j;
+        for (j = 0;j < i;j++)
+        {
+            if (cidx_A[i] == cidx_A[j])
+            {
+                iidx_A[i] = iidx_A[j];
+                break;
+            }
+        }
+        if (j == i)
+        {
+            iidx_A[i] = (char)('A'+n++);
+        }
+    }
+
+    return n;
+}
+
+static int conv_idx(const vector<int>& cidx_A, string& iidx_A,
+                    const vector<int>& cidx_B, string& iidx_B)
+{
+    iidx_B.resize(cidx_B.size());
+
+    int n = conv_idx(cidx_A, iidx_A);
+
+    for (int i = 0;i < cidx_B.size();i++)
+    {
+        int j;
+        for (j = 0;j < cidx_A.size();j++)
+        {
+            if (cidx_B[i] == cidx_A[j])
+            {
+                iidx_B[i] = iidx_A[j];
+                break;
+            }
+        }
+        if (j == cidx_A.size())
+        {
+            for (j = 0;j < i;j++)
+            {
+                if (cidx_B[i] == cidx_B[j])
+                {
+                    iidx_B[i] = iidx_B[j];
+                    break;
+                }
+            }
+            if (j == i)
+            {
+                iidx_B[i] = (char)('A'+n++);
+            }
+        }
+    }
+
+    return n;
+}
+
+static int conv_idx(const vector<int>& cidx_A, string& iidx_A,
+                    const vector<int>& cidx_B, string& iidx_B,
+                    const vector<int>& cidx_C, string& iidx_C)
+{
+    iidx_C.resize(cidx_C.size());
+
+    int n = conv_idx(cidx_A, iidx_A,
+                     cidx_B, iidx_B);
+
+    for (int i = 0;i < cidx_C.size();i++)
+    {
+        int j;
+        for (j = 0;j < cidx_B.size();j++)
+        {
+            if (cidx_C[i] == cidx_B[j])
+            {
+                iidx_C[i] = iidx_B[j];
+                break;
+            }
+        }
+        if (j == cidx_B.size())
+        {
+            for (j = 0;j < cidx_A.size();j++)
+            {
+                if (cidx_C[i] == cidx_A[j])
+                {
+                    iidx_C[i] = iidx_A[j];
+                    break;
+                }
+            }
+            if (j == cidx_A.size())
+            {
+                for (j = 0;j < i;j++)
+                {
+                    if (cidx_C[i] == cidx_C[j])
+                    {
+                        iidx_C[i] = iidx_C[j];
+                        break;
+                    }
+                }
+                if (j == i)
+                {
+                    iidx_C[i] = (char)('A'+n++);
+                }
+            }
+        }
+    }
+
+    return n;
+}
+
 template<class T>
 SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& t, const T val)
 : IndexableCompositeTensor<SpinorbitalTensor<T>,DistTensor<T>,T >(0, 0)
@@ -124,15 +238,6 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& logical, const int spin)
     nE = count_if(in.begin(), in.end(), isParticle());
     nI = count_if(in.begin(), in.end(), isHole());
 }
-
-template<class T>
-void SpinorbitalTensor<T>::set_name(char const * name_){
-    int i;
-    for (i=0; i<cases.size(); i++){
-        cases[i].tensor->set_name(name_);
-    }
-}
-
 
 template<class T>
 void SpinorbitalTensor<T>::addSpinCase(DistTensor<T>* tensor, string logical, string physical, double factor, bool isAlloced)
@@ -259,8 +364,8 @@ void SpinorbitalTensor<T>::addSpinCase(DistTensor<T>& tensor, vector<Line> logic
 }
 
 template<class T>
-void SpinorbitalTensor<T>::matchTypes(const int nin_A, const int nout_A, const vector<Line>& log_A, const int* idx_A,
-                                      const int nin_B, const int nout_B, const vector<Line>& log_B, const int* idx_B,
+void SpinorbitalTensor<T>::matchTypes(const int nin_A, const int nout_A, const vector<Line>& log_A, const string& idx_A,
+                                      const int nin_B, const int nout_B, const vector<Line>& log_B, const string& idx_B,
                                       vector<Line>& out_A, vector<Line>& in_A,
                                       vector<Line>& pout_A, vector<Line>& hout_A,
                                       vector<Line>& pin_A, vector<Line>& hin_A,
@@ -346,16 +451,13 @@ const DistTensor<T>& SpinorbitalTensor<T>::operator()(int nA, int nM, int nE, in
 }
 
 template<class T>
-void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTensor<T>& A_, const int* idx_A,
-                                               bool conjb, const SpinorbitalTensor<T>& B_, const int* idx_B,
-                                const T beta_,                                             const int* idx_C)
+void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTensor<T>& A, const string& idx_A,
+                                               bool conjb, const SpinorbitalTensor<T>& B, const string& idx_B,
+                                const T beta_,                                            const string& idx_C)
 {
-    const SpinorbitalTensor<T>& A = A_.getDerived();
-    const SpinorbitalTensor<T>& B = B_.getDerived();
-
-    int *idx_A_ = new int[A.ndim];
-    int *idx_B_ = new int[B.ndim];
-    int *idx_C_ = new int[ndim];
+    vector<int> idx_A_(idx_A.size());
+    vector<int> idx_B_(idx_B.size());
+    vector<int> idx_C_(idx_C.size());
 
     /*
     cout << "contracting: " << alpha << " * " << A.logical << "[";
@@ -633,28 +735,27 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
             //}
             */
 
+            string idx_A__, idx_B__, idx_C__;
+            conv_idx(idx_A_, idx_A__,
+                     idx_B_, idx_B__,
+                     idx_C_, idx_C__);
+
             scC->tensor->mult(alpha*(T)(scA->permFactor*scB->permFactor*scC->permFactor*diagFactor),
             //scC->tensor.mult(alpha*diagFactor,
-                              conja, *scA->tensor, idx_A_, conjb, *scB->tensor, idx_B_,
-                              beta[(int)(scC-cases.begin())], idx_C_);
+                              conja, *scA->tensor, idx_A__, conjb, *scB->tensor, idx_B__,
+                              beta[(int)(scC-cases.begin())], idx_C__);
 
             beta[(int)(scC-cases.begin())] = 1.0;
         }
     }
-
-    delete[] idx_A_;
-    delete[] idx_B_;
-    delete[] idx_C_;
 }
 
 template<class T>
-void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTensor<T>& A_, const int* idx_A,
-                               const T beta_,                                             const int* idx_B)
+void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTensor<T>& A, const string& idx_A,
+                               const T beta_,                                            const string& idx_B)
 {
-    const SpinorbitalTensor<T>& A = A_.getDerived();
-
-    int *idx_A_ = new int[A.ndim];
-    int *idx_B_ = new int[ndim];
+    vector<int> idx_A_(idx_A.size());
+    vector<int> idx_B_(idx_B.size());
 
     //cout << "summing [";
     //for (int i = 0;i < A.ndim;i++) cout << idx_A[i] << ' ';
@@ -778,23 +879,24 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
             //             ' ' << beta[(int)(scB-cases.begin())] << endl;
             //}
 
+            string idx_A__, idx_B__;
+            conv_idx(idx_A_, idx_A__,
+                     idx_B_, idx_B__);
+
             scB->tensor->sum(alpha*(T)(scA->permFactor*scB->permFactor*diagFactor),
             //scB->tensor.sum(alpha*diagFactor,
-                              conja, *scA->tensor, idx_A_,
-                              beta[(int)(scB-cases.begin())], idx_B_);
+                              conja, *scA->tensor, idx_A__,
+                              beta[(int)(scB-cases.begin())], idx_B__);
 
             beta[(int)(scB-cases.begin())] = 1.0;
         }
     }
-
-    delete[] idx_A_;
-    delete[] idx_B_;
 }
 
 template<class T>
-void SpinorbitalTensor<T>::scale(const T alpha, const int* idx_A)
+void SpinorbitalTensor<T>::scale(const T alpha, const string& idx_A)
 {
-    int *idx_A_ = new int[ndim];
+    vector<int> idx_A_(idx_A.size());
 
     vector<Line> sAin(nA+nM);
     vector<Line> sAout(nE+nI);
@@ -836,11 +938,12 @@ void SpinorbitalTensor<T>::scale(const T alpha, const int* idx_A)
         //        alpha*scA->permFactor << endl;
         //          alpha << endl;
 
-        //scA->tensor->scale(alpha*scA->permFactor, idx_A_);
-        scA->tensor->scale(alpha, idx_A_);
-    }
+        string idx_A__;
+        conv_idx(idx_A_, idx_A__);
 
-    delete[] idx_A_;
+        //scA->tensor->scale(alpha*scA->permFactor, idx_A__);
+        scA->tensor->scale(alpha, idx_A__);
+    }
 }
 
 template<class T>
@@ -902,17 +1005,19 @@ void SpinorbitalTensor<T>::invert(const T alpha, bool conja, const SpinorbitalTe
 }
 
 template<class T>
-T SpinorbitalTensor<T>::dot(bool conja, const SpinorbitalTensor<T>& A, const int* idx_A,
-                            bool conjb,                                const int* idx_B) const
+T SpinorbitalTensor<T>::dot(bool conja, const SpinorbitalTensor<T>& A, const string& idx_A,
+                            bool conjb,                                const string& idx_B) const
 {
-    DistTensor<T> one(A(0), (T)1);
     DistTensor<T> dt(A(0), (T)0);
     SpinorbitalTensor<T> sodt(",");
     sodt.addSpinCase(dt, ",", "");
     sodt.mult(1, conja,     A, idx_A,
                  conjb, *this, idx_B,
-              0,                NULL);
-    return scalar(dt*one);
+              0,                  "");
+    vector<T> vals;
+    dt.getAllData(vals);
+    assert(vals.size() == 1);
+    return vals[0];
 }
 
 INSTANTIATE_SPECIALIZATIONS(SpinorbitalTensor);

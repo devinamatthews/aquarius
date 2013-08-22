@@ -179,30 +179,48 @@ void DenseTensor<T>::print(ostream& stream) const
 }
 
 template <typename T>
-void DenseTensor<T>::mult(const T alpha, bool conja, const DenseTensor<T>& A, const int* idx_A,
-                                         bool conjb, const DenseTensor<T>& B, const int* idx_B,
-                          const T beta,                                       const int* idx_C)
+void DenseTensor<T>::mult(const T alpha, bool conja, const DenseTensor<T>& A, const string& idx_A,
+                                         bool conjb, const DenseTensor<T>& B, const string& idx_B,
+                          const T beta,                                       const string& idx_C)
 {
+    vector<int> idx_A_(    A.ndim);
+    vector<int> idx_B_(    B.ndim);
+    vector<int> idx_C_(this->ndim);
+
+    for (int i = 0;i <     A.ndim;i++) idx_A_[i] = idx_A[i];
+    for (int i = 0;i <     B.ndim;i++) idx_B_[i] = idx_B[i];
+    for (int i = 0;i < this->ndim;i++) idx_C_[i] = idx_C[i];
+
     CHECK_RETURN_VALUE(
-    tensor_mult_dense_(alpha, A.data, A.ndim, A.len.data(), A.ld.data(), idx_A,
-                              B.data, B.ndim, B.len.data(), B.ld.data(), idx_B,
-                       beta,    data,   ndim,   len.data(),   ld.data(), idx_C));
+    tensor_mult_dense_(alpha, A.data, A.ndim, A.len.data(), A.ld.data(), idx_A_.data(),
+                              B.data, B.ndim, B.len.data(), B.ld.data(), idx_B_.data(),
+                       beta,    data,   ndim,   len.data(),   ld.data(), idx_C_.data()));
 }
 
 template <typename T>
-void DenseTensor<T>::sum(const T alpha, bool conja, const DenseTensor<T>& A, const int* idx_A,
-                         const T beta,                                       const int* idx_B)
+void DenseTensor<T>::sum(const T alpha, bool conja, const DenseTensor<T>& A, const string& idx_A,
+                         const T beta,                                       const string& idx_B)
 {
+    vector<int> idx_A_(    A.ndim);
+    vector<int> idx_B_(this->ndim);
+
+    for (int i = 0;i <     A.ndim;i++) idx_A_[i] = idx_A[i];
+    for (int i = 0;i < this->ndim;i++) idx_B_[i] = idx_B[i];
+
     CHECK_RETURN_VALUE(
-    tensor_sum_dense_(alpha, A.data, A.ndim, A.len.data(), A.ld.data(), idx_A,
-                      beta,    data,   ndim,   len.data(),   ld.data(), idx_B));
+    tensor_sum_dense_(alpha, A.data, A.ndim, A.len.data(), A.ld.data(), idx_A_.data(),
+                      beta,    data,   ndim,   len.data(),   ld.data(), idx_B_.data()));
 }
 
 template <typename T>
-void DenseTensor<T>::scale(const T alpha, const int* idx_A)
+void DenseTensor<T>::scale(const T alpha, const string& idx_A)
 {
+    vector<int> idx_A_(this->ndim);
+
+    for (int i = 0;i < this->ndim;i++) idx_A_[i] = idx_A[i];
+
     CHECK_RETURN_VALUE(
-    tensor_scale_dense_(alpha, data, ndim, len.data(), ld.data(), idx_A));
+    tensor_scale_dense_(alpha, data, ndim, len.data(), ld.data(), idx_A_.data()));
 }
 
 /*

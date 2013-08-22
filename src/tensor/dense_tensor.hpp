@@ -79,14 +79,14 @@ class DenseTensor : public LocalTensor< DenseTensor<T>,T >
 
         void print(std::ostream& stream) const;
 
-        void mult(const T alpha, bool conja, const DenseTensor<T>& A, const int* idx_A,
-                                 bool conjb, const DenseTensor<T>& B, const int* idx_B,
-                  const T beta,                                       const int* idx_C);
+        void mult(const T alpha, bool conja, const DenseTensor<T>& A, const std::string& idx_A,
+                                 bool conjb, const DenseTensor<T>& B, const std::string& idx_B,
+                  const T beta,                                       const std::string& idx_C);
 
-        void sum(const T alpha, bool conja, const DenseTensor<T>& A, const int* idx_A,
-                 const T beta,                                       const int* idx_B);
+        void sum(const T alpha, bool conja, const DenseTensor<T>& A, const std::string& idx_A,
+                 const T beta,                                       const std::string& idx_B);
 
-        void scale(const T alpha, const int* idx_A);
+        void scale(const T alpha, const std::string& idx_A);
 
         DenseTensor<T> slice(const std::vector<int>& start, const std::vector<int>& len);
 };

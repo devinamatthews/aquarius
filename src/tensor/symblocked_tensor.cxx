@@ -138,8 +138,8 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const Arena& arena, const PointG
 }
 
 template <class T>
-vector<int> SymmetryBlockedTensor<T>::getStrides(const vector<int> indices, const int ndim,
-                                                 const int len, const int* idx_A)
+vector<int> SymmetryBlockedTensor<T>::getStrides(const string& indices, const int ndim,
+                                                 const int len, const string& idx_A)
 {
     vector<int> strides(indices.size(), 0);
     vector<int> stride_A(ndim);
@@ -165,28 +165,28 @@ vector<int> SymmetryBlockedTensor<T>::getStrides(const vector<int> indices, cons
 }
 
 template <class T>
-void SymmetryBlockedTensor<T>::mult(const double alpha, bool conja, const SymmetryBlockedTensor<T>& A, const int* idx_A_,
-                                                        bool conjb, const SymmetryBlockedTensor<T>& B, const int* idx_B_,
-                                     const double beta,                                                const int* idx_C_)
+void SymmetryBlockedTensor<T>::mult(const double alpha, bool conja, const SymmetryBlockedTensor<T>& A, const string& idx_A,
+                                                        bool conjb, const SymmetryBlockedTensor<T>& B, const string& idx_B,
+                                     const double beta,                                                const string& idx_C)
 {
     assert(group == A.group);
     assert(group == B.group);
 
     int n = group.getNumIrreps();
 
-    vector<int> idx_A(idx_A_, idx_A_+A.ndim);
-    vector<int> idx_B(idx_B_, idx_B_+B.ndim);
-    vector<int> idx_C(idx_C_, idx_C_+  ndim);
+    string idx_A_ = idx_A_;
+    string idx_B_ = idx_B_;
+    string idx_C_ = idx_C_;
 
-    double f1 = align_symmetric_indices(A.ndim, idx_A.data(), A.sym.data(),
-                                        B.ndim, idx_B.data(), B.sym.data(),
-                                          ndim, idx_C.data(),   sym.data());
-    f1 *= overcounting_factor(A.ndim, idx_A.data(), A.sym.data(),
-                              B.ndim, idx_B.data(), B.sym.data(),
-                                ndim, idx_C.data(),   sym.data());
+    double f1 = align_symmetric_indices(A.ndim, idx_A_, A.sym.data(),
+                                        B.ndim, idx_B_, B.sym.data(),
+                                          ndim, idx_C_,   sym.data());
+    f1 *= overcounting_factor(A.ndim, idx_A_, A.sym.data(),
+                              B.ndim, idx_B_, B.sym.data(),
+                                ndim, idx_C_,   sym.data());
 
-    vector<int> inds_AB = idx_A+idx_B;
-    vector<int> inds_C = idx_C;
+    string inds_AB = idx_A_+idx_B_;
+    string inds_C = idx_C_;
 
     uniq(inds_AB);
     uniq(inds_C);
@@ -195,11 +195,11 @@ void SymmetryBlockedTensor<T>::mult(const double alpha, bool conja, const Symmet
     int nAB = inds_AB.size();
     int nC = inds_C.size();
 
-    vector<int> stride_A_AB = getStrides(inds_AB, A.ndim, n, idx_A.data());
-    vector<int> stride_B_AB = getStrides(inds_AB, B.ndim, n, idx_B.data());
-    vector<int> stride_A_C = getStrides(inds_C, A.ndim, n, idx_A.data());
-    vector<int> stride_B_C = getStrides(inds_C, B.ndim, n, idx_B.data());
-    vector<int> stride_C = getStrides(inds_C, ndim, n, idx_C.data());
+    vector<int> stride_A_AB = getStrides(inds_AB, A.ndim, n, idx_A_);
+    vector<int> stride_B_AB = getStrides(inds_AB, B.ndim, n, idx_B_);
+    vector<int> stride_A_C = getStrides(inds_C, A.ndim, n, idx_A_);
+    vector<int> stride_B_C = getStrides(inds_C, B.ndim, n, idx_B_);
+    vector<int> stride_C = getStrides(inds_C, ndim, n, idx_C_);
 
     int off_A = 0;
     int off_B = 0;
@@ -216,13 +216,13 @@ void SymmetryBlockedTensor<T>::mult(const double alpha, bool conja, const Symmet
                 B.tensors[off_B] != NULL &&
                   tensors[off_C] != NULL)
             {
-                double f2 = overcounting_factor(A.ndim, idx_A.data(), A.tensors[off_A].tensor->getSymmetry().data(),
-                                                B.ndim, idx_B.data(), B.tensors[off_B].tensor->getSymmetry().data(),
-                                                  ndim, idx_C.data(),   tensors[off_C].tensor->getSymmetry().data());
+                double f2 = overcounting_factor(A.ndim, idx_A_, A.tensors[off_A].tensor->getSymmetry().data(),
+                                                B.ndim, idx_B_, B.tensors[off_B].tensor->getSymmetry().data(),
+                                                  ndim, idx_C_,   tensors[off_C].tensor->getSymmetry().data());
 
-                tensors[off_C].tensor->mult(alpha*f1/f2, conja, *A.tensors[off_A].tensor, idx_A.data(),
-                                                         conjb, *B.tensors[off_B].tensor, idx_B.data(),
-                                            beta_      ,                                  idx_C.data());
+                tensors[off_C].tensor->mult(alpha*f1/f2, conja, *A.tensors[off_A].tensor, idx_A_,
+                                                         conjb, *B.tensors[off_B].tensor, idx_B_,
+                                            beta_      ,                                  idx_C_);
             }
 
             for (int i = 0;i < nAB;i++)
@@ -275,21 +275,21 @@ void SymmetryBlockedTensor<T>::mult(const double alpha, bool conja, const Symmet
 }
 
 template <class T>
-void SymmetryBlockedTensor<T>::sum(const double alpha, bool conja, const SymmetryBlockedTensor<T>& A, const int* idx_A_,
-                                    const double beta,                                                const int* idx_B_)
+void SymmetryBlockedTensor<T>::sum(const double alpha, bool conja, const SymmetryBlockedTensor<T>& A, const string& idx_A,
+                                    const double beta,                                                const string& idx_B)
 {
     assert(group == A.group);
 
     int n = group.getNumIrreps();
 
-    vector<int> idx_A(idx_A_, idx_A_+A.ndim);
-    vector<int> idx_B(idx_B_, idx_B_+  ndim);
+    string idx_A_ = idx_A_;
+    string idx_B_ = idx_B_;
 
-    double f = align_symmetric_indices(A.ndim, idx_A.data(), A.sym.data(),
-                                         ndim, idx_B.data(),   sym.data());
+    double f = align_symmetric_indices(A.ndim, idx_A_, A.sym.data(),
+                                         ndim, idx_B_,   sym.data());
 
-    vector<int> inds_A = idx_A;
-    vector<int> inds_B = idx_B;
+    string inds_A = idx_A_;
+    string inds_B = idx_B_;
 
     uniq(inds_A);
     uniq(inds_B);
@@ -298,9 +298,9 @@ void SymmetryBlockedTensor<T>::sum(const double alpha, bool conja, const Symmetr
     int nA = inds_A.size();
     int nB = inds_B.size();
 
-    vector<int> stride_A_A = getStrides(inds_A, A.ndim, n, idx_A.data());
-    vector<int> stride_A_B = getStrides(inds_B, A.ndim, n, idx_A.data());
-    vector<int> stride_B = getStrides(inds_B, ndim, n, idx_B.data());
+    vector<int> stride_A_A = getStrides(inds_A, A.ndim, n, idx_A_);
+    vector<int> stride_A_B = getStrides(inds_B, A.ndim, n, idx_A_);
+    vector<int> stride_B = getStrides(inds_B, ndim, n, idx_B_);
 
     int off_A = 0;
     int off_B = 0;
@@ -315,8 +315,8 @@ void SymmetryBlockedTensor<T>::sum(const double alpha, bool conja, const Symmetr
             if (A.tensors[off_A] != NULL &&
                   tensors[off_B] != NULL)
             {
-                tensors[off_B].tensor->sum(alpha*f, conja, *A.tensors[off_A].tensor, idx_A.data(),
-                                             beta_  ,                                    idx_B.data());
+                tensors[off_B].tensor->sum(alpha*f, conja, *A.tensors[off_A].tensor, idx_A_,
+                                             beta_,                                  idx_B_);
             }
 
             for (int i = 0;i < nA;i++)
@@ -365,11 +365,11 @@ void SymmetryBlockedTensor<T>::sum(const double alpha, bool conja, const Symmetr
 }
 
 template <class T>
-void SymmetryBlockedTensor<T>::scale(const double alpha, const int* idx_A)
+void SymmetryBlockedTensor<T>::scale(const double alpha, const string& idx_A)
 {
     int n = group.getNumIrreps();
 
-    vector<int> inds_A(idx_A, idx_A+ndim);
+    string inds_A = idx_A;
 
     uniq(inds_A);
 
@@ -408,31 +408,32 @@ void SymmetryBlockedTensor<T>::scale(const double alpha, const int* idx_A)
 }
 
 template <class T>
-T SymmetryBlockedTensor<T>::dot(bool conja, const SymmetryBlockedTensor<T>& A, const int* idx_A_,
-                                bool conjb,                                    const int* idx_B_) const
+T SymmetryBlockedTensor<T>::dot(bool conja, const SymmetryBlockedTensor<T>& A, const string& idx_A,
+                                bool conjb,                                    const string& idx_B) const
 {
     assert(group == A.group);
 
     T sum = (T)0;
     int n = group.getNumIrreps();
 
-    vector<int> idx_A(idx_A_, idx_A_+A.ndim);
-    vector<int> idx_B(idx_B_, idx_B_+  ndim);
+    string idx_A_ = idx_A;
+    string idx_B_ = idx_B;
 
-    double f1 = align_symmetric_indices(A.ndim, idx_A.data(), A.sym.data(),
-                                          ndim, idx_B.data(),   sym.data(),
-                                              0,         NULL,          NULL);
-    f1 *= overcounting_factor(A.ndim, idx_A.data(), A.sym.data(),
-                                ndim, idx_B.data(),   sym.data(),
-                                    0,         NULL,          NULL);
+    string nll;
+    double f1 = align_symmetric_indices(A.ndim, idx_A_, A.sym.data(),
+                                          ndim, idx_B_,   sym.data(),
+                                              0,   nll,         NULL);
+    f1 *= overcounting_factor(A.ndim, idx_A_, A.sym.data(),
+                                ndim, idx_B_,   sym.data(),
+                                    0,   nll,         NULL);
 
-    vector<int> inds_AB = idx_A+idx_B;
+    string inds_AB = idx_A_+idx_B_;
 
     uniq(inds_AB);
     int nAB = inds_AB.size();
 
-    vector<int> stride_A_AB = getStrides(inds_AB, A.ndim, n, idx_A.data());
-    vector<int> stride_B_AB = getStrides(inds_AB,   ndim, n, idx_B.data());
+    vector<int> stride_A_AB = getStrides(inds_AB, A.ndim, n, idx_A_);
+    vector<int> stride_B_AB = getStrides(inds_AB,   ndim, n, idx_B_);
 
     int off_A = 0;
     int off_B = 0;
@@ -442,12 +443,12 @@ T SymmetryBlockedTensor<T>::dot(bool conja, const SymmetryBlockedTensor<T>& A, c
         if (A.tensors[off_A] != NULL &&
               tensors[off_B] != NULL)
         {
-            double f2 = overcounting_factor(A.ndim, idx_A.data(), A.tensors[off_A].tensor->getSymmetry().data(),
-                                              ndim, idx_B.data(),   tensors[off_B].tensor->getSymmetry().data(),
-                                                 0,         NULL,                                          NULL);
+            double f2 = overcounting_factor(A.ndim, idx_A_, A.tensors[off_A].tensor->getSymmetry().data(),
+                                              ndim, idx_B_,   tensors[off_B].tensor->getSymmetry().data(),
+                                                 0,    nll,                                          NULL);
 
-            sum += (f1/f2)*tensors[off_B].tensor->dot(conja, *A.tensors[off_A].tensor, idx_A.data(),
-                                                        conjb,                         idx_B.data());
+            sum += (f1/f2)*tensors[off_B].tensor->dot(conja, *A.tensors[off_A].tensor, idx_A_,
+                                                      conjb,                           idx_B_);
         }
 
         for (int i = 0;i < nAB;i++)

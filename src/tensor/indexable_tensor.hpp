@@ -86,7 +86,7 @@ class IndexableTensorBase
         std::string implicit() const
         {
             std::string inds(ndim, ' ');
-            for (int i = 0;i < ndim;i++) inds[i] = (char)(i+1);
+            for (int i = 0;i < ndim;i++) inds[i] = (char)('A'+i);
             return inds;
         }
 
@@ -162,26 +162,9 @@ class IndexableTensorBase
          * Binary tensor operations (multiplication)
          *
          *********************************************************************/
-        void mult(const T alpha, bool conja, const Derived& A, const std::string& idx_A,
-                                 bool conjb, const Derived& B, const std::string& idx_B,
-                  const T beta,                                const std::string& idx_C)
-        {
-            std::vector<int> idx_A_(A.getDimension());
-            std::vector<int> idx_B_(B.getDimension());
-            std::vector<int> idx_C_(ndim);
-
-            for (int i = 0;i < A.getDimension();i++) idx_A_[i] = idx_A[i];
-            for (int i = 0;i < B.getDimension();i++) idx_B_[i] = idx_B[i];
-            for (int i = 0;i < ndim;i++)   idx_C_[i] = idx_C[i];
-
-            mult(alpha, conja, A, idx_A_.data(),
-                        conjb, B, idx_B_.data(),
-                  beta,           idx_C_.data());
-        }
-
-        virtual void mult(const T alpha,  bool conja, const Derived& A, const int* idx_A,
-                                          bool conjb, const Derived& B, const int* idx_B,
-                          const T beta,                                 const int* idx_C) = 0;
+        virtual void mult(const T alpha,  bool conja, const Derived& A, const std::string& idx_A,
+                                          bool conjb, const Derived& B, const std::string& idx_B,
+                          const T beta,                                 const std::string& idx_C) = 0;
 
 
         /**********************************************************************
@@ -189,21 +172,8 @@ class IndexableTensorBase
          * Unary tensor operations (summation)
          *
          *********************************************************************/
-        void sum(const T alpha, bool conja, const Derived& A, const std::string& idx_A,
-                 const T beta,                                const std::string& idx_B)
-        {
-            std::vector<int> idx_A_(A.getDimension());
-            std::vector<int> idx_B_(ndim);
-
-            for (int i = 0;i < A.getDimension();i++) idx_A_[i] = idx_A[i];
-            for (int i = 0;i < ndim;i++) idx_B_[i] = idx_B[i];
-
-            sum(alpha, conja, A, idx_A_.data(),
-                 beta,           idx_B_.data());
-        }
-
-        virtual void sum(const T alpha, bool conja, const Derived& A, const int* idx_A,
-                         const T beta,                                const int* idx_B) = 0;
+        virtual void sum(const T alpha, bool conja, const Derived& A, const std::string& idx_A,
+                         const T beta,                                const std::string& idx_B) = 0;
 
 
         /**********************************************************************
@@ -211,30 +181,10 @@ class IndexableTensorBase
          * Scalar operations
          *
          *********************************************************************/
-        void scale(const T alpha, const std::string& idx_A)
-        {
-            std::vector<int> idx_A_(ndim);
-            for (int i = 0;i < ndim;i++) idx_A_[i] = idx_A[i];
-            scale(alpha, idx_A_.data());
-        }
+        virtual void scale(const T alpha, const std::string& idx_A) = 0;
 
-        virtual void scale(const T alpha, const int* idx_A) = 0;
-
-        T dot(bool conja, const Derived& A, const std::string& idx_A,
-              bool conjb,                   const std::string& idx_B) const
-        {
-            std::vector<int> idx_A_(A.getDimension());
-            std::vector<int> idx_B_(ndim);
-
-            for (int i = 0;i < A.getDimension();i++) idx_A_[i] = idx_A[i];
-            for (int i = 0;i < ndim;i++) idx_B_[i] = idx_B[i];
-
-            return dot(conja, A, idx_A_.data(),
-                       conjb,    idx_B_.data());
-        }
-
-        virtual T dot(bool conja, const Derived& A, const int* idx_A,
-                      bool conjb,                   const int* idx_B) const = 0;
+        virtual T dot(bool conja, const Derived& A, const std::string& idx_A,
+                      bool conjb,                   const std::string& idx_B) const = 0;
 };
 
 template <class Derived, typename T>
@@ -340,8 +290,6 @@ class IndexedTensor
         {
             if (idx.size() != tensor.getDimension()) throw InvalidNdimError();
         }
-      
-        void set_name(char const * name_) { tensor_.set_name(name_); }
 
         /**********************************************************************
          *
