@@ -655,17 +655,28 @@ void UHF<T>::DIISExtrap()
     /*
      * Generate the residual:
      *
-     *  R = FDS - SDF
-     *
-     * Since F and D commute at convergence, we should have [F,D] = FD - DF = 0,
-     * although I'm not totally sure why the S is thrown in there.
+     *   R = FDS - SDF
      *
      * Then, convert to the orthonormal basis:
      *
-     *  ~    -1/2    -1/2
-     *  R = S     R S
-     *                                    ~   ~
-     * This is so that the inner product <R_i|R_j> is what we expect it to be.
+     *   ~    -1/2    -1/2
+     *   R = S     R S.
+     *
+     * In this basis we have
+     *
+     *   ~    -1/2    -1/2  ~    1/2
+     *   F = S     F S    , C = S    C, and
+     *
+     *   ~   ~ ~T    1/2    T  1/2    1/2    1/2
+     *   D = C C  = S    C C  S    = S    D S.
+     *
+     * And so,
+     *
+     *   ~    -1/2    -1/2  1/2    1/2    1/2    1/2  -1/2    -1/2
+     *   R = S     F S     S    D S    - S    D S    S     F S
+     *
+     *        ~ ~
+     *     = [F,D] = 0 at convergence.
      */
     {
         DistTensor<T> tmp1(*Fa);
