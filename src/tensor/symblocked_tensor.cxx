@@ -175,12 +175,12 @@ void SymmetryBlockedTensor<T>::mult(const double alpha, bool conja, const Symmet
     vector<int> idx_B(idx_B_, idx_B_+B.ndim_);
     vector<int> idx_C(idx_C_, idx_C_+  ndim_);
 
-    double f1 = align_symmetric_indices(A.ndim_, idx_A.data(), A.sym_.data(),
-                                        B.ndim_, idx_B.data(), B.sym_.data(),
-                                          ndim_, idx_C.data(),   sym_.data());
-    f1 *= overcounting_factor(A.ndim_, idx_A.data(), A.sym_.data(),
-                              B.ndim_, idx_B.data(), B.sym_.data(),
-                                ndim_, idx_C.data(),   sym_.data());
+    double f1 = align_symmetric_indices(A.ndim_, idx_A, A.sym_.data(),
+                                        B.ndim_, idx_B, B.sym_.data(),
+                                          ndim_, idx_C,   sym_.data());
+    f1 *= overcounting_factor(A.ndim_, idx_A, A.sym_.data(),
+                              B.ndim_, idx_B, B.sym_.data(),
+                                ndim_, idx_C,   sym_.data());
 
     vector<int> inds_AB = idx_A+idx_B;
     vector<int> inds_C = idx_C;
@@ -213,9 +213,9 @@ void SymmetryBlockedTensor<T>::mult(const double alpha, bool conja, const Symmet
                 B.tensors_[off_B] != NULL &&
                   tensors_[off_C] != NULL)
             {
-                double f2 = overcounting_factor(A.ndim_, idx_A.data(), A.tensors_[off_A].tensor_->getSymmetry(),
-                                                B.ndim_, idx_B.data(), B.tensors_[off_B].tensor_->getSymmetry(),
-                                                  ndim_, idx_C.data(),   tensors_[off_C].tensor_->getSymmetry());
+                double f2 = overcounting_factor(A.ndim_, idx_A, A.tensors_[off_A].tensor_->getSymmetry(),
+                                                B.ndim_, idx_B, B.tensors_[off_B].tensor_->getSymmetry(),
+                                                  ndim_, idx_C,   tensors_[off_C].tensor_->getSymmetry());
 
                 tensors_[off_C].tensor_->mult(alpha*f1/f2, conja, *A.tensors_[off_A].tensor_, idx_A.data(),
                                                            conjb, *B.tensors_[off_B].tensor_, idx_B.data(),
@@ -282,8 +282,8 @@ void SymmetryBlockedTensor<T>::sum(const double alpha, bool conja, const Symmetr
     vector<int> idx_A(idx_A_, idx_A_+A.ndim_);
     vector<int> idx_B(idx_B_, idx_B_+  ndim_);
 
-    double f = align_symmetric_indices(A.ndim_, idx_A.data(), A.sym_.data(),
-                                         ndim_, idx_B.data(),   sym_.data());
+    double f = align_symmetric_indices(A.ndim_, idx_A, A.sym_.data(),
+                                         ndim_, idx_B,   sym_.data());
 
     vector<int> inds_A = idx_A;
     vector<int> inds_B = idx_B;
@@ -415,13 +415,14 @@ T SymmetryBlockedTensor<T>::dot(bool conja, const SymmetryBlockedTensor<T>& A, c
 
     vector<int> idx_A(idx_A_, idx_A_+A.ndim_);
     vector<int> idx_B(idx_B_, idx_B_+  ndim_);
+    vector<int> nll;
 
-    double f1 = align_symmetric_indices(A.ndim_, idx_A.data(), A.sym_.data(),
-                                          ndim_, idx_B.data(),   sym_.data(),
-                                              0,         NULL,          NULL);
-    f1 *= overcounting_factor(A.ndim_, idx_A.data(), A.sym_.data(),
-                                ndim_, idx_B.data(),   sym_.data(),
-                                    0,         NULL,          NULL);
+    double f1 = align_symmetric_indices(A.ndim_, idx_A, A.sym_.data(),
+                                          ndim_, idx_B,   sym_.data(),
+                                              0,   nll,          NULL);
+    f1 *= overcounting_factor(A.ndim_, idx_A, A.sym_.data(),
+                                ndim_, idx_B,   sym_.data(),
+                                    0,   nll,          NULL);
 
     vector<int> inds_AB = idx_A+idx_B;
 
@@ -439,9 +440,9 @@ T SymmetryBlockedTensor<T>::dot(bool conja, const SymmetryBlockedTensor<T>& A, c
         if (A.tensors_[off_A] != NULL &&
               tensors_[off_B] != NULL)
         {
-            double f2 = overcounting_factor(A.ndim_, idx_A.data(), A.tensors_[off_A].tensor_->getSymmetry(),
-                                              ndim_, idx_B.data(),   tensors_[off_B].tensor_->getSymmetry(),
-                                                  0,         NULL,                                     NULL);
+            double f2 = overcounting_factor(A.ndim_, idx_A, A.tensors_[off_A].tensor_->getSymmetry(),
+                                              ndim_, idx_B,   tensors_[off_B].tensor_->getSymmetry(),
+                                                  0,   nll,                                     NULL);
 
             sum += (f1/f2)*tensors_[off_B].tensor_->dot(conja, *A.tensors_[off_A].tensor_, idx_A.data(),
                                                         conjb,                             idx_B.data());
