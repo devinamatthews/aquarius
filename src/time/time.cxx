@@ -29,6 +29,10 @@
 #include <cassert>
 #include <algorithm>
 
+#ifdef __MACH__
+#include <mach/mach_time.h>
+#endif
+
 #ifdef _OPENMP
 #include "omp.h"
 #endif

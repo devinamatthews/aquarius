@@ -19,12 +19,21 @@ UPPER_UNDERSCORE = 4
 bindir = $(topdir)/bin
 libdir = $(topdir)/lib
 
-ALL_LIBS_LINK = -lscf -lcc -linput -ltime -lslide -ltensor -lautocc -lmemory -lutil
+ALL_LIBS_LINK = $(wildcard $(topdir)/src/autocc/*.o) \
+                $(wildcard $(topdir)/src/input/*.o) \
+                $(wildcard $(topdir)/src/time/*.o) \
+                $(wildcard $(topdir)/src/slide/*/*.o) \
+                $(wildcard $(topdir)/src/memory/*.o) \
+                $(wildcard $(topdir)/src/tensor/*.o) \
+                $(wildcard $(topdir)/src/util/*.o) \
+                $(wildcard $(topdir)/src/cc/*.o) \
+                $(wildcard $(topdir)/src/scf/*.o) \
+                $(wildcard $(topdir)/src/symmetry/*.o)
 ALL_LIBS_DEPS = $(libdir)/libautocc.a $(libdir)/libinput.a \
                 $(libdir)/libtime.a $(libdir)/libslide.a \
                 $(libdir)/libmemory.a $(libdir)/libtensor.a \
                 $(libdir)/libutil.a $(libdir)/libcc.a \
-                $(libdir)/libscf.a
+                $(libdir)/libscf.a $(libdir)/libsymmetry.a
 
 DEPDIR = .deps
 DEPS += $(topdir)/.dummy $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard *.o))))
@@ -39,7 +48,7 @@ _CXXFLAGS = $(OPT) $(WARN) $(CXXFLAGS)
 #_F77FLAGS = $(F77FLAGS)
 #_F90FLAGS = $(F90FLAGS)
 _DEPENDENCIES = $(DEPENDENCIES) Makefile $(topdir)/config.mk $(topdir)/rules.mk
-_LIBS = $(LIBS) $(ALL_LIBS_LINK) $(CTF_LIBS) $(ELEMENTAL_LIBS) $(BLAS_LIBS)
+_LIBS = $(LIBS) $(CTF_LIBS) $(ELEMENTAL_LIBS) $(BLAS_LIBS)
 
 #F77COMPILE = $(F77) $(_INCLUDES) $(_F77FLAGS)
 #F90COMPILE = $(F90) $(_INCLUDES) $(_F90FLAGS)
@@ -104,13 +113,13 @@ clean:
 		(cd $$subdir && $(MAKE) clean); \
 	done
 
-$(bindir)/%: $(_DEPENDENCIES) $(call libdeps,$(_LIBS)) $(ALL_LIBS_DEPS)
+$(bindir)/%: $(_DEPENDENCIES) $(call libdeps,$(_LIBS)) $(ALL_LIBS_LINK)
 	@mkdir -p $(dir $@)
 	$(LINK) $(filter %.o,$^) $(FLIBS) $(_LIBS)
 
 $(libdir)/%: $(_DEPENDENCIES)
-	@mkdir -p $(dir $@)
-	$(ARCHIVE) $(filter %.o,$^)
+#	@mkdir -p $(dir $@)
+#	$(ARCHIVE) $(filter %.o,$^)
 
 %.o: %.f $(_DEPENDENCIES)
 	$(F77COMPILE) -c -o $@ $<
