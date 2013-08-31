@@ -112,7 +112,11 @@ class Config
 
         Config(node_t* node);
 
+        node_t* cloneNode(node_t* node) const;
+
         void attachNode(node_t* node);
+
+        void detachNode(node_t* node);
 
         void deleteNode(node_t* node);
 
@@ -165,7 +169,18 @@ class Config
 
         ~Config();
 
+        Config clone() const;
+
         Config& operator=(const Config& copy);
+
+        bool exists(const std::string& path) const { return resolve(root, path) != NULL; }
+
+        void remove(const std::string& path)
+        {
+            node_t* node = resolve(root,path);
+            if (node == NULL) throw EntryNotFoundError(path);
+            deleteNode(node);
+        }
 
         template<typename T>
         T get(const std::string& path, const int which = 0) const;

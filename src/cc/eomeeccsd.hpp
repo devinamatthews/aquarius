@@ -39,20 +39,17 @@ namespace cc
 {
 
 template <typename U>
-class EOMEECCSD : public Iterative, public op::ExcitationOperator<U,2>
+class EOMEECCSD : public Iterative
 {
     protected:
-        op::ExcitationOperator<U,2>& R;
-        op::ExcitationOperator<U,2> Z, D;
-        const op::STTwoElectronOperator<U,2>& H;
-        const op::ExcitationOperator<U,2>& T;
         convergence::Davidson< op::ExcitationOperator<U,2> > davidson;
 
     public:
-        EOMEECCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
-                  const op::ExcitationOperator<U,2>& T);
+        EOMEECCSD(const std::string& name, const input::Config& config);
 
-        void _iterate();
+        void run(task::TaskDAG& dag, const Arena& arena);
+
+        void iterate();
 };
 
 }

@@ -49,7 +49,7 @@ namespace scf
 {
 
 template <typename T>
-class UHF : public Iterative, public task::Task
+class UHF : public Iterative
 {
     protected:
         T damping;
@@ -58,7 +58,7 @@ class UHF : public Iterative, public task::Task
     public:
         UHF(const std::string& type, const std::string& name, const input::Config& config);
 
-        void _iterate();
+        void iterate();
 
         void run(task::TaskDAG& dag, const Arena& arena);
 

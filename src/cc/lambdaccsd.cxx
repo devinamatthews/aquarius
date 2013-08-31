@@ -34,7 +34,7 @@ using namespace aquarius::time;
 
 template <typename U>
 LambdaCCSD<U>::LambdaCCSD(const string& name, const Config& config)
-: Iterative(config), Task("lambdaccsd", name), diis(config.get("diis"))
+: Iterative("lambdaccsd", name, config), diis(config.get("diis"))
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("ccsd.Hbar", "Hbar"));
@@ -80,24 +80,14 @@ void LambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
         Ecc = scalar(T(1)["ai"]*H.getIA()["ia"]) + 0.25*scalar(mTau["abij"]*H.getIJAB()["ijab"]);
     }
 
-    tic();
-    for (int i = 0;iterate();i++)
-    {
-        double dt = todouble(toc());
-        Logger::log(arena) << "Iteration " << (i+1) << " took " << dt << " s" << endl;
-        Logger::log(arena) << "Iteration " << (i+1) <<
-                              " energy = " << setprecision(15) << energy <<
-                              ", convergence = " << setprecision(8) << conv << endl;
-        tic();
-    }
-    toc();
+    Iterative::run(dag, arena);
 
     put("energy", new Scalar(arena, energy));
     put("convergence", new Scalar(arena, conv));
 }
 
 template <typename U>
-void LambdaCCSD<U>::_iterate()
+void LambdaCCSD<U>::iterate()
 {
     const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
 

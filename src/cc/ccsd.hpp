@@ -42,7 +42,7 @@ namespace cc
 {
 
 template <typename U>
-class CCSD : public Iterative, public task::Task
+class CCSD : public Iterative
 {
     protected:
         convergence::DIIS< op::ExcitationOperator<U,2> > diis;
@@ -52,7 +52,7 @@ class CCSD : public Iterative, public task::Task
 
         void run(task::TaskDAG& dag, const Arena& arena);
 
-        void _iterate();
+        void iterate();
 
         /*
         static double getProjectedS2(const op::MOSpace<U>& occ, const op::MOSpace<U>& vrt,

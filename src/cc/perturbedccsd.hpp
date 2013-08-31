@@ -48,23 +48,17 @@ namespace cc
  *                           c
  */
 template <typename U>
-class PerturbedCCSD : public Iterative, public op::ExcitationOperator<U,2>
+class PerturbedCCSD : public Iterative
 {
     protected:
-        const op::STTwoElectronOperator<U,2>& H;
-        U omega;
-        op::ExcitationOperator<U,2>& TA;
-        op::ExcitationOperator<U,2> D, Z, X;
         convergence::DIIS< op::ExcitationOperator<U,2> > diis;
 
     public:
-        PerturbedCCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
-                      const op::ExcitationOperator<U,2>& T, const op::OneElectronOperator<U>& A, const U omega=0);
+        PerturbedCCSD(const std::string& name, const input::Config& config);
 
-        PerturbedCCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
-                      const op::ExcitationOperator<U,2>& T, const op::TwoElectronOperator<U>& A, const U omega=0);
+        void run(task::TaskDAG& dag, const Arena& arena);
 
-        void _iterate();
+        void iterate();
 };
 
 }

@@ -56,7 +56,7 @@ aoscf
 },
 aomoints,
 choleskymoints,
-ccsd
+ccd
 {
 	convergence?
 		double 1e-9,
@@ -73,6 +73,42 @@ ccsd
 		jacobi?
 			bool false
 	}
+},
+ccsd
+{
+    convergence?
+        double 1e-9,
+    max_iterations?
+        int 150,
+    conv_type?
+        enum { MAXE, RMSE, MAE },
+    diis?
+    {
+        start?
+            int 1,
+        order?
+            int 5,
+        jacobi?
+            bool false
+    }
+},
+ccsdt
+{
+    convergence?
+        double 1e-9,
+    max_iterations?
+        int 150,
+    conv_type?
+        enum { MAXE, RMSE, MAE },
+    diis?
+    {
+        start?
+            int 1,
+        order?
+            int 5,
+        jacobi?
+            bool false
+    }
 },
 lambdaccsd
 {
@@ -106,4 +142,8 @@ cholesky
 		double 1e-14,
 	calc_cutoff?
 		double 1e-15
+},
+compare
+{
+    tolerance double
 }

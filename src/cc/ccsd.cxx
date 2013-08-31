@@ -34,7 +34,7 @@ using namespace aquarius::time;
 
 template <typename U>
 CCSD<U>::CCSD(const std::string& name, const Config& config)
-: Iterative(config), Task("ccsd", name), diis(config.get("diis"))
+: Iterative("ccsd", name, config), diis(config.get("diis"))
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("moints", "H"));
@@ -92,17 +92,7 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
     put("mp2", new Scalar(arena, energy));
 
-    tic();
-    for (int i = 0;iterate();i++)
-    {
-        double dt = todouble(toc());
-        Logger::log(arena) << "Iteration " << (i+1) << " took " << dt << " s" << endl;
-        Logger::log(arena) << "Iteration " << (i+1) <<
-                              " energy = " << setprecision(15) << energy <<
-                              ", convergence = " << setprecision(8) << conv << endl;
-        tic();
-    }
-    toc();
+    Iterative::run(dag, arena);
 
     put("energy", new Scalar(arena, energy));
     put("convergence", new Scalar(arena, conv));
@@ -125,7 +115,7 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
 }
 
 template <typename U>
-void CCSD<U>::_iterate()
+void CCSD<U>::iterate()
 {
     const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
 

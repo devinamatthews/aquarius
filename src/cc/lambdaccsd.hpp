@@ -54,7 +54,7 @@ namespace cc
  * traditional lambda operator /\, where L = (1-/\)
  */
 template <typename U>
-class LambdaCCSD : public Iterative, public task::Task
+class LambdaCCSD : public Iterative
 {
     protected:
         double Ecc;
@@ -65,7 +65,7 @@ class LambdaCCSD : public Iterative, public task::Task
 
         void run(task::TaskDAG& dag, const Arena& arena);
 
-        void _iterate();
+        void iterate();
 };
 
 }

@@ -29,27 +29,95 @@ using namespace aquarius::op;
 using namespace aquarius::cc;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
+using namespace aquarius::time;
+using namespace aquarius::task;
 
 template <typename U>
-CCD<U>::CCD(const Config& config, TwoElectronOperator<U>& moints)
-: CCSD<U>(config, moints)
+CCD<U>::CCD(const string& name, const Config& config)
+: Iterative("ccd", name, config), diis(config.get("diis"))
 {
-    T(1) = (U)0.0;
+    vector<Requirement> reqs;
+    reqs.push_back(Requirement("moints", "H"));
+    addProduct(Product("double", "energy", reqs));
+    addProduct(Product("double", "convergence", reqs));
+    addProduct(Product("double", "S2", reqs));
+    addProduct(Product("double", "multiplicity", reqs));
+    addProduct(Product("ccd.T", "T", reqs));
+    addProduct(Product("ccd.Hbar", "Hbar", reqs));
+}
 
-    energy = 0.25*real(scalar(moints.getABIJ()*T(2)));
+template <typename U>
+void CCD<U>::run(TaskDAG& dag, const Arena& arena)
+{
+    const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
+
+    const Space& occ = H.occ;
+    const Space& vrt = H.vrt;
+
+    put("T", new ExcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("D", new ExcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("Z", new ExcitationOperator<U,2>(arena, occ, vrt));
+
+    ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
+    ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
+    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+
+    D(0) = (U)1.0;
+    D(1)["ai"]  = H.getIJ()["ii"];
+    D(1)["ai"] -= H.getAB()["aa"];
+    D(2)["abij"]  = H.getIJ()["ii"];
+    D(2)["abij"] += H.getIJ()["jj"];
+    D(2)["abij"] -= H.getAB()["aa"];
+    D(2)["abij"] -= H.getAB()["bb"];
+
+    D = 1/D;
+
+    Z(0) = (U)0.0;
+    T(0) = (U)0.0;
+    T(1) = (U)0.0;
+    T(2) = H.getABIJ()*D(2);
+
+    energy = 0.25*real(scalar(H.getABIJ()*T(2)));
 
     conv =          T(2)(0).norm(00);
     conv = max(conv,T(2)(1).norm(00));
     conv = max(conv,T(2)(2).norm(00));
+
+    Iterative::run(dag, arena);
+
+    put("energy", new Scalar(arena, energy));
+    put("convergence", new Scalar(arena, conv));
+
+    /*
+    if (isUsed("S2") || isUsed("multiplicity"))
+    {
+        double s2 = getProjectedS2(occ, vrt, T(1), T(2));
+        double mult = sqrt(4*s2+1);
+
+        put("S2", new Scalar(arena, s2));
+        put("multiplicity", new Scalar(arena, mult));
+    }
+    */
+
+    if (isUsed("Hbar"))
+    {
+        put("Hbar", new STTwoElectronOperator<U,2>(H, T, true));
+    }
 }
 
 template <typename U>
-void CCD<U>::_iterate()
+void CCD<U>::iterate()
 {
-    TwoElectronOperator<U> H(this->H, TwoElectronOperator<U>::AB|
-                                      TwoElectronOperator<U>::IJ|
-                                      TwoElectronOperator<U>::IJKL|
-                                      TwoElectronOperator<U>::AIBJ);
+    const TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
+
+    ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
+    ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
+    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+
+    TwoElectronOperator<U> H(H_, TwoElectronOperator<U>::AB|
+                                 TwoElectronOperator<U>::IJ|
+                                 TwoElectronOperator<U>::IJKL|
+                                 TwoElectronOperator<U>::AIBJ);
 
     SpinorbitalTensor<U>& FAE = H.getAB();
     SpinorbitalTensor<U>& FMI = H.getIJ();
@@ -127,9 +195,10 @@ void CCD<U>::_iterate()
     conv = max(conv,Z(2)(1).norm(00));
     conv = max(conv,Z(2)(2).norm(00));
 
-    this->diis.extrapolate(T, Z);
+    diis.extrapolate(T, Z);
 
     PROFILE_STOP
 }
 
-//INSTANTIATE_SPECIALIZATIONS(CCD);
+INSTANTIATE_SPECIALIZATIONS(CCD);
+REGISTER_TASK(CCD<double>,"ccd");

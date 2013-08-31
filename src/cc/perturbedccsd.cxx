@@ -29,14 +29,43 @@ using namespace aquarius::op;
 using namespace aquarius::cc;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
+using namespace aquarius::task;
 
 template <typename U>
-PerturbedCCSD<U>::PerturbedCCSD(const Config& config, const STTwoElectronOperator<U,2>& H,
-                                const ExcitationOperator<U,2>& T, const OneElectronOperator<U>& A, const U omega)
-: Iterative(config), ExcitationOperator<U,2>(T.arena, T.occ, T.vrt),
-  H(H), omega(omega), TA(*this), D(T.arena, T.occ, T.vrt), Z(T.arena, T.occ, T.vrt), X(T.arena, T.occ, T.vrt),
-  diis(config.get("diis"))
+PerturbedCCSD<U>::PerturbedCCSD(const string& name, const Config& config)
+: Iterative("perturbedccsd", name, config), diis(config.get("diis"))
 {
+    vector<Requirement> reqs;
+    reqs.push_back(Requirement("ccsd.T", "T"));
+    reqs.push_back(Requirement("ccsd.Hbar", "Hbar"));
+    reqs.push_back(Requirement("1epert", "A"));
+    reqs.push_back(Requirement("double", "omega"));
+    addProduct(Product("double", "convergence", reqs));
+    addProduct(Product("ccsd.TA", "TA", reqs));
+}
+
+template <typename U>
+void PerturbedCCSD<U>::run(TaskDAG& dag, const Arena& arena)
+{
+    const OneElectronOperator<U>& A = get<OneElectronOperator<U> >("A");
+    const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
+
+    const Space& occ = H.occ;
+    const Space& vrt = H.vrt;
+
+    put("TA", new ExcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("D", new ExcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("X", new ExcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("Z", new ExcitationOperator<U,2>(arena, occ, vrt));
+
+    double omega = get<Scalar>("omega");
+
+    ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
+    ExcitationOperator<U,2>& TA = get<ExcitationOperator<U,2> >("TA");
+    ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
+    ExcitationOperator<U,2>& X = gettmp<ExcitationOperator<U,2> >("X");
+    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+
     D(0) = (U)1.0;
     D(1)["ai"]  = H.getIJ()["ii"];
     D(1)["ai"] -= H.getAB()["aa"];
@@ -55,32 +84,15 @@ PerturbedCCSD<U>::PerturbedCCSD(const Config& config, const STTwoElectronOperato
 }
 
 template <typename U>
-PerturbedCCSD<U>::PerturbedCCSD(const Config& config, const STTwoElectronOperator<U,2>& H,
-                                const ExcitationOperator<U,2>& T, const TwoElectronOperator<U>& A, const U omega)
-: Iterative(config), ExcitationOperator<U,2>(T.arena, T.occ, T.vrt),
-  H(H), omega(omega), TA(*this), D(T.arena, T.occ, T.vrt), Z(T.arena, T.occ, T.vrt), X(T.arena, T.occ, T.vrt),
-  diis(config.get("diis"))
+void PerturbedCCSD<U>::iterate()
 {
-    D(0) = (U)1.0;
-    D(1)["ai"]  = H.getIJ()["ii"];
-    D(1)["ai"] -= H.getAB()["aa"];
-    D(2)["abij"]  = H.getIJ()["ii"];
-    D(2)["abij"] += H.getIJ()["jj"];
-    D(2)["abij"] -= H.getAB()["aa"];
-    D(2)["abij"] -= H.getAB()["bb"];
+    const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
 
-    D += omega;
-    D = 1/D;
+    ExcitationOperator<U,2>& TA = get<ExcitationOperator<U,2> >("TA");
+    ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
+    ExcitationOperator<U,2>& X = gettmp<ExcitationOperator<U,2> >("X");
+    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
 
-    STExcitationOperator<U,2>::transform(A, T, X);
-    X(0) = (U)0.0;
-
-    TA = X*D;
-}
-
-template <typename U>
-void PerturbedCCSD<U>::_iterate()
-{
     Z = X;
     H.contract(TA, Z);
 
@@ -98,3 +110,4 @@ void PerturbedCCSD<U>::_iterate()
 }
 
 INSTANTIATE_SPECIALIZATIONS(PerturbedCCSD);
+REGISTER_TASK(PerturbedCCSD<double>, "perturbedccsd");

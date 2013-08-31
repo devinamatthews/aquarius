@@ -25,7 +25,16 @@
 #ifndef _AQUARIUS_CC_CCD_HPP_
 #define _AQUARIUS_CC_CCD_HPP_
 
-#include "ccsd.hpp"
+#include <iomanip>
+
+#include "time/time.hpp"
+#include "task/task.hpp"
+#include "util/iterative.hpp"
+#include "operator/2eoperator.hpp"
+#include "operator/excitationoperator.hpp"
+#include "operator/st2eoperator.hpp"
+#include "operator/stexcitationoperator.hpp"
+#include "convergence/diis.hpp"
 
 namespace aquarius
 {
@@ -33,20 +42,17 @@ namespace cc
 {
 
 template <typename U>
-class CCD : public CCSD<U>
+class CCD : public Iterative
 {
     protected:
-        using CCSD<U>::T;
-        using CCSD<U>::D;
-        using CCSD<U>::Z;
-        using CCSD<U>::H;
-        using CCSD<U>::energy;
-        using CCSD<U>::conv;
+        convergence::DIIS< op::ExcitationOperator<U,2> > diis;
 
     public:
-        CCD(const input::Config& config, op::TwoElectronOperator<U>& moints);
+        CCD(const std::string& name, const input::Config& config);
 
-        void _iterate();
+        void run(task::TaskDAG& dag, const Arena& arena);
+
+        void iterate();
 };
 
 }

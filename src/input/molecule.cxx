@@ -280,12 +280,14 @@ Molecule::Molecule(const Arena& arena, const Config& config)
 
     //TODO: getSymmetry();
 
-    printf("\nMolecular Geometry:\n\n");
-    for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
+    if (arena.rank == 0)
     {
-        printf("%3s % 20.15f % 20.15f % 20.15f\n", it->symbol.c_str(), it->pos[0], it->pos[1], it->pos[2]);
+        printf("\nMolecular Geometry:\n\n");
+        for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
+        {
+            printf("%3s % 20.15f % 20.15f % 20.15f\n", it->symbol.c_str(), it->pos[0], it->pos[1], it->pos[2]);
+        }
     }
-    printf("\n");
 
     norb = 0;
     for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
@@ -310,6 +312,12 @@ Molecule::Molecule(const Arena& arena, const Config& config)
 
     if ((nelec+multiplicity)%2 != 1 || multiplicity > nelec+1)
         throw logic_error("incompatible number of electrons and spin multiplicity");
+
+    if (arena.rank == 0)
+    {
+        printf("\nThere are %d atomic orbitals\n", norb);
+        printf("There are %d alpha and %d beta electrons\n\n", getNumAlphaElectrons(), getNumBetaElectrons());
+    }
 
     nucrep = 0;
     for (vector<Atom>::const_iterator a = atoms.begin();a != atoms.end();++a)

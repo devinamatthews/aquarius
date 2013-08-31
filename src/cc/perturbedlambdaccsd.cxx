@@ -29,15 +29,43 @@ using namespace aquarius::op;
 using namespace aquarius::cc;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
+using namespace aquarius::task;
 
 template <typename U>
-PerturbedLambdaCCSD<U>::PerturbedLambdaCCSD(const Config& config, const STTwoElectronOperator<U,2>& H,
-                                            const DeexcitationOperator<U,2>& L,
-                                            const PerturbedSTTwoElectronOperator<U,2>& A, const U omega)
-: Iterative(config), DeexcitationOperator<U,2>(H.arena, H.occ, H.vrt), LA(*this),
-  Z(H.arena, H.occ, H.vrt), D(H.arena, H.occ, H.vrt), N(H.arena, H.occ, H.vrt), H(H),
-  omega(omega), diis(config.get("diis"))
+PerturbedLambdaCCSD<U>::PerturbedLambdaCCSD(const std::string& name, const Config& config)
+: Iterative("perturbedlambdaccsd", name, config), diis(config.get("diis"))
 {
+    vector<Requirement> reqs;
+    reqs.push_back(Requirement("ccsd.L", "L"));
+    reqs.push_back(Requirement("ccsd.Hbar", "Hbar"));
+    reqs.push_back(Requirement("1epert", "A"));
+    reqs.push_back(Requirement("double", "omega"));
+    addProduct(Product("double", "convergence", reqs));
+    addProduct(Product("ccsd.LA", "LA", reqs));
+}
+
+template <typename U>
+void PerturbedLambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
+{
+    const PerturbedSTTwoElectronOperator<U,2>& A = get<PerturbedSTTwoElectronOperator<U,2> >("A");
+    const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
+
+    const Space& occ = H.occ;
+    const Space& vrt = H.vrt;
+
+    put("LA", new DeexcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("D", new DeexcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("N", new DeexcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("Z", new DeexcitationOperator<U,2>(arena, occ, vrt));
+
+    double omega = get<Scalar>("omega");
+
+    DeexcitationOperator<U,2>& L = get<DeexcitationOperator<U,2> >("L");
+    DeexcitationOperator<U,2>& LA = get<DeexcitationOperator<U,2> >("LA");
+    DeexcitationOperator<U,2>& D = gettmp<DeexcitationOperator<U,2> >("D");
+    DeexcitationOperator<U,2>& N = gettmp<DeexcitationOperator<U,2> >("N");
+    DeexcitationOperator<U,2>& Z = gettmp<DeexcitationOperator<U,2> >("Z");
+
     D(0) = (U)1.0;
     D(1)["ia"]  = H.getIJ()["ii"];
     D(1)["ia"] -= H.getAB()["aa"];
@@ -55,11 +83,22 @@ PerturbedLambdaCCSD<U>::PerturbedLambdaCCSD(const Config& config, const STTwoEle
     N(0) = (U)0.0;
 
     LA = N*D;
+
+    Iterative::run(dag, arena);
+
+    put("convergence", new Scalar(arena, conv));
 }
 
 template <typename U>
-void PerturbedLambdaCCSD<U>::_iterate()
+void PerturbedLambdaCCSD<U>::iterate()
 {
+    const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
+
+    DeexcitationOperator<U,2>& LA = get<DeexcitationOperator<U,2> >("LA");
+    DeexcitationOperator<U,2>& D = gettmp<DeexcitationOperator<U,2> >("D");
+    DeexcitationOperator<U,2>& N = gettmp<DeexcitationOperator<U,2> >("N");
+    DeexcitationOperator<U,2>& Z = gettmp<DeexcitationOperator<U,2> >("Z");
+
     Z = N;
     H.contract(LA, Z);
 
@@ -76,3 +115,4 @@ void PerturbedLambdaCCSD<U>::_iterate()
 }
 
 INSTANTIATE_SPECIALIZATIONS(PerturbedLambdaCCSD);
+REGISTER_TASK(PerturbedLambdaCCSD<double>, "perturbedlambdaccsd");

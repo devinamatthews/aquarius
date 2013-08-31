@@ -149,16 +149,56 @@ Config::Config(const Config& copy)
 
 Config::~Config()
 {
-    deleteNode(root);
+    detachNode(root);
+}
+
+Config Config::clone() const
+{
+    node_t *node = cloneNode(root);
+    return Config(node);
 }
 
 Config& Config::operator=(const Config& copy)
 {
-    deleteNode(root);
+    detachNode(root);
     root = copy.root;
     attachNode(root);
 
     return *this;
+}
+
+Config::node_t* Config::cloneNode(node_t* node) const
+{
+    node_t* newnode = new node_t;
+
+    newnode->data = node->data;
+    newnode->parent = NULL;
+    newnode->prev = NULL;
+    newnode->next = NULL;
+
+    if (node->children != NULL)
+    {
+        newnode->children = cloneNode(node->children);
+        newnode->children->parent = newnode;
+
+        node_t *prevchild = node->children;
+        node_t *prevnewchild = newnode->children;
+        for (node_t *child = prevchild->next;child != NULL;child = child->next)
+        {
+            prevnewchild->next = cloneNode(child);
+            prevnewchild->next->parent = newnode;
+            prevnewchild->next->prev = prevnewchild;
+
+            prevchild = child;
+            prevnewchild = prevnewchild->next;
+        }
+    }
+    else
+    {
+        newnode->children = NULL;
+    }
+
+    return newnode;
 }
 
 void Config::attachNode(node_t* node)
@@ -173,7 +213,7 @@ void Config::attachNode(node_t* node)
     }
 }
 
-void Config::deleteNode(node_t* node)
+void Config::detachNode(node_t* node)
 {
     node_t *child, *next;
 
@@ -185,7 +225,7 @@ void Config::deleteNode(node_t* node)
     for (child = node->children;child != NULL;child = next)
     {
         next = child->next;
-        deleteNode(child);
+        detachNode(child);
     }
 
     if (node->ref_count == 0)
@@ -193,11 +233,13 @@ void Config::deleteNode(node_t* node)
         /*
          * for each remaining child, make it an orphan
          */
-        for (child = node->children;child != NULL;child = child->next)
+        for (child = node->children;child != NULL;)
         {
+            node_t *next = child->next;
             child->parent = NULL;
             child->next = NULL;
             child->prev = NULL;
+            child = next;
         }
 
         /*
@@ -213,6 +255,21 @@ void Config::deleteNode(node_t* node)
 
         delete node;
     }
+}
+
+void Config::deleteNode(node_t* node)
+{
+    node_t *child, *next;
+
+    node->ref_count = 1;
+
+    for (child = node->children;child != NULL;child = next)
+    {
+        next = child->next;
+        deleteNode(child);
+    }
+
+    detachNode(node);
 }
 
 void Config::writeNode(ostream& os, const node_t* n, const int level) const
@@ -362,7 +419,7 @@ void Config::read(const string& file)
 
 void Config::read(istream& is)
 {
-    deleteNode(root);
+    detachNode(root);
     root = new node_t;
     root->data = "root";
     root->children = NULL;
@@ -719,7 +776,7 @@ void Schema::apply(Config& config, const node_t* schema, node_t* root) const
                 {
                     //ensure deletion
                     root->ref_count = 1;
-                    config.deleteNode(root);
+                    config.detachNode(root);
                 }
                 else
                 {

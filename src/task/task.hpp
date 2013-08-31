@@ -37,6 +37,7 @@
 #include <vector>
 #include <stdexcept>
 #include <unistd.h>
+#include <iomanip>
 
 #include "input/config.hpp"
 #include "util/stl_ext.hpp"
@@ -150,6 +151,16 @@ struct Scalar : public Resource
     : Resource(arena), value(value) {}
 
     operator double() { return value; }
+};
+
+struct Boolean : public Resource
+{
+    bool value;
+
+    Boolean(const Arena& arena, bool value = false)
+    : Resource(arena), value(value) {}
+
+    operator bool() { return value; }
 };
 
 class Product;
@@ -266,6 +277,12 @@ class Task
             throw std::logic_error("Temporary " + name + " not found on task " + this->name);
         }
 
+        std::ostream& log(const Arena& arena);
+
+        std::ostream& warn(const Arena& arena);
+
+        std::ostream& error(const Arena& arena);
+
     public:
         Task(const std::string& type, const std::string& name);
 
@@ -298,21 +315,15 @@ class Task
         {
             std::vector<Product*> to_search;
 
-            for (std::vector<Product>::iterator i = products.begin();i != products.end();++i) to_search += &(*i);
-
-            while (!to_search.empty())
+            for (std::vector<Product>::iterator i = products.begin();i != products.end();++i)
             {
-                std::vector<Product*> new_to_search;
+                if (i->getName() == name) return i->get<T>();
 
-                for (std::vector<Product*>::iterator i = to_search.begin();i != to_search.end();i++)
+                for (std::vector<Requirement>::iterator j = i->getRequirements().begin();
+                     j != i->getRequirements().end();j++)
                 {
-                    if ((*i)->getName() == name) return (*i)->get<T>();
-
-                    for (std::vector<Requirement>::iterator j = (*i)->getRequirements().begin();
-                         j != (*i)->getRequirements().end();j++) new_to_search += &j->get();
+                    if (j->getName() == name) return j->get().get<T>();
                 }
-
-                to_search = new_to_search;
             }
 
             throw std::logic_error("Product " + name + " not found on task " + this->name + " or its dependencies");
@@ -355,7 +366,9 @@ class TaskDAG
     NON_ASSIGNABLE(TaskDAG);
 
     protected:
-        std::vector<Task*> tasks;
+        std::vector<std::pair<Task*,input::Config> > tasks;
+
+        void parseTasks(const std::string& context, input::Config& config);
 
     public:
         TaskDAG() {}
@@ -364,9 +377,20 @@ class TaskDAG
 
         ~TaskDAG();
 
-        void addTask(Task* task);
+        void addTask(Task* task, const input::Config& config);
 
         void execute(Arena& world);
+};
+
+class CompareScalars : public Task
+{
+    protected:
+        double tolerance;
+
+    public:
+        CompareScalars(const std::string& name, const input::Config& config);
+
+        void run(TaskDAG& dag, const Arena& arena);
 };
 
 }

@@ -29,12 +29,40 @@ using namespace aquarius::op;
 using namespace aquarius::cc;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
+using namespace aquarius::task;
+using namespace aquarius::time;
 
 template <typename U>
-CCSDT<U>::CCSDT(const Config& config, TwoElectronOperator<U>& H)
-: Iterative(config), ExcitationOperator<U,3>(H.arena, H.occ, H.vrt),
-  T(*this), D(H.arena, H.occ, H.vrt), Z(H.arena, H.occ, H.vrt), H(H), diis(config.get("diis"))
+CCSDT<U>::CCSDT(const string& name, const Config& config)
+: Iterative("ccsdt", name, config), diis(config.get("diis"))
 {
+    vector<Requirement> reqs;
+    reqs.push_back(Requirement("moints", "H"));
+    addProduct(Product("double", "mp2", reqs));
+    addProduct(Product("double", "energy", reqs));
+    addProduct(Product("double", "convergence", reqs));
+    addProduct(Product("double", "S2", reqs));
+    addProduct(Product("double", "multiplicity", reqs));
+    addProduct(Product("ccsdt.T", "T", reqs));
+    addProduct(Product("ccsdt.Hbar", "Hbar", reqs));
+}
+
+template <typename U>
+void CCSDT<U>::run(task::TaskDAG& dag, const Arena& arena)
+{
+    const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
+
+    const Space& occ = H.occ;
+    const Space& vrt = H.vrt;
+
+    put("T", new ExcitationOperator<U,3>(arena, occ, vrt));
+    puttmp("D", new ExcitationOperator<U,3>(arena, occ, vrt));
+    puttmp("Z", new ExcitationOperator<U,3>(arena, occ, vrt));
+
+    ExcitationOperator<U,3>& T = get<ExcitationOperator<U,3> >("T");
+    ExcitationOperator<U,3>& D = gettmp<ExcitationOperator<U,3> >("D");
+    ExcitationOperator<U,3>& Z = gettmp<ExcitationOperator<U,3> >("Z");
+
     D(0) = (U)1.0;
     D(1)["ai"]  = H.getIJ()["ii"];
     D(1)["ai"] -= H.getAB()["aa"];
@@ -67,11 +95,41 @@ CCSDT<U>::CCSDT(const Config& config, TwoElectronOperator<U>& H)
     conv = max(conv,T(2)(0).norm(00));
     conv = max(conv,T(2)(1).norm(00));
     conv = max(conv,T(2)(2).norm(00));
+
+    Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
+    put("mp2", new Scalar(arena, energy));
+
+    Iterative::run(dag, arena);
+
+    put("energy", new Scalar(arena, energy));
+    put("convergence", new Scalar(arena, conv));
+
+    /*
+    if (isUsed("S2") || isUsed("multiplicity"))
+    {
+        double s2 = getProjectedS2(occ, vrt, T(1), T(2));
+        double mult = sqrt(4*s2+1);
+
+        put("S2", new Scalar(arena, s2));
+        put("multiplicity", new Scalar(arena, mult));
+    }
+
+    if (isUsed("Hbar"))
+    {
+        put("Hbar", new STTwoElectronOperator<U,3>(H, T, true));
+    }
+    */
 }
 
 template <typename U>
-void CCSDT<U>::_iterate()
+void CCSDT<U>::iterate()
 {
+    const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
+
+    ExcitationOperator<U,3>& T = get<ExcitationOperator<U,3> >("T");
+    ExcitationOperator<U,3>& D = gettmp<ExcitationOperator<U,3> >("D");
+    ExcitationOperator<U,3>& Z = gettmp<ExcitationOperator<U,3> >("Z");
+
     TwoElectronOperator<U> W(H, TwoElectronOperator<U>::AB|
                                 TwoElectronOperator<U>::IJ|
                                 TwoElectronOperator<U>::IA|
@@ -249,3 +307,4 @@ double CCSDT<U>::getProjectedMultiplicity() const
 */
 
 INSTANTIATE_SPECIALIZATIONS(CCSDT);
+REGISTER_TASK(CCSDT<double>,"ccsdt");

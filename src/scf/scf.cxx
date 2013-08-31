@@ -36,7 +36,7 @@ using namespace aquarius::op;
 
 template <typename T>
 UHF<T>::UHF(const std::string& type, const std::string& name, const Config& config)
-: Iterative(config), Task(type, name),
+: Iterative(type, name, config),
   damping(config.get<T>("damping")),
   diis(config.get("diis"), 2)
 {
@@ -63,7 +63,7 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
 
     int norb = molecule.getNumOrbitals();
     int nalpha = molecule.getNumAlphaElectrons();
-    int nbeta = molecule.getNumAlphaElectrons();
+    int nbeta = molecule.getNumBetaElectrons();
 
     energy = molecule.getNuclearRepulsion();
 
@@ -90,19 +90,7 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
 
     calcSMinusHalf();
 
-    tic();
-    for (int i = 0;iterate();i++)
-    {
-        double dt = todouble(toc());
-        Logger::log(arena) << "Iteration " << (i+1) << " took " << dt << " s" << endl;
-        Logger::log(arena) << "Iteration " << (i+1) <<
-                              " energy = " << setprecision(15) << energy <<
-                              ", convergence = " << setprecision(8) << conv << endl;
-        tic();
-    }
-    toc();
-
-    if (!isConverged()) throw runtime_error("SCF did not converge");
+    Iterative::run(dag, arena);
 
     if (isUsed("S2") || isUsed("multiplicity"))
     {
@@ -119,7 +107,7 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
 }
 
 template <typename T>
-void UHF<T>::_iterate()
+void UHF<T>::iterate()
 {
     buildFock();
     DIISExtrap();
@@ -154,7 +142,7 @@ void UHF<T>::calcS2()
 
     int norb = molecule.getNumOrbitals();
     int nalpha = molecule.getNumAlphaElectrons();
-    int nbeta = molecule.getNumAlphaElectrons();
+    int nbeta = molecule.getNumBetaElectrons();
 
     DistTensor<T>& S = get<DistTensor<T> >("S");
 
@@ -280,7 +268,7 @@ void UHF<T>::diagonalizeFock()
 
     int norb = molecule.getNumOrbitals();
     int nalpha = molecule.getNumAlphaElectrons();
-    int nbeta = molecule.getNumAlphaElectrons();
+    int nbeta = molecule.getNumBetaElectrons();
 
     DistTensor<T>& S = get<DistTensor<T> >("S");
     DistTensor<T>& Fa = get<DistTensor<T> >("Fa");

@@ -52,21 +52,17 @@ namespace cc
  * As in LambdaCCSD, the full left-hand eigenfunction is used instead of lambda.
  */
 template <typename U>
-class PerturbedLambdaCCSD : public Iterative, public op::DeexcitationOperator<U,2>
+class PerturbedLambdaCCSD : public Iterative
 {
     protected:
-        op::DeexcitationOperator<U,2>& LA;
-        op::DeexcitationOperator<U,2> Z, D, N;
-        const op::STTwoElectronOperator<U,2>& H;
-        U omega;
         convergence::DIIS< op::DeexcitationOperator<U,2> > diis;
 
     public:
-        PerturbedLambdaCCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
-                            const op::DeexcitationOperator<U,2>& L,
-                            const op::PerturbedSTTwoElectronOperator<U,2>& A, const U omega=0);
+        PerturbedLambdaCCSD(const std::string& name, const input::Config& config);
 
-        void _iterate();
+        void run(task::TaskDAG& dag, const Arena& arena);
+
+        void iterate();
 };
 
 }

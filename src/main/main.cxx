@@ -25,6 +25,8 @@
 #include "time/time.hpp"
 #include "task/task.hpp"
 
+#include "omp.h"
+
 using namespace std;
 using namespace aquarius;
 using namespace aquarius::time;
@@ -36,6 +38,36 @@ int main(int argc, char **argv)
 #ifdef ELEMENTAL
     elem::Initialize(argc, argv);
 #endif
+
+    if (getenv("OMP_NUM_THREADS") == NULL)
+    {
+        omp_set_num_threads(1);
+    }
+
+    if (MPI::COMM_WORLD.Get_rank() == 0)
+    {
+        printf("================================================================================\n");
+        printf("                                                                                \n");
+        printf("                                                          ii                    \n");
+        printf("            aaaaa        qqq    u   u    aaaa    rr rrr        u   u   sssss    \n");
+        printf("        aaaaaaaaaaa    qq  qq  uu  uu   aa  aa    rr  rr  ii  uu  uu  ss  ss    \n");
+        printf("      aaaa       aaa  qq   qq  uu  uu  aa  aaa   rr       ii  uu  uu  sss       \n");
+        printf("    aaa          aaa   qqqqq    uuuu    aaaa aa  r         ii  uuuu     sss     \n");
+        printf("   aaa           aaa      qq  q                                           ss    \n");
+        printf("   aaa           aaa       qqq                                       sss  ss    \n");
+        printf("    aaa        aaaaa                                                   sss      \n");
+        printf("     aaaaaaaaaaaa aaa                                                           \n");
+        printf("       aaaaaaa     aaa         Advanced Quantum Molecular Iterative             \n");
+        printf("                                    Equation Solver                             \n");
+        printf("                                                                                \n");
+        printf("================================================================================\n");
+        printf("\n");
+        printf("Running on %d process%s with %d thread%s each\n\n",
+               MPI::COMM_WORLD.Get_size(),
+               (MPI::COMM_WORLD.Get_size() > 1 ? "es" : ""),
+               omp_get_max_threads(),
+               (omp_get_max_threads() > 1 ? "s" : ""));
+    }
 
     {
         Arena world;
