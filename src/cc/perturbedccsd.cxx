@@ -64,7 +64,6 @@ void PerturbedCCSD<U>::run(TaskDAG& dag, const Arena& arena)
     ExcitationOperator<U,2>& TA = get<ExcitationOperator<U,2> >("TA");
     ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
     ExcitationOperator<U,2>& X = gettmp<ExcitationOperator<U,2> >("X");
-    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
 
     D(0) = (U)1.0;
     D(1)["ai"]  = H.getIJ()["ii"];

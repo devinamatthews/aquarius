@@ -498,7 +498,7 @@ void TaskDAG::execute(Arena& world)
      */
     while (true)
     {
-        set<Task*> to_execute;
+        vector<Task*> to_execute;
 
         for (vector<pair<Task*,Config> >::iterator t = tasks.begin();t != tasks.end();++t)
         {
@@ -519,7 +519,7 @@ void TaskDAG::execute(Arena& world)
 
             if (can_execute)
             {
-                to_execute.insert(t->first);
+                to_execute.push_back(t->first);
                 t = tasks.erase(t);
             }
 
@@ -528,7 +528,7 @@ void TaskDAG::execute(Arena& world)
 
         if (to_execute.empty()) break;
 
-        for (set<Task*>::iterator t = to_execute.begin();t != to_execute.end();++t)
+        for (vector<Task*>::iterator t = to_execute.begin();t != to_execute.end();++t)
         {
             Logger::log(world) << "Starting task: " << (*t)->getName() << endl;
             tic();

@@ -59,7 +59,6 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     ExcitationOperator<U,2>& R = get<ExcitationOperator<U,2> >("R");
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
     ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
-    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
 
     D(0) = (U)1.0;
     D(1)["ai"]  = H.getIJ()["ii"];

@@ -685,7 +685,6 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     DistTensor<T> ABIJ__(arena, 4, vec(nA,nA,nI,nI), vec(NS,NS,NS,NS), false);
     DistTensor<T> abij__(arena, 4, vec(na,na,ni,ni), vec(NS,NS,NS,NS), false);
 
-    int64_t npair;
     vector<T> cA, ca, cI, ci;
 
     /*

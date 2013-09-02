@@ -64,7 +64,6 @@ void PerturbedLambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
     DeexcitationOperator<U,2>& LA = get<DeexcitationOperator<U,2> >("LA");
     DeexcitationOperator<U,2>& D = gettmp<DeexcitationOperator<U,2> >("D");
     DeexcitationOperator<U,2>& N = gettmp<DeexcitationOperator<U,2> >("N");
-    DeexcitationOperator<U,2>& Z = gettmp<DeexcitationOperator<U,2> >("Z");
 
     D(0) = (U)1.0;
     D(1)["ia"]  = H.getIJ()["ii"];
