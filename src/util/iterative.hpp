@@ -28,12 +28,15 @@
 #include <limits>
 #include <string>
 
-#include "input/config.hpp"
+#include "time/time.hpp"
+#include "task/task.hpp"
+
+#include "distributed.hpp"
 
 namespace aquarius
 {
 
-class Iterative
+class Iterative : public task::Task
 {
     public:
         enum ConvergenceType {MAX_ABS, RMSD, MAD};
@@ -46,11 +49,12 @@ class Iterative
         int iter;
         int maxiter;
 
-        virtual void _iterate() = 0;
+        virtual void iterate() = 0;
 
     public:
-        Iterative(const input::Config& config)
-        : energy(0),
+        Iterative(const std::string& type, const std::string& name, const input::Config& config)
+        : Task(type, name),
+          energy(0),
           conv(std::numeric_limits<double>::infinity()),
           convtol(config.get<double>("convergence")),
           iter(0),
@@ -74,12 +78,24 @@ class Iterative
 
         virtual ~Iterative() {}
 
-        bool iterate()
+        void run(task::TaskDAG& dag, const Arena& arena)
         {
-            iter++;
-            if (iter > maxiter || isConverged()) return false;
-            _iterate();
-            return true;
+            for (iter = 1;iter <= maxiter && !isConverged();iter++)
+            {
+                time::tic();
+                iterate();
+                double dt = time::todouble(time::toc());
+
+                log(arena) << "Iteration " << iter << " took " << dt << " s" << std::endl;
+                log(arena) << "Iteration " << iter <<
+                              " energy = " << std::setprecision(15) << energy <<
+                              ", convergence = " << std::setprecision(8) << conv << std::endl;
+            }
+
+            if (!isConverged())
+            {
+                error(arena) << "Did not converge in " << maxiter << " iterations" << std::endl;
+            }
         }
 
         double getEnergy() const { return energy; }

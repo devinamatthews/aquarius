@@ -47,10 +47,10 @@ namespace tensor
 
 #define INHERIT_FROM_LOCAL_TENSOR(Derived, T) \
     protected: \
-        using aquarius::tensor::LocalTensor< Derived, T >::len_; \
-        using aquarius::tensor::LocalTensor< Derived, T >::ld_; \
-        using aquarius::tensor::LocalTensor< Derived, T >::size_; \
-        using aquarius::tensor::LocalTensor< Derived, T >::data_; \
+        using aquarius::tensor::LocalTensor< Derived, T >::len; \
+        using aquarius::tensor::LocalTensor< Derived, T >::ld; \
+        using aquarius::tensor::LocalTensor< Derived, T >::size; \
+        using aquarius::tensor::LocalTensor< Derived, T >::data; \
     public: \
         using aquarius::tensor::LocalTensor< Derived, T >::CLONE; \
         using aquarius::tensor::LocalTensor< Derived, T >::REFERENCE; \
@@ -98,162 +98,145 @@ switch (ret) \
 
 #define VALIDATE_TENSOR_THROW(ndim,len,ld,sym) CHECK_RETURN_VALUE(validate_tensor(ndim,len,ld,sym));
 
-template <class Derived, class T=double>
+template <class Derived, class T>
 class LocalTensor : public IndexableTensor<Derived,T>
 {
     INHERIT_FROM_INDEXABLE_TENSOR(Derived,T)
 
     protected:
-        int* len_;
-        int* ld_;
-        uint64_t size_;
-        T* data_;
+        std::vector<int> len;
+        std::vector<int> ld;
+        uint64_t size;
+        T* data;
         bool isAlloced;
 
     public:
         enum CopyType {CLONE, REFERENCE, REPLACE};
 
-        LocalTensor(const LocalTensor& t, const T val)
-        : IndexableTensor<Derived,T>(0), size_(1)
+        LocalTensor(const T val = (T)0)
+        : IndexableTensor<Derived,T>(0), len(0), ld(0), size(1)
         {
-            len_ = SAFE_MALLOC(int, ndim_);
-            ld_ = NULL;
-            data_ = SAFE_MALLOC(T, size_);
+            data = SAFE_MALLOC(T, 1);
             isAlloced = true;
 
-            data_[0] = val;
+            data[0] = val;
         }
 
-        LocalTensor(const Derived& A, const CopyType type=CLONE)
-        : IndexableTensor<Derived,T>(A.ndim_), size_(A.size_)
+        LocalTensor(const Derived& A)
+        : IndexableTensor<Derived,T>(A.ndim), len(A.len), ld(A.ld), size(A.size)
         {
-            len_ = SAFE_MALLOC(int, ndim_);
-            std::copy(A.len_, A.len_+ndim_, len_);
+            data = SAFE_MALLOC(T, size);
+            std::copy(A.data, A.data+size, data);
+            isAlloced = true;
+        }
 
-            if (A.ld_ == NULL)
-            {
-                ld_ = NULL;
-            }
-            else
-            {
-                ld_ = SAFE_MALLOC(int, ndim_);
-                std::copy(A.ld_, A.ld_+ndim_, ld_);
-            }
-
+        LocalTensor(Derived& A, const CopyType type=CLONE)
+        : IndexableTensor<Derived,T>(A.ndim), len(A.len), ld(A.ld), size(A.size)
+        {
             switch (type)
             {
                 case CLONE:
-                    data_ = SAFE_MALLOC(T, size_);
-                    std::copy(A.data_, A.data_+size_, data_);
+                    data = SAFE_MALLOC(T, size);
+                    std::copy(A.data, A.data+size, data);
                     isAlloced = true;
                     break;
                 case REFERENCE:
-                    data_ = A.data_;
+                    data = A.data;
                     isAlloced = false;
                     break;
                 case REPLACE:
-                    data_ = A.data_;
+                    data = A.data;
                     isAlloced = A.isAlloced;
-                    const_cast<Derived&>(A).isAlloced = false;
+                    A.isAlloced = false;
                     break;
             }
         }
 
-        LocalTensor(const int ndim, const int *len, const int *ld, uint64_t size, T* data, const bool zero = false)
-        : IndexableTensor<Derived,T>(ndim), size_(size)
+        LocalTensor(const int ndim, const std::vector<int>& len, const std::vector<int>& ld_, uint64_t size, T* data, bool zero=false)
+        : IndexableTensor<Derived,T>(ndim), len(len), ld(ld_), size(size)
         {
+            assert(len.size() == ndim);
+
+            if (ld.size() != ndim)
+            {
+                ld.resize(ndim);
+                ld[0] = 1;
+                for (int i = 1;i < ndim;i++) ld[i] = ld[i-1]*len[i-1];
+            }
+
             #ifdef VALIDATE_INPUTS
-            if (validate_tensor(ndim,len,ld,NULL) != TENSOR_SUCCESS)
+            if (validate_tensor(ndim,len.data(),ld.data(),NULL) != TENSOR_SUCCESS)
             {
                 throw std::runtime_error("not a valid tensor");
             }
             #endif //VALIDATE_INPUTS
 
-            len_ = SAFE_MALLOC(int, ndim_);
-            std::copy(len, len+ndim_, len_);
-
-            if (ld == NULL)
-            {
-                ld_ = NULL;
-            }
-            else
-            {
-                ld_ = SAFE_MALLOC(int, ndim_);
-                std::copy(ld, ld+ndim_, ld_);
-            }
-
-            data_ = data;
+            data = data;
             isAlloced = false;
-            if (zero) std::fill(data_, data_+size_, (T)0);
+            if (zero) std::fill(data, data+size, (T)0);
         }
 
-        LocalTensor(int ndim, const int *len, const int *ld, uint64_t size, bool zero = true)
-        : IndexableTensor<Derived,T>(ndim), size_(size)
+        LocalTensor(int ndim, const std::vector<int>& len, const std::vector<int>& ld_, uint64_t size, bool zero=true)
+        : IndexableTensor<Derived,T>(ndim), len(len), ld(ld_), size(size)
         {
+            assert(len.size() == ndim);
+
+            if (ld.size() != ndim)
+            {
+                ld.resize(ndim);
+                ld[0] = 1;
+                for (int i = 1;i < ndim;i++) ld[i] = ld[i-1]*len[i-1];
+            }
+
             #ifdef VALIDATE_INPUTS
-            if (validate_tensor(ndim,len,ld,NULL) != TENSOR_SUCCESS)
+            if (validate_tensor(ndim,len.data(),ld.data(),NULL) != TENSOR_SUCCESS)
             {
                 throw std::runtime_error("not a valid tensor");
             }
             #endif //VALIDATE_INPUTS
 
-            len_ = SAFE_MALLOC(int, ndim_);
-            std::copy(len, len+ndim_, len_);
-
-            if (ld == NULL)
-            {
-                ld_ = NULL;
-            }
-            else
-            {
-                ld_ = SAFE_MALLOC(int, ndim_);
-                std::copy(ld, ld+ndim_, ld_);
-            }
-
-            data_ = SAFE_MALLOC(T, size_);
+            data = SAFE_MALLOC(T, size);
             isAlloced = true;
-            if (zero) std::fill(data_, data_+size_, (T)0);
+            if (zero) std::fill(data, data+size, (T)0);
         }
 
         ~LocalTensor()
         {
-            FREE(len_);
-            if (ld_ != NULL) FREE(ld_);
-            if (isAlloced) FREE(data_);
+            if (isAlloced) FREE(data);
         }
 
-        const int* getLengths() const { return len_; }
+        const std::vector<int>& getLengths() const { return len; }
 
-        const int* getLeadingDims() const { return ld_; }
+        const std::vector<int>& getLeadingDims() const { return ld; }
 
-        uint64_t getSize() const { return size_; }
+        uint64_t getSize() const { return size; }
 
         void div(const T alpha, bool conja, const Derived& A,
                                 bool conjb, const Derived& B, const T beta)
         {
             using std::conj;
 
-            assert(size_ == A.size_ && size_ == B.size_);
+            assert(size == A.size && size == B.size);
 
             if (conja)
             {
                 if (conjb)
                 {
-                    for (uint64_t i = 0;i < size_;i++)
+                    for (uint64_t i = 0;i < size;i++)
                     {
-                        if (std::abs(B.data_[i]) > DBL_MIN)
+                        if (std::abs(B.data[i]) > DBL_MIN)
                         {
-                            data_[i] = beta*data_[i] + alpha*conj(A.data_[i])/conj(B.data_[i]);
+                            data[i] = beta*data[i] + alpha*conj(A.data[i])/conj(B.data[i]);
                         }
                     }
                 }
                 else
                 {
-                    for (uint64_t i = 0;i < size_;i++)
+                    for (uint64_t i = 0;i < size;i++)
                     {
-                        if (std::abs(B.data_[i]) > DBL_MIN)
+                        if (std::abs(B.data[i]) > DBL_MIN)
                         {
-                            data_[i] = beta*data_[i] + alpha*conj(A.data_[i])/B.data_[i];
+                            data[i] = beta*data[i] + alpha*conj(A.data[i])/B.data[i];
                         }
                     }
                 }
@@ -262,21 +245,21 @@ class LocalTensor : public IndexableTensor<Derived,T>
             {
                 if (conjb)
                 {
-                    for (uint64_t i = 0;i < size_;i++)
+                    for (uint64_t i = 0;i < size;i++)
                     {
-                        if (std::abs(B.data_[i]) > DBL_MIN)
+                        if (std::abs(B.data[i]) > DBL_MIN)
                         {
-                            data_[i] = beta*data_[i] + alpha*A.data_[i]/conj(B.data_[i]);
+                            data[i] = beta*data[i] + alpha*A.data[i]/conj(B.data[i]);
                         }
                     }
                 }
                 else
                 {
-                    for (uint64_t i = 0;i < size_;i++)
+                    for (uint64_t i = 0;i < size;i++)
                     {
-                        if (std::abs(B.data_[i]) > DBL_MIN)
+                        if (std::abs(B.data[i]) > DBL_MIN)
                         {
-                            data_[i] = beta*data_[i] + alpha*A.data_[i]/B.data_[i];
+                            data[i] = beta*data[i] + alpha*A.data[i]/B.data[i];
                         }
                     }
                 }
@@ -287,25 +270,25 @@ class LocalTensor : public IndexableTensor<Derived,T>
         {
             using std::conj;
 
-            assert(size_ == A.size_);
+            assert(size == A.size);
 
             if (conja)
             {
-                for (uint64_t i = 0;i < size_;i++)
+                for (uint64_t i = 0;i < size;i++)
                 {
-                    if (std::abs(A.data_[i]) > DBL_MIN)
+                    if (std::abs(A.data[i]) > DBL_MIN)
                     {
-                        data_[i] = beta*data_[i] + alpha/conj(A.data_[i]);
+                        data[i] = beta*data[i] + alpha/conj(A.data[i]);
                     }
                 }
             }
             else
             {
-                for (uint64_t i = 0;i < size_;i++)
+                for (uint64_t i = 0;i < size;i++)
                 {
-                    if (std::abs(A.data_[i]) > DBL_MIN)
+                    if (std::abs(A.data[i]) > DBL_MIN)
                     {
-                        data_[i] = beta*data_[i] + alpha/A.data_[i];
+                        data[i] = beta*data[i] + alpha/A.data[i];
                     }
                 }
             }
@@ -315,17 +298,17 @@ class LocalTensor : public IndexableTensor<Derived,T>
 
         virtual void print(std::ostream& stream) const = 0;
 
-        T* getData() { return data_; };
+        T* getData() { return data; };
 
-        const T* getData() const { return data_; };
+        const T* getData() const { return data; };
 
-        T dot(bool conja, const Derived& A, const int* idx_A,
-              bool conjb,                   const int* idx_B) const
+        T dot(bool conja, const Derived& A, const std::string& idx_A,
+              bool conjb,                   const std::string& idx_B) const
         {
-            Derived dt(A, 0);
+            Derived dt;
             dt.mult(1, conja,            A, idx_A,
                        conjb, getDerived(), idx_B,
-                    0,                       NULL);
+                    0,                         "");
             return dt.getData()[0];
         }
 };

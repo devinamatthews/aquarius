@@ -25,7 +25,7 @@
 #ifndef _AQUARIUS_OPERATOR_EXCITATIONOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_EXCITATIONOPERATOR_HPP_
 
-#include "stl_ext/stl_ext.hpp"
+#include "util/stl_ext.hpp"
 #include "tensor/composite_tensor.hpp"
 #include "tensor/spinorbital_tensor.hpp"
 
@@ -49,25 +49,18 @@ class ExcitationOperator
         const int spin;
 
     public:
-        ExcitationOperator(const ExcitationOperator<T,np,nh>& other)
-        : MOOperator<T>(other.uhf),
-          tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
-           tensor::SpinorbitalTensor<T>, T >(other),
-          spin(other.spin) {}
-
-        ExcitationOperator(const scf::UHF<T>& uhf, const int spin=0)
-        : MOOperator<T>(uhf),
+        ExcitationOperator(const Arena& arena, const Space& occ, const Space& vrt, const int spin=0)
+        : MOOperator<T>(arena, occ, vrt),
           tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
            tensor::SpinorbitalTensor<T>, T >(std::max(np,nh)+1),
           spin(spin)
         {
             if (abs(spin%2) != (np+nh)%2 || abs(spin) > np+nh) throw std::logic_error("incompatible spin");
 
-            int N = uhf.getMolecule().getNumOrbitals();
-            int nI = uhf.getMolecule().getNumAlphaElectrons();
-            int ni = uhf.getMolecule().getNumBetaElectrons();
-            int nA = N-nI;
-            int na = N-ni;
+            int nI = occ.nalpha;
+            int ni = occ.nbeta;
+            int nA = vrt.nalpha;
+            int na = vrt.nbeta;
 
             for (int ex = 0;ex <= std::min(np,nh);ex++)
             {
@@ -76,7 +69,7 @@ class ExcitationOperator
                 int npex = (np > nh ? ex+np-nh : ex);
                 int nhex = (nh > np ? ex+nh-np : ex);
 
-                tensors_[idx].tensor_ = new tensor::SpinorbitalTensor<T>(autocc::Manifold(npex,nhex), 0, spin);
+                tensors[idx].tensor = new tensor::SpinorbitalTensor<T>(autocc::Manifold(npex,nhex), 0, spin);
 
                 for (int pspin = std::max(-npex,spin-nhex);pspin <= std::min(npex,spin+nhex);pspin++)
                 {
@@ -103,7 +96,7 @@ class ExcitationOperator
                     if (pa+pb+ha > 0) sym[pa+pb+ha-1] = NS;
                     if (pa+pb+ha+hb > 0) sym[pa+pb+ha+hb-1] = NS;
 
-                    tensors_[idx].tensor_->addSpinCase(new tensor::DistTensor<T>(uhf.ctf, ndim, len.data(), sym.data(), true),
+                    tensors[idx].tensor->addSpinCase(new tensor::DistTensor<T>(this->arena, ndim, len, sym, true),
                                                        autocc::Manifold(pa, ha), 0);
                 }
             }

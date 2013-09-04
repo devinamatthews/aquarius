@@ -29,77 +29,85 @@ using namespace aquarius;
 using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
-using namespace aquarius::slide;
+using namespace aquarius::integrals;
+using namespace aquarius::task;
+using namespace aquarius::time;
+using namespace aquarius::op;
 
 template <typename T>
-UHF<T>::UHF(tCTF_World<T>& ctf, const Config& config, const Molecule& molecule)
-: Iterative(config),
-  Distributed<T>(ctf),
-  molecule(molecule),
-  norb(molecule.getNumOrbitals()),
-  nalpha(molecule.getNumAlphaElectrons()),
-  nbeta(molecule.getNumBetaElectrons()),
+UHF<T>::UHF(const std::string& type, const std::string& name, const Config& config)
+: Iterative(type, name, config),
   damping(config.get<T>("damping")),
-  Ea(norb),
-  Eb(norb),
   diis(config.get("diis"), 2)
-  #ifdef USE_ELEMENTAL
-  ,grid(comm),
-  C_elem(norb, norb, grid),
-  S_elem(norb, norb, grid),
-  F_elem(norb, norb, grid),
-  E_elem(norb, 1   , grid)
-  #endif
 {
+    vector<Requirement> reqs;
+    reqs += Requirement("molecule", "molecule");
+    reqs += Requirement("ovi", "S");
+    reqs += Requirement("1ehamiltonian", "H");
+    addProduct(Product("double", "energy", reqs));
+    addProduct(Product("double", "convergence", reqs));
+    addProduct(Product("double", "S2", reqs));
+    addProduct(Product("double", "multiplicity", reqs));
+    addProduct(Product("occspace", "occ", reqs));
+    addProduct(Product("vrtspace", "vrt", reqs));
+    addProduct(Product("Fa", "Fa", reqs));
+    addProduct(Product("Fb", "Fb", reqs));
+    addProduct(Product("Da", "Da", reqs));
+    addProduct(Product("Db", "Db", reqs));
+}
+
+template <typename T>
+void UHF<T>::run(TaskDAG& dag, const Arena& arena)
+{
+    const Molecule& molecule = get<Molecule>("molecule");
+
+    int norb = molecule.getNumOrbitals();
+    int nalpha = molecule.getNumAlphaElectrons();
+    int nbeta = molecule.getNumBetaElectrons();
+
     energy = molecule.getNuclearRepulsion();
 
-    int shapeNN[] = {NS,NS};
+    vector<int> shapeNN = vec(NS,NS);
+    vector<int> sizenn = vec(norb,norb);
+    vector<int> sizenO = vec(norb,nalpha);
+    vector<int> sizeno = vec(norb,nbeta);
+    vector<int> sizenV = vec(norb,norb-nalpha);
+    vector<int> sizenv = vec(norb,norb-nbeta);
 
-    int sizenn[] = {norb,norb};
-    Fa = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
-    Fb = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
-    dF = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
-    int sizenO[] = {norb,nalpha};
-    int sizeno[] = {norb,nbeta};
-    Ca_occ = new DistTensor<T>(ctf, 2, sizenO, shapeNN, false);
-    Cb_occ = new DistTensor<T>(ctf, 2, sizeno, shapeNN, false);
-    int sizenV[] = {norb,norb-nalpha};
-    int sizenv[] = {norb,norb-nbeta};
-    Ca_vrt = new DistTensor<T>(ctf, 2, sizenV, shapeNN, false);
-    Cb_vrt = new DistTensor<T>(ctf, 2, sizenv, shapeNN, false);
-    Da = new DistTensor<T>(ctf, 2, sizenn, shapeNN, true);
-    Db = new DistTensor<T>(ctf, 2, sizenn, shapeNN, true);
-    dDa = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
-    dDb = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
-    S = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
-    Smhalf = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
-    H = new DistTensor<T>(ctf, 2, sizenn, shapeNN, false);
+    put("Fa", new DistTensor<T>(arena, 2, sizenn, shapeNN, false));
+    put("Fb", new DistTensor<T>(arena, 2, sizenn, shapeNN, false));
+    put("Da", new DistTensor<T>(arena, 2, sizenn, shapeNN, true));
+    put("Db", new DistTensor<T>(arena, 2, sizenn, shapeNN, true));
 
-    calcOverlap();
-    calc1eHamiltonian();
+    puttmp("dF", new DistTensor<T>(arena, 2, sizenn, shapeNN, false));
+    puttmp("Ca_occ", new DistTensor<T>(arena, 2, sizenO, shapeNN, false));
+    puttmp("Cb_occ", new DistTensor<T>(arena, 2, sizeno, shapeNN, false));
+    puttmp("Ca_vrt", new DistTensor<T>(arena, 2, sizenV, shapeNN, false));
+    puttmp("Cb_vrt", new DistTensor<T>(arena, 2, sizenv, shapeNN, false));
+    puttmp("dDa", new DistTensor<T>(arena, 2, sizenn, shapeNN, false));
+    puttmp("dDb", new DistTensor<T>(arena, 2, sizenn, shapeNN, false));
+    puttmp("S^-1/2", new DistTensor<T>(arena, 2, sizenn, shapeNN, false));
+
+    calcSMinusHalf();
+
+    Iterative::run(dag, arena);
+
+    if (isUsed("S2") || isUsed("multiplicity"))
+    {
+        calcS2();
+    }
+
+    put("energy", new Scalar(arena, energy));
+    put("convergence", new Scalar(arena, conv));
+
+    put("occ", new MOSpace<T>(gettmp<DistTensor<T> >("Ca_occ"),
+                              gettmp<DistTensor<T> >("Cb_occ")));
+    put("vrt", new MOSpace<T>(gettmp<DistTensor<T> >("Ca_vrt"),
+                              gettmp<DistTensor<T> >("Cb_vrt")));
 }
 
 template <typename T>
-UHF<T>::~UHF()
-{
-    delete Fa;
-    delete Fb;
-    delete dF;
-    delete Ca_occ;
-    delete Cb_occ;
-    delete Ca_vrt;
-    delete Cb_vrt;
-    delete Da;
-    delete Db;
-    delete dDa;
-    delete dDb;
-    delete S;
-    delete Smhalf;
-    delete H;
-}
-
-template <typename T>
-void UHF<T>::_iterate()
+void UHF<T>::iterate()
 {
     buildFock();
     DIISExtrap();
@@ -107,105 +115,68 @@ void UHF<T>::_iterate()
     diagonalizeFock();
     calcDensity();
 
+    const Molecule& molecule = get<Molecule>("molecule");
+    int norb = molecule.getNumOrbitals();
+
+    DistTensor<T>& dDa = gettmp<DistTensor<T> >("dDa");
+    DistTensor<T>& dDb = gettmp<DistTensor<T> >("dDb");
+
     switch (convtype)
     {
         case MAX_ABS:
-            conv = max(dDa->reduce(CTF_OP_MAXABS), dDb->reduce(CTF_OP_MAXABS));
+            conv = max(dDa.norm(00), dDb.norm(00));
             break;
         case RMSD:
-            conv = sqrt((dDa->reduce(CTF_OP_SQNRM2)+dDb->reduce(CTF_OP_SQNRM2))/(2*norb*norb));
+            conv = sqrt((dDa.norm(2)+dDb.norm(2))/(2*norb*norb));
             break;
         case MAD:
-            conv = (dDa->reduce(CTF_OP_SUMABS)+dDb->reduce(CTF_OP_SUMABS))/(2*norb*norb);
+            conv = (dDa.norm(1)+dDb.norm(1))/(2*norb*norb);
             break;
     }
 }
 
 template <typename T>
-T UHF<T>::getMultiplicity() const
+void UHF<T>::calcS2()
 {
-    return sqrt(4*getS2()+1);
-}
+    const Molecule& molecule = get<Molecule>("molecule");
 
-template <typename T>
-T UHF<T>::getS2() const
-{
-    int shapeNN[] = {NS,NS};
-    int sizeab[] = {nalpha,nbeta};
-    int sizean[] = {nalpha,norb};
+    int norb = molecule.getNumOrbitals();
+    int nalpha = molecule.getNumAlphaElectrons();
+    int nbeta = molecule.getNumBetaElectrons();
 
-    DistTensor<T> Delta(this->ctf, 2, sizeab, shapeNN, false);
-    DistTensor<T> tmp(this->ctf, 2, sizean, shapeNN, false);
+    DistTensor<T>& S = get<DistTensor<T> >("S");
+
+    DistTensor<T>& Ca_occ = gettmp<DistTensor<T> >("Ca_occ");
+    DistTensor<T>& Cb_occ = gettmp<DistTensor<T> >("Cb_occ");
+
+    DistTensor<T> Delta(S.arena, 2, vec(nalpha,nbeta), vec(NS,NS), false);
+    DistTensor<T> tmp(S.arena, 2, vec(nalpha,norb), vec(NS,NS), false);
 
     int ndiff = abs(nalpha-nbeta);
     int nmin = min(nalpha, nbeta);
 
-    T S2 = (T)((ndiff/2)*(ndiff/2+1) + nmin);
+    double S2 = ((ndiff/2)*(ndiff/2+1) + nmin);
 
-    tmp["ai"] = (*Ca_occ)["ja"]*(*S)["ij"];
-    Delta["ab"] = tmp["ai"]*(*Cb_occ)["ib"];
+    tmp["ai"] = Ca_occ["ja"]*S["ij"];
+    Delta["ab"] = tmp["ai"]*Cb_occ["ib"];
 
-    S2 -= scalar(Delta*Delta);
+    S2 -= abs(scalar(Delta*conj(Delta)));
 
-    return abs(S2);
+    put("S2", new Scalar(S.arena, S2));
+    put("multiplicity", new Scalar(S.arena, sqrt(4*S2+1)));
 }
 
 template <typename T>
-T UHF<T>::getAvgNumAlpha() const
+void UHF<T>::calcSMinusHalf()
 {
-    return scalar((*S)*(*Da));
-}
+    const Molecule& molecule = get<Molecule>("molecule");
 
-template <typename T>
-T UHF<T>::getAvgNumBeta() const
-{
-    return scalar((*S)*(*Db));
-}
+    int norb = molecule.getNumOrbitals();
 
-template <typename T>
-void UHF<T>::calcOverlap()
-{
-    Context context;
+    DistTensor<T>& S = get<DistTensor<T> >("S");
+    DistTensor<T>& Smhalf = gettmp<DistTensor<T> >("S^-1/2");
 
-    vector< tkv_pair<T> > pairs;
-
-    int pid = this->comm.Get_rank();
-    int nproc = this->comm.Get_size();
-    int block = 0;
-    for (Molecule::const_shell_iterator i = molecule.getShellsBegin();i != molecule.getShellsEnd();++i)
-    {
-        for (Molecule::const_shell_iterator j = molecule.getShellsBegin();j != molecule.getShellsEnd();++j)
-        {
-            if (i < j) continue;
-
-            if (block%nproc == pid)
-            {
-                context.calcOVI(1.0, 0.0, *i, *j);
-
-                size_t nint = context.getNumIntegrals();
-                vector<T> ints(nint);
-                vector<idx2_t> idxs(nint);
-
-                size_t nproc = context.process1eInts(nint, ints.data(), idxs.data(), -1.0);
-                for (int i = 0;i < nproc;i++)
-                {
-                    //printf("%d %d %25.15f\n", idxs[i].i+1, idxs[i].j+1, ints[i]);
-
-                    pairs.push_back(tkv_pair<T>(idxs[i].i*norb+idxs[i].j, ints[i]));
-                    if (idxs[i].i != idxs[i].j)
-                    {
-                        pairs.push_back(tkv_pair<T>(idxs[i].j*norb+idxs[i].i, ints[i]));
-                    }
-                }
-            }
-
-            block++;
-        }
-    }
-
-    S->writeRemoteData(pairs.size(), pairs.data());
-
-    pairs.clear();
+    vector<T> Ea(norb), Eb(norb);
 
     #ifdef USE_ELEMENTAL
 
@@ -253,25 +224,22 @@ void UHF<T>::calcOverlap()
 
     #else
 
-    int64_t size;
-    T *s;
+    vector<T> s;
     vector<T> smhalf(norb*norb);
 
-    S->getAllData(size, s);
-    assert(size == norb*norb);
+    S.getAllData(s);
+    assert(s.size() == norb*norb);
 
-    int info = heev('V', 'U', norb, s, norb, Ea.data());
+    int info = heev('V', 'U', norb, s.data(), norb, Ea.data());
     assert(info == 0);
 
     fill(smhalf.begin(), smhalf.end(), 0.0);
     for (int i = 0;i < norb;i++)
     {
-        ger(norb, norb, 1/sqrt(Ea[i]), s+i*norb, 1, s+i*norb, 1, smhalf.data(), norb);
+        ger(norb, norb, 1/sqrt(Ea[i]), &s[i*norb], 1, &s[i*norb], 1, smhalf.data(), norb);
     }
 
-    FREE(s);
-
-    if (this->comm.Get_rank() == 0)
+    if (S.arena.rank == 0)
     {
         vector< tkv_pair<T> > pairs;
 
@@ -283,70 +251,34 @@ void UHF<T>::calcOverlap()
             }
         }
 
-        Smhalf->writeRemoteData(norb*norb, pairs.data());
+        Smhalf.writeRemoteData(pairs);
     }
     else
     {
-        Smhalf->writeRemoteData(0, NULL);
+        Smhalf.writeRemoteData();
     }
 
     #endif
 }
 
 template <typename T>
-void UHF<T>::calc1eHamiltonian()
-{
-    Context context;
-
-    vector<Center> centers;
-    for (vector<Atom>::const_iterator a = molecule.getAtomsBegin();a != molecule.getAtomsEnd();++a)
-    {
-        centers.push_back(a->getCenter());
-    }
-
-    vector< tkv_pair<T> > pairs;
-
-    int pid = this->comm.Get_rank();
-    int nproc = this->comm.Get_size();
-    int block = 0;
-    for (Molecule::const_shell_iterator i = molecule.getShellsBegin();i != molecule.getShellsEnd();++i)
-    {
-        for (Molecule::const_shell_iterator j = molecule.getShellsBegin();j != molecule.getShellsEnd();++j)
-        {
-            if (i < j) continue;
-
-            if (block%nproc == pid)
-            {
-                context.calcKEI(1.0, 0.0, *i, *j);
-                context.calcNAI(1.0, 1.0, *i, *j, centers.data(), centers.size());
-
-                size_t nint = context.getNumIntegrals();
-                vector<T> ints(nint);
-                vector<idx2_t> idxs(nint);
-
-                size_t nproc = context.process1eInts(nint, ints.data(), idxs.data(), -1.0);
-                for (int i = 0;i < nproc;i++)
-                {
-                    //printf("%d %d %25.15f\n", idxs[i].i+1, idxs[i].j+1, ints[i]);
-
-                    pairs.push_back(tkv_pair<T>(idxs[i].i*norb+idxs[i].j, ints[i]));
-                    if (idxs[i].i != idxs[i].j)
-                    {
-                        pairs.push_back(tkv_pair<T>(idxs[i].j*norb+idxs[i].i, ints[i]));
-                    }
-                }
-            }
-
-            block++;
-        }
-    }
-
-    H->writeRemoteData(pairs.size(), pairs.data());
-}
-
-template <typename T>
 void UHF<T>::diagonalizeFock()
 {
+    const Molecule& molecule = get<Molecule>("molecule");
+
+    int norb = molecule.getNumOrbitals();
+    int nalpha = molecule.getNumAlphaElectrons();
+    int nbeta = molecule.getNumBetaElectrons();
+
+    DistTensor<T>& S = get<DistTensor<T> >("S");
+    DistTensor<T>& Fa = get<DistTensor<T> >("Fa");
+    DistTensor<T>& Fb = get<DistTensor<T> >("Fb");
+    DistTensor<T>& Ca_occ = gettmp<DistTensor<T> >("Ca_occ");
+    DistTensor<T>& Cb_occ = gettmp<DistTensor<T> >("Cb_occ");
+    DistTensor<T>& Ca_vrt = gettmp<DistTensor<T> >("Ca_vrt");
+    DistTensor<T>& Cb_vrt = gettmp<DistTensor<T> >("Cb_vrt");
+
+    vector<T> Ea(norb), Eb(norb);
     vector< tkv_pair<T> > pairs;
 
     #ifdef USE_ELEMENTAL
@@ -456,18 +388,17 @@ void UHF<T>::diagonalizeFock()
 
     #else
 
-    int64_t size;
     int info;
-    T *fock, *s;
+    vector<T> fock, s;
 
-    S->getAllData(size, s);
-    assert(size == norb*norb);
-    Fa->getAllData(size, fock);
-    assert(size == norb*norb);
-    info = hegv(AXBX, 'V', 'U', norb, fock, norb, s, norb, Ea.data());
+    S.getAllData(s);
+    assert(s.size() == norb*norb);
+    Fa.getAllData(fock);
+    assert(fock.size() == norb*norb);
+    info = hegv(AXBX, 'V', 'U', norb, fock.data(), norb, s.data(), norb, Ea.data());
     assert(info == 0);
 
-    if (this->comm.Get_rank() == 0)
+    if (S.arena.rank == 0)
     {
         for (int i = 0;i < nalpha;i++)
         {
@@ -477,7 +408,7 @@ void UHF<T>::diagonalizeFock()
             }
         }
 
-        Ca_occ->writeRemoteData(norb*nalpha, pairs.data());
+        Ca_occ.writeRemoteData(pairs);
         pairs.clear();
 
         for (int i = 0;i < norb-nalpha;i++)
@@ -488,26 +419,23 @@ void UHF<T>::diagonalizeFock()
             }
         }
 
-        Ca_vrt->writeRemoteData(norb*(norb-nalpha), pairs.data());
+        Ca_vrt.writeRemoteData(pairs);
         pairs.clear();
     }
     else
     {
-        Ca_occ->writeRemoteData(0, NULL);
-        Ca_vrt->writeRemoteData(0, NULL);
+        Ca_occ.writeRemoteData();
+        Ca_vrt.writeRemoteData();
     }
 
-    FREE(fock);
-    FREE(s);
-
-    S->getAllData(size, s);
-    assert(size == norb*norb);
-    Fb->getAllData(size, fock);
-    assert(size == norb*norb);
-    info = hegv(AXBX, 'V', 'U', norb, fock, norb, s, norb, Eb.data());
+    S.getAllData(s);
+    assert(s.size() == norb*norb);
+    Fb.getAllData(fock);
+    assert(fock.size() == norb*norb);
+    info = hegv(AXBX, 'V', 'U', norb, fock.data(), norb, s.data(), norb, Eb.data());
     assert(info == 0);
 
-    if (this->comm.Get_rank() == 0)
+    if (S.arena.rank == 0)
     {
         for (int i = 0;i < nbeta;i++)
         {
@@ -517,7 +445,7 @@ void UHF<T>::diagonalizeFock()
             }
         }
 
-        Cb_occ->writeRemoteData(norb*nbeta, pairs.data());
+        Cb_occ.writeRemoteData(pairs);
         pairs.clear();
 
         for (int i = 0;i < norb-nbeta;i++)
@@ -528,60 +456,42 @@ void UHF<T>::diagonalizeFock()
             }
         }
 
-        Cb_vrt->writeRemoteData(norb*(norb-nbeta), pairs.data());
+        Cb_vrt.writeRemoteData(pairs);
     }
     else
     {
-        Cb_occ->writeRemoteData(0, NULL);
-        Cb_vrt->writeRemoteData(0, NULL);
+        Cb_occ.writeRemoteData();
+        Cb_vrt.writeRemoteData();
     }
-
-    FREE(fock);
-    FREE(s);
 
     #endif
 
-    fixPhase(*Ca_occ);
-    fixPhase(*Cb_occ);
-    fixPhase(*Ca_vrt);
-    fixPhase(*Cb_vrt);
-
-    /*
-    cout << "Eigenvalues" << endl;
-    for (int i = 0;i < norb;i++)
-        cout << i << ' ' << Ea[i] << ' ' << Eb[i] << endl;
-    cout << endl;
-
-    DistTensor<T> test1(*Ca_occ);
-    test1 -= *Cb_occ;
-    test1.print(stdout);
-
-    DistTensor<T> test2(*Ca_vrt);
-    test2 -= *Cb_vrt;
-    test2.print(stdout);
-
-    exit(1);
-    */
+    fixPhase(Ca_occ);
+    fixPhase(Cb_occ);
+    fixPhase(Ca_vrt);
+    fixPhase(Cb_vrt);
 }
 
 template <typename T>
 void UHF<T>::fixPhase(DistTensor<T>& C)
 {
-    int rank = this->comm.Get_rank();
-    int np = this->comm.Get_size();
+    int norb = C.getLengths()[0];
     int nr = C.getLengths()[1];
 
-    vector< tkv_pair<T> > pairs(norb, tkv_pair<T>(0,0));
+    int nproc = C.arena.nproc;
+    int rank = C.arena.rank;
 
-    for (int b = 0;b*np < nr;b++)
+    vector< tkv_pair<T> > pairs(norb);
+
+    for (int b = 0;b*nproc < nr;b++)
     {
-        int r = b*np+rank;
+        int r = b*nproc+rank;
 
         if (r < nr)
         {
             for (int i = 0;i < norb;i++) pairs[i].k = i+r*norb;
 
-            C.getRemoteData(norb, pairs.data());
+            C.getRemoteData(pairs);
 
             sort(pairs.begin(), pairs.end());
             int sign = 0;
@@ -602,12 +512,12 @@ void UHF<T>::fixPhase(DistTensor<T>& C)
                 }
             }
 
-            C.writeRemoteData(norb, pairs.data());
+            C.writeRemoteData(pairs);
         }
         else
         {
-            C.getRemoteData(0, NULL);
-            C.writeRemoteData(0, NULL);
+            C.getRemoteData();
+            C.writeRemoteData();
         }
     }
 }
@@ -615,43 +525,66 @@ void UHF<T>::fixPhase(DistTensor<T>& C)
 template <typename T>
 void UHF<T>::calcEnergy()
 {
+    const Molecule& molecule = get<Molecule>("molecule");
+
+    DistTensor<T>& H = get<DistTensor<T> >("H");
+    DistTensor<T>& Fa = get<DistTensor<T> >("Fa");
+    DistTensor<T>& Fb = get<DistTensor<T> >("Fb");
+    DistTensor<T>& Da = get<DistTensor<T> >("Da");
+    DistTensor<T>& Db = get<DistTensor<T> >("Db");
+
     /*
      * E = (1/2)Tr[D(F+H)]
      *
      *   = (1/2)Tr[Da*(Fa+H) + Db*(Fb+H)]
      */
-    (*Fa)["ab"] += (*H)["ab"];
-    (*Fb)["ab"] += (*H)["ab"];
+    Fa["ab"] += H["ab"];
+    Fb["ab"] += H["ab"];
     energy = molecule.getNuclearRepulsion();
-    energy += 0.5*scalar((*Da)["ab"]*(*Fa)["ab"]);
-    energy += 0.5*scalar((*Db)["ab"]*(*Fb)["ab"]);
-    (*Fa)["ab"] -= (*H)["ab"];
-    (*Fb)["ab"] -= (*H)["ab"];
+    energy += 0.5*scalar(Da["ab"]*Fa["ab"]);
+    energy += 0.5*scalar(Db["ab"]*Fb["ab"]);
+    Fa["ab"] -= H["ab"];
+    Fb["ab"] -= H["ab"];
 }
 
 template <typename T>
 void UHF<T>::calcDensity()
 {
+    DistTensor<T>& dDa = gettmp<DistTensor<T> >("dDa");
+    DistTensor<T>& dDb = gettmp<DistTensor<T> >("dDb");
+    DistTensor<T>& Da = get<DistTensor<T> >("Da");
+    DistTensor<T>& Db = get<DistTensor<T> >("Db");
+    DistTensor<T>& Ca_occ = gettmp<DistTensor<T> >("Ca_occ");
+    DistTensor<T>& Cb_occ = gettmp<DistTensor<T> >("Cb_occ");
+
     /*
      * D[ab] = C[ai]*C[bi]
      */
-    (*dDa)["ab"] = (*Da)["ab"];
-    (*dDb)["ab"] = (*Db)["ab"];
-    (*Da)["ab"] = (*Ca_occ)["ai"]*(*Ca_occ)["bi"];
-    (*Db)["ab"] = (*Cb_occ)["ai"]*(*Cb_occ)["bi"];
-    (*dDa)["ab"] -= (*Da)["ab"];
-    (*dDb)["ab"] -= (*Db)["ab"];
+    dDa["ab"]  = Da["ab"];
+    dDb["ab"]  = Db["ab"];
+     Da["ab"]  = Ca_occ["ai"]*Ca_occ["bi"];
+     Db["ab"]  = Cb_occ["ai"]*Cb_occ["bi"];
+    dDa["ab"] -= Da["ab"];
+    dDb["ab"] -= Db["ab"];
 
     if (damping > 0.0)
     {
-        (*Da)["ab"] += damping*(*dDa)["ab"];
-        (*Db)["ab"] += damping*(*dDb)["ab"];
+        Da["ab"] += damping*dDa["ab"];
+        Db["ab"] += damping*dDb["ab"];
     }
 }
 
 template <typename T>
 void UHF<T>::DIISExtrap()
 {
+    DistTensor<T>& S = get<DistTensor<T> >("S");
+    DistTensor<T>& Smhalf = gettmp<DistTensor<T> >("S^-1/2");
+    DistTensor<T>& dF = gettmp<DistTensor<T> >("dF");
+    DistTensor<T>& Fa = get<DistTensor<T> >("Fa");
+    DistTensor<T>& Fb = get<DistTensor<T> >("Fb");
+    DistTensor<T>& Da = get<DistTensor<T> >("Da");
+    DistTensor<T>& Db = get<DistTensor<T> >("Db");
+
     /*
      * Generate the residual:
      *
@@ -679,28 +612,28 @@ void UHF<T>::DIISExtrap()
      *     = [F,D] = 0 at convergence.
      */
     {
-        DistTensor<T> tmp1(*Fa);
-        DistTensor<T> tmp2(*Fa);
+        DistTensor<T> tmp1(Fa);
+        DistTensor<T> tmp2(Fa);
 
-         tmp1["ab"]  =     (*Fa)["ac"]*    (*Da)["cb"];
-         tmp2["ab"]  =      tmp1["ac"]*     (*S)["cb"];
-         tmp1["ab"]  =      (*S)["ac"]*    (*Da)["cb"];
-         tmp2["ab"] -=      tmp1["ac"]*    (*Fa)["cb"];
-         tmp1["ab"]  = (*Smhalf)["ac"]*     tmp2["cb"];
-        (*dF)["ab"]  =      tmp1["ac"]*(*Smhalf)["cb"];
+        tmp1["ab"]  =     Fa["ac"]*    Da["cb"];
+        tmp2["ab"]  =   tmp1["ac"]*     S["cb"];
+        tmp1["ab"]  =      S["ac"]*    Da["cb"];
+        tmp2["ab"] -=   tmp1["ac"]*    Fa["cb"];
+        tmp1["ab"]  = Smhalf["ac"]*  tmp2["cb"];
+          dF["ab"]  =   tmp1["ac"]*Smhalf["cb"];
 
-         tmp1["ab"]  =     (*Fb)["ac"]*    (*Db)["cb"];
-         tmp2["ab"]  =      tmp1["ac"]*     (*S)["cb"];
-         tmp1["ab"]  =      (*S)["ac"]*    (*Db)["cb"];
-         tmp2["ab"] -=      tmp1["ac"]*    (*Fb)["cb"];
-         tmp1["ab"]  = (*Smhalf)["ac"]*     tmp2["cb"];
-        (*dF)["ab"] +=      tmp1["ac"]*(*Smhalf)["cb"];
+        tmp1["ab"]  =     Fb["ac"]*    Db["cb"];
+        tmp2["ab"]  =   tmp1["ac"]*     S["cb"];
+        tmp1["ab"]  =      S["ac"]*    Db["cb"];
+        tmp2["ab"] -=   tmp1["ac"]*    Fb["cb"];
+        tmp1["ab"]  = Smhalf["ac"]*  tmp2["cb"];
+          dF["ab"] +=   tmp1["ac"]*Smhalf["cb"];
     }
 
     vector< DistTensor<T>* > Fab(2);
-    Fab[0] = Fa;
-    Fab[1] = Fb;
-    diis.extrapolate(Fab, vector< DistTensor<T>* >(1, dF));
+    Fab[0] = &Fa;
+    Fab[1] = &Fb;
+    diis.extrapolate(Fab, vector< DistTensor<T>* >(1, &dF));
 }
 
 INSTANTIATE_SPECIALIZATIONS(UHF);

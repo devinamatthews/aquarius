@@ -28,8 +28,11 @@
 #include <vector>
 #include <iterator>
 
-#include "slide/slide.hpp"
+#include "integrals/shell.hpp"
+#include "symmetry/symmetry.hpp"
 #include "util/util.h"
+#include "task/task.hpp"
+
 #include "config.hpp"
 
 namespace aquarius
@@ -39,111 +42,136 @@ namespace input
 
 class Atom;
 
-class Molecule
+class Molecule : public task::Resource
 {
-    private:
+    friend class MoleculeTask;
+
+    protected:
         std::vector<Atom> atoms;
         int multiplicity;
         int nelec;
         int norb;
         double nucrep;
 
-        void addAtom(const Atom& atom);
+        template <typename shell_type, typename atom_iterator_type, typename shell_iterator_type>
+        class shell_iterator_ : public std::iterator<std::forward_iterator_tag, shell_type>
+        {
+            friend class Molecule;
+
+            private:
+                atom_iterator_type atom_it;
+                atom_iterator_type atom_it_end;
+                shell_iterator_type shell_it;
+
+            protected:
+                shell_iterator_(const atom_iterator_type& atom_it,
+                                const atom_iterator_type& atom_it_end,
+                                const shell_iterator_type& shell_it)
+                : atom_it(atom_it), atom_it_end(atom_it_end), shell_it(shell_it) {}
+
+            public:
+                shell_iterator_() {}
+
+                template <typename other_shell_type, typename other_atom_iterator_type,
+                          typename other_shell_iterator_type>
+                shell_iterator_(const shell_iterator_<other_shell_type,
+                                                      other_atom_iterator_type,
+                                                      other_shell_iterator_type>& other)
+                : atom_it(other.atom_it), atom_it_end(other.atom_it_end), shell_it(other.shell_it) {}
+
+                template <typename other_shell_type, typename other_atom_iterator_type,
+                          typename other_shell_iterator_type>
+                shell_iterator_ operator=(const shell_iterator_<other_shell_type,
+                                                                other_atom_iterator_type,
+                                                                other_shell_iterator_type>& other)
+                {
+                    atom_it = other.atom_it;
+                    atom_it_end = other.atom_it_end;
+                    shell_it = other.shell_it;
+                    return *this;
+                }
+
+                shell_iterator_& operator++()
+                {
+                    if (atom_it != atom_it_end)
+                    {
+                        ++shell_it;
+
+                        if (shell_it == atom_it->getShellsEnd())
+                        {
+                            ++atom_it;
+                            if (atom_it != atom_it_end) shell_it = atom_it->getShellsBegin();
+                        }
+                    }
+
+                    return *this;
+                }
+
+                shell_iterator_ operator++(int x)
+                {
+                    shell_iterator save = *this;
+                    ++(*this);
+                    return save;
+                }
+
+                shell_iterator_ operator+(int x)
+                {
+                    shell_iterator r(*this);
+                    for (int i = 0;i < x;i++) ++r;
+                    return r;
+                }
+
+                shell_type& operator*()
+                {
+                    return *shell_it;
+                }
+
+                shell_type* operator->()
+                {
+                    return &(*shell_it);
+                }
+
+                bool operator<(const shell_iterator_& other) const
+                {
+                    return atom_it < other.atom_it || (atom_it == other.atom_it && shell_it < other.shell_it);
+                }
+
+                bool operator==(const shell_iterator_& other) const
+                {
+                    return atom_it == other.atom_it && shell_it == other.shell_it;
+                }
+
+                bool operator!=(const shell_iterator_& other) const
+                {
+                    return atom_it != other.atom_it || shell_it != other.shell_it;
+                }
+        };
 
     public:
-        Molecule(const Config& config);
+        Molecule(const Arena& arena, const Config& config);
 
-        int getNumElectrons() const;
+        void print(task::Printer& p) const {}
 
-        int getNumAlphaElectrons() const;
+        int getNumElectrons() const { return nelec; }
 
-        int getNumBetaElectrons() const;
+        int getNumAlphaElectrons() const { return (nelec+multiplicity)/2; }
 
-        int getMultiplicity() const;
+        int getNumBetaElectrons() const { return (nelec-multiplicity+1)/2; }
 
-        int getNumOrbitals() const;
+        int getMultiplicity() const { return multiplicity; }
 
-        double getNuclearRepulsion() const;
+        int getNumOrbitals() const { return norb; }
 
-        class shell_iterator : public std::iterator<std::forward_iterator_tag, slide::Shell>
-        {
-            friend class Molecule;
+        double getNuclearRepulsion() const { return nucrep; }
 
-            private:
-                std::vector<Atom>::iterator atom_it;
-                std::vector<Atom>::iterator atom_it_end;
-                std::vector<slide::Shell>::iterator shell_it;
+        const symmetry::PointGroup& getPointGroup() const { return symmetry::PointGroup::C1(); }
 
-            protected:
-                shell_iterator(const std::vector<Atom>::iterator& atom_it,
-                               const std::vector<Atom>::iterator& atom_it_end,
-                               const std::vector<slide::Shell>::iterator& shell_it);
-
-            public:
-                shell_iterator();
-
-                shell_iterator(const shell_iterator& other);
-
-                shell_iterator& operator=(const shell_iterator& other);
-
-                shell_iterator& operator++();
-
-                shell_iterator operator++(int x);
-
-                shell_iterator operator+(int x);
-
-                shell_iterator operator-(int x);
-
-                slide::Shell& operator*();
-
-                slide::Shell* operator->();
-
-                bool operator<(const shell_iterator& other) const;
-
-                bool operator==(const shell_iterator& other) const;
-
-                bool operator!=(const shell_iterator& other) const;
-        };
-
-        class const_shell_iterator : public std::iterator<std::forward_iterator_tag, const slide::Shell>
-        {
-            friend class Molecule;
-
-            private:
-                std::vector<Atom>::const_iterator atom_it;
-                std::vector<Atom>::const_iterator atom_it_end;
-                std::vector<slide::Shell>::const_iterator shell_it;
-
-            protected:
-                const_shell_iterator(const std::vector<Atom>::const_iterator& atom_it,
-                               const std::vector<Atom>::const_iterator& atom_it_end,
-                               const std::vector<slide::Shell>::const_iterator& shell_it);
-
-            public:
-                const_shell_iterator();
-
-                const_shell_iterator(const const_shell_iterator& other);
-
-                const_shell_iterator& operator=(const const_shell_iterator& other);
-
-                const_shell_iterator& operator++();
-
-                const_shell_iterator operator++(int x);
-
-                const_shell_iterator operator+(int x);
-
-                const_shell_iterator operator-(int x);
-
-                const slide::Shell& operator*();
-
-                const slide::Shell* operator->();
-
-                bool operator<(const const_shell_iterator& other) const;
-
-                bool operator==(const const_shell_iterator& other) const;
-
-                bool operator!=(const const_shell_iterator& other) const;
-        };
+        typedef shell_iterator_<integrals::Shell,
+                                std::vector<Atom>::iterator,
+                                std::vector<integrals::Shell>::iterator > shell_iterator;
+        typedef shell_iterator_<const integrals::Shell,
+                                std::vector<Atom>::const_iterator,
+                                std::vector<integrals::Shell>::const_iterator > const_shell_iterator;
 
         shell_iterator getShellsBegin();
 
@@ -153,37 +181,48 @@ class Molecule
 
         const_shell_iterator getShellsEnd() const;
 
-        std::vector<Atom>::iterator getAtomsBegin();
+        std::vector<Atom>::iterator getAtomsBegin() { return atoms.begin(); }
 
-        std::vector<Atom>::iterator getAtomsEnd();
+        std::vector<Atom>::iterator getAtomsEnd() { return atoms.end(); }
 
-        std::vector<Atom>::const_iterator getAtomsBegin() const;
+        std::vector<Atom>::const_iterator getAtomsBegin() const { return atoms.begin(); }
 
-        std::vector<Atom>::const_iterator getAtomsEnd() const;
+        std::vector<Atom>::const_iterator getAtomsEnd() const { return atoms.end(); }
 };
 
 class Atom
 {
     private:
-        slide::Center center;
-        std::vector<slide::Shell> shells;
+        integrals::Center center;
+        std::vector<integrals::Shell> shells;
 
     public:
-        Atom(const slide::Center& center);
+        Atom(const integrals::Center& center) : center(center) {}
 
-        void addShell(const slide::Shell& shell);
+        void addShell(const integrals::Shell& shell) { shells.push_back(shell); }
 
-        slide::Center& getCenter();
+        integrals::Center& getCenter() { return center; }
 
-        const slide::Center& getCenter() const;
+        const integrals::Center& getCenter() const { return center; }
 
-        std::vector<slide::Shell>::iterator getShellsBegin();
+        std::vector<integrals::Shell>::iterator getShellsBegin() { return shells.begin(); }
 
-        std::vector<slide::Shell>::iterator getShellsEnd();
+        std::vector<integrals::Shell>::iterator getShellsEnd() { return shells.end(); }
 
-        std::vector<slide::Shell>::const_iterator getShellsBegin() const;
+        std::vector<integrals::Shell>::const_iterator getShellsBegin() const { return shells.begin(); }
 
-        std::vector<slide::Shell>::const_iterator getShellsEnd() const;
+        std::vector<integrals::Shell>::const_iterator getShellsEnd() const { return shells.end(); }
+};
+
+class MoleculeTask : public task::Task
+{
+    protected:
+        Config config;
+
+    public:
+        MoleculeTask(const std::string& name, const input::Config& config);
+
+        void run(task::TaskDAG& dag, const Arena& arena);
 };
 
 }

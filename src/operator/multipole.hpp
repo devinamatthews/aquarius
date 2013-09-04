@@ -39,61 +39,14 @@ template <typename T>
 class Multipole : public MOOperator<T>, public tensor::CompositeTensor<Multipole<T>,OneElectronOperator<T>,T>
 {
     protected:
-        const int Lmin, Lmax;
+        int Lmin, Lmax;
 
     public:
-        Multipole(const scf::UHF<T>& uhf, const int Lmin, const int Lmax=Lmin)
-        : MOOperator<T>(uhf), tensor::CompositeTensor<Multipole<T>,
-              OneElectronOperator<T>,T>((Lmax+1)*(Lmax+2)*(Lmax+3)/6-Lmin*(Lmin+1)*(Lmin+2)/6)
-        {
-            slide::Context context;
-            const input::Molecule& m = uhf.getMolecule();
-            int N = m.getNumOrbitals();
+        Multipole(const scf::UHF<T>& uhf, int Lmin, int Lmax=-1);
 
-            int sizeNN[] = {N, N};
-            int shapeNN[] = {NS, NS};
+        const OneElectronOperator<T>& operator()(int L, int xyz) const;
 
-            int xyztot = 0;
-            for (int L = Lmin;L <= Lmax;L++)
-            {
-                std::vector< tensor::DistTensor<T>* > ao;
-                std::vector< std::vector< tkv_pair<T> > > pairs;
-
-                for (int xyz = 0;xyz < (L+1)*(L+2)/2;xyz++)
-                {
-                    ao[xyz] = new tensor::DistTensor<T>(ctf, 2, sizeNN, shapeNN, true);
-                }
-
-                int ij = 0;
-                for (input::Molecule::const_shell_iterator i = m.getShellsBegin();i != m.getShellsEnd();++i)
-                {
-                    for (input::Molecule::const_shell_iterator j = i;j != m.getShellsEnd();++j)
-                    {
-                        //calc integrals
-
-                        //put into pairs
-                    }
-                }
-
-                for (int xyz = 0;xyz < (L+1)*(L+2)/2;xyz++)
-                {
-                    ao[xyz]->writeRemoteData(pairs[xyz].size(), pairs[xyz].data());
-                    this->tensors_[xyztot++].tensor_ = new OneElectronOperator<T>(uhf, *ao[xyz]);
-                }
-            }
-        }
-
-        const OneElectronOperator<T>& operator()(const int L, const int xyz) const
-        {
-            return (*this)(L*(L+1)*(L+2)/6+xyz);
-        }
-
-        const OneElectronOperator<T>& operator()(const int x, const int y, const int z) const
-        {
-            const int L = x+y+z;
-            const int xyz = z+(L+1-x)*(L+2-x)/2;
-            return (*this)(L, xyz);
-        }
+        const OneElectronOperator<T>& operator()(int x, int y, int z) const;
 };
 
 }

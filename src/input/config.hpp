@@ -112,7 +112,11 @@ class Config
 
         Config(node_t* node);
 
+        node_t* cloneNode(node_t* node) const;
+
         void attachNode(node_t* node);
+
+        void detachNode(node_t* node);
 
         void deleteNode(node_t* node);
 
@@ -122,7 +126,7 @@ class Config
 
         std::string readEntry(std::istream& is, std::string& line, int& lineno);
 
-        void addNode(node_t* parent, std::string& data);
+        node_t* addNode(node_t* parent, std::string& data);
 
         void addNode(node_t* parent, node_t* child);
 
@@ -165,7 +169,18 @@ class Config
 
         ~Config();
 
+        Config clone() const;
+
         Config& operator=(const Config& copy);
+
+        bool exists(const std::string& path) const { return resolve(root, path) != NULL; }
+
+        void remove(const std::string& path)
+        {
+            node_t* node = resolve(root,path);
+            if (node == NULL) throw EntryNotFoundError(path);
+            deleteNode(node);
+        }
 
         template<typename T>
         T get(const std::string& path, const int which = 0) const;
@@ -215,7 +230,7 @@ class Schema : public Config
 
         Schema(const std::string& file) : Config(file) {}
 
-        Schema(Schema& copy) : Config(copy) {}
+        Schema(Config& copy) : Config(copy) {}
 
         void apply(Config& config) const;
 };
@@ -270,7 +285,7 @@ template<typename S>
 class Config::Extractor< std::vector<S> >
 {
     public:
-    static std::vector<S> extract(node_t* node, int which)
+    static std::vector<S> extract(node_t* node, int which = 0)
     {
         if (which != ALL)
         {
@@ -298,7 +313,14 @@ template<>
 class Config::Extractor<std::string>
 {
     public:
-    static std::string extract(node_t* node, int which);
+    static std::string extract(node_t* node, int which = 0);
+};
+
+template<>
+class Config::Extractor<Config>
+{
+    public:
+    static Config extract(node_t* node, int which = 0);
 };
 
 template<typename T>

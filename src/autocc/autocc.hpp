@@ -25,7 +25,7 @@
 #ifndef _AQUARIUS_AUTOCC_HPP_
 #define _AQUARIUS_AUTOCC_HPP_
 
-#include "stl_ext/stl_ext.hpp"
+#include "util/stl_ext.hpp"
 
 #include "fraction.hpp"
 #include "diagram.hpp"

@@ -26,7 +26,7 @@
 #define _AQUARIUS_OPERATOR_ST1EOPERATOR_HPP_
 
 #include "1eoperator.hpp"
-#include "exponentialoperator.hpp"
+#include "excitationoperator.hpp"
 
 namespace aquarius
 {
@@ -44,17 +44,7 @@ template <typename U>
 class STOneElectronOperator<U,2> : public OneElectronOperator<U>
 {
     public:
-        STOneElectronOperator(const OneElectronOperator<U>& X, const ExponentialOperator<U,2>& T)
-        : OneElectronOperator<U>(const_cast<OneElectronOperator<U>&>(X), OneElectronOperator<U>::ALL)
-        {
-            this->ij["mi"] += this->ia["me"]*T(1)["ei"];
-
-            this->ai["ai"] += T(2)["aeim"]*this->ia["me"];
-            this->ai["ai"] += T(1)["ei"]*this->ab["ae"];
-            this->ai["ai"] -= T(1)["am"]*this->ij["mi"];
-
-            this->ab["ae"] -= this->ia["me"]*T(1)["am"];
-        }
+        STOneElectronOperator(const OneElectronOperator<U>& X, const ExcitationOperator<U,2>& T);
 };
 
 }

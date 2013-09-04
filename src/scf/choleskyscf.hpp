@@ -25,32 +25,22 @@
 #ifndef _AQUARIUS_SCF_CHOLESKYSCF_HPP_
 #define _AQUARIUS_SCF_CHOLESKYSCF_HPP_
 
+#include "integrals/cholesky.hpp"
+
 #include "scf.hpp"
-#include "cholesky.hpp"
 
 namespace aquarius
 {
 namespace scf
 {
 
-template <typename T> class CholeskyMOIntegrals;
-
 template <typename T>
 class CholeskyUHF : public UHF<T>
 {
-    friend class CholeskyMOIntegrals<T>;
-
-    protected:
-        const CholeskyIntegrals<T>& chol;
-        tensor::DistTensor<T> *J;
-        tensor::DistTensor<T> *JD;
-        tensor::DistTensor<T> *La_occ, *Lb_occ;
-        tensor::DistTensor<T> *LDa_occ, *LDb_occ;
-
     public:
-        CholeskyUHF(const input::Config& config, const CholeskyIntegrals<T>& chol);
+        CholeskyUHF(const std::string& name, const input::Config& config);
 
-        ~CholeskyUHF();
+        void run(task::TaskDAG& dag, const Arena& arena);
 
     protected:
         void buildFock();

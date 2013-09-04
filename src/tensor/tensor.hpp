@@ -27,9 +27,10 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <string>
 #include <string.h>
 
-#include "stl_ext/stl_ext.hpp"
+#include "util/stl_ext.hpp"
 #include "util/util.h"
 #include "util/blas.h"
 
@@ -37,12 +38,6 @@ namespace aquarius
 {
 namespace tensor
 {
-
-template <class T, class U>
-struct if_exists
-{
-    typedef U type;
-};
 
 template <class Derived, class T> class Tensor;
 template <class Derived, class T> class ScaledTensor;
@@ -84,19 +79,19 @@ class Tensor
 {
     public:
         typedef T dtype;
-        
-        char const * name;
+        std::string name;
 
-        ~Tensor() {}
+        Tensor() {}
         
-        Tensor() { name = NULL; }
+        Tensor(const std::string& name) : name(name) {}
+
+        virtual ~Tensor() {}
         
+        const std::string& getName() const { return name; }
+
         Derived& getDerived() { return static_cast<Derived&>(*this); }
 
         const Derived& getDerived() const { return static_cast<const Derived&>(*this); }
-        
-        
-        virtual void set_name(char const * name_) { name = name_; }
 
         /**********************************************************************
          *
@@ -197,7 +192,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> typename std::if_exists<typename cvDerived::dtype, Derived&>::type
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator=(cvDerived& other)
         {
@@ -205,7 +200,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> typename std::if_exists<typename cvDerived::dtype, Derived&>::type
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator+=(cvDerived& other)
         {
@@ -213,7 +208,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> typename std::if_exists<typename cvDerived::dtype, Derived&>::type
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator-=(cvDerived& other)
         {
@@ -221,7 +216,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> typename std::if_exists<typename cvDerived::dtype, Derived&>::type
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator*=(cvDerived& other)
         {
@@ -229,7 +224,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> typename std::if_exists<typename cvDerived::dtype, Derived&>::type
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator/=(cvDerived& other)
         {
@@ -362,7 +357,7 @@ class Tensor
             return ScaledTensor<const Derived,T>(t.getDerived(), (T)1, true);
         }
 
-        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, TensorMult<Derived,T> >::type
+        template <typename cvDerived> typename std::if_exists<typename cvDerived::dtype, TensorMult<Derived,T> >::type
         //ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
         operator*(const cvDerived& other) const
         {
@@ -370,7 +365,7 @@ class Tensor
                                          ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
         }
 
-        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, TensorDiv<Derived,T> >::type
+        template <typename cvDerived> typename std::if_exists<typename cvDerived::dtype, TensorDiv<Derived,T> >::type
         //ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorDiv<Derived,T>))
         operator/(const cvDerived& other) const
         {

@@ -22,116 +22,65 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#include <iostream>
+#include "time/time.hpp"
+#include "task/task.hpp"
 
-#include "stl_ext/stl_ext.hpp"
-#include "util/util.h"
+#include "omp.h"
 
 using namespace std;
-//using namespace aquarius::tensor;
-//using namespace aquarius::slide;
-
-template <class T, class U>
-struct if_exists
-{
-    typedef U type;
-};
-
-template <class Derived, class T> class Tensor;
-template <class Derived, class T> class ScaledTensor;
-template <class Derived, class T> class TensorMult;
-
-template <class Derived, typename T>
-class Tensor
-{
-    public:
-        typedef T dtype;
-
-        virtual ~Tensor() {}
-
-        Derived& getDerived() { return static_cast<Derived&>(*this); }
-
-        const Derived& getDerived() const { return static_cast<const Derived&>(*this); }
-
-        //template <typename cvDerived> typename if_exists<typename cvDerived::dtype, TensorMult<Derived,T> >::type
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
-        operator*(const cvDerived& other) const
-        {
-            return TensorMult<Derived,T>(ScaledTensor<const Derived,T>(getDerived(), (T)1),
-                                         ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
-        }
-
-        virtual T dot(const Derived& A) const = 0;
-};
-
-template <class Derived, typename T>
-class ScaledTensor
-{
-    public:
-        Derived& tensor_;
-        T factor_;
-
-        template <typename cvDerived>
-        ScaledTensor(const ScaledTensor<cvDerived,T>& other)
-        : tensor_(other.tensor_), factor_(other.factor_) {}
-
-        ScaledTensor(Derived& tensor, const T factor)
-        : tensor_(tensor), factor_(factor) {}
-};
-
-template <class Derived, typename T>
-class TensorMult
-{
-    private:
-        const TensorMult& operator=(const TensorMult<Derived,T>& other);
-
-    public:
-        ScaledTensor<const Derived,T> A_;
-        ScaledTensor<const Derived,T> B_;
-        T factor_;
-
-        template <class Derived1, class Derived2>
-        TensorMult(const ScaledTensor<Derived1,T>& A, const ScaledTensor<Derived2,T>& B)
-        : A_(A), B_(B), factor_(B.factor_) {}
-};
-
-template <class Derived, typename T>
-T scalar(const TensorMult<Derived,T>& tm)
-{
-    return tm.factor_*tm.B_.tensor_.dot(tm.A_.tensor_);
-}
-
-template <typename T>
-class DistTensor : public Tensor<DistTensor<T>,T>
-{
-    public:
-        virtual ~DistTensor() {}
-
-        T dot(const DistTensor<T>& A) const { return (T)0; }
-};
+using namespace aquarius;
+using namespace aquarius::time;
+using namespace aquarius::task;
 
 int main(int argc, char **argv)
 {
-    //MPI::Init(argc, argv);
-    //SLIDE::init();
-    #ifdef USE_ELEMENTAL
+    MPI::Init(argc, argv);
+#ifdef ELEMENTAL
     elem::Initialize(argc, argv);
-    #endif
+#endif
 
-    DistTensor<double> Delta;
+    if (getenv("OMP_NUM_THREADS") == NULL)
+    {
+        omp_set_num_threads(1);
+    }
 
-    TensorMult<DistTensor<double>,double> tm = Delta*Delta;
-    cout << &tm << endl;
-    cout << tm.factor_ << endl;
-    cout << &tm.A_ << endl;
-    cout << &tm.A_.tensor_ << endl;
-    cout << &tm.B_ << endl;
-    cout << &tm.B_.tensor_ << endl;
-    double S2 = scalar(tm);
+    if (MPI::COMM_WORLD.Get_rank() == 0)
+    {
+        printf("================================================================================\n");
+        printf("                                                                                \n");
+        printf("                                                          ii                    \n");
+        printf("            aaaaa        qqq    u   u    aaaa    rr rrr        u   u   sssss    \n");
+        printf("        aaaaaaaaaaa    qq  qq  uu  uu   aa  aa    rr  rr  ii  uu  uu  ss  ss    \n");
+        printf("      aaaa       aaa  qq   qq  uu  uu  aa  aaa   rr       ii  uu  uu  sss       \n");
+        printf("    aaa          aaa   qqqqq    uuuu    aaaa aa  r         ii  uuuu     sss     \n");
+        printf("   aaa           aaa      qq  q                                           ss    \n");
+        printf("   aaa           aaa       qqq                                       sss  ss    \n");
+        printf("    aaa        aaaaa                                                   sss      \n");
+        printf("     aaaaaaaaaaaa aaa                                                           \n");
+        printf("       aaaaaaa     aaa         Advanced Quantum Molecular Iterative             \n");
+        printf("                                    Equation Solver                             \n");
+        printf("                                                                                \n");
+        printf("================================================================================\n");
+        printf("\n");
+        printf("Running on %d process%s with %d thread%s each\n\n",
+               MPI::COMM_WORLD.Get_size(),
+               (MPI::COMM_WORLD.Get_size() > 1 ? "es" : ""),
+               omp_get_max_threads(),
+               (omp_get_max_threads() > 1 ? "s" : ""));
+    }
 
-    #ifdef USE_ELEMENTAL
+    {
+        Arena world;
+
+        if (argc < 2) Logger::error(world) << "No input file specified." << endl;
+        TaskDAG dag(argv[1]);
+        dag.execute(world);
+
+        print_timers();
+    }
+
+#ifdef ELEMENTAL
     elem::Finalize();
-    #endif
-    //SLIDE::finish();
-    //MPI::Finalize();
+#endif
+    MPI::Finalize();
 }

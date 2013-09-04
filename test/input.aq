@@ -1,0 +1,90 @@
+section h2o-pvdz
+{
+    molecule
+    {
+        coords cartesian,
+        atom { O,      0.00000000,     0.00000000,     0.11726921 },
+        atom { H,      0.75698224,     0.00000000,    -0.46907685 },
+        atom { H,     -0.75698224,     0.00000000,    -0.46907685 },
+        basis
+            basis_set cc-pVDZ
+    },
+    1eints,
+    2eints,
+    aoscf,
+    aomoints,
+    ccd,
+    ccsd,
+    lambdaccsd,
+    compare { name    scftest, using val1 from      aoscf:energy, using val2 = -74.550126456692, tolerance 1e-9 },
+    compare { name    mp2test, using val1 from          ccsd:mp2, using val2 =  -0.171348679568, tolerance 1e-9 },
+    compare { name    ccdtest, using val1 from        ccd:energy, using val2 =  -0.179753103625, tolerance 1e-9 },
+    compare { name   ccsdtest, using val1 from       ccsd:energy, using val2 =  -0.180145524753, tolerance 1e-9 },
+    compare { name lambdatest, using val1 from lambdaccsd:energy, using val2 =  -0.180145524753, tolerance 1e-9 }
+},
+section h2o-dz
+{
+    molecule
+    {
+        coords cartesian,
+        atom { O,      0.00000000,     0.00000000,     0.11726921 },
+        atom { H,      0.75698224,     0.00000000,    -0.46907685 },
+        atom { H,     -0.75698224,     0.00000000,    -0.46907685 },
+        basis
+            basis_set DZ
+    },
+    1eints,
+    2eints,
+    aoscf,
+    aomoints,
+    ccsdt,
+    compare { name   scftest, using val1 from aoscf:energy, using val2 = -74.491837303542, tolerance 1e-9 },
+    compare { name   mp2test, using val1 from    ccsdt:mp2, using val2 =  -0.089766142431, tolerance 1e-9 },
+    compare { name ccsdttest, using val1 from ccsdt:energy, using val2 =  -0.098023620507, tolerance 1e-9 }
+},
+section ch2-pvdz
+{
+    molecule
+    {
+        multiplicity 3,
+        coords cartesian,
+        atom { C,      0.00000000,     0.00000000,     0.11726921 },
+        atom { H,      0.75698224,     0.00000000,    -0.46907685 },
+        atom { H,     -0.75698224,     0.00000000,    -0.46907685 },
+        basis
+            basis_set cc-pVDZ
+    },
+    1eints,
+    2eints,
+    aoscf,
+    aomoints,
+    ccd,
+    ccsd,
+    lambdaccsd,
+    compare { name    scftest, using val1 from      aoscf:energy, using val2 = -37.090409355231, tolerance 1e-9 },
+    compare { name    mp2test, using val1 from          ccsd:mp2, using val2 =  -0.085465008793, tolerance 1e-9 },
+    compare { name    ccdtest, using val1 from        ccd:energy, using val2 =  -0.098998464453, tolerance 1e-9 },
+    compare { name   ccsdtest, using val1 from       ccsd:energy, using val2 =  -0.099500248606, tolerance 1e-9 },
+    compare { name lambdatest, using val1 from lambdaccsd:energy, using val2 =  -0.099500248606, tolerance 1e-9 }
+},
+section ch2-dz
+{
+    molecule
+    {
+        multiplicity 3,
+        coords cartesian,
+        atom { C,      0.00000000,     0.00000000,     0.11726921 },
+        atom { H,      0.75698224,     0.00000000,    -0.46907685 },
+        atom { H,     -0.75698224,     0.00000000,    -0.46907685 },
+        basis
+            basis_set DZ
+    },
+    1eints,
+    2eints,
+    aoscf,
+    aomoints,
+    ccsdt,
+    compare { name   scftest, using val1 from aoscf:energy, using val2 = -37.087696946552, tolerance 1e-9 },
+    compare { name   mp2test, using val1 from    ccsdt:mp2, using val2 =  -0.041773370586, tolerance 1e-9 },
+    compare { name ccsdttest, using val1 from ccsdt:energy, using val2 =  -0.050470922983, tolerance 1e-9 }
+}

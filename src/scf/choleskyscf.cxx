@@ -29,40 +29,66 @@ using namespace aquarius;
 using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
-using namespace aquarius::slide;
+using namespace aquarius::integrals;
+using namespace aquarius::task;
 
 template <typename T>
-CholeskyUHF<T>::CholeskyUHF(const Config& config, const CholeskyIntegrals<T>& chol)
-: UHF<T>(chol.ctf, config, chol.molecule), chol(chol)
+CholeskyUHF<T>::CholeskyUHF(const string& name, const Config& config)
+: UHF<T>("choleskyscf", name, config)
 {
-    int shapeN[] = {NS};
-    int shapeNNN[] = {NS,NS,NS};
-
-    int sizer[] = {chol.getRank()};
-    J = new DistTensor<T>(this->ctf, 1, sizer, shapeN, false);
-    JD = new DistTensor<T>(this->ctf, 1, sizer, shapeN, false);
-    int sizenOr[] = {this->norb,this->nalpha,chol.getRank()};
-    int sizenor[] = {this->norb,this->nbeta,chol.getRank()};
-    La_occ = new DistTensor<T>(this->ctf, 3, sizenOr, shapeNNN, false);
-    Lb_occ = new DistTensor<T>(this->ctf, 3, sizenor, shapeNNN, false);
-    LDa_occ = new DistTensor<T>(this->ctf, 3, sizenOr, shapeNNN, false);
-    LDb_occ = new DistTensor<T>(this->ctf, 3, sizenor, shapeNNN, false);
+    for (vector<Product>::iterator i = this->products.begin();i != this->products.end();++i)
+    {
+        i->addRequirement(Requirement("cholesky", "cholesky"));
+    }
 }
 
 template <typename T>
-CholeskyUHF<T>::~CholeskyUHF()
+void CholeskyUHF<T>::run(TaskDAG& dag, const Arena& arena)
 {
-    delete J;
-    delete JD;
-    delete La_occ;
-    delete Lb_occ;
-    delete LDa_occ;
-    delete LDb_occ;
+    const Molecule& molecule = this->template get<Molecule>("molecule");
+    const CholeskyIntegrals<T>& chol = this->template get<CholeskyIntegrals<T> >("cholesky");
+
+    int norb = molecule.getNumOrbitals();
+    int nalpha = molecule.getNumAlphaElectrons();
+    int nbeta = molecule.getNumAlphaElectrons();
+
+    vector<int> shapeN = vec(NS);
+    vector<int> shapeNNN = vec(NS,NS,NS);
+    vector<int> sizer = vec(chol.getRank());
+    vector<int> sizenOr = vec(norb,nalpha,chol.getRank());
+    vector<int> sizenor = vec(norb,nbeta,chol.getRank());
+
+    this->puttmp("J", new DistTensor<T>(arena, 1, sizer, shapeN, false));
+    this->puttmp("JD", new DistTensor<T>(arena, 1, sizer, shapeN, false));
+    this->puttmp("La_occ", new DistTensor<T>(arena, 3, sizenOr, shapeNNN, false));
+    this->puttmp("Lb_occ", new DistTensor<T>(arena, 3, sizenor, shapeNNN, false));
+    this->puttmp("LDa_occ", new DistTensor<T>(arena, 3, sizenOr, shapeNNN, false));
+    this->puttmp("LDb_occ", new DistTensor<T>(arena, 3, sizenor, shapeNNN, false));
+
+    UHF<T>::run(dag, arena);
 }
 
 template <typename T>
 void CholeskyUHF<T>::buildFock()
 {
+    const CholeskyIntegrals<T>& chol = this->template get<CholeskyIntegrals<T> >("cholesky");
+
+    DistTensor<T>& H = this->template get<DistTensor<T> >("H");
+    DistTensor<T>& Da = this->template get<DistTensor<T> >("Da");
+    DistTensor<T>& Db = this->template get<DistTensor<T> >("Db");
+    DistTensor<T>& Fa = this->template get<DistTensor<T> >("Fa");
+    DistTensor<T>& Fb = this->template get<DistTensor<T> >("Fb");
+
+    DistTensor<T>& Ca_occ = this->template gettmp<DistTensor<T> >("Ca_occ");
+    DistTensor<T>& Cb_occ = this->template gettmp<DistTensor<T> >("Cb_occ");
+
+    DistTensor<T>& J = this->template gettmp<DistTensor<T> >("J");
+    DistTensor<T>& JD = this->template gettmp<DistTensor<T> >("JD");
+    DistTensor<T>& La_occ = this->template gettmp<DistTensor<T> >("La_occ");
+    DistTensor<T>& Lb_occ = this->template gettmp<DistTensor<T> >("Lb_occ");
+    DistTensor<T>& LDa_occ = this->template gettmp<DistTensor<T> >("LDa_occ");
+    DistTensor<T>& LDb_occ = this->template gettmp<DistTensor<T> >("LDb_occ");
+
     /*
      * Coulomb contribution:
      *
@@ -74,11 +100,11 @@ void CholeskyUHF<T>::buildFock()
      *
      *       = L(abJ)*{D[J]*J[J]}
      */
-    (*this->Da) += (*this->Db);
-    (*J)["J"] = chol.getL()["cdJ"]*(*this->Da)["cd"];
-    (*JD)["J"] = chol.getD()["J"]*(*J)["J"];
-    (*this->Da) -= (*this->Db);
-    (*this->Fa)["ab"] = (*JD)["J"]*chol.getL()["abJ"];
+    Da += Db;
+    J["J"] = chol.getL()["cdJ"]*Da["cd"];
+    JD["J"] = chol.getD()["J"]*J["J"];
+    Da -= Db;
+    Fa["ab"] = JD["J"]*chol.getL()["abJ"];
 
     /*
      * Core contribution:
@@ -87,8 +113,8 @@ void CholeskyUHF<T>::buildFock()
      *
      * Up though this point, Fa = Fb
      */
-    (*this->Fa) += (*this->H);
-    (*this->Fb) = (*this->Fa);
+    Fa += H;
+    Fb  = Fa;
 
     /*
      * Exchange contribution:
@@ -101,13 +127,14 @@ void CholeskyUHF<T>::buildFock()
      *
      *         = L[aiJ]*{D[J]*L[biJ]}
      */
-    (*La_occ)["aiJ"] = chol.getL()["acJ"]*(*this->Ca_occ)["ci"];
-    (*LDa_occ)["aiJ"] = chol.getD()["J"]*(*La_occ)["aiJ"];
-    (*this->Fa)["ab"] -= (*LDa_occ)["aiJ"]*(*La_occ)["biJ"];
+    La_occ["aiJ"] = chol.getL()["acJ"]*Ca_occ["ci"];
+    LDa_occ["aiJ"] = chol.getD()["J"]*La_occ["aiJ"];
+    Fa["ab"] -= LDa_occ["aiJ"]*La_occ["biJ"];
 
-    (*Lb_occ)["aiJ"] = chol.getL()["acJ"]*(*this->Cb_occ)["ci"];
-    (*LDb_occ)["aiJ"] = chol.getD()["J"]*(*Lb_occ)["aiJ"];
-    (*this->Fb)["ab"] -= (*LDb_occ)["aiJ"]*(*Lb_occ)["biJ"];
+    Lb_occ["aiJ"] = chol.getL()["acJ"]*Cb_occ["ci"];
+    LDb_occ["aiJ"] = chol.getD()["J"]*Lb_occ["aiJ"];
+    Fb["ab"] -= LDb_occ["aiJ"]*Lb_occ["biJ"];
 }
 
 INSTANTIATE_SPECIALIZATIONS(CholeskyUHF);
+REGISTER_TASK(CholeskyUHF<double>, "choleskyscf");

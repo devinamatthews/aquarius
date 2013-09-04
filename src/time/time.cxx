@@ -37,12 +37,15 @@
 #include "omp.h"
 #endif
 
+#include "mpi.h"
+
 #include "util/util.h"
 
 #include "time.hpp"
 
 using namespace std;
 
+/*
 bool operator<(const timespec& t1, const timespec& t2)
 {
     return t1.tv_sec < t2.tv_sec || (!(t2.tv_sec < t1.tv_sec) && t1.tv_nsec < t2.tv_nsec);
@@ -127,6 +130,7 @@ timespec operator/(const timespec& t, const int m)
     r /= m;
     return r;
 }
+*/
 
 namespace aquarius
 {
@@ -134,10 +138,16 @@ namespace time
 {
 
 //static timespec delta = {0,-1};
-static vector< pair<timespec,timespec> > *tics[128];
-static vector< pair<string, pair<timespec,long> > > timers;
+static vector< pair<time_type,time_type> > *tics[128];
+static vector< pair<string, pair<time_type,long> > > timers;
 
-double todouble(const timespec& t)
+double todouble(const time_type& t)
+{
+    return t;
+}
+
+/*
+double todouble(const time_type& t)
 {
 #ifdef __MACH__
     static double conv = -1.0;
@@ -152,6 +162,7 @@ double todouble(const timespec& t)
     return double(t.tv_sec)+double(t.tv_nsec)/1e9;
 #endif
 }
+*/
 
 int register_timer(const string& name)
 {
@@ -164,12 +175,13 @@ int register_timer(const string& name)
             if (timers[i].first == name) break;
         }
         timer = i;
-        if (timer == timers.size()) timers.push_back(make_pair(name, make_pair((timespec){0,0}, 0l)));
+        //if (timer == timers.size()) timers.push_back(make_pair(name, make_pair((timespec){0,0}, 0l)));
+        if (timer == timers.size()) timers.push_back(make_pair(name, make_pair(0.0, 0l)));
     }
     return timer;
 }
 
-void inc_timer(const int timer, const timespec& time)
+void inc_timer(const int timer, const time_type& time)
 {
     #ifdef _OPENMP
     if (!omp_in_parallel())
@@ -190,27 +202,31 @@ void inc_timer(const int timer, const timespec& time)
 void print_timers()
 {
     int max_len = 0;
-    for (vector< pair<string, pair<timespec,long> > >::iterator it = timers.begin();it != timers.end();++it)
+    for (vector< pair<string, pair<time_type,long> > >::iterator it = timers.begin();it != timers.end();++it)
     {
         max_len = max(max_len, (int)it->first.size());
     }
 
     sort(timers.begin(), timers.end());
 
-    for (vector< pair<string, pair<timespec,long> > >::iterator it = timers.begin();it != timers.end();++it)
+    for (vector< pair<string, pair<time_type,long> > >::iterator it = timers.begin();it != timers.end();++it)
     {
-        double tot = allsum(todouble(it->second.first));
-        long count = allsum(it->second.second);
-        PRINT("%s:%*s %13.6f s %10ld x\n", it->first.c_str(), (int)(max_len-it->first.size()), "", tot, count);
+        double tot = todouble(it->second.first);
+        long count = it->second.second;
+        MPI::COMM_WORLD.Allreduce(MPI::IN_PLACE, &tot, 1, MPI::DOUBLE, MPI::SUM);
+        MPI::COMM_WORLD.Allreduce(MPI::IN_PLACE, &count, 1, MPI::LONG, MPI::SUM);
+        if (MPI::COMM_WORLD.Get_rank() == 0)
+            printf("%s:%*s %13.6f s %10ld x\n", it->first.c_str(), (int)(max_len-it->first.size()), "", tot, count);
     }
 }
 
 void clear_timers()
 {
-    for (vector< pair<string, pair<timespec,long> > >::iterator it = timers.begin();it != timers.end();++it)
+    for (vector< pair<string, pair<time_type,long> > >::iterator it = timers.begin();it != timers.end();++it)
     {
-        it->second.first.tv_sec = 0;
-        it->second.first.tv_nsec = 0;
+        it->second.first = 0;
+        //it->second.first.tv_sec = 0;
+        //it->second.first.tv_nsec = 0;
         it->second.second = 0;
     }
 }
@@ -241,22 +257,25 @@ void tic()
     }
     */
 
-    if (tics[tid] == NULL) tics[tid] = new vector< pair<timespec,timespec> >();
+    if (tics[tid] == NULL) tics[tid] = new vector< pair<time_type,time_type> >();
 
     //PRINT("tic\n");
-    tics[tid]->push_back(make_pair(timespec(),timespec()));
+    tics[tid]->push_back(make_pair(time_type(),time_type()));
+    tics[tid]->back().first = MPI::Wtime();
+/*
 #ifdef __MACH__
     uint64_t nsec = mach_absolute_time();
     tics[tid]->back().first.tv_sec = nsec/1000000000;
     tics[tid]->back().first.tv_nsec = nsec%1000000000;
 #else
     int ret = clock_gettime(CLOCK_MONOTONIC, &(tics[tid]->back().first));
-    if (ret != 0) ERROR("clock_gettime");
+    assert(ret == 0);
 #endif
+*/
     //ALLPRINT("tic: %ld %ld\n", tics[tid]->back().first.tv_sec, tics[tid]->back().first.tv_nsec);
 }
 
-timespec toc()
+time_type toc()
 {
     #ifdef _OPENMP
     int tid = omp_get_thread_num();
@@ -265,18 +284,20 @@ timespec toc()
     #endif
 
     //PRINT("toc\n");
-    timespec dt = (timespec){0,0};
+    tics[tid]->back().second = MPI::Wtime();
+/*
 #ifdef __MACH__
     uint64_t nsec = mach_absolute_time();
     tics[tid]->back().second.tv_sec = nsec/1000000000;
     tics[tid]->back().second.tv_nsec = nsec%1000000000;
 #else
     int ret = clock_gettime(CLOCK_MONOTONIC, &(tics[tid]->back().second));
-    if (ret != 0) ERROR("clock_gettime");
+    assert(ret == 0);
 #endif
+*/
     //ALLPRINT("toc: %ld %ld\n", tics[tid]->back().second.tv_sec, tics[tid]->back().second.tv_nsec);
     //timespec dt = (tics->back().second-tics[tid]->back().first)-delta;
-    dt = tics[tid]->back().second-tics[tid]->back().first;
+    time_type dt = tics[tid]->back().second-tics[tid]->back().first;
     tics[tid]->pop_back();
     return dt;
 }

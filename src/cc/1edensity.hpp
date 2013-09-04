@@ -25,7 +25,7 @@
 #ifndef _AQUARIUS_CC_1EDENSITY_HPP_
 #define _AQUARIUS_CC_1EDENSITY_HPP_
 
-#include "operator/exponentialoperator.hpp"
+#include "operator/excitationoperator.hpp"
 #include "operator/deexcitationoperator.hpp"
 #include "operator/1eoperator.hpp"
 
@@ -41,32 +41,33 @@ class OneElectronDensity : public op::OneElectronOperator<U>
         /*
          * Form the SCF density
          */
-        OneElectronDensity(const scf::UHF<U>& uhf);
+        OneElectronDensity(const op::MOSpace<U>& occ, const op::MOSpace<U>& vrt,
+                           const tensor::DistTensor<U>& Da, const tensor::DistTensor<U>& Db);
 
         /*
          * Form the unrelaxed CCSD density
          */
-        OneElectronDensity(const op::ExponentialOperator<U,2>& T);
+        OneElectronDensity(const op::ExcitationOperator<U,2>& T);
 
         /*
          * Form the partial perturbed CCSD Density
          */
         OneElectronDensity(const op::DeexcitationOperator<U,2>& L,
-                           const op::ExponentialOperator<U,2>& T,
+                           const op::ExcitationOperator<U,2>& T,
                            const op::ExcitationOperator<U,2>& TA);
 
         /*
          * Form the relaxed CCSD density
          */
         OneElectronDensity(const op::DeexcitationOperator<U,2>& L,
-                           const op::ExponentialOperator<U,2>& T);
+                           const op::ExcitationOperator<U,2>& T);
 
         /*
          * Form the relaxed perturbed CCSD Density
          */
         OneElectronDensity(const op::DeexcitationOperator<U,2>& L,
                            const op::DeexcitationOperator<U,2>& LA,
-                           const op::ExponentialOperator<U,2>& T,
+                           const op::ExcitationOperator<U,2>& T,
                            const op::ExcitationOperator<U,2>& TA);
 };
 

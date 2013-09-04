@@ -28,41 +28,139 @@
 #include <map>
 #include <utility>
 #include <string>
+#include <stdexcept>
+#include <ostream>
+#include <streambuf>
+#include <ios>
+#include <iostream>
+#include <ctime>
+#include <vector>
+#include <stdexcept>
+#include <unistd.h>
+#include <iomanip>
 
 #include "input/config.hpp"
-#include "stl_ext/stl_ext.hpp"
+#include "util/stl_ext.hpp"
+#include "util/util.h"
+#include "util/distributed.hpp"
+#include "time/time.hpp"
 
 namespace aquarius
 {
 namespace task
 {
 
-class Resource
+class Logger
 {
     protected:
-        std::string type;
-        void* data;
-        int revision;
-        bool needsDelete;
+        class LogToStreamBuffer : public std::streambuf
+        {
+            protected:
+                std::ostream& os;
+
+                int sync();
+
+                std::streamsize xsputn (const char* s, std::streamsize n);
+
+                int overflow (int c = EOF);
+
+            public:
+                LogToStreamBuffer(std::ostream& os);
+        };
+
+        class SelfDestructBuffer : public LogToStreamBuffer
+        {
+            protected:
+                int sync();
+
+            public:
+                SelfDestructBuffer();
+        };
+
+        class NullBuffer : public std::streambuf
+        {
+            protected:
+                std::streamsize xsputn (const char* s, std::streamsize n);
+
+                int overflow (int c = EOF);
+        };
+
+        class NullStream : public std::ostream
+        {
+            public:
+                NullStream();
+
+                ~NullStream();
+        };
+
+        class SelfDestructStream : public std::ostream
+        {
+            public:
+                SelfDestructStream();
+        };
+
+        static std::string dateTime();
+
+        static NullStream nullstream;
+        static SelfDestructStream sddstream;
 
     public:
-        template <typename T>
-        Resource(const std::string& type, T& data);
+        static std::ostream& log(const Arena& arena);
 
-        template <typename T>
-        Resource(const std::string& type, T* data);
+        static std::ostream& warn(const Arena& arena);
 
-        ~Resource();
+        static std::ostream& error(const Arena& arena);
+};
 
-        const std::string& getType() const { return type; }
+class Printer
+{
+    protected:
+        std::ostream* out;
 
-        template <typename T> T& get();
+    public:
+        Printer() : out(NULL) {}
 
-        template <typename T> const T& get() const;
+        Printer(std::ostream& out) : out(&out) {}
 
-        void update() { revision++; }
+        std::ostream& getOutputStream() { return *out; }
 
-        int getRevision() const { return revision; }
+        void setOutputStream(std::ostream& os) { out = &os; }
+
+        template <class T>
+        Printer& operator<<(const T& t)
+        {
+            if (out != NULL) out << t;
+            return *this;
+        }
+};
+
+class Resource : public Distributed
+{
+    public:
+        Resource(const Arena& arena)
+        : Distributed(arena) {}
+
+        virtual ~Resource() {}
+};
+
+struct Scalar : public Resource
+{
+    double value;
+
+    Scalar(const Arena& arena, double value = 0)
+    : Resource(arena), value(value) {}
+
+    operator double() { return value; }
+};
+
+struct Boolean : public Resource
+{
+    bool value;
+
+    Boolean(const Arena& arena, bool value = false)
+    : Resource(arena), value(value) {}
+
+    operator bool() { return value; }
 };
 
 class Product;
@@ -70,85 +168,233 @@ class Product;
 class Requirement
 {
     protected:
-        std::string name;
         std::string type;
-        std::pair<std::string,std::string> defaultProvider;
-        std::shared_ptr<Product> product;
+        std::string name;
+        std::global_ptr<Product> product;
 
     public:
-        Requirement(const std::string& name, const std::string& type);
-
-        Requirement(const std::string& name, const std::string& type, const std::string& defaultTask, const std::string& defaultName);
+        Requirement(const std::string& type, const std::string& name);
 
         const std::string& getName() const { return name; }
 
         const std::string getType() const { return type; }
 
-        void fulfil(Product& product);
+        bool exists() const;
+
+        void fulfil(const Product& product);
 
         bool isFulfilled() const { return product; }
 
-        const std::pair<std::string,std::string>& getDefaultProvider() const { return defaultProvider; }
-
-        Resource& getResource();
+        Product& get();
 };
 
 class Task;
 
 class Product
 {
+    friend class Requirement;
     friend class Task;
 
     protected:
-        std::vector<Requirement> requirements;
-        std::vector<int> revisions;
-        std::shared_ptr<Resource> resource;
-        Task& parent;
+        std::string type;
         std::string name;
-
-        void run_check();
+        std::global_ptr<Resource> data;
+        std::shared_ptr<std::vector<Requirement> > requirements;
+        std::shared_ptr<bool> used;
 
     public:
-        Product(Task& parent, const std::string& name, const std::shared_ptr<Resource>& resource);
+        Product(const std::string& type, const std::string& name);
 
-        Product(Task& parent, const std::string& name, const std::shared_ptr<Resource>& resource, const Requirement& requirement);
-
-        Product(Task& parent, const std::string& name, const std::shared_ptr<Resource>& resource, const std::vector<Requirement>& requirements);
+        Product(const std::string& type, const std::string& name, const std::vector<Requirement>& reqs);
 
         const std::string& getName() const { return name; }
 
-        const std::vector<Requirement> getRequirements() const { return requirements; }
+        const std::string& getType() const { return type; }
 
-        Resource& getResource();
+        bool isUsed() const { return *used; }
+
+        template <typename T> void put(T* resource)
+        {
+            data.reset(static_cast<Resource*>(resource));
+        }
+
+        template <typename T> T& get()
+        {
+            if (!data) throw std::logic_error("Product " + name + " does not exist.");
+            return static_cast<T&>(*data);
+        }
+
+        bool exists() const { return data; }
+
+        void addRequirement(const Requirement& req);
+
+        void addRequirements(const std::vector<Requirement>& reqs);
+
+        std::vector<Requirement>& getRequirements() { return *requirements; }
 };
+
+class TaskDAG;
 
 class Task
 {
     protected:
+        typedef Task* (*factory_func)(const std::string&, const input::Config&);
+
         std::string type;
         std::string name;
         std::vector<Product> products;
+        std::vector<Product> temporaries;
+
+        static std::map<std::string,factory_func>& tasks();
 
         void addProduct(const Product& product);
+
+        template <typename T> void puttmp(const std::string& name, T* resource)
+        {
+            for (std::vector<Product>::iterator i = temporaries.begin();i != temporaries.end();++i)
+            {
+                if (i->getName() == name)
+                {
+                    i->put(resource);
+                    return;
+                }
+            }
+
+            temporaries.push_back(Product("temporary", name));
+            temporaries.back().put(resource);
+        }
+
+        template <typename T> T& gettmp(const std::string& name)
+        {
+            for (std::vector<Product>::iterator i = temporaries.begin();i != temporaries.end();++i)
+            {
+                if (i->getName() == name)
+                {
+                    return i->get<T>();
+                }
+            }
+
+            throw std::logic_error("Temporary " + name + " not found on task " + this->name);
+        }
+
+        std::ostream& log(const Arena& arena);
+
+        std::ostream& warn(const Arena& arena);
+
+        std::ostream& error(const Arena& arena);
 
     public:
         Task(const std::string& type, const std::string& name);
 
-        Task(const std::string& type, const std::string& name, const Product& product);
+        virtual ~Task()
+        {
+            for (std::vector<Product>::iterator i = products.begin();i != products.end();++i)
+            {
+                i->requirements->clear();
+            }
+        }
 
-        Task(const std::string& type, const std::string& name, const std::vector<Product>& products);
+        const std::string& getType() const { return type; }
 
-        virtual ~Task() {}
+        const std::string& getName() const { return name; }
+
+        bool isUsed(const std::string& name) const { return getProduct(name).isUsed(); }
+
+        template <typename T> static std::string type_string();
+
+        static bool registerTask(const std::string& name, factory_func create);
+
+        static const input::Schema& getSchema(const std::string& name);
+
+        template <typename T> void put(const std::string& name, T* resource)
+        {
+            getProduct(name).put(resource);
+        }
+
+        template <typename T> T& get(const std::string& name)
+        {
+            std::vector<Product*> to_search;
+
+            for (std::vector<Product>::iterator i = products.begin();i != products.end();++i)
+            {
+                if (i->getName() == name) return i->get<T>();
+
+                for (std::vector<Requirement>::iterator j = i->getRequirements().begin();
+                     j != i->getRequirements().end();j++)
+                {
+                    if (j->getName() == name) return j->get().get<T>();
+                }
+            }
+
+            throw std::logic_error("Product " + name + " not found on task " + this->name + " or its dependencies");
+        }
 
         Product& getProduct(const std::string& name);
 
-        const Product& getProduct(const std::string& name) const;
+        const Product& getProduct (const std::string& name) const;
 
         std::vector<Product>& getProducts() { return products; }
 
         const std::vector<Product>& getProducts() const { return products; }
 
-        virtual void run() = 0;
+        virtual void run(TaskDAG& dag, const Arena& arena) = 0;
+
+        static Task* createTask(const std::string& type, const std::string& name, const input::Config& config);
+};
+
+template <class T>
+class TaskFactory
+{
+    friend class Task;
+
+    protected:
+        static bool initialized;
+
+        static Task* create(const std::string& name, const input::Config& config)
+        {
+            return new T(name, config);
+        }
+};
+
+#define REGISTER_TASK(task,name) \
+template <> bool TaskFactory<task >::initialized = \
+    Task::registerTask(name,TaskFactory<task >::create);
+
+class TaskDAG
+{
+    NON_COPYABLE(TaskDAG);
+    NON_ASSIGNABLE(TaskDAG);
+
+    protected:
+        std::vector<std::pair<Task*,input::Config> > tasks;
+
+        void parseTasks(const std::string& context, input::Config& config);
+
+        void satisfyRemainingRequirements(const Arena& world);
+
+        void satisfyExplicitRequirements(const Arena& world);
+
+    public:
+        TaskDAG() {}
+
+        TaskDAG(const std::string& file);
+
+        ~TaskDAG();
+
+        void addTask(Task* task, const input::Config& config);
+
+        void execute(Arena& world);
+};
+
+class CompareScalars : public Task
+{
+    protected:
+        double tolerance;
+
+    public:
+        CompareScalars(const std::string& name, const input::Config& config);
+
+        void run(TaskDAG& dag, const Arena& arena);
 };
 
 }

@@ -27,56 +27,19 @@
 using namespace std;
 using namespace aquarius::cc;
 using namespace aquarius::op;
-using namespace aquarius::scf;
 using namespace aquarius::tensor;
 
 template <typename U>
-OneElectronDensity<U>::OneElectronDensity(const UHF<U>& uhf)
-: OneElectronOperator<U>(uhf)
-{
-    int N = uhf.getMolecule().getNumOrbitals();
-    int nI = uhf.getMolecule().getNumAlphaElectrons();
-    int ni = uhf.getMolecule().getNumBetaElectrons();
-    int nA = N-nI;
-    int na = N-ni;
-
-    int NN[] = {NS,NS};
-    int sizeII[] = {nI,nI};
-    int sizeii[] = {ni,ni};
-    int sizeAI[] = {nA,nI};
-    int sizeai[] = {na,ni};
-
-    const DistTensor<U>& CA = uhf.getCA();
-    const DistTensor<U>& Ca = uhf.getCa();
-    const DistTensor<U>& CI = uhf.getCI();
-    const DistTensor<U>& Ci = uhf.getCi();
-
-    DistTensor<U> DIJ(this->ctf, 2, sizeII, NN);
-    DistTensor<U> Dij(this->ctf, 2, sizeii, NN);
-    DistTensor<U> DAI(this->ctf, 2, sizeAI, NN);
-    DistTensor<U> Dai(this->ctf, 2, sizeai, NN);
-
-    DIJ["IJ"] = CI["pI"]*CI["pJ"];
-    Dij["ij"] = Ci["pi"]*Ci["pj"];
-    DAI["AI"] = CA["pA"]*CI["pI"];
-    Dai["ai"] = Ca["pa"]*Ci["pi"];
-
-    this->ab(1,0,1,0)["AB"] = DAI["AI"]*DAI["BI"];
-    this->ab(0,0,0,0)["ab"] = Dai["ai"]*Dai["bi"];
-
-    this->ij(0,1,0,1)["IJ"] = DIJ["IK"]*DIJ["JK"];
-    this->ij(0,0,0,0)["ij"] = Dij["ik"]*Dij["jk"];
-
-    this->ai(1,0,0,1)["AI"] = DAI["AJ"]*DIJ["IJ"];
-    this->ai(0,0,0,0)["ai"] = Dai["aj"]*Dij["ij"];
-}
+OneElectronDensity<U>::OneElectronDensity(const MOSpace<U>& occ, const MOSpace<U>& vrt,
+                                          const DistTensor<U>& Da, const DistTensor<U>& Db)
+: OneElectronOperator<U>(occ, vrt, Da, Db, true) {}
 
 /*
  * Form the unrelaxed CCSD density
  */
 template <typename U>
-OneElectronDensity<U>::OneElectronDensity(const ExponentialOperator<U,2>& T)
-: OneElectronOperator<U>(T.getSCF(), false)
+OneElectronDensity<U>::OneElectronDensity(const ExcitationOperator<U,2>& T)
+: OneElectronOperator<U>(T.arena, T.occ, T.vrt, false)
 {
     this->ai["ai"] = T(1)["ai"];
 }
@@ -86,11 +49,11 @@ OneElectronDensity<U>::OneElectronDensity(const ExponentialOperator<U,2>& T)
  */
 template <typename U>
 OneElectronDensity<U>::OneElectronDensity(const DeexcitationOperator<U,2>& L,
-                                          const ExponentialOperator<U,2>& T,
+                                          const ExcitationOperator<U,2>& T,
                                           const ExcitationOperator<U,2>& TA)
-: OneElectronOperator<U>(L.getSCF(), false)
+: OneElectronOperator<U>(T.arena, T.occ, T.vrt, false)
 {
-    OneElectronOperator<U> I(this->uhf);
+    OneElectronOperator<U> I(this->arena, this->occ, this->vrt);
 
     SpinorbitalTensor<U>& IIJ = I.getIJ();
     SpinorbitalTensor<U>& IAB = I.getAB();
@@ -117,8 +80,8 @@ OneElectronDensity<U>::OneElectronDensity(const DeexcitationOperator<U,2>& L,
  */
 template <typename U>
 OneElectronDensity<U>::OneElectronDensity(const DeexcitationOperator<U,2>& L,
-                                          const ExponentialOperator<U,2>& T)
-: OneElectronOperator<U>(L.getSCF(), false)
+                                          const ExcitationOperator<U,2>& T)
+: OneElectronOperator<U>(T.arena, T.occ, T.vrt, false)
 {
     this->ia["ia"] += L(1)["ia"];
 
@@ -141,11 +104,11 @@ OneElectronDensity<U>::OneElectronDensity(const DeexcitationOperator<U,2>& L,
 template <typename U>
 OneElectronDensity<U>::OneElectronDensity(const DeexcitationOperator<U,2>& L,
                                           const DeexcitationOperator<U,2>& LA,
-                                          const ExponentialOperator<U,2>& T,
+                                          const ExcitationOperator<U,2>& T,
                                           const ExcitationOperator<U,2>& TA)
-: OneElectronOperator<U>(L.getSCF(), false)
+: OneElectronOperator<U>(T.arena, T.occ, T.vrt, false)
 {
-    OneElectronOperator<U> I(this->uhf);
+    OneElectronOperator<U> I(this->arena, this->occ, this->vrt);
 
     SpinorbitalTensor<U>& IIJ = I.getIJ();
     SpinorbitalTensor<U>& IAB = I.getAB();

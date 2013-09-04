@@ -29,7 +29,7 @@
 #include <string>
 #include <algorithm>
 
-#include "stl_ext/stl_ext.hpp"
+#include "util/stl_ext.hpp"
 
 #include "indexable_tensor.hpp"
 
@@ -40,7 +40,7 @@ namespace tensor
 
 #define INHERIT_FROM_COMPOSITE_TENSOR(Derived,Base,T) \
     protected: \
-        using aquarius::tensor::CompositeTensor< Derived, Base, T >::tensors_; \
+        using aquarius::tensor::CompositeTensor< Derived, Base, T >::tensors; \
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::addTensor; \
     public: \
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::mult; \
@@ -66,9 +66,9 @@ namespace tensor
 
 #define INHERIT_FROM_INDEXABLE_COMPOSITE_TENSOR(Derived,Base,T) \
     protected: \
-        using aquarius::tensor::CompositeTensor< Derived, Base, T >::tensors_; \
+        using aquarius::tensor::CompositeTensor< Derived, Base, T >::tensors; \
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::addTensor; \
-        using aquarius::tensor::IndexableTensorBase< Derived, T >::ndim_; \
+        using aquarius::tensor::IndexableTensorBase< Derived, T >::ndim; \
     public: \
         using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::mult; \
         using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::sum; \
@@ -99,70 +99,61 @@ class CompositeTensor : public Tensor<Derived,T>
     protected:
         struct TensorRef
         {
-            Base* tensor_;
+            Base* tensor;
             bool isAlloced;
-            TensorRef() : tensor_(NULL), isAlloced(true) {}
+            TensorRef() : tensor(NULL), isAlloced(true) {}
             TensorRef(Base* tensor_, bool isAlloced=true)
-            : tensor_(tensor_), isAlloced(isAlloced) {}
-            bool operator==(const Base* other) const { return tensor_ == other; }
-            bool operator!=(const Base* other) const { return tensor_ != other; }
+            : tensor(tensor_), isAlloced(isAlloced) {}
+            bool operator==(const Base* other) const { return tensor == other; }
+            bool operator!=(const Base* other) const { return tensor != other; }
         };
 
-
-        std::vector<TensorRef> tensors_;
+        std::vector<TensorRef> tensors;
 
         Base& addTensor(Base* new_tensor, bool isAlloced=true)
         {
-            tensors_.push_back(TensorRef(new_tensor, isAlloced));
+            tensors.push_back(TensorRef(new_tensor, isAlloced));
             return *new_tensor;
         }
 
         Base& addTensor(Base& new_tensor, bool isAlloced=false)
         {
-            tensors_.push_back(TensorRef(&new_tensor, isAlloced));
+            tensors.push_back(TensorRef(&new_tensor, isAlloced));
             return new_tensor;
         }
 
     public:
-        void set_name(const char * name_){
-            int i;
-            for (i=0; i<tensors_.size(); i++){
-                tensors_[i].tensor_->set_name(name_);
-            }
-        }
-
-
         CompositeTensor(const CompositeTensor<Derived,Base,T>& other)
-        : tensors_(other.tensors_)
+        : tensors(other.tensors)
         {
-            for (int i = 0;i < tensors_.size();i++)
+            for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors_[i] != NULL)
+                if (tensors[i] != NULL)
                 {
-                    tensors_[i] = TensorRef(new Base(*tensors_[i].tensor_));
+                    tensors[i] = TensorRef(new Base(*tensors[i].tensor));
                 }
             }
         }
 
-        CompositeTensor(const int ntensors = 0)
-        : tensors_(ntensors) {}
+        CompositeTensor(int ntensors = 0)
+        : tensors(ntensors) {}
 
         virtual ~CompositeTensor()
         {
-            for (int i = 0;i < tensors_.size();i++)
+            for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors_[i] != NULL && tensors_[i].isAlloced)
+                if (tensors[i] != NULL && tensors[i].isAlloced)
                 {
-                    delete tensors_[i].tensor_;
+                    delete tensors[i].tensor;
                 }
             }
         }
 
-        int getNumTensors() const { return tensors_.size(); }
+        int getNumTensors() const { return tensors.size(); }
 
-        bool componentExists(const int idx) const
+        bool componentExists(int idx) const
         {
-            return tensors_[idx] != NULL;
+            return tensors[idx] != NULL;
         }
 
         /**********************************************************************
@@ -170,18 +161,18 @@ class CompositeTensor : public Tensor<Derived,T>
          * Subtensor indexing
          *
          *********************************************************************/
-        Base& operator()(const int idx)
+        Base& operator()(int idx)
         {
-            if (tensors_[idx] == NULL)
+            if (tensors[idx] == NULL)
                 throw std::logic_error("tensor component does not exist");
-            return *tensors_[idx].tensor_;
+            return *tensors[idx].tensor;
         }
 
-        const Base& operator()(const int idx) const
+        const Base& operator()(int idx) const
         {
-            if (tensors_[idx] == NULL)
+            if (tensors[idx] == NULL)
                 throw std::logic_error("tensor component does not exist");
-            return *tensors_[idx].tensor_;
+            return *tensors[idx].tensor;
         }
 
         /**********************************************************************
@@ -191,11 +182,11 @@ class CompositeTensor : public Tensor<Derived,T>
          *********************************************************************/
         void mult(const T alpha)
         {
-            for (int i = 0;i < tensors_.size();i++)
+            for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors_[i] != NULL)
+                if (tensors[i] != NULL)
                 {
-                    *tensors_[i].tensor_ *= alpha;
+                    *tensors[i].tensor *= alpha;
                 }
             }
         }
@@ -204,17 +195,17 @@ class CompositeTensor : public Tensor<Derived,T>
                                  bool conjb, const Derived& B, const T beta)
         {
             #ifdef VALIDATE_INPUTS
-            if (tensors_.size() != A.tensors_.size() ||
-                tensors_.size() != B.tensors_.size()) throw LengthMismatchError();
+            if (tensors.size() != A.tensors.size() ||
+                tensors.size() != B.tensors.size()) throw LengthMismatchError();
             #endif //VALIDATE_INPUTS
 
-            for (int i = 0;i < tensors_.size();i++)
+            for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors_[i] != NULL &&
+                if (tensors[i] != NULL &&
                     A.componentExists(i) &&
                     B.componentExists(i))
                 {
-                    beta*(*tensors_[i].tensor_) += alpha*(A(i))*
+                    beta*(*tensors[i].tensor) += alpha*(A(i))*
                                                          (B(i));
                 }
             }
@@ -224,17 +215,17 @@ class CompositeTensor : public Tensor<Derived,T>
                                 bool conjb, const Derived& B, const T beta)
         {
             #ifdef VALIDATE_INPUTS
-            if (tensors_.size() != A.tensors_.size() ||
-                tensors_.size() != B.tensors_.size()) throw LengthMismatchError();
+            if (tensors.size() != A.tensors.size() ||
+                tensors.size() != B.tensors.size()) throw LengthMismatchError();
             #endif //VALIDATE_INPUTS
 
-            for (int i = 0;i < tensors_.size();i++)
+            for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors_[i] != NULL &&
+                if (tensors[i] != NULL &&
                     A.componentExists(i) &&
                     B.componentExists(i))
                 {
-                    beta*(*tensors_[i].tensor_) += alpha*(A(i))/
+                    beta*(*tensors[i].tensor) += alpha*(A(i))/
                                                          (B(i));
                 }
             }
@@ -242,11 +233,11 @@ class CompositeTensor : public Tensor<Derived,T>
 
         void sum(const T alpha, const T beta)
         {
-            for (int i = 0;i < tensors_.size();i++)
+            for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors_[i] != NULL)
+                if (tensors[i] != NULL)
                 {
-                    beta*(*tensors_[i].tensor_) += alpha;
+                    beta*(*tensors[i].tensor) += alpha;
                 }
             }
         }
@@ -254,15 +245,15 @@ class CompositeTensor : public Tensor<Derived,T>
         void sum(const T alpha, bool conja, const Derived& A, const T beta)
         {
             #ifdef VALIDATE_INPUTS
-            if (tensors_.size() != A.tensors_.size()) throw LengthMismatchError();
+            if (tensors.size() != A.tensors.size()) throw LengthMismatchError();
             #endif //VALIDATE_INPUTS
 
-            for (int i = 0;i < tensors_.size();i++)
+            for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors_[i] != NULL &&
+                if (tensors[i] != NULL &&
                     A.componentExists(i))
                 {
-                    beta*(*tensors_[i].tensor_) += alpha*(A(i));
+                    beta*(*tensors[i].tensor) += alpha*(A(i));
                 }
             }
         }
@@ -270,15 +261,15 @@ class CompositeTensor : public Tensor<Derived,T>
         void invert(const T alpha, bool conja, const Derived& A, const T beta)
         {
             #ifdef VALIDATE_INPUTS
-            if (tensors_.size() != A.tensors_.size()) throw LengthMismatchError();
+            if (tensors.size() != A.tensors.size()) throw LengthMismatchError();
             #endif //VALIDATE_INPUTS
 
-            for (int i = 0;i < tensors_.size();i++)
+            for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors_[i] != NULL &&
+                if (tensors[i] != NULL &&
                     A.componentExists(i))
                 {
-                    beta*(*tensors_[i].tensor_) += alpha/(A(i));
+                    beta*(*tensors[i].tensor) += alpha/(A(i));
                 }
             }
         }
@@ -286,17 +277,17 @@ class CompositeTensor : public Tensor<Derived,T>
         T dot(bool conja, const Derived& A, bool conjb) const
         {
             #ifdef VALIDATE_INPUTS
-            if (tensors_.size() != A.tensors_.size()) throw LengthMismatchError();
+            if (tensors.size() != A.tensors.size()) throw LengthMismatchError();
             #endif //VALIDATE_INPUTS
 
             T s = (T)0;
 
-            for (int i = 0;i < tensors_.size();i++)
+            for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors_[i] != NULL &&
+                if (tensors[i] != NULL &&
                     A.componentExists(i))
                 {
-                    s += tensors_[i].tensor_->dot(conja, A(i), conjb);
+                    s += tensors[i].tensor->dot(conja, A(i), conjb);
                 }
             }
 
@@ -310,7 +301,7 @@ class IndexableCompositeTensor : public IndexableTensorBase<Derived,T>, public C
     INHERIT_FROM_TENSOR(Derived,T)
 
     protected:
-        using IndexableTensorBase<Derived,T>::ndim_;
+        using IndexableTensorBase<Derived,T>::ndim;
 
     public:
         using IndexableTensorBase< Derived, T >::operator=;
@@ -325,7 +316,7 @@ class IndexableCompositeTensor : public IndexableTensorBase<Derived,T>, public C
         using IndexableTensorBase<Derived,T>::implicit;
 
     public:
-        IndexableCompositeTensor(const int ndim=0, const int ntensors=0)
+        IndexableCompositeTensor(int ndim=0, int ntensors=0)
         : IndexableTensorBase<Derived,T>(ndim), CompositeTensor<Derived,Base,T>(ntensors) {}
 
         virtual ~IndexableCompositeTensor() {}
@@ -340,7 +331,7 @@ class IndexableCompositeTensor : public IndexableTensorBase<Derived,T>, public C
                   const T beta)
         {
             #ifdef VALIDATE_INPUTS
-            if (ndim_ != A.ndim_ || ndim_ != B_.ndim_) throw InvalidNdimError();
+            if (ndim != A.ndim || ndim != B_.ndim) throw InvalidNdimError();
             #endif //VALIDATE_INPUTS
 
             mult(alpha, conja, A, A.implicit(),
@@ -357,7 +348,7 @@ class IndexableCompositeTensor : public IndexableTensorBase<Derived,T>, public C
         void sum(const T alpha, bool conja, const Derived& A, const T beta)
         {
             #ifdef VALIDATE_INPUTS
-            if (ndim_ != A.ndim_) throw InvalidNdimError();
+            if (ndim != A.ndim) throw InvalidNdimError();
             #endif //VALIDATE_INPUTS
 
             sum(alpha, conja, A, A.implicit(),
@@ -383,7 +374,7 @@ class IndexableCompositeTensor : public IndexableTensorBase<Derived,T>, public C
         T dot(bool conja, const Derived& A, bool conjb) const
         {
             #ifdef VALIDATE_INPUTS
-            if (ndim_ != A.ndim_) throw InvalidNdimError();
+            if (ndim != A.ndim) throw InvalidNdimError();
             #endif //VALIDATE_INPUTS
 
             return dot(conja, A, A.implicit(),

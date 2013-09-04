@@ -25,6 +25,8 @@
 #ifndef _AQUARIUS_UTIL_FORTRAN_H_
 #define _AQUARIUS_UTIL_FORTRAN_H_
 
+#include <stdint.h>
+
 #define LOWER_NO_UNDERSCORE 1
 #define LOWER_UNDERSCORE 2
 #define UPPER_NO_UNDERSCORE 3

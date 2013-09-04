@@ -25,7 +25,9 @@
 #ifndef _AQUARIUS_OPERATOR_MOOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_MOOPERATOR_HPP_
 
-#include "scf/scf.hpp"
+#include "task/task.hpp"
+
+#include "space.hpp"
 
 namespace aquarius
 {
@@ -33,19 +35,14 @@ namespace op
 {
 
 template <typename T>
-class MOOperator : public Distributed<T>
+class MOOperator : public task::Resource
 {
-    protected:
-        const scf::UHF<T>& uhf;
-
     public:
-        MOOperator(const scf::UHF<T>& uhf)
-        : Distributed<T>(uhf), uhf(uhf) {}
+        const Space occ;
+        const Space vrt;
 
-        MOOperator(const MOOperator<T>& other)
-        : Distributed<T>(other), uhf(other.uhf) {}
-
-        const scf::UHF<T>& getSCF() const { return uhf; }
+        MOOperator(const Arena& arena, const Space& occ, const Space& vrt)
+        : Resource(arena), occ(occ), vrt(vrt) {}
 };
 
 }

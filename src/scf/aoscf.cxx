@@ -31,46 +31,60 @@ using namespace aquarius;
 using namespace aquarius::scf;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
-using namespace aquarius::slide;
+using namespace aquarius::integrals;
+using namespace aquarius::task;
 
 template <typename T>
-AOUHF<T>::AOUHF(const Config& config, const AOIntegrals<T>& ints)
-: UHF<T>(ints.ctf, config, ints.molecule), ints(ints) {}
+AOUHF<T>::AOUHF(const string& name, const Config& config)
+: UHF<T>("aoscf", name, config)
+{
+    for (vector<Product>::iterator i = this->products.begin();i != this->products.end();++i)
+    {
+        i->addRequirement(Requirement("eri", "I"));
+    }
+}
 
 template <typename T>
 void AOUHF<T>::buildFock()
 {
-    T *focka, *fockb;
-    T *densa, *densb;
+    const Molecule& molecule =this->template get<Molecule>("molecule");
+    const ERI& ints = this->template get<ERI>("I");
 
-    int64_t npair;
+    int norb = molecule.getNumOrbitals();
 
-    this->H->getAllData(npair, focka, 0);
-    assert(this->rank != 0 || npair == norb*norb);
-    this->H->getAllData(npair, fockb, 0);
-    assert(this->rank != 0 || npair == norb*norb);
+    DistTensor<T>& H = this->template get<DistTensor<T> >("H");
+    DistTensor<T>& Da = this->template get<DistTensor<T> >("Da");
+    DistTensor<T>& Db = this->template get<DistTensor<T> >("Db");
+    DistTensor<T>& Fa = this->template get<DistTensor<T> >("Fa");
+    DistTensor<T>& Fb = this->template get<DistTensor<T> >("Fb");
 
-    if (this->rank != 0)
+    Arena& arena = H.arena;
+
+    vector<T> focka, fockb;
+    vector<T> densa, densb;
+
+    H.getAllData(focka, 0);
+    assert(arena.rank != 0 || focka.size() == norb*norb);
+    H.getAllData(fockb, 0);
+    assert(arena.rank != 0 || focka.size() == norb*norb);
+
+    if (arena.rank != 0)
     {
-        focka = SAFE_MALLOC(T, norb*norb);
-        fockb = SAFE_MALLOC(T, norb*norb);
-        fill(focka, focka+norb*norb, 0.0);
-        fill(fockb, fockb+norb*norb, 0.0);
+        focka.resize(norb*norb, (T)0);
+        fockb.resize(norb*norb, (T)0);
     }
 
-    this->Da->getAllData(npair, densa);
-    assert(npair == norb*norb);
-    this->Db->getAllData(npair, densb);
-    assert(npair == norb*norb);
+    Da.getAllData(densa);
+    assert(densa.size() == norb*norb);
+    Db.getAllData(densb);
+    assert(densa.size() == norb*norb);
 
-    T *densab = SAFE_MALLOC(T, norb*norb);
+    vector<T> densab(densa);
+    axpy(norb*norb, 1.0, densb.data(), 1, densab.data(), 1);
 
-    copy(norb*norb,      densa, 1, densab, 1);
-    axpy(norb*norb, 1.0, densb, 1, densab, 1);
-
-    size_t neris = ints.getNumInts();
-    const T* eris = ints.getInts();
-    const idx4_t* idxs = ints.getIndices();
+    const vector<T>& eris = ints.ints;
+    const vector<idx4_t>& idxs = ints.idxs;
+    size_t neris = eris.size();
 
     for (size_t n = 0;n < neris;n++)
     {
@@ -147,12 +161,12 @@ void AOUHF<T>::buildFock()
         }
     }
 
-    if (this->rank == 0)
+    if (arena.rank == 0)
     {
-        this->comm.Reduce(MPI::IN_PLACE, focka, norb*norb, this->type, MPI::SUM, 0);
-        this->comm.Reduce(MPI::IN_PLACE, fockb, norb*norb, this->type, MPI::SUM, 0);
+        arena.Reduce(focka, MPI::SUM);
+        arena.Reduce(fockb, MPI::SUM);
 
-        tkv_pair<T>* pairs = SAFE_MALLOC(tkv_pair<T>, norb*norb);
+        vector<tkv_pair<T> > pairs(norb*norb);
 
         for (int p = 0;p < norb*norb;p++)
         {
@@ -160,7 +174,7 @@ void AOUHF<T>::buildFock()
             pairs[p].k = p;
         }
 
-        this->Fa->writeRemoteData(norb*norb, pairs);
+        Fa.writeRemoteData(pairs);
 
         for (int p = 0;p < norb*norb;p++)
         {
@@ -168,24 +182,17 @@ void AOUHF<T>::buildFock()
             pairs[p].k = p;
         }
 
-        this->Fb->writeRemoteData(norb*norb, pairs);
-
-        FREE(pairs);
+        Fb.writeRemoteData(pairs);
     }
     else
     {
-        this->comm.Reduce(focka, NULL, norb*norb, this->type, MPI::SUM, 0);
-        this->comm.Reduce(fockb, NULL, norb*norb, this->type, MPI::SUM, 0);
+        arena.Reduce(focka, MPI::SUM, 0);
+        arena.Reduce(fockb, MPI::SUM, 0);
 
-        this->Fa->writeRemoteData(0, NULL);
-        this->Fb->writeRemoteData(0, NULL);
+        Fa.writeRemoteData();
+        Fb.writeRemoteData();
     }
-
-    FREE(densab);
-    FREE(focka);
-    FREE(fockb);
-    FREE(densa);
-    FREE(densb);
 }
 
 INSTANTIATE_SPECIALIZATIONS(AOUHF);
+REGISTER_TASK(AOUHF<double>, "aoscf");

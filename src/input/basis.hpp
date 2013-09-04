@@ -31,7 +31,7 @@
 #include <fstream>
 #include <algorithm>
 
-#include "slide/slide.hpp"
+#include "integrals/shell.hpp"
 #include "molecule.hpp"
 
 namespace aquarius

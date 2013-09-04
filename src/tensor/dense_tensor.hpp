@@ -57,35 +57,38 @@ class DenseTensor : public LocalTensor< DenseTensor<T>,T >
 	typedef typename LocalTensor<DenseTensor<T>,T>::CopyType CopyType_;
 
     public:
-        DenseTensor(const DenseTensor& t, const T val);
+        DenseTensor(T val = (T)0);
 
-        DenseTensor(const DenseTensor<T>& A,
-                CopyType_ type=CLONE);
+        DenseTensor(const DenseTensor<T>& A, T val);
 
-        DenseTensor(const int ndim, const int *len, T* data, const bool zero=false);
+        DenseTensor(const DenseTensor<T>& A);
 
-        DenseTensor(const int ndim, const int *len, const bool zero=true);
+        DenseTensor(DenseTensor<T>& A, CopyType_ type=CLONE);
 
-        DenseTensor(const int ndim, const int *len, const int *ld, T* data, const bool zero=false);
+        DenseTensor(int ndim, const std::vector<int>& len, T* data, bool zero=false);
 
-        DenseTensor(const int ndim, const int *len, const int *ld, const bool zero=true);
+        DenseTensor(int ndim, const std::vector<int>& len, bool zero=true);
 
-        static uint64_t getSize(const int ndim, const int *len, const int *ld);
+        DenseTensor(int ndim, const std::vector<int>& len, const std::vector<int>& ld, T* data, bool zero=false);
+
+        DenseTensor(int ndim, const std::vector<int>& len, const std::vector<int>& ld, bool zero=true);
+
+        static uint64_t getSize(int ndim, const std::vector<int>& len, const std::vector<int>& ld);
 
         void print(FILE* fp) const;
 
         void print(std::ostream& stream) const;
 
-        void mult(const T alpha, bool conja, const DenseTensor<T>& A, const int* idx_A,
-                                 bool conjb, const DenseTensor<T>& B, const int* idx_B,
-                  const T beta,                                       const int* idx_C);
+        void mult(const T alpha, bool conja, const DenseTensor<T>& A, const std::string& idx_A,
+                                 bool conjb, const DenseTensor<T>& B, const std::string& idx_B,
+                  const T beta,                                       const std::string& idx_C);
 
-        void sum(const T alpha, bool conja, const DenseTensor<T>& A, const int* idx_A,
-                 const T beta,                                       const int* idx_B);
+        void sum(const T alpha, bool conja, const DenseTensor<T>& A, const std::string& idx_A,
+                 const T beta,                                       const std::string& idx_B);
 
-        void scale(const T alpha, const int* idx_A);
+        void scale(const T alpha, const std::string& idx_A);
 
-        DenseTensor slice(const int* start, const int* len);
+        DenseTensor<T> slice(const std::vector<int>& start, const std::vector<int>& len);
 };
 
 }

@@ -28,6 +28,7 @@
 #include <vector>
 #include <cassert>
 #include <algorithm>
+#include <iostream>
 
 /*
  * Use of tensor::scalar requires definitions now
@@ -42,6 +43,7 @@
 
 #include "input/config.hpp"
 #include "util/lapack.h"
+#include "task/task.hpp"
 
 namespace aquarius
 {
@@ -222,7 +224,7 @@ class DIIS
                 std::copy(e.begin(), e.end(), tmp.begin());
                 info = hesv('U', nextrap_real+1, 1, tmp.data(), nextrap+1, ipiv.data(),
                             c.data(), nextrap+1);
-                ASSERT(info == 0, "failure in dsysv, info = %d", info);
+                if (info != 0) throw std::runtime_error(std::strprintf("DIIS: Info in hesv: %d", info));
             }
 
             for (int i = 0;i < ndx;i++)

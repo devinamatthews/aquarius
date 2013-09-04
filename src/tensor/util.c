@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 void tensor_info(const int ndim, const int* len, const int* ld, const int* sym,
                  int* group, int* skip, int* stride, size_t* size)
@@ -79,7 +80,7 @@ int tensor_iterate(const double alpha, const int ntensor, double * const restric
     int idx[ndim];
     double tmp;
 
-    ASSERT(ntensor >= 2, "too few tensors specified");
+    assert(ntensor >= 2);
 
     if (ndim > 0) idx[0] = 0;
     for (i = 1;i < ndim;i++)
@@ -194,7 +195,6 @@ void dzero(const int n, double* a, const int inca)
 {
     int i;
     int ia;
-    int m;
 
     if (inca == 1)
     {
@@ -234,7 +234,6 @@ void izero(const int n, int* a, const int inca)
 {
     int i;
     int ia;
-    int m;
 
     if (inca == 1)
     {
@@ -758,7 +757,7 @@ int validate_tensor(const int ndim, const int* len, const int* ld, const int* sy
 
 int connected_components(const int n, const bool G[n][n], int cc[n], int len[n])
 {
-    int i, j;
+    int i;
     int ncc = 0;
     bool seen[n];
     int *curcc = cc;
@@ -776,7 +775,7 @@ int connected_components(const int n, const bool G[n][n], int cc[n], int len[n])
 
 int connected_component(const int n, const bool G[n][n], const int i, bool seen[n], int** cc)
 {
-    int tmplen, len = 1;
+    int len = 1;
     int j;
 
     if (seen[i]) return 0;

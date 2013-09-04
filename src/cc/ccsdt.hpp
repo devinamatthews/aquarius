@@ -25,10 +25,11 @@
 #ifndef _AQUARIUS_CC_CCSDT_HPP_
 #define _AQUARIUS_CC_CCSDT_HPP_
 
+#include "task/task.hpp"
 #include "time/time.hpp"
 #include "util/iterative.hpp"
 #include "operator/2eoperator.hpp"
-#include "operator/exponentialoperator.hpp"
+#include "operator/excitationoperator.hpp"
 #include "convergence/diis.hpp"
 
 #include "ccsd.hpp"
@@ -39,22 +40,23 @@ namespace cc
 {
 
 template <typename U>
-class CCSDT : public Iterative, public op::ExponentialOperator<U,3>
+class CCSDT : public Iterative
 {
     protected:
-        op::ExponentialOperator<U,3>& T;
-        op::ExcitationOperator<U,3> D, Z;
-        op::TwoElectronOperator<U>& H;
         convergence::DIIS< op::ExcitationOperator<U,3> > diis;
 
     public:
-        CCSDT(const input::Config& config, op::TwoElectronOperator<U>& H);
+        CCSDT(const std::string& name, const input::Config& config);
 
-        void _iterate();
+        void run(task::TaskDAG& dag, const Arena& arena);
 
+        void iterate();
+
+        /*
         double getProjectedS2() const;
 
         double getProjectedMultiplicity() const;
+        */
 };
 
 }

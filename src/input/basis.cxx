@@ -31,7 +31,7 @@
 #include <cstdlib>
 
 using namespace std;
-using namespace aquarius::slide;
+using namespace aquarius::integrals;
 
 namespace aquarius
 {

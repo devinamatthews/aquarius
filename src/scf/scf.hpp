@@ -28,15 +28,10 @@
 #include <vector>
 #include <cmath>
 #include <complex>
-
-#include "mpi.h"
-
-#ifdef USE_ELEMENTAL
-#include "elemental.hpp"
-#endif
+#include <iomanip>
 
 #include "tensor/dist_tensor.hpp"
-#include "slide/slide.hpp"
+#include "integrals/1eints.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
 #include "util/util.h"
@@ -45,6 +40,8 @@
 #include "util/distributed.hpp"
 #include "util/iterative.hpp"
 #include "convergence/diis.hpp"
+#include "task/task.hpp"
+#include "operator/space.hpp"
 
 namespace aquarius
 {
@@ -52,65 +49,23 @@ namespace scf
 {
 
 template <typename T>
-class UHF : public Iterative, public Distributed<T>
+class UHF : public Iterative
 {
     protected:
-        const input::Molecule& molecule;
-        int norb;
-        int nalpha;
-        int nbeta;
         T damping;
-        std::vector<T> Ea, Eb;
-        tensor::DistTensor<T> *Fa, *Fb;
-        tensor::DistTensor<T> *dF;
-        tensor::DistTensor<T> *Ca_occ, *Cb_occ;
-        tensor::DistTensor<T> *Ca_vrt, *Cb_vrt;
-        tensor::DistTensor<T> *Da, *Db;
-        tensor::DistTensor<T> *dDa, *dDb;
-        tensor::DistTensor<T> *S, *Smhalf;
-        tensor::DistTensor<T> *H;
         aquarius::convergence::DIIS< tensor::DistTensor<T> > diis;
-        #ifdef USE_ELEMENTAL
-        elem::Grid grid;
-        elem::DistMatrix<T> C_elem;
-        elem::DistMatrix<T> S_elem;
-        elem::DistMatrix<T> F_elem;
-        elem::DistMatrix<T,elem::VR,elem::STAR> E_elem;
-        #endif
 
     public:
-        UHF(tCTF_World<T>& ctf, const input::Config& config, const input::Molecule& molecule);
+        UHF(const std::string& type, const std::string& name, const input::Config& config);
 
-        ~UHF();
+        void iterate();
 
-        void _iterate();
-
-        T getMultiplicity() const;
-
-        T getS2() const;
-
-        T getAvgNumAlpha() const;
-
-        T getAvgNumBeta() const;
-
-        const T* getAlphaEigenvalues() const { return Ea.data(); }
-
-        const T* getBetaEigenvalues() const { return Eb.data(); }
-
-        const input::Molecule& getMolecule() const { return molecule; }
-
-        const tensor::DistTensor<T>& getOverlap() const { return *S; }
-        const tensor::DistTensor<T>& get1eHamiltonian() const { return *H; }
-
-        const tensor::DistTensor<T>& getCA() const { return *Ca_vrt; }
-        const tensor::DistTensor<T>& getCI() const { return *Ca_occ; }
-        const tensor::DistTensor<T>& getCa() const { return *Cb_vrt; }
-        const tensor::DistTensor<T>& getCi() const { return *Cb_occ; }
+        void run(task::TaskDAG& dag, const Arena& arena);
 
     protected:
-        void calcOverlap();
+        void calcSMinusHalf();
 
-        void calc1eHamiltonian();
+        void calcS2();
 
         void diagonalizeFock();
 

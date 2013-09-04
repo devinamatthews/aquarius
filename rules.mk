@@ -22,18 +22,15 @@ libdir = $(topdir)/lib
 ALL_LIBS_LINK = $(wildcard $(topdir)/src/autocc/*.o) \
                 $(wildcard $(topdir)/src/input/*.o) \
                 $(wildcard $(topdir)/src/time/*.o) \
-                $(wildcard $(topdir)/src/slide/*/*.o) \
+                $(wildcard $(topdir)/src/integrals/*.o) \
                 $(wildcard $(topdir)/src/memory/*.o) \
                 $(wildcard $(topdir)/src/tensor/*.o) \
                 $(wildcard $(topdir)/src/util/*.o) \
                 $(wildcard $(topdir)/src/cc/*.o) \
                 $(wildcard $(topdir)/src/scf/*.o) \
-                $(wildcard $(topdir)/src/symmetry/*.o)
-ALL_LIBS_DEPS = $(libdir)/libautocc.a $(libdir)/libinput.a \
-                $(libdir)/libtime.a $(libdir)/libslide.a \
-                $(libdir)/libmemory.a $(libdir)/libtensor.a \
-                $(libdir)/libutil.a $(libdir)/libcc.a \
-                $(libdir)/libscf.a $(libdir)/libsymmetry.a
+                $(wildcard $(topdir)/src/symmetry/*.o) \
+                $(wildcard $(topdir)/src/operator/*.o) \
+                $(wildcard $(topdir)/src/task/*.o)
 
 DEPDIR = .deps
 DEPS += $(topdir)/.dummy $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard *.o))))

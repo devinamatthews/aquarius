@@ -27,19 +27,42 @@
 using namespace std;
 using namespace aquarius::op;
 using namespace aquarius::cc;
-using namespace aquarius::scf;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
+using namespace aquarius::task;
+using namespace aquarius::time;
 
 template <typename U>
-CCSDT<U>::CCSDT(const Config& config, TwoElectronOperator<U>& H)
-: Iterative(config), ExponentialOperator<U,3>(H.getSCF()),
-  T(*this), D(H.getSCF()), Z(H.getSCF()), H(H), diis(config.get("diis"))
+CCSDT<U>::CCSDT(const string& name, const Config& config)
+: Iterative("ccsdt", name, config), diis(config.get("diis"))
 {
-    T.set_name("T");
-    Z.set_name("Z");
-    H.set_name("H");
-    D.set_name("D");
+    vector<Requirement> reqs;
+    reqs.push_back(Requirement("moints", "H"));
+    addProduct(Product("double", "mp2", reqs));
+    addProduct(Product("double", "energy", reqs));
+    addProduct(Product("double", "convergence", reqs));
+    addProduct(Product("double", "S2", reqs));
+    addProduct(Product("double", "multiplicity", reqs));
+    addProduct(Product("ccsdt.T", "T", reqs));
+    addProduct(Product("ccsdt.Hbar", "Hbar", reqs));
+}
+
+template <typename U>
+void CCSDT<U>::run(task::TaskDAG& dag, const Arena& arena)
+{
+    const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
+
+    const Space& occ = H.occ;
+    const Space& vrt = H.vrt;
+
+    put("T", new ExcitationOperator<U,3>(arena, occ, vrt));
+    puttmp("D", new ExcitationOperator<U,3>(arena, occ, vrt));
+    puttmp("Z", new ExcitationOperator<U,3>(arena, occ, vrt));
+
+    ExcitationOperator<U,3>& T = get<ExcitationOperator<U,3> >("T");
+    ExcitationOperator<U,3>& D = gettmp<ExcitationOperator<U,3> >("D");
+    ExcitationOperator<U,3>& Z = gettmp<ExcitationOperator<U,3> >("Z");
+
     D(0) = (U)1.0;
     D(1)["ai"]  = H.getIJ()["ii"];
     D(1)["ai"] -= H.getAB()["aa"];
@@ -67,16 +90,46 @@ CCSDT<U>::CCSDT(const Config& config, TwoElectronOperator<U>& H)
 
     energy = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
 
-    conv =          T(1)(0).reduce(CTF_OP_MAXABS);
-    conv = max(conv,T(1)(1).reduce(CTF_OP_MAXABS));
-    conv = max(conv,T(2)(0).reduce(CTF_OP_MAXABS));
-    conv = max(conv,T(2)(1).reduce(CTF_OP_MAXABS));
-    conv = max(conv,T(2)(2).reduce(CTF_OP_MAXABS));
+    conv =          T(1)(0).norm(00);
+    conv = max(conv,T(1)(1).norm(00));
+    conv = max(conv,T(2)(0).norm(00));
+    conv = max(conv,T(2)(1).norm(00));
+    conv = max(conv,T(2)(2).norm(00));
+
+    Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
+    put("mp2", new Scalar(arena, energy));
+
+    Iterative::run(dag, arena);
+
+    put("energy", new Scalar(arena, energy));
+    put("convergence", new Scalar(arena, conv));
+
+    /*
+    if (isUsed("S2") || isUsed("multiplicity"))
+    {
+        double s2 = getProjectedS2(occ, vrt, T(1), T(2));
+        double mult = sqrt(4*s2+1);
+
+        put("S2", new Scalar(arena, s2));
+        put("multiplicity", new Scalar(arena, mult));
+    }
+
+    if (isUsed("Hbar"))
+    {
+        put("Hbar", new STTwoElectronOperator<U,3>(H, T, true));
+    }
+    */
 }
 
 template <typename U>
-void CCSDT<U>::_iterate()
+void CCSDT<U>::iterate()
 {
+    const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
+
+    ExcitationOperator<U,3>& T = get<ExcitationOperator<U,3> >("T");
+    ExcitationOperator<U,3>& D = gettmp<ExcitationOperator<U,3> >("D");
+    ExcitationOperator<U,3>& Z = gettmp<ExcitationOperator<U,3> >("Z");
+
     TwoElectronOperator<U> W(H, TwoElectronOperator<U>::AB|
                                 TwoElectronOperator<U>::IJ|
                                 TwoElectronOperator<U>::IA|
@@ -88,7 +141,6 @@ void CCSDT<U>::_iterate()
                                 TwoElectronOperator<U>::IAJK|
                                 TwoElectronOperator<U>::AIBJ);
 
-    W.set_name("W");
     SpinorbitalTensor<U>& FAI = W.getAI();
     SpinorbitalTensor<U>& FME = W.getIA();
     SpinorbitalTensor<U>& FAE = W.getAB();
@@ -107,7 +159,6 @@ void CCSDT<U>::_iterate()
     //FMI["ii"] = (U)0.0;
 
     SpinorbitalTensor<U> Tau(T(2));
-    Tau.set_name("Tau");
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
     /**************************************************************************
@@ -228,29 +279,32 @@ void CCSDT<U>::_iterate()
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
     energy = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
 
-    conv =           Z(1)(0).reduce(CTF_OP_MAXABS);
-    conv = max(conv, Z(1)(1).reduce(CTF_OP_MAXABS));
-    conv = max(conv, Z(2)(0).reduce(CTF_OP_MAXABS));
-    conv = max(conv, Z(2)(1).reduce(CTF_OP_MAXABS));
-    conv = max(conv, Z(2)(2).reduce(CTF_OP_MAXABS));
-    conv = max(conv, Z(3)(0).reduce(CTF_OP_MAXABS));
-    conv = max(conv, Z(3)(1).reduce(CTF_OP_MAXABS));
-    conv = max(conv, Z(3)(2).reduce(CTF_OP_MAXABS));
-    conv = max(conv, Z(3)(3).reduce(CTF_OP_MAXABS));
+    conv =           Z(1)(0).norm(00);
+    conv = max(conv, Z(1)(1).norm(00));
+    conv = max(conv, Z(2)(0).norm(00));
+    conv = max(conv, Z(2)(1).norm(00));
+    conv = max(conv, Z(2)(2).norm(00));
+    conv = max(conv, Z(3)(0).norm(00));
+    conv = max(conv, Z(3)(1).norm(00));
+    conv = max(conv, Z(3)(2).norm(00));
+    conv = max(conv, Z(3)(3).norm(00));
 
     diis.extrapolate(T, Z);
 }
 
+/*
 template <typename U>
 double CCSDT<U>::getProjectedS2() const
 {
-    return CCSD<U>::getProjectedS2(this->uhf, T(1), T(2));
+    return CCSD<U>::getProjectedS2(this->occ, this->vrt, T(1), T(2));
 }
 
 template <typename U>
 double CCSDT<U>::getProjectedMultiplicity() const
 {
-    return CCSD<U>::getProjectedMultiplicity(this->uhf, T(1), T(2));
+    return CCSD<U>::getProjectedS2(this->occ, this->vrt, T(1), T(2));
 }
+*/
 
 INSTANTIATE_SPECIALIZATIONS(CCSDT);
+REGISTER_TASK(CCSDT<double>,"ccsdt");

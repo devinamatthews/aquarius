@@ -40,6 +40,7 @@
 
 #include "memory/memory.h"
 #include "util/distributed.hpp"
+#include "task/task.hpp"
 
 #include "util.h"
 #include "indexable_tensor.hpp"
@@ -49,89 +50,84 @@ namespace aquarius
 namespace tensor
 {
 
-template<typename T>
-int conv_idx(const int ndim, const T* cidx, int*& iidx);
-
-template<typename T>
-int conv_idx(const int ndim_A, const T* cidx_A, int*& iidx_A,
-             const int ndim_B, const T* cidx_B, int*& iidx_B);
-
-template<typename T>
-int conv_idx(const int ndim_A, const T* cidx_A, int*& iidx_A,
-             const int ndim_B, const T* cidx_B, int*& iidx_B,
-             const int ndim_C, const T* cidx_C, int*& iidx_C);
-
 template <typename T>
-class DistTensor : public IndexableTensor< DistTensor<T>,T >, public Distributed<T>
+class DistTensor : public IndexableTensor< DistTensor<T>,T >, public task::Resource
 {
     INHERIT_FROM_INDEXABLE_TENSOR(DistTensor<T>,T)
 
     protected:
-        int tid;
-        int *len_;
-        int *sym_;
+        tCTF_Tensor<T>* dt;
+        std::vector<int> len;
+        std::vector<int> sym;
+
+        void allocate();
+
+        void free();
 
     public:
-        using Distributed<T>::ctf;
+        using Distributed::arena;
 
-        DistTensor(const DistTensor& t, const T val);
+        DistTensor(const Arena& arena, T scalar = (T)0);
 
-        DistTensor(tCTF_World<T>& ctf);
+        DistTensor(const DistTensor<T>& A, T scalar);
 
-        DistTensor(const DistTensor<T>& A,
-                   const bool copy=true,
-                   const bool zero=false);
+        DistTensor(const DistTensor<T>& A, bool copy=true, bool zero=false);
 
-        DistTensor(tCTF_World<T>& ctf,
-                   const int ndim, const int *len, const int *sym,
-                   const bool zero=true);
+        DistTensor(const Arena& arena, int ndim, const std::vector<int>& len, const std::vector<int>& sym,
+                   bool zero=true);
 
         ~DistTensor();
 
-        void set_name(char const * name_);
+        void resize(int ndim, const std::vector<int>& len, const std::vector<int>& sym, bool zero);
 
-        const int* getLengths() const { return len_; }
+        const std::vector<int>& getLengths() const { return len; }
 
-        const int* getSymmetry() const { return sym_; }
+        const std::vector<int>& getSymmetry() const { return sym; }
 
         T* getRawData(int64_t& size);
 
         const T* getRawData(int64_t& size) const;
 
-        void getLocalData(int64_t& npair, tkv_pair<T>*& pairs) const;
+        void getLocalData(std::vector<tkv_pair<T> >& pairs) const;
 
-        void getRemoteData(int64_t npair, tkv_pair<T>* pairs) const;
+        void getRemoteData(std::vector<tkv_pair<T> >& pairs) const;
 
-        void writeRemoteData(int64_t npair, tkv_pair<T>* pairs);
+        void getRemoteData() const;
 
-        void writeRemoteData(double alpha, double beta, int64_t npair, tkv_pair<T>* pairs);
+        void writeRemoteData(const std::vector<tkv_pair<T> >& pairs);
 
-        void getAllData(int64_t& npair, T*& vals) const;
+        void writeRemoteData();
 
-        void getAllData(int64_t& npair, T*& vals, const int rank) const;
+        void writeRemoteData(double alpha, double beta, const std::vector<tkv_pair<T> >& pairs);
 
-        void div(const T alpha, bool conja, const DistTensor<T>& A,
-                                bool conjb, const DistTensor<T>& B, const T beta);
+        void writeRemoteData(double alpha, double beta);
 
-        void invert(const T alpha, bool conja, const DistTensor<T>& A, const T beta);
+        void getAllData(std::vector<T>& vals) const;
 
-        void print(FILE* fp, double cutoff = 0.0) const;
+        void getAllData(std::vector<T>& vals, int rank) const;
+
+        void div(T alpha, bool conja, const DistTensor<T>& A,
+                          bool conjb, const DistTensor<T>& B, T beta);
+
+        void invert(T alpha, bool conja, const DistTensor<T>& A, T beta);
+
+        void print(FILE* fp, double cutoff = -1.0) const;
 
         void compare(FILE* fp, const DistTensor<T>& other, double cutoff = 0.0) const;
 
-        double reduce(CTF_OP op) const;
+        typename std::real_type<T>::type norm(int p) const;
 
-        void mult(const T alpha, bool conja, const DistTensor<T>& A, const int *idx_A,
-                                 bool conjb, const DistTensor<T>& B, const int *idx_B,
-                  const T  beta,                                     const int *idx_C);
+        void mult(T alpha, bool conja, const DistTensor<T>& A, const std::string& idx_A,
+                           bool conjb, const DistTensor<T>& B, const std::string& idx_B,
+                  T  beta,                                     const std::string& idx_C);
 
-        void sum(const T alpha, bool conja, const DistTensor<T>& A, const int *idx_A,
-                 const T  beta,                                     const int *idx_B);
+        void sum(T alpha, bool conja, const DistTensor<T>& A, const std::string& idx_A,
+                 T  beta,                                     const std::string& idx_B);
 
-        void scale(const T alpha, const int* idx_A);
+        void scale(T alpha, const std::string& idx_A);
 
-        T dot(bool conja, const DistTensor<T>& A, const int* idx_A,
-              bool conjb,                         const int* idx_B) const;
+        T dot(bool conja, const DistTensor<T>& A, const std::string& idx_A,
+              bool conjb,                         const std::string& idx_B) const;
 };
 
 }

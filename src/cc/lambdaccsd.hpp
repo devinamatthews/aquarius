@@ -25,9 +25,14 @@
 #ifndef _AQUARIUS_CC_LAMBDACCSD_HPP_
 #define _AQUARIUS_CC_LAMBDACCSD_HPP_
 
+#include <iomanip>
+
 #include "operator/st2eoperator.hpp"
 #include "operator/deexcitationoperator.hpp"
-#include "operator/exponentialoperator.hpp"
+#include "operator/excitationoperator.hpp"
+#include "convergence/diis.hpp"
+#include "util/iterative.hpp"
+#include "task/task.hpp"
 
 namespace aquarius
 {
@@ -49,21 +54,18 @@ namespace cc
  * traditional lambda operator /\, where L = (1-/\)
  */
 template <typename U>
-class LambdaCCSD : public Iterative, public op::DeexcitationOperator<U,2>
+class LambdaCCSD : public Iterative
 {
     protected:
-        op::DeexcitationOperator<U,2>& L;
-        op::DeexcitationOperator<U,2> Z, D;
-        const op::STTwoElectronOperator<U,2>& H;
-        const op::ExponentialOperator<U,2>& T;
-        const double Ecc;
+        double Ecc;
         convergence::DIIS< op::DeexcitationOperator<U,2> > diis;
 
     public:
-        LambdaCCSD(const input::Config& config, const op::STTwoElectronOperator<U,2>& H,
-                   const op::ExponentialOperator<U,2>& T, const double Ecc);
+        LambdaCCSD(const std::string& name, const input::Config& config);
 
-        void _iterate();
+        void run(task::TaskDAG& dag, const Arena& arena);
+
+        void iterate();
 };
 
 }

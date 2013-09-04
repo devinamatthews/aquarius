@@ -48,25 +48,18 @@ class DeexcitationOperator
         const int spin;
 
     public:
-        DeexcitationOperator(const DeexcitationOperator<T,np,nh>& other)
-        : MOOperator<T>(other.uhf),
-          tensor::CompositeTensor< DeexcitationOperator<T,np,nh>,
-           tensor::SpinorbitalTensor<T>, T >(other),
-          spin(other.spin) {}
-
-        DeexcitationOperator(const scf::UHF<T>& uhf, const int spin=0)
-        : MOOperator<T>(uhf),
+        DeexcitationOperator(const Arena& arena, const Space& occ, const Space& vrt, const int spin=0)
+        : MOOperator<T>(arena, occ, vrt),
           tensor::CompositeTensor< DeexcitationOperator<T,np,nh>,
            tensor::SpinorbitalTensor<T>, T >(std::max(np,nh)+1),
           spin(spin)
         {
             if (abs(spin%2) != (np+nh)%2 || abs(spin) > np+nh) throw std::logic_error("incompatible spin");
 
-            int N = uhf.getMolecule().getNumOrbitals();
-            int nI = uhf.getMolecule().getNumAlphaElectrons();
-            int ni = uhf.getMolecule().getNumBetaElectrons();
-            int nA = N-nI;
-            int na = N-ni;
+            int nI = occ.nalpha;
+            int ni = occ.nbeta;
+            int nA = vrt.nalpha;
+            int na = vrt.nbeta;
 
             for (int ex = 0;ex <= std::min(np,nh);ex++)
             {
@@ -75,7 +68,7 @@ class DeexcitationOperator
                 int npex = (np > nh ? ex+np-nh : ex);
                 int nhex = (nh > np ? ex+nh-np : ex);
 
-                tensors_[idx].tensor_ = new tensor::SpinorbitalTensor<T>(0, autocc::Manifold(npex,nhex), -spin);
+                tensors[idx].tensor = new tensor::SpinorbitalTensor<T>(0, autocc::Manifold(npex,nhex), -spin);
 
                 for (int pspin = std::max(-npex,spin-nhex);pspin <= std::min(npex,spin+nhex);pspin++)
                 {
@@ -102,7 +95,7 @@ class DeexcitationOperator
                     if (ha+hb+pa > 0) sym[ha+hb+pa-1] = NS;
                     if (ha+hb+pa+pb > 0) sym[ha+hb+pa+pb-1] = NS;
 
-                    tensors_[idx].tensor_->addSpinCase(new tensor::DistTensor<T>(uhf.ctf, ndim, len.data(), sym.data(), true),
+                    tensors[idx].tensor->addSpinCase(new tensor::DistTensor<T>(this->arena, ndim, len, sym, true),
                                                        0, autocc::Manifold(pa, ha));
                 }
             }

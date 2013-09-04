@@ -27,13 +27,12 @@
 using namespace std;
 using namespace aquarius::op;
 using namespace aquarius::cc;
-using namespace aquarius::op;
-using namespace aquarius::scf;
 using namespace aquarius::tensor;
 
 template <typename U>
-TwoElectronDensity<U>::TwoElectronDensity(const UHF<U>& uhf)
-: TwoElectronOperator<U>(OneElectronDensity<U>(uhf))
+TwoElectronDensity<U>::TwoElectronDensity(const MOSpace<U>& occ, const MOSpace<U>& vrt,
+                                          const DistTensor<U>& Da, const DistTensor<U>& Db)
+: TwoElectronOperator<U>(OneElectronDensity<U>(occ, vrt, Da, Db))
 {
     this->abcd["abcd"]  =     this->ab["ab"]*this->ab["cd"];
     this->abcd["abcd"] += 0.5*this->ab["ac"]*this->ab["bd"];
@@ -58,7 +57,7 @@ TwoElectronDensity<U>::TwoElectronDensity(const UHF<U>& uhf)
  * Form the unrelaxed CCSD Density
  */
 template <typename U>
-TwoElectronDensity<U>::TwoElectronDensity(const ExponentialOperator<U,2>& T)
+TwoElectronDensity<U>::TwoElectronDensity(const ExcitationOperator<U,2>& T)
 : TwoElectronOperator<U>(OneElectronDensity<U>(T))
 {
     this->abij["abij"]  = T(2)["abij"];
@@ -70,11 +69,11 @@ TwoElectronDensity<U>::TwoElectronDensity(const ExponentialOperator<U,2>& T)
  */
 template <typename U>
 TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
-                                          const ExponentialOperator<U,2>& T,
+                                          const ExcitationOperator<U,2>& T,
                                           const ExcitationOperator<U,2>& TA)
 : TwoElectronOperator<U>(OneElectronDensity<U>(L, T, TA))
 {
-    TwoElectronOperator<U> I(this->uhf);
+    TwoElectronOperator<U> I(this->arena, this->occ, this->vrt);
 
     SpinorbitalTensor<U>& IIJ = I.getIJ();
     SpinorbitalTensor<U>& IAB = I.getAB();
@@ -142,7 +141,7 @@ TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
  */
 template <typename U>
 TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
-                                          const ExponentialOperator<U,2>& T)
+                                          const ExcitationOperator<U,2>& T)
 : TwoElectronOperator<U>(OneElectronDensity<U>(L, T))
 {
     SpinorbitalTensor<U> aitmp(this->ai);
@@ -191,7 +190,7 @@ TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
 template <typename U>
 TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
                                           const DeexcitationOperator<U,2>& LA,
-                                          const ExponentialOperator<U,2>& T,
+                                          const ExcitationOperator<U,2>& T,
                                           const ExcitationOperator<U,2>& TA)
 : TwoElectronOperator<U>(OneElectronDensity<U>(L, LA, T, TA))
 {

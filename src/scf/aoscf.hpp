@@ -25,10 +25,10 @@
 #ifndef _AQUARIUS_SCF_AOSCF_HPP_
 #define _AQUARIUS_SCF_AOSCF_HPP_
 
-#include "stl_ext/stl_ext.hpp"
+#include "util/stl_ext.hpp"
+#include "integrals/2eints.hpp"
 
 #include "scf.hpp"
-#include "aoints.hpp"
 
 namespace aquarius
 {
@@ -39,15 +39,10 @@ template <typename T>
 class AOUHF : public UHF<T>
 {
     protected:
-        using UHF<T>::norb;
+        void buildFock();
 
     public:
-        const AOIntegrals<T>& ints;
-
-        AOUHF(const input::Config& config, const AOIntegrals<T>& ints);
-
-    protected:
-        void buildFock();
+        AOUHF(const std::string& name, const input::Config& config);
 };
 
 }
