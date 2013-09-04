@@ -62,6 +62,8 @@ namespace integrals
 class OneElectronIntegralEvaluator
 {
     public:
+				virtual ~OneElectronIntegralEvaluator() {}
+
         virtual void operator()(int la, const double* ca, int na, const double *za,
                                 int lb, const double* cb, int nb, const double *zb,
                                 double *ints) const = 0;
