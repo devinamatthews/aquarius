@@ -328,99 +328,169 @@ void TaskDAG::addTask(Task* task, const Config& config)
     tasks.push_back(make_pair(task,config));
 }
 
-void TaskDAG::execute(Arena& world)
+void TaskDAG::satisfyRemainingRequirements(const Arena& world)
+{
+    /*
+     * Attempy to satisfy remaining task requirements greedily.
+     * If we are not careful, this could produce cycles.
+     */
+    for (vector<pair<Task*, Config> >::iterator t1 = tasks.begin();t1!=tasks.end();++t1)
+    {
+        string context1;
+        size_t sep = t1->first->getName().find_last_of(".");
+        if (sep!=string::npos)
+        {
+            context1 = t1->first->getName().substr(0, sep+1);
+        }
+        for (vector<Product>::iterator p1 = t1->first->getProducts().begin();p1!=t1->first->getProducts().end();++p1)
+        {
+            for (vector<Requirement>::iterator r1 = p1->getRequirements().begin();r1!=p1->getRequirements().end();++r1)
+            {
+                if (r1->isFulfilled())
+                    continue;
+
+                if (r1->getType()=="double")
+                    Logger::error(world)<<"scalar requirements must be explicitly fulfilled"<<endl;
+
+                for (vector<pair<Task*, Config> >::iterator t2 = tasks.begin();t2!=tasks.end();++t2)
+                {
+                    string context2;
+                    size_t sep = t2->first->getName().find_last_of(".");
+                    if (sep!=string::npos)
+                    {
+                        context2 = t2->first->getName().substr(0, sep+1);
+                    }
+                    if (context1.compare(0, context2.size(), context2)!=0)
+                        continue;
+
+                    for (vector<Product>::iterator p2 = t2->first->getProducts().begin();p2!=t2->first->getProducts().end();++p2)
+                    {
+                        if (r1->isFulfilled())
+                            continue;
+
+                        if (r1->getType()==p2->getType())
+                        {
+                            r1->fulfil(*p2);
+                        }
+                        for (vector<Requirement>::iterator r2 = p2->getRequirements().begin();r2!=p2->getRequirements().end();++r2)
+                        {
+                            if (r1->isFulfilled())
+                                continue;
+
+                            if (!r2->isFulfilled())
+                                continue;
+
+                            if (r1->getType()==r2->getType())
+                            {
+                                r1->fulfil(r2->get());
+                            }
+                        }
+                    }
+                }
+                if (!r1->isFulfilled())
+                    Logger::error(world)<<"Could not fulfil requirement "<<r1->getName()<<" of task "<<t1->first->getName()<<endl;
+            }
+        }
+    }
+}
+
+void TaskDAG::satisfyExplicitRequirements(const Arena& world)
 {
     /*
      * Hook up explicitly fulfilled requirements.
      */
-    for (vector<pair<Task*,Config> >::iterator t1 = tasks.begin();t1 != tasks.end();++t1)
+    for (vector<pair<Task*, Config> >::iterator t1 = tasks.begin();t1!=tasks.end();++t1)
     {
         string context;
 
         size_t sep = t1->first->getName().find_last_of(".");
-        if (sep != string::npos)
+        if (sep!=string::npos)
         {
-            context = t1->first->getName().substr(0,sep+1);
+            context = t1->first->getName().substr(0, sep+1);
         }
 
-        vector<pair<string,string> > usings = t1->second.find<string>("using");
+        vector<pair<string, string> > usings = t1->second.find<string>("using");
 
-        for (vector<pair<string,string> >::iterator u = usings.begin();u != usings.end();++u)
+        for (vector<pair<string, string> >::iterator u = usings.begin();u!=usings.end();++u)
         {
             vector<Requirement*> reqs;
 
-            for (vector<Product>::iterator p = t1->first->getProducts().begin();p != t1->first->getProducts().end();++p)
+            for (vector<Product>::iterator p = t1->first->getProducts().begin();p!=t1->first->getProducts().end();++p)
             {
-                for (vector<Requirement>::iterator r = p->getRequirements().begin();r != p->getRequirements().end();++r)
+                for (vector<Requirement>::iterator r = p->getRequirements().begin();r!=p->getRequirements().end();++r)
                 {
-                    if (r->getName() == u->second)
+                    if (r->getName()==u->second)
                     {
-                        if (!reqs.empty() && reqs.back()->getType() != r->getType())
-                            Logger::error(world) << "Multiple requirements named " << u->second << " with different types" << endl;
+                        if (!reqs.empty()&&reqs.back()->getType()!=r->getType())
+                            Logger::error(world)<<"Multiple requirements named "<<u->second<<" with different types"<<endl;
                         reqs.push_back(&(*r));
                     }
                 }
             }
 
-            if (reqs.empty()) Logger::error(world) << "No requirement " + u->second + " found on task " + t1->first->getName() << endl;
+            if (reqs.empty())
+                Logger::error(world)<<"No requirement "+u->second+" found on task "+t1->first->getName()<<endl;
 
             Product p("double", u->second);
             Product* fulfiller = NULL;
 
-            if (t1->second.exists("using." + u->second + ".="))
+            if (t1->second.exists("using."+u->second+".="))
             {
-                if (reqs.back()->getType() != "double")
-                    Logger::error(world) << "Attempting to specify a non-scalar requirement by value" << endl;
-                p.put(new Scalar(world, t1->second.get<double>("using." + u->second + ".=")));
+                if (reqs.back()->getType()!="double")
+                    Logger::error(world)<<"Attempting to specify a non-scalar requirement by value"<<endl;
+                p.put(new Scalar(world, t1->second.get<double>("using."+u->second+".=")));
                 fulfiller = &p;
             }
             else
             {
-                string from = t1->second.get<string>("using." + u->second + ".from");
+                string from = t1->second.get<string>("using."+u->second+".from");
                 string task, req;
 
                 size_t sep = from.find(':');
-                if (sep == string::npos)
+                if (sep==string::npos)
                 {
                     task = from;
                     req = u->second;
                 }
                 else
                 {
-                    task = from.substr(0,sep);
+                    task = from.substr(0, sep);
                     req = from.substr(sep+1);
                 }
 
                 sep = task.find('.');
-                if (sep == string::npos)
+                if (sep==string::npos)
                 {
                     task = context+task;
                 }
 
-                if (task[0] == '.') task = task.substr(1);
+                if (task[0]=='.')
+                    task = task.substr(1);
 
-                for (vector<pair<Task*,Config> >::iterator t2 = tasks.begin();t2 != tasks.end();++t2)
+                for (vector<pair<Task*, Config> >::iterator t2 = tasks.begin();t2!=tasks.end();++t2)
                 {
-                    if (t2->first->getName() == task)
+                    if (t2->first->getName()==task)
                     {
-                        for (vector<Product>::iterator p2 = t2->first->getProducts().begin();p2 != t2->first->getProducts().end();++p2)
+                        for (vector<Product>::iterator p2 = t2->first->getProducts().begin();p2!=t2->first->getProducts().end();++p2)
                         {
-                            if (p2->getName() == req)
+                            if (p2->getName()==req)
                             {
-                                if (p2->getType() != reqs.back()->getType())
-                                    Logger::error(world) << "Product " << task << "." << req << " is wrong type for requirement " << t1->first->getName() << "." << req << endl;
+                                if (p2->getType()!=reqs.back()->getType())
+                                    Logger::error(world)<<"Product "<<task<<"."<<req<<" is wrong type for requirement "<<t1->first->getName()<<"."<<req<<endl;
                                 fulfiller = &(*p2);
                             }
                         }
 
-                        if (fulfiller == NULL) Logger::error(world) << "Product " + req + " not found on task " + task << endl;
+                        if (fulfiller==NULL)
+                            Logger::error(world)<<"Product "+req+" not found on task "+task<<endl;
                     }
                 }
 
-                if (fulfiller == NULL) Logger::error(world) << "Task " + task + " not found" << endl;
+                if (fulfiller==NULL)
+                    Logger::error(world)<<"Task "+task+" not found"<<endl;
             }
 
-            for (vector<Requirement*>::iterator r = reqs.begin();r != reqs.end();++r)
+            for (vector<Requirement*>::iterator r = reqs.begin();r!=reqs.end();++r)
             {
                 (*r)->fulfil(*fulfiller);
             }
@@ -428,68 +498,12 @@ void TaskDAG::execute(Arena& world)
             t1->second.remove("using");
         }
     }
+}
 
-    /*
-     * Attempy to satisfy remaining task requirements greedily.
-     * If we are not careful, this could produce cycles.
-     */
-    for (vector<pair<Task*,Config> >::iterator t1 = tasks.begin();t1 != tasks.end();++t1)
-    {
-        string context1;
-
-        size_t sep = t1->first->getName().find_last_of(".");
-        if (sep != string::npos)
-        {
-            context1 = t1->first->getName().substr(0,sep+1);
-        }
-
-        for (vector<Product>::iterator p1 = t1->first->getProducts().begin();p1 != t1->first->getProducts().end();++p1)
-        {
-            for (vector<Requirement>::iterator r1 = p1->getRequirements().begin();r1 != p1->getRequirements().end();++r1)
-            {
-                if (r1->isFulfilled()) continue;
-
-                if (r1->getType() == "double")
-                    Logger::error(world) << "scalar requirements must be explicitly fulfilled" << endl;
-
-                for (vector<pair<Task*,Config> >::iterator t2 = tasks.begin();t2 != tasks.end();++t2)
-                {
-                    string context2;
-
-                    size_t sep = t2->first->getName().find_last_of(".");
-                    if (sep != string::npos)
-                    {
-                        context2 = t2->first->getName().substr(0,sep+1);
-                    }
-
-                    if (context1.compare(0, context2.size(), context2) != 0) continue;
-
-                    for (vector<Product>::iterator p2 = t2->first->getProducts().begin();p2 != t2->first->getProducts().end();++p2)
-                    {
-                        if (r1->isFulfilled()) continue;
-                        if (r1->getType() == p2->getType())
-                        {
-                            r1->fulfil(*p2);
-                        }
-
-                        for (vector<Requirement>::iterator r2 = p2->getRequirements().begin();r2 != p2->getRequirements().end();++r2)
-                        {
-                            if (r1->isFulfilled()) continue;
-                            if (!r2->isFulfilled()) continue;
-                            if (r1->getType() == r2->getType())
-                            {
-                                r1->fulfil(r2->get());
-                            }
-                        }
-                    }
-                }
-
-                if (!r1->isFulfilled())
-                    Logger::error(world) << "Could not fulfil requirement " << r1->getName() <<
-                                            " of task " << t1->first->getName() << endl;
-            }
-        }
-    }
+void TaskDAG::execute(Arena& world)
+{
+    satisfyExplicitRequirements(world);
+    satisfyRemainingRequirements(world);
 
     //TODO: check for cycles
 
@@ -500,7 +514,7 @@ void TaskDAG::execute(Arena& world)
     {
         vector<Task*> to_execute;
 
-        for (vector<pair<Task*,Config> >::iterator t = tasks.begin();t != tasks.end();++t)
+        for (vector<pair<Task*,Config> >::iterator t = tasks.begin();;)
         {
             bool can_execute = true;
 
@@ -521,6 +535,10 @@ void TaskDAG::execute(Arena& world)
             {
                 to_execute.push_back(t->first);
                 t = tasks.erase(t);
+            }
+            else
+            {
+                ++t;
             }
 
             if (t == tasks.end()) break;

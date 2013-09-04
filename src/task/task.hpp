@@ -370,6 +370,10 @@ class TaskDAG
 
         void parseTasks(const std::string& context, input::Config& config);
 
+        void satisfyRemainingRequirements(const Arena& world);
+
+        void satisfyExplicitRequirements(const Arena& world);
+
     public:
         TaskDAG() {}
 
