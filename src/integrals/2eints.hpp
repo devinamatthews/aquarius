@@ -64,6 +64,8 @@ namespace integrals
 class TwoElectronIntegralEvaluator
 {
     public:
+				virtual ~TwoElectronIntegralEvaluator() {}
+
         virtual void operator()(int la, const double* ca, int na, const double *za,
                                 int lb, const double* cb, int nb, const double *zb,
                                 int lc, const double* cc, int nc, const double *zc,
