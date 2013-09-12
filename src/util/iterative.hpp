@@ -86,7 +86,8 @@ class Iterative : public task::Task
                 iterate();
                 double dt = time::todouble(time::toc());
 
-                log(arena) << "Iteration " << iter << " took " << dt << " s" << std::endl;
+                log(arena) << "Iteration " << iter << " took " << std::fixed <<
+                              std::setprecision(3) << dt << " s" << std::endl;
                 log(arena) << "Iteration " << iter <<
                               " energy = " << std::setprecision(15) << energy <<
                               ", convergence = " << std::setprecision(8) << conv << std::endl;
