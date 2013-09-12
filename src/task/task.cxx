@@ -516,6 +516,8 @@ void TaskDAG::execute(Arena& world)
 
         for (vector<pair<Task*,Config> >::iterator t = tasks.begin();;)
         {
+            if (t == tasks.end()) break;
+
             bool can_execute = true;
 
             for (vector<Product>::iterator p = t->first->getProducts().begin();p != t->first->getProducts().end();++p)
@@ -540,8 +542,6 @@ void TaskDAG::execute(Arena& world)
             {
                 ++t;
             }
-
-            if (t == tasks.end()) break;
         }
 
         if (to_execute.empty()) break;
