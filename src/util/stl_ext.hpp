@@ -691,6 +691,9 @@ template<typename T> T intersection(const T& v1, const T& v2)
     return v;
 }
 
+/*
+ * Exclude elements of v2 from v1
+ */
 template<typename T> T& exclude(T& v1, const T& v2)
 {
     T v3(v2);
@@ -723,6 +726,9 @@ template<typename T> T& exclude(T& v1, const T& v2)
     return v1;
 }
 
+/*
+ * Return elements from v1 that are not also in v2
+ */
 template<typename T> T exclude_copy(const T& v1, const T& v2)
 {
     T v3(v1);
