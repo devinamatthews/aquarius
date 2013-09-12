@@ -49,7 +49,7 @@ class ExcitationOperator
         const int spin;
 
     public:
-        ExcitationOperator(const Arena& arena, const Space& occ, const Space& vrt, const int spin=0)
+        ExcitationOperator(const Arena& arena, const Space& occ, const Space& vrt, int spin=0, int symmetry=AS)
         : MOOperator<T>(arena, occ, vrt),
           tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
            tensor::SpinorbitalTensor<T>, T >(std::max(np,nh)+1),
@@ -83,7 +83,7 @@ class ExcitationOperator
 
                     int ndim = npex+nhex;
                     std::vector<int> len(ndim);
-                    std::vector<int> sym(ndim, AS);
+                    std::vector<int> sym(ndim, symmetry);
 
                     int i = 0;
                     for (int j = 0;j < pa;j++,i++) len[i] = nA;

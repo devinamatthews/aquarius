@@ -38,6 +38,7 @@ CCD<U>::CCD(const string& name, const Config& config)
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("moints", "H"));
+    addProduct(Product("double", "mp2", reqs));
     addProduct(Product("double", "energy", reqs));
     addProduct(Product("double", "convergence", reqs));
     addProduct(Product("double", "S2", reqs));
@@ -55,7 +56,7 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& vrt = H.vrt;
 
     put("T", new ExcitationOperator<U,2>(arena, occ, vrt));
-    puttmp("D", new ExcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("D", new ExcitationOperator<U,2>(arena, occ, vrt, 0, SH));
     puttmp("Z", new ExcitationOperator<U,2>(arena, occ, vrt));
 
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
@@ -70,6 +71,9 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
     D(2)["abij"] -= H.getAB()["aa"];
     D(2)["abij"] -= H.getAB()["bb"];
 
+    D(2)(0,0,0,0) *= 0.5;
+    D(2)(2,0,0,2) *= 0.5;
+
     D = 1/D;
 
     Z(0) = (U)0.0;
@@ -82,6 +86,9 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
     conv =          T(2)(0).norm(00);
     conv = max(conv,T(2)(1).norm(00));
     conv = max(conv,T(2)(2).norm(00));
+
+    Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
+    put("mp2", new Scalar(arena, energy));
 
     Iterative::run(dag, arena);
 

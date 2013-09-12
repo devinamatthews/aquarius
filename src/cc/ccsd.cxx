@@ -56,7 +56,7 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& vrt = H.vrt;
 
     put("T", new ExcitationOperator<U,2>(arena, occ, vrt));
-    puttmp("D", new ExcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("D", new ExcitationOperator<U,2>(arena, occ, vrt, 0, SY));
     puttmp("Z", new ExcitationOperator<U,2>(arena, occ, vrt));
 
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
@@ -67,9 +67,9 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
     D(1)["ai"]  = H.getIJ()["ii"];
     D(1)["ai"] -= H.getAB()["aa"];
     D(2)["abij"]  = H.getIJ()["ii"];
-    D(2)["abij"] += H.getIJ()["jj"];
     D(2)["abij"] -= H.getAB()["aa"];
-    D(2)["abij"] -= H.getAB()["bb"];
+
+    D(2)(1,0,0,1) *= 2;
 
     D = 1/D;
 

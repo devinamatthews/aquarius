@@ -957,10 +957,10 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     //(*this->ABIJ_)["ABIJ"] = 0.5*ABIJ__["ABIJ"];
     //(*H.getABIJ()_)["abij"] = 0.5*abij__["abij"];
     PROFILE_SECTION(h)
-    H.getABIJ()(2,0,0,2)["ABIJ"]  = ABIJ__["ABIJ"];
-    H.getABIJ()(2,0,0,2)["ABIJ"] -= ABIJ__["ABJI"];
-    H.getABIJ()(0,0,0,0)["abij"]  = abij__["abij"];
-    H.getABIJ()(0,0,0,0)["abij"] -= abij__["abji"];
+    H.getABIJ()(2,0,0,2)["ABIJ"] = 0.5*ABIJ__["ABIJ"];
+    //H.getABIJ()(2,0,0,2)["ABIJ"] -= ABIJ__["ABJI"];
+    H.getABIJ()(0,0,0,0)["abij"] = 0.5*abij__["abij"];
+    //H.getABIJ()(0,0,0,0)["abij"] -= abij__["abji"];
     PROFILE_STOP
 
     /*
