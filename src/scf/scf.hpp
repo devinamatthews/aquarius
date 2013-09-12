@@ -52,6 +52,7 @@ template <typename T>
 class UHF : public Iterative
 {
     protected:
+				bool frozen_core;
         T damping;
         aquarius::convergence::DIIS< tensor::DistTensor<T> > diis;
 

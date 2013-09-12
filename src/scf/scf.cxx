@@ -37,6 +37,7 @@ using namespace aquarius::op;
 template <typename T>
 UHF<T>::UHF(const std::string& type, const std::string& name, const Config& config)
 : Iterative(type, name, config),
+	frozen_core(config.get<bool>("frozen_core")),
   damping(config.get<T>("damping")),
   diis(config.get("diis"), 2)
 {
@@ -100,10 +101,86 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
     put("energy", new Scalar(arena, energy));
     put("convergence", new Scalar(arena, conv));
 
-    put("occ", new MOSpace<T>(gettmp<DistTensor<T> >("Ca_occ"),
-                              gettmp<DistTensor<T> >("Cb_occ")));
-    put("vrt", new MOSpace<T>(gettmp<DistTensor<T> >("Ca_vrt"),
-                              gettmp<DistTensor<T> >("Cb_vrt")));
+	if (frozen_core)
+	{
+		int nfrozen = 0;
+		for (vector<Atom>::const_iterator a = molecule.getAtomsBegin();a != molecule.getAtomsEnd();++a)
+		{
+			int Z = a->getCenter().getElement().getAtomicNumber();
+			if      (Z > 86) nfrozen += 43;
+			else if (Z > 54) nfrozen += 27;
+			else if (Z > 36) nfrozen += 18;
+			else if (Z > 18) nfrozen += 9;
+			else if (Z > 10) nfrozen += 5;
+			else if (Z >  2) nfrozen += 1;
+		}
+
+		if (nfrozen > nalpha || nfrozen > nbeta)
+			Logger::error(arena) << "There are not enough valence electrons for this multiplicity" << endl;
+
+		vector<tkv_pair<T> > pairs;
+
+		DistTensor<T>& Ca_occ = gettmp<DistTensor<T> >("Ca_occ");
+		DistTensor<T>& Cb_occ = gettmp<DistTensor<T> >("Cb_occ");
+    	DistTensor<T> Ca_frozen(arena, 2, vec(norb,nalpha-nfrozen), shapeNN, false);
+    	DistTensor<T> Cb_frozen(arena, 2, vec(norb,nbeta-nfrozen), shapeNN, false);
+
+		if (arena.rank == 0)
+		{
+			for (int i = 0;i < norb;i++)
+			{
+				for (int j = nfrozen;j < nalpha;j++)
+				{
+					pairs.push_back(tkv_pair<T>(i+j*norb,0));
+				}
+			}
+
+			Ca_occ.getRemoteData(pairs);
+
+			for (typename vector<tkv_pair<T> >::iterator i = pairs.begin();i != pairs.end();++i)
+			{
+				i->k -= nfrozen*norb;
+			}
+
+			Ca_frozen.writeRemoteData(pairs);
+
+			pairs.clear();
+
+			for (int i = 0;i < norb;i++)
+			{
+				for (int j = nfrozen;j < nbeta;j++)
+				{
+					pairs.push_back(tkv_pair<T>(i+j*norb,0));
+				}
+			}
+
+			Cb_occ.getRemoteData(pairs);
+
+			for (typename vector<tkv_pair<T> >::iterator i = pairs.begin();i != pairs.end();++i)
+			{
+				i->k -= nfrozen*norb;
+			}
+
+			Cb_frozen.writeRemoteData(pairs);
+		}
+		else
+		{
+			Ca_occ.getRemoteData();
+			Ca_frozen.writeRemoteData();
+			Cb_occ.getRemoteData();
+			Cb_frozen.writeRemoteData();
+		}
+		
+   		put("occ", new MOSpace<T>(Ca_frozen, Cb_frozen));
+	}
+	else
+	{	
+   		put("occ", new MOSpace<T>(gettmp<DistTensor<T> >("Ca_occ"),
+    	                          gettmp<DistTensor<T> >("Cb_occ")));
+	}
+
+   	put("vrt", new MOSpace<T>(gettmp<DistTensor<T> >("Ca_vrt"),
+  	                          gettmp<DistTensor<T> >("Cb_vrt")));
 }
 
 template <typename T>

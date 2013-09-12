@@ -36,6 +36,8 @@ molecule
 },
 aoscf
 {
+	frozen_core?
+		bool false,
 	damping?
 		double 0.0,
 	convergence?
