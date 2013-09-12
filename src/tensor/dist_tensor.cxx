@@ -60,7 +60,7 @@ DistTensor<T>::DistTensor(const DistTensor<T>& A, bool copy, bool zero)
 
     if (copy)
     {
-        *dt = *A.dt;
+        *this = A;
     }
     else if (zero)
     {
