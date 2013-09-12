@@ -207,6 +207,8 @@ void BasisSet::apply(Atom& atom, bool spherical, bool contaminants)
     vector<ShellBasis> v;
     vector<ShellBasis>::iterator it2;
 
+		if (e == "Dummy" || e == "Ghost") return;
+
     map< string,vector<ShellBasis> >::iterator it = atomBases.find(e);
     if (it == atomBases.end())
     {

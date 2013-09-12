@@ -212,6 +212,7 @@ Molecule::Molecule(const Arena& arena, const Config& config)
     multiplicity = config.get<int>("multiplicity");
 
     vector<AtomCartSpec> cartpos;
+    double bohr = (angstrom ? config.get<double>("angstrom2bohr") : 1);
 
     if (zmat)
     {
@@ -220,7 +221,6 @@ Molecule::Molecule(const Arena& arena, const Config& config)
         {
             vec3 pos, posb, posc, posd;
             AtomZmatSpec a = it->second;
-            double bohr = (angstrom ? config.get<double>("constants.angstrom2bohr") : 1);
             double rad = 0.01745329251994329576923690768489;
 
             if (a.dihedralFrom != -1)
@@ -233,19 +233,19 @@ Molecule::Molecule(const Arena& arena, const Config& config)
                 vec3 dcxcb = unit((posc-posd)^(posb-posc));
                 vec3 dcperp = unit((posc-posd)/cb);
 
-                pos = posb + bohr*a.distance*(sin(rad*a.angle)*(sin(rad*a.dihedral)*dcxcb -
-                                                                cos(rad*a.dihedral)*dcperp) -
-                                                                cos(rad*a.angle)*cb);
+                pos = posb + a.distance*(sin(rad*a.angle)*(sin(rad*a.dihedral)*dcxcb -
+                                                           cos(rad*a.dihedral)*dcperp) -
+                                                           cos(rad*a.angle)*cb);
             }
             else if (a.angleFrom != -1)
             {
                 posb = cartpos[a.distanceFrom].pos;
-                pos[2] = posb[2] - bohr*a.distance*cos(rad*a.angle);
-                pos[1] = bohr*a.distance*sin(rad*a.angle);
+                pos[2] = posb[2] + a.distance*cos(rad*a.angle);
+                pos[1] = a.distance*sin(rad*a.angle);
             }
             else if (a.distanceFrom != -1)
             {
-                pos[2] = bohr*a.distance;
+                pos[2] = a.distance;
             }
 
             cartpos.push_back(AtomCartSpec(a.symbol, a.basisSet, a.truncation, pos));
@@ -267,6 +267,7 @@ Molecule::Molecule(const Arena& arena, const Config& config)
     {
         Element e = Element::getElement(it->symbol.c_str());
         nelec += e.getAtomicNumber();
+				it->pos *= bohr;
         com += it->pos*e.getMass();
         totmass += e.getMass();
     }
@@ -285,6 +286,7 @@ Molecule::Molecule(const Arena& arena, const Config& config)
         printf("\nMolecular Geometry:\n\n");
         for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
         {
+						if (it->symbol != "X")
             printf("%3s % 20.15f % 20.15f % 20.15f\n", it->symbol.c_str(), it->pos[0], it->pos[1], it->pos[2]);
         }
     }
@@ -333,9 +335,13 @@ Molecule::Molecule(const Arena& arena, const Config& config)
 
 Molecule::shell_iterator Molecule::getShellsBegin()
 {
-    if (!atoms.empty())
+		vector<Atom>::iterator non_zero = atoms.begin();
+
+		while (non_zero != atoms.end() && non_zero->getShellsBegin() == non_zero->getShellsEnd()) ++non_zero;
+
+    if (non_zero != atoms.end())
     {
-        return shell_iterator(atoms.begin(), atoms.end(), atoms.front().getShellsBegin());
+        return shell_iterator(non_zero, atoms.end(), non_zero->getShellsBegin());
     }
     else
     {
@@ -345,7 +351,11 @@ Molecule::shell_iterator Molecule::getShellsBegin()
 
 Molecule::shell_iterator Molecule::getShellsEnd()
 {
-    if (!atoms.empty())
+		vector<Atom>::iterator non_zero = atoms.begin();
+
+		while (non_zero != atoms.end() && non_zero->getShellsBegin() == non_zero->getShellsEnd()) ++non_zero;
+
+    if (non_zero != atoms.end())
     {
         return shell_iterator(atoms.end(), atoms.end(), atoms.back().getShellsEnd());
     }

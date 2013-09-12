@@ -97,10 +97,11 @@ class Molecule : public task::Resource
                     {
                         ++shell_it;
 
-                        if (shell_it == atom_it->getShellsEnd())
+                        while (shell_it == atom_it->getShellsEnd())
                         {
                             ++atom_it;
                             if (atom_it != atom_it_end) shell_it = atom_it->getShellsBegin();
+														else break;
                         }
                     }
 
@@ -133,17 +134,17 @@ class Molecule : public task::Resource
 
                 bool operator<(const shell_iterator_& other) const
                 {
-                    return atom_it < other.atom_it || (atom_it == other.atom_it && shell_it < other.shell_it);
+                    return atom_it < other.atom_it || (atom_it == other.atom_it && atom_it != atom_it_end && shell_it < other.shell_it);
                 }
 
                 bool operator==(const shell_iterator_& other) const
                 {
-                    return atom_it == other.atom_it && shell_it == other.shell_it;
+                    return atom_it == other.atom_it && (atom_it == atom_it_end || shell_it == other.shell_it);
                 }
 
                 bool operator!=(const shell_iterator_& other) const
                 {
-                    return atom_it != other.atom_it || shell_it != other.shell_it;
+                    return atom_it != other.atom_it || (atom_it != atom_it_end && shell_it != other.shell_it);
                 }
         };
 
