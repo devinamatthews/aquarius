@@ -273,9 +273,7 @@ void DistTensor<T>::div(T alpha, bool conja, const DistTensor<T>& A,
     }
     idx_map[dt->ndim] = '\0';
     
-    dt->scale(beta, idx_map);
-
-    dt->contract(alpha, *A.dt, idx_map, *B.dt, idx_map, 1.0, idx_map, fctr);
+    dt->contract(alpha, *A.dt, idx_map, *B.dt, idx_map, beta, idx_map, fctr);
 */
     dt->align(*A.dt);
     dt->align(*B.dt);
