@@ -347,7 +347,7 @@ typename real_type<T>::type DistTensor<T>::norm(int p) const
     }
     else if (p == 2)
     {
-        ans = sqrt(dt->reduce(CTF_OP_SQNRM2));
+        ans = dt->reduce(CTF_OP_NORM2);
     }
     return abs(ans);
 }
