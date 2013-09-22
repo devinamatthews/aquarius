@@ -37,34 +37,6 @@ namespace aquarius
 namespace autocc
 {
 
-int relativeSign(const vector<Line>& s1, const vector<Line>& s2)
-{
-    int i, j, k;
-    int sign = 1;
-    bool *seen = new bool[s1.size()];
-
-    for (i = 0;i < s1.size();i++) seen[i] = false;
-
-    for (i = 0;i < s1.size();i++)
-    {
-        if (seen[i]) continue;
-        j = i;
-        while (true)
-        {
-            for (k = 0;k < s1.size() && (!(s1[k] == s2[j]) || seen[k]);k++);
-            assert(k < s1.size());
-            j = k;
-            seen[j] = true;
-            if (j == i) break;
-            sign = -sign;
-        }
-    }
-
-    delete[] seen;
-
-    return sign;
-}
-
 ostream& operator<<(ostream& out, const Fragment& f)
 {
     out << f.op << "(" << f.out << "," << f.in << ")";
@@ -123,6 +95,7 @@ bool Fragment::operator<(const Fragment& other) const
         return false;
     }
 
+    /*
     int npext1 = filter_copy(in+out, isType<PARTICLE+EXTERNAL>()).size();
     int npext2 = filter_copy(other.in+other.out, isType<PARTICLE+EXTERNAL>()).size();
 
@@ -146,6 +119,7 @@ bool Fragment::operator<(const Fragment& other) const
     {
         return false;
     }
+    */
 
     if (lexicographical_compare(out.begin(), out.end(), other.out.begin(), other.out.end()))
     {
@@ -190,8 +164,8 @@ const vector<Line>& Fragment::getIndicesIn() const
 
 Fragment& Fragment::translate(const vector<Line>& from, const vector<Line>& to)
 {
-    std::translate<Line>(out, from, to);
-    std::translate<Line>(in, from, to);
+    std::translate(out, from, to);
+    std::translate(in, from, to);
 
     return *this;
 }
@@ -228,28 +202,41 @@ int Fragment::canonicalize(const Diagram::Type type)
 
 vector<Line> Fragment::indices() const
 {
-    vector<Line> indices = out + in;
-    sort(indices.begin(), indices.end());
-    vector<Line>::iterator end = unique(indices.begin(), indices.end());
-    indices.resize((int)(end - indices.begin()));
-
-    return indices;
+    return uniq_copy(out+in);
 }
 
 pair<Manifold,Manifold> Fragment::getShape() const
 {
-    return make_pair(Manifold(count_if(out.begin(), out.end(), isType<PARTICLE+EXTERNAL>()),
-                              count_if( in.begin(),  in.end(), isType<HOLE+EXTERNAL>())),
-                     Manifold(count_if( in.begin(),  in.end(), isType<PARTICLE+EXTERNAL>()),
-                              count_if(out.begin(), out.end(), isType<HOLE+EXTERNAL>())));
+    pair<Manifold,Manifold> p;
+    getShape(p.first, p.second);
+    return p;
 }
 
 void Fragment::getShape(Manifold& left, Manifold& right) const
 {
-    left.np  = count_if(out.begin(), out.end(), isType<PARTICLE+EXTERNAL>());
-    left.nh  = count_if( in.begin(),  in.end(), isType<HOLE+EXTERNAL>());
-    right.np = count_if( in.begin(),  in.end(), isType<PARTICLE+EXTERNAL>());
-    right.nh = count_if(out.begin(), out.end(), isType<HOLE+EXTERNAL>());
+    for (vector<Line>::const_iterator i = out.begin();i != out.end();++i)
+    {
+        if (i->isVirtual())
+        {
+            left.np[i->getType()]++;
+        }
+        else
+        {
+            right.nh[i->getType()]++;
+        }
+    }
+
+    for (vector<Line>::const_iterator i = in.begin();i != in.end();++i)
+    {
+        if (i->isVirtual())
+        {
+            right.np[i->getType()]++;
+        }
+        else
+        {
+            left.nh[i->getType()]++;
+        }
+    }
 }
 
 }

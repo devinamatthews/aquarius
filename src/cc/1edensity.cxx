@@ -32,14 +32,14 @@ using namespace aquarius::tensor;
 template <typename U>
 OneElectronDensity<U>::OneElectronDensity(const MOSpace<U>& occ, const MOSpace<U>& vrt,
                                           const DistTensor<U>& Da, const DistTensor<U>& Db)
-: OneElectronOperator<U>(occ, vrt, Da, Db, true) {}
+: OneElectronOperator<U>(occ, vrt, Da, Db) {}
 
 /*
  * Form the unrelaxed CCSD density
  */
 template <typename U>
 OneElectronDensity<U>::OneElectronDensity(const ExcitationOperator<U,2>& T)
-: OneElectronOperator<U>(T.arena, T.occ, T.vrt, false)
+: OneElectronOperator<U>(T.arena, T.occ, T.vrt)
 {
     this->ai["ai"] = T(1)["ai"];
 }
@@ -51,7 +51,7 @@ template <typename U>
 OneElectronDensity<U>::OneElectronDensity(const DeexcitationOperator<U,2>& L,
                                           const ExcitationOperator<U,2>& T,
                                           const ExcitationOperator<U,2>& TA)
-: OneElectronOperator<U>(T.arena, T.occ, T.vrt, false)
+: OneElectronOperator<U>(T.arena, T.occ, T.vrt)
 {
     OneElectronOperator<U> I(this->arena, this->occ, this->vrt);
 
@@ -81,7 +81,7 @@ OneElectronDensity<U>::OneElectronDensity(const DeexcitationOperator<U,2>& L,
 template <typename U>
 OneElectronDensity<U>::OneElectronDensity(const DeexcitationOperator<U,2>& L,
                                           const ExcitationOperator<U,2>& T)
-: OneElectronOperator<U>(T.arena, T.occ, T.vrt, false)
+: OneElectronOperator<U>(T.arena, T.occ, T.vrt)
 {
     this->ia["ia"] += L(1)["ia"];
 
@@ -106,7 +106,7 @@ OneElectronDensity<U>::OneElectronDensity(const DeexcitationOperator<U,2>& L,
                                           const DeexcitationOperator<U,2>& LA,
                                           const ExcitationOperator<U,2>& T,
                                           const ExcitationOperator<U,2>& TA)
-: OneElectronOperator<U>(T.arena, T.occ, T.vrt, false)
+: OneElectronOperator<U>(T.arena, T.occ, T.vrt)
 {
     OneElectronOperator<U> I(this->arena, this->occ, this->vrt);
 

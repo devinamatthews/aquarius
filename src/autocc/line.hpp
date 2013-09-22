@@ -29,6 +29,8 @@
 #include <string>
 #include <vector>
 #include <stdint.h>
+#include <cctype>
+#include <map>
 
 namespace aquarius
 {
@@ -40,27 +42,11 @@ class Line;
 
 std::ostream& operator<<(std::ostream& out, const std::vector<Line>& v);
 std::ostream& operator<<(std::ostream& out, const Line& l);
-std::ostream& operator<<(std::ostream& out, const Manifold& m);
 
 class Manifold
 {
-    private:
-        void parse(const std::string& s);
-
     public:
-        int np, nh;
-        static const Manifold MIN_VALUE;
-        static const Manifold MAX_VALUE;
-
-        Manifold() : np(0), nh(0) {}
-
-        Manifold(const Manifold& other) : np(other.np), nh(other.nh) {}
-
-        Manifold(const std::string& s);
-
-        Manifold(int ex) : np(ex), nh(ex) {}
-
-        Manifold(int np, int nh) : np(np), nh(nh) {}
+        std::map<int,int> np, nh;
 
         Manifold& operator+=(const Manifold& other);
 
@@ -70,99 +56,166 @@ class Manifold
 
         Manifold operator-(const Manifold& other) const;
 
-        bool operator<(const Manifold& other) const;
-
         bool operator==(const Manifold& other) const;
-};
 
-enum
-{
-    HOLE     = 0x04,
-    PARTICLE = 0x08,
-    INTERNAL = 0x01,
-    EXTERNAL = 0x02,
-    ALPHA    = 0x10,
-    BETA     = 0x20
+        bool operator<(const Manifold& other) const;
 };
 
 class Line
 {
-    friend std::ostream& operator<<(std::ostream& out, const Line& l);
-    friend std::ostream& operator<<(std::ostream& out, const std::vector<Line>& v);
-
     protected:
         uint16_t index;
-        static const unsigned int INDEX_MASK = 0x1FFF;
-        static const unsigned int TYPE_MASK = 0xE000;
-        static const unsigned int INDEX_MAX = 0x1FFF;
-        enum {_HOLE = 0x4000, _INTERNAL = 0x2000, _ALPHA = 0x8000};
+        static const int TYPE_MAX = 26;
+        static const int INDEX_MAX = 512;
+        static const unsigned int SPIN_MASK  = 0x0200;
+        static const unsigned int OCC_MASK   = 0x8000;
+        static const unsigned int TYPE_MASK  = 0x7C00;
+        static const unsigned int INDEX_MASK = 0x01FF;
+        static const unsigned int _BETA      = 0x0200;
+        static const unsigned int _OCCUPIED  = 0x8000;
+        static const int SPIN_SHIFT =  9;
+        static const int OCC_SHIFT  = 15;
+        static const int TYPE_SHIFT = 10;
 
         Line(uint16_t index) : index(index) {}
 
     public:
+        enum { ALPHA = 0, BETA = 1 };
+        enum { OCCUPIED = 1, VIRTUAL = 0 };
+
         Line() : index(0) {}
 
         Line(const std::string& label);
 
-        Line(char label);
+        //Line(char label);
 
-        Line(unsigned int index, unsigned int type);
+        Line(int index, int type, int occupancy, int spin);
+
+        Line(int index, char type, int occupancy, int spin);
 
         static std::vector<Line> parse(const std::string& s);
 
-        //operator unsigned int() const;
+        Line& operator=(const Line& line)
+        {
+            index = line.index;
+            return *this;
+        }
 
-        Line& operator=(const Line& line);
+        bool operator<(const Line& other) const { return index < other.index; }
 
-        //Line& operator=(unsigned int index);
+        bool operator==(const Line& other) const { return index == other.index; }
 
-        bool operator<(const Line& other) const;
+        bool operator!=(const Line& other) const { return index != other.index; }
 
-        bool operator==(const Line& other) const;
+        int getType() const { return (index&TYPE_MASK)>>TYPE_SHIFT; }
 
-        bool operator!=(const Line& other) const;
+        int getOccupancy() const { return (index&OCC_MASK)>>OCC_SHIFT; }
 
-        int getType() const;
+        int getSpin() const { return (index&SPIN_MASK)>>SPIN_SHIFT; }
 
-        int getIndex() const;
+        int getIndex() const { return index&INDEX_MASK; }
 
-        int toInt() const;
+        int asInt() const { return index; }
 
-        bool isExternal() const;
+        bool isAlpha() const { return !(index&_BETA); }
 
-        bool isInternal() const;
+        bool isBeta() const { return index&_BETA; }
 
-        bool isHole() const;
+        bool isVirtual() const { return !(index&_OCCUPIED); }
 
-        bool isParticle() const;
+        bool isOccupied() const { return index&_OCCUPIED; }
 
-        bool isAlpha() const;
+        Line asIndex(int index) const
+        {
+            return Line(*this).toIndex(index);
+        }
 
-        bool isBeta() const;
+        Line& toIndex(int index)
+        {
+            assert(index >= 0 && index < INDEX_MAX);
+            this->index = (this->index&(SPIN_MASK|OCC_MASK|TYPE_MASK))|index;
+            return *this;
+        }
 
-        Line toAlpha() const;
+        Line asType(int type) const
+        {
+            return Line(*this).toType(type);
+        }
 
-        Line toBeta() const;
-};
+        Line& toType(int type)
+        {
+            assert(type >= 0 && type < TYPE_MAX);
+            index = (index&(SPIN_MASK|OCC_MASK|INDEX_MASK))|(type<<TYPE_SHIFT);
+            return *this;
+        }
 
-struct isExternal : std::unary_function<Line,bool>
-{
-    bool operator()(const Line& line) const { return line.isExternal(); }
-};
+        Line asOccupancy(int occupancy) const
+        {
+            return Line(*this).toOccupancy(occupancy);
+        }
 
-struct isInternal : std::unary_function<Line,bool>
-{
-    bool operator()(const Line& line) const { return line.isInternal(); }
-};
+        Line& toOccupancy(int occupancy)
+        {
+            assert(occupancy == OCCUPIED || occupancy == VIRTUAL);
+            index = (index&(SPIN_MASK|TYPE_MAX|INDEX_MASK))|(occupancy<<OCC_SHIFT);
+            return *this;
+        }
 
-struct isHole : std::unary_function<Line,bool>
-{
-    bool operator()(const Line& line) const { return line.isHole(); }
-};
+        Line asSpin(int spin) const
+        {
+            return Line(*this).toSpin(spin);
+        }
 
-struct isParticle : std::unary_function<Line,bool>
-{
-    bool operator()(const Line& line) const { return line.isParticle(); }
+        Line& toSpin(int spin)
+        {
+            assert(spin == ALPHA || spin == BETA);
+            index = (index&(OCC_MASK|TYPE_MASK|INDEX_MASK))|(spin<<SPIN_SHIFT);
+            return *this;
+        }
+
+        Line asAlpha() const
+        {
+            return Line(index&(~_BETA));
+        }
+
+        Line& toAlpha()
+        {
+            index &= ~_BETA;
+            return *this;
+        }
+
+        Line asBeta() const
+        {
+            return Line(index|_BETA);
+        }
+
+        Line& toBeta()
+        {
+            index |= _BETA;
+            return *this;
+        }
+
+        Line asVirtual() const
+        {
+            return Line(index&(~_OCCUPIED));
+        }
+
+        Line& toVirtual()
+        {
+            index &= ~_OCCUPIED;
+            return *this;
+        }
+
+        Line asOccupied() const
+        {
+            return Line(index|_OCCUPIED);
+        }
+
+        Line& toOccupied()
+        {
+            index |= _OCCUPIED;
+            return *this;
+        }
 };
 
 struct isAlpha : std::unary_function<Line,bool>
@@ -175,136 +228,47 @@ struct isBeta : std::unary_function<Line,bool>
     bool operator()(const Line& line) const { return line.isBeta(); }
 };
 
-template<int type> struct isType : std::unary_function<Line,bool> {};
-
-template<> struct isType<HOLE> : std::unary_function<Line,bool>
+struct isOccupied : std::unary_function<Line,bool>
 {
-        bool operator()(const Line& line) const { return line.isHole(); }
+    bool operator()(const Line& line) const { return line.isOccupied(); }
 };
 
-template<> struct isType<PARTICLE> : std::unary_function<Line,bool>
+struct isVirtual : std::unary_function<Line,bool>
 {
-        bool operator()(const Line& line) const { return line.isParticle(); }
+    bool operator()(const Line& line) const { return line.isVirtual(); }
 };
 
-template<> struct isType<INTERNAL> : std::unary_function<Line,bool>
+class isSpin : public std::unary_function<Line,bool>
 {
-        bool operator()(const Line& line) const { return line.isInternal(); }
+    protected:
+        int spin;
+
+    public:
+        isSpin(int spin) : spin(spin) {}
+
+        bool operator()(const Line& line) const { return line.getSpin() == spin; }
 };
 
-template<> struct isType<EXTERNAL> : std::unary_function<Line,bool>
+class isOccupancy : public std::unary_function<Line,bool>
 {
-        bool operator()(const Line& line) const { return line.isExternal(); }
+    protected:
+        int occupancy;
+
+    public:
+        isOccupancy(int occupancy) : occupancy(occupancy) {}
+
+        bool operator()(const Line& line) const { return line.getOccupancy() == occupancy; }
 };
 
-template<> struct isType<ALPHA> : std::unary_function<Line,bool>
+class isType : public std::unary_function<Line,bool>
 {
-        bool operator()(const Line& line) const { return line.isAlpha(); }
-};
+    protected:
+        int type;
 
-template<> struct isType<BETA> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isBeta(); }
-};
+    public:
+        isType(int type) : type(type) {}
 
-template<> struct isType<HOLE+INTERNAL> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isHole() && line.isInternal(); }
-};
-
-template<> struct isType<HOLE+EXTERNAL> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isHole() && line.isExternal(); }
-};
-
-template<> struct isType<PARTICLE+INTERNAL> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isParticle() && line.isInternal(); }
-};
-
-template<> struct isType<PARTICLE+EXTERNAL> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isParticle() && line.isExternal(); }
-};
-
-template<> struct isType<HOLE+ALPHA> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isHole() && line.isAlpha(); }
-};
-
-template<> struct isType<HOLE+BETA> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isHole() && line.isBeta(); }
-};
-
-template<> struct isType<PARTICLE+ALPHA> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isParticle() && line.isAlpha(); }
-};
-
-template<> struct isType<PARTICLE+BETA> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isParticle() && line.isBeta(); }
-};
-
-template<> struct isType<ALPHA+INTERNAL> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isAlpha() && line.isInternal(); }
-};
-
-template<> struct isType<ALPHA+EXTERNAL> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isAlpha() && line.isExternal(); }
-};
-
-template<> struct isType<BETA+INTERNAL> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isBeta() && line.isInternal(); }
-};
-
-template<> struct isType<BETA+EXTERNAL> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isBeta() && line.isExternal(); }
-};
-
-template<> struct isType<HOLE+INTERNAL+ALPHA> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isHole() && line.isInternal() && line.isAlpha(); }
-};
-
-template<> struct isType<HOLE+INTERNAL+BETA> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isHole() && line.isInternal() && line.isBeta(); }
-};
-
-template<> struct isType<HOLE+EXTERNAL+ALPHA> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isHole() && line.isExternal() && line.isAlpha(); }
-};
-
-template<> struct isType<HOLE+EXTERNAL+BETA> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isHole() && line.isExternal() && line.isBeta(); }
-};
-
-template<> struct isType<PARTICLE+INTERNAL+ALPHA> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isParticle() && line.isInternal() && line.isAlpha(); }
-};
-
-template<> struct isType<PARTICLE+INTERNAL+BETA> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isParticle() && line.isInternal() && line.isBeta(); }
-};
-
-template<> struct isType<PARTICLE+EXTERNAL+ALPHA> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isParticle() && line.isExternal() && line.isAlpha(); }
-};
-
-template<> struct isType<PARTICLE+EXTERNAL+BETA> : std::unary_function<Line,bool>
-{
-        bool operator()(const Line& line) const { return line.isParticle() && line.isExternal() && line.isBeta(); }
+        bool operator()(const Line& line) const { return line.getType() == type; }
 };
 
 }

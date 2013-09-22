@@ -375,17 +375,25 @@ typename AOMOIntegrals<T>::abrs_integrals AOMOIntegrals<T>::abrs_integrals::tran
         if (nc == 0) return out;
 
         PROFILE_SECTION(transform)
-        if (trans == 'N')
+        #pragma omp parallel
         {
-            gemm('T', 'N', nc, nb*nrs, na, 1.0,        C, ldc,
-                                                    ints,  na,
-                                           0.0, out.ints,  nc);
-        }
-        else
-        {
-            gemm('N', 'N', nc, nb*nrs, na, 1.0,        C, ldc,
-                                                    ints,  na,
-                                           0.0, out.ints,  nc);
+            int nt = omp_get_num_threads();
+            int tid = omp_get_thread_num();
+            int n0 = (nb*nrs*tid)/nt;
+            int n1 = (nb*nrs*(tid+1))/nt;
+            int nn = n1-n0;
+            if (trans == 'N')
+            {
+                gemm('T', 'N', nc, nn, na, 1.0,              C, ldc,
+                                                    ints+n0*na,  na,
+                                           0.0, out.ints+n0*nc,  nc);
+            }
+            else
+            {
+                gemm('N', 'N', nc, nn, na, 1.0,              C, ldc,
+                                                    ints+n0*na,  na,
+                                           0.0, out.ints+n0*nc,  nc);
+            }
         }
         PROFILE_STOP
     }
@@ -398,36 +406,11 @@ typename AOMOIntegrals<T>::abrs_integrals AOMOIntegrals<T>::abrs_integrals::tran
         if (nc == 0) return out;
 
         PROFILE_SECTION(transform)
-        /*
-        T* tmp = SAFE_MALLOC(T, max(nints, out.nints));
-        transpose(na, nb*nrs, 1.0, ints, na, 0.0, tmp, nb*nrs);
-
-        if (trans == 'N')
-        {
-            gemm('T', 'N', nc, na*nrs, nb, 1.0,        C, ldc,
-                                                     tmp,  nb,
-                                           0.0, out.ints,  nc);
-        }
-        else
-        {
-            gemm('N', 'N', nc, na*nrs, nb, 1.0,        C, ldc,
-                                                     tmp,  nb,
-                                           0.0, out.ints,  nc);
-        }
-
-        FREE(tmp);
-
-        tmp = SAFE_MALLOC(T, out.nints);
-        transpose(nc*nrs, na, 1.0, out.ints, nc*nrs, 0.0, tmp, na);
-        swap(tmp, out.ints);
-        FREE(tmp);
-        */
-
-        ///*
-        size_t iin = 0;
-        size_t iout = 0;
+        #pragma omp parallel for schedule(static)
         for (size_t irs = 0;irs < nrs;irs++)
         {
+            size_t iin = irs*na*nb;
+            size_t iout = irs*na*nc;
             if (trans == 'N')
             {
                 gemm('N', 'N', na, nc, nb, 1.0,      ints+iin,  na,
@@ -440,11 +423,7 @@ typename AOMOIntegrals<T>::abrs_integrals AOMOIntegrals<T>::abrs_integrals::tran
                                                             C, ldc,
                                            0.0, out.ints+iout,  na);
             }
-
-            iin += na*nb;
-            iout += na*nc;
         }
-        //*/
         PROFILE_STOP
     }
 
@@ -452,199 +431,129 @@ typename AOMOIntegrals<T>::abrs_integrals AOMOIntegrals<T>::abrs_integrals::tran
 }
 
 template <typename T>
-void AOMOIntegrals<T>::abrs_integrals::transcribe(DistTensor<T>& tensor, bool assymij, bool assymkl, bool reverse)
+void AOMOIntegrals<T>::abrs_integrals::transcribe(DistTensor<T>& tensor, bool assymij, bool assymkl, Side swap)
 {
     PROFILE_FUNCTION
 
-    if (reverse)
+    if (assymij) assert(na == nr);
+    if (assymkl) assert(nb == ns);
+
+    vector<tkv_pair<T> > pairs;
+
+    /*
+     * (ab|rs) -> <ar|bs>
+     */
+    PROFILE_SECTION(7)
+    for (size_t idx = 0,irs = 0;irs < nrs;irs++)
     {
-        if (assymij) assert(ns == nb);
-        if (assymkl) assert(nr == na);
+        int r = rs[irs].i;
+        int s = rs[irs].j;
 
-        vector<tkv_pair<T> > pairs;
-
-        /*
-         * (ab|rs) -> <sb|ra>
-         */
-        PROFILE_SECTION(1)
-        for (size_t idx = 0,irs = 0;irs < nrs;irs++)
+        for (int b = 0;b < nb;b++)
         {
-            int r = rs[irs].i;
-            int s = rs[irs].j;
-
-            for (int b = 0;b < nb;b++)
+            for (int a = 0;a < na;a++)
             {
-                for (int a = 0;a < na;a++)
+                if ((!assymij || a < r) && (!assymkl || b < s))
                 {
-                    if ((!assymij || s < b) && (!assymkl || r < a))
-                        pairs.push_back(tkv_pair<T>(((a*nr+r)*nb+b)*ns+s, ints[idx]));
-                    idx++;
-                }
-            }
-        }
-        PROFILE_STOP
-
-        PROFILE_SECTION(2)
-        if (assymij) assert(tensor.getSymmetry()[0] == AS);
-        if (assymkl) assert(tensor.getSymmetry()[2] == AS);
-        assert(tensor.getLengths()[0] == ns);
-        assert(tensor.getLengths()[1] == nb);
-        assert(tensor.getLengths()[2] == nr);
-        assert(tensor.getLengths()[3] == na);
-        tensor.writeRemoteData(1, 0, pairs);
-        pairs.clear();
-        PROFILE_STOP
-
-        if (assymij)
-        {
-            /*
-             * -(ab|rs) -> <bs|ra>
-             */
-            PROFILE_SECTION(3)
-            for (size_t idx = 0,irs = 0;irs < nrs;irs++)
-            {
-                int r = rs[irs].i;
-                int s = rs[irs].j;
-
-                for (int b = 0;b < nb;b++)
-                {
-                    for (int a = 0;a < na;a++)
+                    if (swap == PQ)
                     {
-                        if (b < s && (!assymkl || r < a))
-                            pairs.push_back(tkv_pair<T>(((((int64_t)a)*nr+r)*ns+s)*nb+b, ints[idx]));
-                        idx++;
+                        pairs.push_back(tkv_pair<T>(((((int64_t)s)*nb+b)*na+a)*nr+r, -ints[idx]));
                     }
-                }
-            }
-            PROFILE_STOP
-
-            PROFILE_SECTION(4)
-            tensor.writeRemoteData(-1, 1, pairs);
-            PROFILE_STOP
-        }
-        else if (assymkl)
-        {
-            /*
-             * -(ab|rs) -> <sb|ar>
-             */
-            PROFILE_SECTION(5)
-            for (size_t idx = 0,irs = 0;irs < nrs;irs++)
-            {
-                int r = rs[irs].i;
-                int s = rs[irs].j;
-
-                for (int b = 0;b < nb;b++)
-                {
-                    for (int a = 0;a < na;a++)
+                    else if (swap == RS)
                     {
-                        if (a < r)
-                            pairs.push_back(tkv_pair<T>(((((int64_t)r)*na+a)*nb+b)*ns+s, ints[idx]));
-                        idx++;
+                        pairs.push_back(tkv_pair<T>(((((int64_t)b)*ns+s)*nr+r)*na+a, -ints[idx]));
                     }
-                }
-            }
-            PROFILE_STOP
-
-            PROFILE_SECTION(6)
-            tensor.writeRemoteData(-1, 1, pairs);
-            PROFILE_STOP
-        }
-    }
-    else
-    {
-        if (assymij) assert(na == nr);
-        if (assymkl) assert(nb == ns);
-
-        vector<tkv_pair<T> > pairs;
-
-        /*
-         * (ab|rs) -> <ar|bs>
-         */
-        PROFILE_SECTION(7)
-        for (size_t idx = 0,irs = 0;irs < nrs;irs++)
-        {
-            int r = rs[irs].i;
-            int s = rs[irs].j;
-
-            for (int b = 0;b < nb;b++)
-            {
-                for (int a = 0;a < na;a++)
-                {
-                    if ((!assymij || a < r) && (!assymkl || b < s))
+                    else
                     {
                         pairs.push_back(tkv_pair<T>(((((int64_t)s)*nb+b)*nr+r)*na+a, ints[idx]));
                     }
+                }
+                idx++;
+            }
+        }
+    }
+    PROFILE_STOP
+
+    PROFILE_SECTION(8)
+    if (assymij) assert(tensor.getSymmetry()[0] == AS);
+    if (assymkl) assert(tensor.getSymmetry()[2] == AS);
+    assert(tensor.getLengths()[0] == (swap == PQ ? nr : na));
+    assert(tensor.getLengths()[1] == (swap == PQ ? na : nr));
+    assert(tensor.getLengths()[2] == (swap == RS ? ns : nb));
+    assert(tensor.getLengths()[3] == (swap == RS ? nb : ns));
+    tensor.writeRemoteData(1, 0, pairs);
+    pairs.clear();
+    PROFILE_STOP
+
+    if (assymij)
+    {
+        /*
+         * -(ab|rs) -> <ra|bs>
+         */
+        PROFILE_SECTION(9)
+        for (size_t idx = 0,irs = 0;irs < nrs;irs++)
+        {
+            int r = rs[irs].i;
+            int s = rs[irs].j;
+
+            for (int b = 0;b < nb;b++)
+            {
+                for (int a = 0;a < na;a++)
+                {
+                    if (swap == RS)
+                    {
+                        if (r < a && (!assymkl || b < s))
+                            pairs.push_back(tkv_pair<T>(((((int64_t)b)*ns+s)*na+a)*nr+r, -ints[idx]));
+                    }
+                    else
+                    {
+                        if (r < a && (!assymkl || b < s))
+                            pairs.push_back(tkv_pair<T>(((((int64_t)s)*nb+b)*na+a)*nr+r, ints[idx]));
+                    }
                     idx++;
                 }
             }
         }
         PROFILE_STOP
 
-        PROFILE_SECTION(8)
-        if (assymij) assert(tensor.getSymmetry()[0] == AS);
-        if (assymkl) assert(tensor.getSymmetry()[2] == AS);
-        assert(tensor.getLengths()[0] == na);
-        assert(tensor.getLengths()[1] == nr);
-        assert(tensor.getLengths()[2] == nb);
-        assert(tensor.getLengths()[3] == ns);
-        tensor.writeRemoteData(1, 0, pairs);
-        pairs.clear();
+        PROFILE_SECTION(10)
+        tensor.writeRemoteData(-1, 1, pairs);
         PROFILE_STOP
-
-        if (assymij)
+    }
+    else if (assymkl)
+    {
+        /*
+         * -(ab|rs) -> <ar|sb>
+         */
+        PROFILE_SECTION(11)
+        for (size_t idx = 0,irs = 0;irs < nrs;irs++)
         {
-            /*
-             * -(ab|rs) -> <ra|bs>
-             */
-            PROFILE_SECTION(9)
-            for (size_t idx = 0,irs = 0;irs < nrs;irs++)
-            {
-                int r = rs[irs].i;
-                int s = rs[irs].j;
+            int r = rs[irs].i;
+            int s = rs[irs].j;
 
-                for (int b = 0;b < nb;b++)
+            for (int b = 0;b < nb;b++)
+            {
+                for (int a = 0;a < na;a++)
                 {
-                    for (int a = 0;a < na;a++)
+                    if (swap == PQ)
                     {
-                        if (r < a && (!assymkl || b < s))
-                            pairs.push_back(tkv_pair<T>(((((int64_t)s)*nb+b)*na+a)*nr+r, ints[idx]));
-                        idx++;
+                        if (s < b)
+                            pairs.push_back(tkv_pair<T>(((((int64_t)b)*ns+s)*na+a)*nr+r, -ints[idx]));
                     }
-                }
-            }
-            PROFILE_STOP
-
-            PROFILE_SECTION(10)
-            tensor.writeRemoteData(-1, 1, pairs);
-            PROFILE_STOP
-        }
-        else if (assymkl)
-        {
-            /*
-             * -(ab|rs) -> <ar|sb>
-             */
-            PROFILE_SECTION(11)
-            for (size_t idx = 0,irs = 0;irs < nrs;irs++)
-            {
-                int r = rs[irs].i;
-                int s = rs[irs].j;
-
-                for (int b = 0;b < nb;b++)
-                {
-                    for (int a = 0;a < na;a++)
+                    else
                     {
                         if (s < b)
                             pairs.push_back(tkv_pair<T>(((((int64_t)b)*ns+s)*nr+r)*na+a, ints[idx]));
-                        idx++;
                     }
+                    idx++;
                 }
             }
-            PROFILE_STOP
-
-            PROFILE_SECTION(12)
-            tensor.writeRemoteData(-1, 1, pairs);
-            PROFILE_STOP
         }
+        PROFILE_STOP
+
+        PROFILE_SECTION(12)
+        tensor.writeRemoteData(-1, 1, pairs);
+        PROFILE_STOP
     }
 
     PROFILE_STOP
@@ -666,7 +575,7 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     const DistTensor<T>& Fa = this->template get<DistTensor<T> >("Fa");
     const DistTensor<T>& Fb = this->template get<DistTensor<T> >("Fb");
 
-    this->put("H", new TwoElectronOperator<T>(OneElectronOperator<T>(occ, vrt, Fa, Fb, true)));
+    this->put("H", new TwoElectronOperator<T>(OneElectronOperator<T>(occ, vrt, Fa, Fb)));
     TwoElectronOperator<T>& H = this->template get<TwoElectronOperator<T> >("H");
 
     const ERI& ints = this->template get<ERI>("I");
@@ -743,7 +652,7 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals CDAB = RDAB.transform(A, 'N', nA, cA.data(), N);
     RDAB.free();
     PROFILE_SECTION(j)
-    CDAB.transcribe(H.getABCD()(2,0,2,0), true, true, false);
+    CDAB.transcribe(H.getABCD()(vec(2,0),vec(2,0)), true, true, NONE);
     PROFILE_STOP
     CDAB.free();
 
@@ -761,19 +670,19 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals CDab = RDab.transform(A, 'N', nA, cA.data(), N);
     RDab.free();
     PROFILE_SECTION(k)
-    CDab.transcribe(H.getABCD()(1,0,1,0), false, false, false);
+    CDab.transcribe(H.getABCD()(vec(1,0),vec(1,0)), false, false, NONE);
     PROFILE_STOP
     CDab.free();
 
     abrs_integrals cdab = Rdab.transform(A, 'N', na, ca.data(), N);
     Rdab.free();
     PROFILE_SECTION(l)
-    cdab.transcribe(H.getABCD()(0,0,0,0), true, true, false);
+    cdab.transcribe(H.getABCD()(vec(0,0),vec(0,0)), true, true, NONE);
     PROFILE_STOP
     cdab.free();
 
     /*
-     * Make <AB||CI>, <aB|cI>, and <AB|IJ>
+     * Make <AB||CI>, <Ab|cI>, and <AB|IJ>
      */
     pqrs_integrals rsAI(AIrs);
     rsAI.collect(false);
@@ -787,21 +696,21 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals BCAI = RCAI.transform(A, 'N', nA, cA.data(), N);
     RCAI.free();
     PROFILE_SECTION(m)
-    BCAI.transcribe(H.getABCI()(2,0,1,1), true, false, false);
+    BCAI.transcribe(H.getABCI()(vec(2,0),vec(1,1)), true, false, NONE);
     PROFILE_STOP
     BCAI.free();
 
     abrs_integrals bcAI = RcAI.transform(A, 'N', na, ca.data(), N);
     RcAI.free();
     PROFILE_SECTION(n)
-    bcAI.transcribe(H.getABCI()(1,0,0,1), false, false, false);
+    bcAI.transcribe(H.getABCI()(vec(1,0),vec(0,1)), false, false, PQ);
     PROFILE_STOP
     bcAI.free();
 
     abrs_integrals BJAI = RJAI.transform(A, 'N', nA, cA.data(), N);
     RJAI.free();
     PROFILE_SECTION(o)
-    BJAI.transcribe(ABIJ__, false, false, false);
+    BJAI.transcribe(ABIJ__, false, false, NONE);
     PROFILE_STOP
     BJAI.free();
 
@@ -821,33 +730,33 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals BCai = RCai.transform(A, 'N', nA, cA.data(), N);
     RCai.free();
     PROFILE_SECTION(p)
-    BCai.transcribe(H.getABCI()(1,0,1,0), false, false, false);
+    BCai.transcribe(H.getABCI()(vec(1,0),vec(1,0)), false, false, NONE);
     PROFILE_STOP
     BCai.free();
 
     abrs_integrals bcai = Rcai.transform(A, 'N', na, ca.data(), N);
     Rcai.free();
     PROFILE_SECTION(q)
-    bcai.transcribe(H.getABCI()(0,0,0,0), true, false, false);
+    bcai.transcribe(H.getABCI()(vec(0,0),vec(0,0)), true, false, NONE);
     PROFILE_STOP
     bcai.free();
 
     abrs_integrals BJai = RJai.transform(A, 'N', nA, cA.data(), N);
     RJai.free();
     PROFILE_SECTION(r)
-    BJai.transcribe(H.getABIJ()(1,0,0,1), false, false, false);
+    BJai.transcribe(H.getABIJ()(vec(1,0),vec(0,1)), false, false, NONE);
     PROFILE_STOP
     BJai.free();
 
     abrs_integrals bjai = Rjai.transform(A, 'N', na, ca.data(), N);
     Rjai.free();
     PROFILE_SECTION(s)
-    bjai.transcribe(abij__, false, false, false);
+    bjai.transcribe(abij__, false, false, NONE);
     PROFILE_STOP
     bjai.free();
 
     /*
-     * Make <IJ||KL>, <IJ||KA>, <Ij|Ka>, <aI|bJ>, and <AI|BJ>
+     * Make <IJ||KL>, <AI||JK>, <aI|Jk>, <aI|bJ>, and <AI|BJ>
      */
     pqrs_integrals rsIJ(IJrs);
     rsIJ.collect(false);
@@ -862,21 +771,21 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals ABIJ = RBIJ.transform(A, 'N', nA, cA.data(), N);
     RBIJ.free();
     PROFILE_SECTION(t)
-    ABIJ.transcribe(H.getAIBJ()(1,1,1,1), false, false, false);
+    ABIJ.transcribe(H.getAIBJ()(vec(1,1),vec(1,1)), false, false, NONE);
     PROFILE_STOP
     ABIJ.free();
 
     abrs_integrals abIJ = RbIJ.transform(A, 'N', na, ca.data(), N);
     RbIJ.free();
     PROFILE_SECTION(u)
-    abIJ.transcribe(H.getAIBJ()(0,1,0,1), false, false, false);
+    abIJ.transcribe(H.getAIBJ()(vec(0,1),vec(0,1)), false, false, NONE);
     PROFILE_STOP
     abIJ.free();
 
     abrs_integrals akIJ = RlIJ.transform(A, 'N', na, ca.data(), N);
     RlIJ.free();
     PROFILE_SECTION(v)
-    akIJ.transcribe(H.getIJKA()(0,1,0,1), false, false, true);
+    akIJ.transcribe(H.getAIJK()(vec(0,1),vec(0,1)), false, false, RS);
     PROFILE_STOP
     akIJ.free();
 
@@ -884,16 +793,16 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals KLIJ = RLIJ.transform(A, 'N', nI, cI.data(), N);
     RLIJ.free();
     PROFILE_SECTION(w)
-    AKIJ.transcribe(H.getIJKA()(0,2,1,1), true, false, true);
+    AKIJ.transcribe(H.getAIJK()(vec(1,1),vec(0,2)), false, true, NONE);
     PROFILE_STOP
     AKIJ.free();
     PROFILE_SECTION(x)
-    KLIJ.transcribe(H.getIJKL()(0,2,0,2), true, true, false);
+    KLIJ.transcribe(H.getIJKL()(vec(0,2),vec(0,2)), true, true, NONE);
     PROFILE_STOP
     KLIJ.free();
 
     /*
-     * Make <Ij|Kl>, <ij||kl>, <iJ|kA>, <ij||ka>, <Ai|Bj>, and <ai|bj>
+     * Make <Ij|Kl>, <ij||kl>, <Ai|Jk>, <ai||jk>, <Ai|Bj>, and <ai|bj>
      */
     pqrs_integrals rsij(ijrs);
     rsij.collect(false);
@@ -908,14 +817,14 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals ABij = RBij.transform(A, 'N', nA, cA.data(), N);
     RBij.free();
     PROFILE_SECTION(a)
-    ABij.transcribe(H.getAIBJ()(1,0,1,0), false, false, false);
+    ABij.transcribe(H.getAIBJ()(vec(1,0),vec(1,0)), false, false, NONE);
     PROFILE_STOP
     ABij.free();
 
     abrs_integrals abij = Rbij.transform(A, 'N', na, ca.data(), N);
     Rbij.free();
     PROFILE_SECTION(b)
-    abij.transcribe(H.getAIBJ()(0,0,0,0), false, false, false);
+    abij.transcribe(H.getAIBJ()(vec(0,0),vec(0,0)), false, false, NONE);
     PROFILE_STOP
     abij.free();
 
@@ -923,11 +832,11 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals KLij = RLij.transform(A, 'N', nI, cI.data(), N);
     RLij.free();
     PROFILE_SECTION(c)
-    AKij.transcribe(H.getIJKA()(0,1,1,0), false, false, true);
+    AKij.transcribe(H.getAIJK()(vec(1,0),vec(0,1)), false, false, NONE);
     PROFILE_STOP
     AKij.free();
     PROFILE_SECTION(d)
-    KLij.transcribe(H.getIJKL()(0,1,0,1), false, false, false);
+    KLij.transcribe(H.getIJKL()(vec(0,1),vec(0,1)), false, false, NONE);
     PROFILE_STOP
     KLij.free();
 
@@ -935,40 +844,50 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals klij = Rlij.transform(A, 'N', ni, ci.data(), N);
     Rlij.free();
     PROFILE_SECTION(e)
-    akij.transcribe(H.getIJKA()(0,0,0,0), true, false, true);
+    akij.transcribe(H.getAIJK()(vec(0,0),vec(0,0)), false, true, NONE);
     PROFILE_STOP
     akij.free();
     PROFILE_SECTION(f)
-    klij.transcribe(H.getIJKL()(0,0,0,0), true, true, false);
+    klij.transcribe(H.getIJKL()(vec(0,0),vec(0,0)), true, true, NONE);
     PROFILE_STOP
     klij.free();
+
+    H.getIJAK()(vec(0,2),vec(1,1))["JKAI"] = H.getAIJK()(vec(1,1),vec(0,2))["AIJK"];
+    H.getIJAK()(vec(0,1),vec(1,0))["JkAi"] = H.getAIJK()(vec(1,0),vec(0,1))["AiJk"];
+    H.getIJAK()(vec(0,1),vec(0,1))["JkaI"] = H.getAIJK()(vec(0,1),vec(0,1))["aIJk"];
+    H.getIJAK()(vec(0,0),vec(0,0))["jkai"] = H.getAIJK()(vec(0,0),vec(0,0))["aijk"];
+
+    H.getAIBC()(vec(1,1),vec(2,0))["AIBC"] = H.getABCI()(vec(2,0),vec(1,1))["BCAI"];
+    H.getAIBC()(vec(1,0),vec(1,0))["AiBc"] = H.getABCI()(vec(1,0),vec(1,0))["BcAi"];
+    H.getAIBC()(vec(0,1),vec(1,0))["aIBc"] = H.getABCI()(vec(1,0),vec(0,1))["BcaI"];
+    H.getAIBC()(vec(0,0),vec(0,0))["aibc"] = H.getABCI()(vec(0,0),vec(0,0))["bcai"];
 
     /*
      * Make <AI||BJ> and <ai||bj>
      */
     PROFILE_SECTION(g)
-    H.getAIBJ()(1,1,1,1)["AIBJ"] -= ABIJ__["ABJI"];
-    H.getAIBJ()(0,0,0,0)["aibj"] -= abij__["abji"];
+    H.getAIBJ()(vec(1,1),vec(1,1))["AIBJ"] -= ABIJ__["ABJI"];
+    H.getAIBJ()(vec(0,0),vec(0,0))["aibj"] -= abij__["abji"];
     PROFILE_STOP
 
     /*
      * Make <AB||IJ> and <ab||ij>
      */
-    //(*this->ABIJ_)["ABIJ"] = 0.5*ABIJ__["ABIJ"];
-    //(*H.getABIJ()_)["abij"] = 0.5*abij__["abij"];
     PROFILE_SECTION(h)
-    H.getABIJ()(2,0,0,2)["ABIJ"] = 0.5*ABIJ__["ABIJ"];
-    //H.getABIJ()(2,0,0,2)["ABIJ"] -= ABIJ__["ABJI"];
-    H.getABIJ()(0,0,0,0)["abij"] = 0.5*abij__["abij"];
-    //H.getABIJ()(0,0,0,0)["abij"] -= abij__["abji"];
+    H.getABIJ()(vec(2,0),vec(0,2))["ABIJ"] = 0.5*ABIJ__["ABIJ"];
+    H.getABIJ()(vec(0,0),vec(0,0))["abij"] = 0.5*abij__["abij"];
     PROFILE_STOP
+
+    H.getIJAB()(vec(0,2),vec(2,0))["IJAB"] = H.getABIJ()(vec(2,0),vec(0,2))["ABIJ"];
+    H.getIJAB()(vec(0,1),vec(1,0))["IjAb"] = H.getABIJ()(vec(1,0),vec(0,1))["AbIj"];
+    H.getIJAB()(vec(0,0),vec(0,0))["ijab"] = H.getABIJ()(vec(0,0),vec(0,0))["abij"];
 
     /*
      * Make <Ai|bJ> = -<Ab|Ji> and <aI|Bj> = -<Ba|Ij>
      */
     PROFILE_SECTION(i)
-    H.getAIBJ()(1,0,0,1)["AbJi"] = -H.getABIJ()(1,0,0,1)["AbJi"];
-    H.getAIBJ()(0,1,1,0)["BaIj"] = -H.getABIJ()(1,0,0,1)["BaIj"];
+    H.getAIBJ()(vec(1,0),vec(0,1))["AibJ"] = -H.getABIJ()(vec(1,0),vec(0,1))["AbJi"];
+    H.getAIBJ()(vec(0,1),vec(1,0))["aIBj"] = -H.getABIJ()(vec(1,0),vec(0,1))["BaIj"];
     PROFILE_STOP
 }
 

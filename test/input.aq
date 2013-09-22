@@ -3,6 +3,7 @@ section h2o-pvdz
     molecule
     {
         coords cartesian,
+		units bohr,
         atom { O,      0.00000000,     0.00000000,     0.11726921 },
         atom { H,      0.75698224,     0.00000000,    -0.46907685 },
         atom { H,     -0.75698224,     0.00000000,    -0.46907685 },
@@ -27,6 +28,7 @@ section h2o-dz
     molecule
     {
         coords cartesian,
+		units bohr,
         atom { O,      0.00000000,     0.00000000,     0.11726921 },
         atom { H,      0.75698224,     0.00000000,    -0.46907685 },
         atom { H,     -0.75698224,     0.00000000,    -0.46907685 },
@@ -48,6 +50,7 @@ section ch2-pvdz
     {
         multiplicity 3,
         coords cartesian,
+		units bohr,
         atom { C,      0.00000000,     0.00000000,     0.11726921 },
         atom { H,      0.75698224,     0.00000000,    -0.46907685 },
         atom { H,     -0.75698224,     0.00000000,    -0.46907685 },
@@ -73,6 +76,7 @@ section ch2-dz
     {
         multiplicity 3,
         coords cartesian,
+		units bohr,
         atom { C,      0.00000000,     0.00000000,     0.11726921 },
         atom { H,      0.75698224,     0.00000000,    -0.46907685 },
         atom { H,     -0.75698224,     0.00000000,    -0.46907685 },

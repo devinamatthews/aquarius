@@ -34,7 +34,6 @@ namespace aquarius
 namespace op
 {
 
-template <typename T>
 class MOOperator : public task::Resource
 {
     public:

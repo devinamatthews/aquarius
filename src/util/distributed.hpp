@@ -29,6 +29,7 @@
 #include <complex>
 
 #include "mpi.h"
+#include "omp.h"
 
 #ifdef ELEMENTAL
 #include "elemental.hpp"

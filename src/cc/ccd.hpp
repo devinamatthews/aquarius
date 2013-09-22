@@ -34,6 +34,7 @@
 #include "operator/excitationoperator.hpp"
 #include "operator/st2eoperator.hpp"
 #include "operator/stexcitationoperator.hpp"
+#include "operator/denominator.hpp"
 #include "convergence/diis.hpp"
 
 namespace aquarius

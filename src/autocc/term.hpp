@@ -67,6 +67,10 @@ class Term
 
         std::vector<Line> indices() const;
 
+        std::vector<Line> internal() const;
+
+        std::vector<Line> external() const;
+
         Term& fixorder(bool all = false);
 
         Term& fixorder(const std::vector<Line>& which);

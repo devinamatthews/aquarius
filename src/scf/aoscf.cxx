@@ -86,68 +86,85 @@ void AOUHF<T>::buildFock()
     const vector<idx4_t>& idxs = ints.idxs;
     size_t neris = eris.size();
 
-    for (size_t n = 0;n < neris;n++)
+    #pragma omp parallel
     {
-        int i = idxs[n].i;
-        int j = idxs[n].j;
-        int k = idxs[n].k;
-        int l = idxs[n].l;
+        int nt = omp_get_num_threads();
+        int tid = omp_get_thread_num();
+        size_t n0 = (neris*tid)/nt;
+        size_t n1 = (neris*(tid+1))/nt;
 
-        /*
-        if (i < j)
-        {
-            swap(i, j);
-        }
-        if (k < l)
-        {
-            swap(k, l);
-        }
-        if (i < k || (i == k && j < l))
-        {
-            swap(i, k);
-            swap(j, l);
-        }
-        printf("%d %d %d %d %25.15e\n", i+1, j+1, k+1, l+1, eris[n].value);
-        */
+        vector<T> focka_local(norb*norb, (T)0);
+        vector<T> fockb_local(norb*norb, (T)0);
 
-        bool ieqj = i == j;
-        bool keql = k == l;
-        bool ijeqkl = min(i,j) == min(k,l) && max(i,j) == max(k,l);
-
-        /*
-         * Exchange contribution: Fa(ac) -= Da(bd)*(ab|cd)
-         */
-
-        T e = 2.0*eris[n]*(ijeqkl ? 0.5 : 1.0);
-
-        focka[i+k*norb] -= densa[j+l*norb]*e;
-        fockb[i+k*norb] -= densb[j+l*norb]*e;
-        if (!keql)
+        for (size_t n = n0;n < n1;n++)
         {
-            focka[i+l*norb] -= densa[j+k*norb]*e;
-            fockb[i+l*norb] -= densb[j+k*norb]*e;
-        }
-        if (!ieqj)
-        {
-            focka[j+k*norb] -= densa[i+l*norb]*e;
-            fockb[j+k*norb] -= densb[i+l*norb]*e;
+            int i = idxs[n].i;
+            int j = idxs[n].j;
+            int k = idxs[n].k;
+            int l = idxs[n].l;
+
+            /*
+            if (i < j)
+            {
+                swap(i, j);
+            }
+            if (k < l)
+            {
+                swap(k, l);
+            }
+            if (i < k || (i == k && j < l))
+            {
+                swap(i, k);
+                swap(j, l);
+            }
+            printf("%d %d %d %d %25.15e\n", i+1, j+1, k+1, l+1, eris[n].value);
+            */
+
+            bool ieqj = i == j;
+            bool keql = k == l;
+            bool ijeqkl = min(i,j) == min(k,l) && max(i,j) == max(k,l);
+
+            /*
+             * Exchange contribution: Fa(ac) -= Da(bd)*(ab|cd)
+             */
+
+            T e = 2.0*eris[n]*(ijeqkl ? 0.5 : 1.0);
+
+            focka_local[i+k*norb] -= densa[j+l*norb]*e;
+            fockb_local[i+k*norb] -= densb[j+l*norb]*e;
             if (!keql)
             {
-                focka[j+l*norb] -= densa[i+k*norb]*e;
-                fockb[j+l*norb] -= densb[i+k*norb]*e;
+                focka_local[i+l*norb] -= densa[j+k*norb]*e;
+                fockb_local[i+l*norb] -= densb[j+k*norb]*e;
             }
+            if (!ieqj)
+            {
+                focka_local[j+k*norb] -= densa[i+l*norb]*e;
+                fockb_local[j+k*norb] -= densb[i+l*norb]*e;
+                if (!keql)
+                {
+                    focka_local[j+l*norb] -= densa[i+k*norb]*e;
+                    fockb_local[j+l*norb] -= densb[i+k*norb]*e;
+                }
+            }
+
+            /*
+             * Coulomb contribution: Fa(ab) += [Da(cd)+Db(cd)]*(ab|cd)
+             */
+
+            e = 2.0*e*(keql ? 0.5 : 1.0)*(ieqj ? 0.5 : 1.0);
+
+            focka_local[i+j*norb] += densab[k+l*norb]*e;
+            fockb_local[i+j*norb] += densab[k+l*norb]*e;
+            focka_local[k+l*norb] += densab[i+j*norb]*e;
+            fockb_local[k+l*norb] += densab[i+j*norb]*e;
         }
 
-        /*
-         * Coulomb contribution: Fa(ab) += [Da(cd)+Db(cd)]*(ab|cd)
-         */
-
-        e = 2.0*e*(keql ? 0.5 : 1.0)*(ieqj ? 0.5 : 1.0);
-
-        focka[i+j*norb] += densab[k+l*norb]*e;
-        fockb[i+j*norb] += densab[k+l*norb]*e;
-        focka[k+l*norb] += densab[i+j*norb]*e;
-        fockb[k+l*norb] += densab[i+j*norb]*e;
+        #pragma omp critical
+        {
+            axpy(norb*norb, (T)1, focka_local.data(), 1, focka.data(), 1);
+            axpy(norb*norb, (T)1, fockb_local.data(), 1, fockb.data(), 1);
+        }
     }
 
     for (int i = 0;i < norb;i++)

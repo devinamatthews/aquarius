@@ -111,6 +111,8 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public task::Resou
 
         void invert(T alpha, bool conja, const DistTensor<T>& A, T beta);
 
+        void weight(const std::vector<const std::vector<T>*>& d);
+
         void print(FILE* fp, double cutoff = -1.0) const;
 
         void compare(FILE* fp, const DistTensor<T>& other, double cutoff = 0.0) const;

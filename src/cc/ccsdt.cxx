@@ -56,32 +56,20 @@ void CCSDT<U>::run(task::TaskDAG& dag, const Arena& arena)
     const Space& vrt = H.vrt;
 
     put("T", new ExcitationOperator<U,3>(arena, occ, vrt));
-    puttmp("D", new ExcitationOperator<U,3>(arena, occ, vrt, 0, SY));
+    puttmp("D", new Denominator<U>(H));
     puttmp("Z", new ExcitationOperator<U,3>(arena, occ, vrt));
 
     ExcitationOperator<U,3>& T = get<ExcitationOperator<U,3> >("T");
-    ExcitationOperator<U,3>& D = gettmp<ExcitationOperator<U,3> >("D");
+    Denominator<U>& D = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,3>& Z = gettmp<ExcitationOperator<U,3> >("Z");
-
-    D(0) = (U)1.0;
-    D(1)["ai"]  = H.getIJ()["ii"];
-    D(1)["ai"] -= H.getAB()["aa"];
-    D(2)["abij"]  = H.getIJ()["ii"];
-    D(2)["abij"] -= H.getAB()["aa"];
-    D(3)["abcijk"]  = H.getIJ()["ii"];
-    D(3)["abcijk"] -= H.getAB()["aa"];
-
-    D(2)(1,0,0,1) *= 2;
-    D(3)(1,0,0,1) *= 3;
-    D(3)(2,0,0,2) *= 3;
-
-    D = 1/D;
 
     Z(0) = (U)0.0;
     T(0) = (U)0.0;
-    T(1) = H.getAI()*D(1);
-    T(2) = H.getABIJ()*D(2);
+    T(1) = H.getAI();
+    T(2) = H.getABIJ();
     T(3) = (U)0.0;
+
+    T.weight(D);
 
     SpinorbitalTensor<U> Tau(T(2));
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
@@ -122,10 +110,10 @@ void CCSDT<U>::run(task::TaskDAG& dag, const Arena& arena)
 template <typename U>
 void CCSDT<U>::iterate()
 {
-    const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
+    TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
 
     ExcitationOperator<U,3>& T = get<ExcitationOperator<U,3> >("T");
-    ExcitationOperator<U,3>& D = gettmp<ExcitationOperator<U,3> >("D");
+    Denominator<U>& D = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,3>& Z = gettmp<ExcitationOperator<U,3> >("Z");
 
     TwoElectronOperator<U> W(H, TwoElectronOperator<U>::AB|
@@ -135,8 +123,8 @@ void CCSDT<U>::iterate()
                                 TwoElectronOperator<U>::ABCI|
                                 TwoElectronOperator<U>::ABCD|
                                 TwoElectronOperator<U>::IJKL|
-                                TwoElectronOperator<U>::IJKA|
-                                TwoElectronOperator<U>::IAJK|
+                                TwoElectronOperator<U>::IJAK|
+                                TwoElectronOperator<U>::AIJK|
                                 TwoElectronOperator<U>::AIBJ);
 
     SpinorbitalTensor<U>& FAI = W.getAI();
@@ -149,12 +137,9 @@ void CCSDT<U>::iterate()
     SpinorbitalTensor<U>& WABEJ = W.getABCI();
     SpinorbitalTensor<U>& WABEF = W.getABCD();
     SpinorbitalTensor<U>& WMNIJ = W.getIJKL();
-    SpinorbitalTensor<U>& WMNIE = W.getIJKA();
-    SpinorbitalTensor<U>& WMBIJ = W.getIAJK();
+    SpinorbitalTensor<U>& WMNEJ = W.getIJAK();
+    SpinorbitalTensor<U>& WAMIJ = W.getAIJK();
     SpinorbitalTensor<U>& WAMEI = W.getAIBJ();
-
-    //FAE["aa"] = (U)0.0;
-    //FMI["ii"] = (U)0.0;
 
     SpinorbitalTensor<U> Tau(T(2));
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
@@ -167,12 +152,12 @@ void CCSDT<U>::iterate()
 
     FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
     FMI["mi"] += FME["me"]*T(1)["ei"];
-    FMI["mi"] += WMNIE["mnif"]*T(1)["fn"];
+    FMI["mi"] += WMNEJ["nmfi"]*T(1)["fn"];
 
     WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*Tau["efij"];
-    WMNIJ["mnij"] += WMNIE["mnie"]*T(1)["ej"];
+    WMNIJ["mnij"] += WMNEJ["mnej"]*T(1)["ei"];
 
-    WMNIE["mnie"] += WMNEF["mnfe"]*T(1)["fi"];
+    WMNEJ["mnej"] += WMNEF["mnef"]*T(1)["fj"];
     /*
      *************************************************************************/
 
@@ -183,7 +168,7 @@ void CCSDT<U>::iterate()
     Z(1)["ai"]  = FAI["ai"];
     Z(1)["ai"] -= T(1)["em"]*WAMEI["amei"];
     Z(1)["ai"] += 0.5*WAMEF["amef"]*Tau["efim"];
-    Z(1)["ai"] -= 0.5*WMNIE["mnie"]*T(2)["aemn"];
+    Z(1)["ai"] -= 0.5*WMNEJ["mnei"]*T(2)["eamn"];
     Z(1)["ai"] += T(2)["aeim"]*FME["me"];
     Z(1)["ai"] += T(1)["ei"]*FAE["ae"];
     Z(1)["ai"] -= T(1)["am"]*FMI["mi"];
@@ -198,12 +183,12 @@ void CCSDT<U>::iterate()
     FAE["ae"] -= FME["me"]*T(1)["am"];
     FAE["ae"] += WAMEF["amef"]*T(1)["fm"];
 
-    WMBIJ["mbij"] += 0.5*WAMEF["bmfe"]*Tau["efij"];
-    WMBIJ["mbij"] -= WAMEI["bmej"]*T(1)["ei"];
+    WAMIJ["amij"] += 0.5*WAMEF["amef"]*Tau["efij"];
+    WAMIJ["amij"] += WAMEI["amej"]*T(1)["ei"];
 
     WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T(2)["afin"];
     WAMEI["amei"] -= WAMEF["amfe"]*T(1)["fi"];
-    WAMEI["amei"] += WMNIE["nmie"]*T(1)["an"];
+    WAMEI["amei"] -= WMNEJ["nmei"]*T(1)["an"];
     /*
      *************************************************************************/
 
@@ -215,7 +200,7 @@ void CCSDT<U>::iterate()
     Z(2)["abij"] += FAE["af"]*T(2)["fbij"];
     Z(2)["abij"] -= FMI["ni"]*T(2)["abnj"];
     Z(2)["abij"] += WABEJ["abej"]*T(1)["ei"];
-    Z(2)["abij"] -= WMBIJ["mbij"]*T(1)["am"];
+    Z(2)["abij"] -= WAMIJ["amij"]*T(1)["bm"];
     Z(2)["abij"] += 0.5*WABEF["abef"]*Tau["efij"];
     Z(2)["abij"] += 0.5*WMNIJ["mnij"]*Tau["abmn"];
     Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];
@@ -226,21 +211,21 @@ void CCSDT<U>::iterate()
      *
      * Intermediates for CCSDT
      */
-    WMBIJ["mbij"] += WMNIE["mnie"]*T(2)["bejn"];
-    WMBIJ["mbij"] -= WMNIJ["mnij"]*T(1)["bn"];
-    WMBIJ["mbij"] += FME["me"]*T(2)["ebij"];
-    WMBIJ["mbij"] += 0.5*WMNEF["mnef"]*T(3)["efbinj"];
+    WAMIJ["amij"] += WMNEJ["nmej"]*T(2)["aein"];
+    WAMIJ["amij"] -= WMNIJ["nmij"]*T(1)["an"];
+    WAMIJ["amij"] += FME["me"]*T(2)["aeij"];
+    WAMIJ["amij"] += 0.5*WMNEF["mnef"]*T(3)["aefijn"];
 
     WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T(2)["afin"];
-    WAMEI["amei"] -= 0.5*WMNIE["nmie"]*T(1)["an"];
+    WAMEI["amei"] += 0.5*WMNEJ["nmei"]*T(1)["an"];
 
     WABEJ["abej"] += WAMEF["amef"]*T(2)["fbmj"];
-    WABEJ["abej"] += 0.5*WMNIE["nmje"]*T(2)["abmn"];
+    WABEJ["abej"] += 0.5*WMNEJ["mnej"]*T(2)["abmn"];
     WABEJ["abej"] += WABEF["abef"]*T(1)["fj"];
     WABEJ["abej"] -= WAMEI["amej"]*T(1)["bm"];
     WABEJ["abej"] -= 0.5*WMNEF["mnef"]*T(3)["afbmnj"];
 
-    WAMEI["amei"] += 0.5*WMNIE["nmie"]*T(1)["an"];
+    WAMEI["amei"] -= 0.5*WMNEJ["nmei"]*T(1)["an"];
 
     WABEF["abef"] -= WAMEF["amef"]*T(1)["bm"];
     WABEF["abef"] += 0.5*WMNEF["mnef"]*Tau["abmn"];
@@ -256,11 +241,11 @@ void CCSDT<U>::iterate()
     Z(1)["ai"] += 0.25*WMNEF["mnef"]*T(3)["aefimn"];
 
     Z(2)["abij"] += 0.5*WAMEF["bmef"]*T(3)["aefijm"];
-    Z(2)["abij"] -= 0.5*WMNIE["mnje"]*T(3)["abeimn"];
+    Z(2)["abij"] -= 0.5*WMNEJ["mnej"]*T(3)["abeinm"];
     Z(2)["abij"] += FME["me"]*T(3)["abeijm"];
 
     Z(3)["abcijk"]  = WABEJ["bcek"]*T(2)["aeij"];
-    Z(3)["abcijk"] -= WMBIJ["mcjk"]*T(2)["abim"];
+    Z(3)["abcijk"] -= WAMIJ["bmjk"]*T(2)["acim"];
     Z(3)["abcijk"] += FAE["ce"]*T(3)["abeijk"];
     Z(3)["abcijk"] -= FMI["mk"]*T(3)["abcijm"];
     Z(3)["abcijk"] += 0.5*WABEF["abef"]*T(3)["efcijk"];
@@ -269,8 +254,7 @@ void CCSDT<U>::iterate()
     /*
      **************************************************************************/
 
-    Z *= D;
-    //Z -= T;
+    Z.weight(D);
     T += Z;
 
     Tau["abij"]  = T(2)["abij"];

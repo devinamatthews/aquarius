@@ -40,7 +40,21 @@ struct Space
     const int nalpha;
     const int nbeta;
 
+    Space() : nalpha(0), nbeta(0) {}
+
     Space(int nalpha, int nbeta) : nalpha(nalpha), nbeta(nbeta) {}
+
+    Space& operator=(const Space& other)
+    {
+        const_cast<int&>(nalpha) = other.nalpha;
+        const_cast<int&>(nbeta) = other.nbeta;
+        return *this;
+    }
+
+    bool operator==(const Space& other) const
+    {
+        return nalpha == other.nalpha && nbeta == other.nbeta;
+    }
 };
 
 template <class T>

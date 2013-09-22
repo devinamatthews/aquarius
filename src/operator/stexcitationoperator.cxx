@@ -80,8 +80,8 @@ void STExcitationOperator<U,2>::transform(const TwoElectronOperator<U>& X,
                                                                      TwoElectronOperator<U>::IJ|
                                                                      TwoElectronOperator<U>::IA|
                                                                      TwoElectronOperator<U>::IJKL|
-                                                                     TwoElectronOperator<U>::IJKA|
-                                                                     TwoElectronOperator<U>::IAJK|
+                                                                     TwoElectronOperator<U>::IJAK|
+                                                                     TwoElectronOperator<U>::AIJK|
                                                                      TwoElectronOperator<U>::AIBJ);
 
     SpinorbitalTensor<U>& FAI = W.getAI();
@@ -94,8 +94,8 @@ void STExcitationOperator<U,2>::transform(const TwoElectronOperator<U>& X,
     SpinorbitalTensor<U>& WABEJ = W.getABCI();
     SpinorbitalTensor<U>& WABEF = W.getABCD();
     SpinorbitalTensor<U>& WMNIJ = W.getIJKL();
-    SpinorbitalTensor<U>& WMNIE = W.getIJKA();
-    SpinorbitalTensor<U>& WMBIJ = W.getIAJK();
+    SpinorbitalTensor<U>& WMNEJ = W.getIJAK();
+    SpinorbitalTensor<U>& WAMIJ = W.getAIJK();
     SpinorbitalTensor<U>& WAMEI = W.getAIBJ();
 
     SpinorbitalTensor<U> Tau(T(2));
@@ -109,17 +109,17 @@ void STExcitationOperator<U,2>::transform(const TwoElectronOperator<U>& X,
 
     FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
     FMI["mi"] += FME["me"]*T(1)["ei"];
-    FMI["mi"] += WMNIE["mnif"]*T(1)["fn"];
+    FMI["mi"] += WMNEJ["nmfi"]*T(1)["fn"];
 
     WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*Tau["efij"];
-    WMNIJ["mnij"] += WMNIE["mnie"]*T(1)["ej"];
+    WMNIJ["mnij"] += WMNEJ["mnej"]*T(1)["ei"];
 
-    WMNIE["mnie"] += WMNEF["mnfe"]*T(1)["fi"];
+    WMNEJ["mnej"] += WMNEF["mnef"]*T(1)["fj"];
 
     Z(1)["ai"]  = FAI["ai"];
     Z(1)["ai"] -= T(1)["em"]*WAMEI["amei"];
     Z(1)["ai"] += 0.5*WAMEF["amef"]*Tau["efim"];
-    Z(1)["ai"] -= 0.5*WMNIE["mnie"]*T(2)["aemn"];
+    Z(1)["ai"] -= 0.5*WMNEJ["mnei"]*T(2)["eamn"];
     Z(1)["ai"] += T(2)["aeim"]*FME["me"];
     Z(1)["ai"] += T(1)["ei"]*FAE["ae"];
     Z(1)["ai"] -= T(1)["am"]*FMI["mi"];
@@ -128,18 +128,18 @@ void STExcitationOperator<U,2>::transform(const TwoElectronOperator<U>& X,
     FAE["ae"] -= FME["me"]*T(1)["am"];
     FAE["ae"] += WAMEF["amef"]*T(1)["fm"];
 
-    WMBIJ["mbij"] += 0.5*WAMEF["bmfe"]*Tau["efij"];
-    WMBIJ["mbij"] -= WAMEI["bmej"]*T(1)["ei"];
+    WAMIJ["amij"] += 0.5*WAMEF["amef"]*Tau["efij"];
+    WAMIJ["amij"] += WAMEI["amej"]*T(1)["ei"];
 
     WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T(2)["afin"];
-    WAMEI["amei"] -= WAMEF["amfe"]*T(1)["fi"];
-    WAMEI["amei"] += WMNIE["nmie"]*T(1)["an"];
+    WAMEI["amei"] += WAMEF["amef"]*T(1)["fi"];
+    WAMEI["amei"] -= WMNEJ["nmei"]*T(1)["an"];
 
     Z(2)["abij"]  = WABIJ["abij"];
     Z(2)["abij"] += FAE["af"]*T(2)["fbij"];
     Z(2)["abij"] -= FMI["ni"]*T(2)["abnj"];
     Z(2)["abij"] += WABEJ["abej"]*T(1)["ei"];
-    Z(2)["abij"] -= WMBIJ["mbij"]*T(1)["am"];
+    Z(2)["abij"] -= WAMIJ["amij"]*T(1)["bm"];
     Z(2)["abij"] += 0.5*WABEF["abef"]*Tau["efij"];
     Z(2)["abij"] += 0.5*WMNIJ["mnij"]*Tau["abmn"];
     Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];

@@ -53,26 +53,18 @@ void LambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& vrt = H.vrt;
 
     put("L", new DeexcitationOperator<U,2>(arena, occ, vrt));
-    puttmp("D", new DeexcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("D", new Denominator<U>(H));
     puttmp("Z", new DeexcitationOperator<U,2>(arena, occ, vrt));
 
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
     DeexcitationOperator<U,2>& L = get<DeexcitationOperator<U,2> >("L");
-    DeexcitationOperator<U,2>& D = gettmp<DeexcitationOperator<U,2> >("D");
-
-    D(0) = (U)1.0;
-    D(1)["ia"]  = H.getIJ()["ii"];
-    D(1)["ia"] -= H.getAB()["aa"];
-    D(2)["ijab"]  = H.getIJ()["ii"];
-    D(2)["ijab"] += H.getIJ()["jj"];
-    D(2)["ijab"] -= H.getAB()["aa"];
-    D(2)["ijab"] -= H.getAB()["bb"];
-
-    D = 1/D;
+    Denominator<U>& D = gettmp<Denominator<U> >("D");
 
     L(0) = (U)1.0;
-    L(1) = H.getIA()*D(1);
-    L(2) = H.getIJAB()*D(2);
+    L(1) = H.getIA();
+    L(2) = H.getIJAB();
+
+    L.weight(D);
 
     {
         SpinorbitalTensor<U> mTau(T(2));
@@ -92,7 +84,7 @@ void LambdaCCSD<U>::iterate()
     const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
 
     DeexcitationOperator<U,2>& L = get<DeexcitationOperator<U,2> >("L");
-    DeexcitationOperator<U,2>& D = gettmp<DeexcitationOperator<U,2> >("D");
+    Denominator<U>& D = gettmp<Denominator<U> >("D");
     DeexcitationOperator<U,2>& Z = gettmp<DeexcitationOperator<U,2> >("Z");
 
     Z = (U)0.0;
@@ -100,7 +92,7 @@ void LambdaCCSD<U>::iterate()
 
     energy = Ecc + real(scalar(Z*conj(L))/scalar(L*conj(L)));
 
-    Z *= D;
+    Z.weight(D);
     L += Z;
 
     conv =          Z(1)(0).norm(00);

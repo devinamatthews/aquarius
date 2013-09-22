@@ -1,12 +1,12 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
+/* Copyin (c) 2013, Devin Matthews
+ * All ins reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following
  * conditions are met:
- *      * Redistributions of source code must retain the above copyright
+ *      * Redistributions of source code must retain the above copyin
  *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
+ *      * Redistributions in binary form must reproduce the above copyin
  *        notice, this list of conditions and the following disclaimer in the
  *        documentation and/or other materials provided with the distribution.
  *
@@ -34,6 +34,9 @@
 
 #include "autocc/autocc.hpp"
 #include "memory/memory.h"
+#include "operator/space.hpp"
+#include "util/stl_ext.hpp"
+#include "task/task.hpp"
 
 #include "dist_tensor.hpp"
 #include "composite_tensor.hpp"
@@ -44,52 +47,25 @@ namespace tensor
 {
 
 template<class T>
-class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,DistTensor<T>,T>
+class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,DistTensor<T>,T>, public task::Resource
 {
     INHERIT_FROM_INDEXABLE_COMPOSITE_TENSOR(SpinorbitalTensor<T>,DistTensor<T>,T)
-
-    protected:
-        struct SpinCase
-        {
-            DistTensor<T>* tensor;
-            std::vector<autocc::Line> logical;
-            int nA, nE, nM, nI;
-            std::vector<int> log_to_phys;
-            double permFactor;
-
-            SpinCase(DistTensor<T>& tensor) : tensor(&tensor) {}
-        };
-
-        std::vector<autocc::Line> logical;
-        int nA, nE, nM, nI;
-        int spin;
-        //double permFactor;
-        std::vector<SpinCase> cases;
 
     public:
         SpinorbitalTensor(const SpinorbitalTensor<T>& t, const T val);
 
         SpinorbitalTensor(const SpinorbitalTensor<T>& other);
 
-        SpinorbitalTensor(const autocc::Manifold& left, const autocc::Manifold& right, const int spin=0);
+        SpinorbitalTensor(const Arena& arena,
+                          const std::vector<op::Space>& spaces,
+                          const std::vector<int>& nout,
+                          const std::vector<int>& nin, int spin=0);
 
-        SpinorbitalTensor(const std::string& logical, const int spin=0);
+        DistTensor<T>& operator()(const std::vector<int>& alpha_out,
+                                  const std::vector<int>& alpha_in);
 
-        virtual ~SpinorbitalTensor() {}
-
-        void addSpinCase(DistTensor<T>* tensor, std::string logical, std::string physical, double factor = 1.0, bool isAlloced = true);
-
-        void addSpinCase(DistTensor<T>& tensor, std::string logical, std::string physical, double factor = 1.0, bool isAlloced = false);
-
-        void addSpinCase(DistTensor<T>* tensor, const autocc::Manifold& alpha_left,
-                         const autocc::Manifold& alpha_right, double factor = 1.0, bool isAlloced = true);
-
-        void addSpinCase(DistTensor<T>& tensor, const autocc::Manifold& alpha_left,
-                         const autocc::Manifold& alpha_right, double factor = 1.0, bool isAlloced = false);
-
-        DistTensor<T>& operator()(int nA, int nM, int nE, int nI);
-
-        const DistTensor<T>& operator()(int nA, int nM, int nE, int nI) const;
+        const DistTensor<T>& operator()(const std::vector<int>& alpha_out,
+                                        const std::vector<int>& alpha_in) const;
 
         void mult(const T alpha, bool conja, const SpinorbitalTensor<T>& A_, const std::string& idx_A,
                                  bool conjb, const SpinorbitalTensor<T>& B_, const std::string& idx_B,
@@ -100,23 +76,36 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,D
 
         void scale(const T alpha, const std::string& idx_A);
 
-        void div(const T alpha, bool conja, const SpinorbitalTensor<T>& A,
-                                bool conjb, const SpinorbitalTensor<T>& B, const T beta);
-
-        void invert(const T alpha, bool conja, const SpinorbitalTensor<T>& A, const T beta);
+        void weight(const std::vector<const std::vector<T>*>& da,
+                    const std::vector<const std::vector<T>*>& db);
 
         T dot(bool conja, const SpinorbitalTensor<T>& A, const std::string& idx_A,
               bool conjb,                                const std::string& idx_B) const;
 
     protected:
-        void addSpinCase(DistTensor<T>& tensor, std::vector<autocc::Line> logical, std::vector<autocc::Line> physical, double factor, bool isAlloced);
+        struct SpinCase
+        {
+            DistTensor<T> *tensor;
+            std::vector<int> alpha_out, alpha_in;
 
+            void construct(SpinorbitalTensor<T>& t,
+                           const std::vector<int>& alpha_out,
+                           const std::vector<int>& alpha_in);
+        };
+
+        std::vector<op::Space> spaces;
+        std::vector<int> nout, nin;
+        int spin;
+        std::vector<SpinCase> cases;
+
+        /*
         static void matchTypes(const int nin_A, const int nout_A, const std::vector<autocc::Line>& log_A, const std::string& idx_A,
                                const int nin_B, const int nout_B, const std::vector<autocc::Line>& log_B, const std::string& idx_B,
                                std::vector<autocc::Line>& out_A, std::vector<autocc::Line>& in_A,
                                std::vector<autocc::Line>& pout_A, std::vector<autocc::Line>& hout_A,
                                std::vector<autocc::Line>& pin_A, std::vector<autocc::Line>& hin_A,
                                std::vector<autocc::Line>& sum_A);
+         */
 };
 
 }

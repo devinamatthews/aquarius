@@ -42,7 +42,7 @@ class AOMOIntegrals : public MOIntegrals<T>
         AOMOIntegrals(const std::string& name, const input::Config& config);
 
     private:
-        enum Side {PQ, RS};
+        enum Side {NONE, PQ, RS};
         enum Index {A, B};
 
         struct abrs_integrals;
@@ -92,7 +92,7 @@ class AOMOIntegrals : public MOIntegrals<T>
              */
             abrs_integrals transform(Index index, const char trans, const int nc, const double* C, const int ldc);
 
-            void transcribe(tensor::DistTensor<T>& tensor, bool assymij, bool assymkl, bool reverse);
+            void transcribe(tensor::DistTensor<T>& tensor, bool assymij, bool assymkl, Side swap);
 
             void free();
         };

@@ -37,8 +37,8 @@ class TwoElectronOperator : public OneElectronOperatorBase<T,TwoElectronOperator
 {
     protected:
         tensor::SpinorbitalTensor<T>& ijkl;
-        tensor::SpinorbitalTensor<T>& iajk;
-        tensor::SpinorbitalTensor<T>& ijka;
+        tensor::SpinorbitalTensor<T>& aijk;
+        tensor::SpinorbitalTensor<T>& ijak;
         tensor::SpinorbitalTensor<T>& abij;
         tensor::SpinorbitalTensor<T>& ijab;
         tensor::SpinorbitalTensor<T>& aibj;
@@ -46,14 +46,12 @@ class TwoElectronOperator : public OneElectronOperatorBase<T,TwoElectronOperator
         tensor::SpinorbitalTensor<T>& abci;
         tensor::SpinorbitalTensor<T>& abcd;
 
-        void initialize();
-
     public:
         enum
         {
             IJKL = 0x0010,
-            IAJK = 0x0020,
-            IJKA = 0x0040,
+            AIJK = 0x0020,
+            IJAK = 0x0040,
             ABIJ = 0x0080,
             IJAB = 0x0100,
             AIBJ = 0x0200,
@@ -62,21 +60,21 @@ class TwoElectronOperator : public OneElectronOperatorBase<T,TwoElectronOperator
             ABCD = 0x1000
         };
 
-        TwoElectronOperator(const Arena& arena, const Space& occ, const Space& vrt, bool hermitian=true);
+        TwoElectronOperator(const Arena& arena, const Space& occ, const Space& vrt);
 
-        TwoElectronOperator(OneElectronOperator<T>& other, int copy, bool breakhermicity=false);
+        TwoElectronOperator(OneElectronOperator<T>& other, int copy);
 
-        TwoElectronOperator(const OneElectronOperator<T>& other, bool breakhermicity=false);
+        TwoElectronOperator(const OneElectronOperator<T>& other);
 
-        TwoElectronOperator(TwoElectronOperator<T>& other, int copy, bool breakhermicity=false);
+        TwoElectronOperator(TwoElectronOperator<T>& other, int copy);
 
-        TwoElectronOperator(const TwoElectronOperator<T>& other, bool breakhermicity=false);
+        TwoElectronOperator(const TwoElectronOperator<T>& other);
 
         T dot(bool conja, const TwoElectronOperator<T>& A, bool conjb) const;
 
         tensor::SpinorbitalTensor<T>& getIJKL() { return ijkl; }
-        tensor::SpinorbitalTensor<T>& getIAJK() { return iajk; }
-        tensor::SpinorbitalTensor<T>& getIJKA() { return ijka; }
+        tensor::SpinorbitalTensor<T>& getAIJK() { return aijk; }
+        tensor::SpinorbitalTensor<T>& getIJAK() { return ijak; }
         tensor::SpinorbitalTensor<T>& getABIJ() { return abij; }
         tensor::SpinorbitalTensor<T>& getIJAB() { return ijab; }
         tensor::SpinorbitalTensor<T>& getAIBJ() { return aibj; }
@@ -85,8 +83,8 @@ class TwoElectronOperator : public OneElectronOperatorBase<T,TwoElectronOperator
         tensor::SpinorbitalTensor<T>& getABCD() { return abcd; }
 
         const tensor::SpinorbitalTensor<T>& getIJKL() const { return ijkl; }
-        const tensor::SpinorbitalTensor<T>& getIAJK() const { return iajk; }
-        const tensor::SpinorbitalTensor<T>& getIJKA() const { return ijka; }
+        const tensor::SpinorbitalTensor<T>& getAIJK() const { return aijk; }
+        const tensor::SpinorbitalTensor<T>& getIJAK() const { return ijak; }
         const tensor::SpinorbitalTensor<T>& getABIJ() const { return abij; }
         const tensor::SpinorbitalTensor<T>& getIJAB() const { return ijab; }
         const tensor::SpinorbitalTensor<T>& getAIBJ() const { return aibj; }

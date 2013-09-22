@@ -46,11 +46,15 @@ TwoElectronDensity<U>::TwoElectronDensity(const MOSpace<U>& occ, const MOSpace<U
     this->aibj["aibj"]  =     this->ai["ai"]*this->ai["bj"];
     this->aibj["aibj"] += 0.5*this->ab["ab"]*this->ij["ij"];
 
-    this->ijka["ijka"]  =     this->ij["ij"]*this->ia["ka"];
-    this->ijka["ijka"] += 0.5*this->ij["ik"]*this->ia["ja"];
+    this->ijak["ijak"]  =     this->ij["ik"]*this->ia["ja"];
+    this->ijak["ijak"] += 0.5*this->ij["ij"]*this->ia["ka"];
 
     this->ijkl["ijkl"]  =     this->ij["ij"]*this->ij["kl"];
     this->ijkl["ijkl"] += 0.5*this->ij["ik"]*this->ij["jl"];
+
+    this->aibc["aibc"] = this->abci["bcai"];
+    this->aijk["aijk"] = this->ijak["jkai"];
+    this->ijab["ijab"] = this->abij["abij"];
 }
 
 /*
@@ -85,7 +89,7 @@ TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
     SpinorbitalTensor<U> TauA(TA(2));
     TauA["abij"] += T(1)["ai"]*TA(1)["bj"];
 
-    this->ijka["ijka"] = -L(2)["ijea"]*TA(1)["ek"];
+    this->ijak["ijak"] = -L(2)["ijae"]*TA(1)["ek"];
 
     this->aibc["aibc"] = L(2)["mibc"]*TA(1)["am"];
 
@@ -108,10 +112,10 @@ TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
     this->abci["abci"] += this->aibc["amce"]*T(2)["beim"];
     this->abci["abci"] -= this->aibj["amci"]*T(1)["bm"];
 
-    this->iajk["iajk"] -= L(1)["ie"]*TA(2)["eajk"];
-    this->iajk["iajk"] += this->ij["ij"]*T(1)["ak"];
-    this->iajk["iajk"] -= IIJ["ij"]*TA(1)["ak"];
-    this->iajk["iajk"] += this->ijka["imje"]*T(2)["aekm"];
+    this->aijk["aijk"] -= L(1)["ie"]*TA(2)["aejk"];
+    this->aijk["aijk"] += this->ij["ik"]*T(1)["aj"];
+    this->aijk["aijk"] -= IIJ["ik"]*TA(1)["aj"];
+    this->aijk["aijk"] += this->ijak["miek"]*T(2)["aejm"];
 
     this->abij["abij"] += TauA["abij"];
     this->abij["abij"] += this->ijkl["mnij"]*Tau["abmn"];
@@ -121,18 +125,18 @@ TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
     this->abij["abij"] -= IIJ["mi"]*TA(2)["abmj"];
     this->abij["abij"] -= IAB["ae"]*TA(2)["ebij"];
     this->abij["abij"] -= this->aibj["amej"]*T(2)["ebmj"];
-    this->abij["abij"] += this->iajk["mbij"]*T(1)["am"];
+    this->abij["abij"] += this->aijk["bmji"]*T(1)["am"];
     this->abij["abij"] -= this->abci["abej"]*T(1)["ei"];
     this->abij["abij"] += IAI["ai"]*T(1)["bj"];
 
-    this->abci["abci"] -= 0.5*this->ijka["nmic"]*Tau["abmn"];
+    this->abci["abci"] -= 0.5*this->ijak["mnci"]*Tau["abmn"];
     this->abci["abci"] -= this->abcd["abce"]*T(1)["ei"];
 
-    this->iajk["iajk"] += 0.5*this->aibc["aife"]*Tau["efjk"];
-    this->iajk["iajk"] += this->aibj["aiej"]*T(1)["ek"];
-    this->iajk["iajk"] += this->ijkl["imjk"]*T(1)["am"];
+    this->aijk["aijk"] += 0.5*this->aibc["aief"]*Tau["efjk"];
+    this->aijk["aijk"] += this->aibj["aiek"]*T(1)["ej"];
+    this->aijk["aijk"] += this->ijkl["mijk"]*T(1)["am"];
 
-    this->aibj["aibj"] += this->ijka["imjb"]*T(1)["am"];
+    this->aibj["aibj"] += this->ijak["mibj"]*T(1)["am"];
     this->aibj["aibj"] -= this->aibc["aibe"]*T(1)["ej"];
 }
 
@@ -151,7 +155,7 @@ TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
 
     this->ijab["ijab"] =  L(2)["ijab"];
 
-    this->ijka["ijka"] = -L(2)["ijea"]*T(1)["ek"];
+    this->ijak["ijak"] = -L(2)["ijae"]*T(1)["ek"];
 
     this->aibc["aibc"] =  L(2)["mibc"]*T(1)["am"];
 
@@ -161,27 +165,27 @@ TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
 
     this->aibj["aibj"]  = -L(1)["ib"]*T(1)["aj"];
     this->aibj["aibj"] -=  L(2)["imbe"]*T(2)["aejm"];
-    this->aibj["aibj"] +=  this->ijka["imjb"]*T(1)["am"];
+    this->aibj["aibj"] +=  this->ijak["mibj"]*T(1)["am"];
 
-    this->iajk["iajk"]  = this->ij["ij"]*T(1)["ak"];
+    this->aijk["aijk"]  = this->ij["ik"]*T(1)["aj"];
 
     this->abci["abci"]  = L(1)["mc"]*T(2)["abmi"];
     this->abci["abci"] += this->ab["ac"]*T(1)["bi"];
     this->abci["abci"] += this->aibc["amce"]*T(2)["beim"];
-    this->abci["abci"] -= 0.5*this->ijka["nmic"]*Tau["abmn"];
+    this->abci["abci"] -= 0.5*this->ijak["mnci"]*Tau["abmn"];
 
     this->abij["abij"]  = Tau["abij"];
     this->abij["abij"] += this->ijkl["mnij"]*Tau["abmn"];
     this->abij["abij"] += this->ij["mi"]*T(2)["abmj"];
     this->abij["abij"] -= this->ab["ae"]*T(2)["ebij"];
     this->abij["abij"] -= this->aibj["amej"]*T(2)["ebmj"];
-    this->abij["abij"] += this->iajk["mbij"]*T(1)["am"];
+    this->abij["abij"] += this->aijk["bmji"]*T(1)["am"];
     aitmp["ai"] = -this->aibc["amef"]*T(2)["efim"];
     this->abij["abij"] += aitmp["ai"]*T(1)["bj"];
 
-    this->iajk["iajk"] -= L(1)["ie"]*T(2)["eajk"];
-    this->iajk["iajk"] += this->ijka["imje"]*T(2)["aekm"];
-    this->iajk["iajk"] += 0.5*this->aibc["aife"]*Tau["efjk"];
+    this->aijk["aijk"] -= L(1)["ie"]*T(2)["aejk"];
+    this->aijk["aijk"] += this->ijak["miek"]*T(2)["aejm"];
+    this->aijk["aijk"] += 0.5*this->aibc["aief"]*Tau["efjk"];
 }
 
 /*

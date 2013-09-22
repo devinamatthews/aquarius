@@ -56,27 +56,19 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& vrt = H.vrt;
 
     put("T", new ExcitationOperator<U,2>(arena, occ, vrt));
-    puttmp("D", new ExcitationOperator<U,2>(arena, occ, vrt, 0, SY));
     puttmp("Z", new ExcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("D", new Denominator<U>(H));
 
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
-    ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
+    Denominator<U>& D = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
-
-    D(0) = (U)1.0;
-    D(1)["ai"]  = H.getIJ()["ii"];
-    D(1)["ai"] -= H.getAB()["aa"];
-    D(2)["abij"]  = H.getIJ()["ii"];
-    D(2)["abij"] -= H.getAB()["aa"];
-
-    D(2)(1,0,0,1) *= 2;
-
-    D = 1/D;
 
     Z(0) = (U)0.0;
     T(0) = (U)0.0;
-    T(1) = H.getAI()*D(1);
-    T(2) = H.getABIJ()*D(2);
+    T(1) = H.getAI();
+    T(2) = H.getABIJ();
+
+    T.weight(D);
 
     SpinorbitalTensor<U> Tau(T(2));
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
@@ -120,13 +112,12 @@ void CCSD<U>::iterate()
     const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
 
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
-    ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
+    Denominator<U>& D = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
 
     STExcitationOperator<U,2>::transform(H, T, Z);
-    //Z(0) = (U)0.0;
 
-    Z *= D;
+    Z.weight(D);
     T += Z;
 
     SpinorbitalTensor<U> Tau(T(2));

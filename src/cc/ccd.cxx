@@ -56,30 +56,19 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& vrt = H.vrt;
 
     put("T", new ExcitationOperator<U,2>(arena, occ, vrt));
-    puttmp("D", new ExcitationOperator<U,2>(arena, occ, vrt, 0, SH));
+    puttmp("D", new Denominator<U>(H));
     puttmp("Z", new ExcitationOperator<U,2>(arena, occ, vrt));
 
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
-    ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
+    Denominator<U>& D = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
-
-    D(0) = (U)1.0;
-    D(1)["ai"]  = H.getIJ()["ii"];
-    D(1)["ai"] -= H.getAB()["aa"];
-    D(2)["abij"]  = H.getIJ()["ii"];
-    D(2)["abij"] += H.getIJ()["jj"];
-    D(2)["abij"] -= H.getAB()["aa"];
-    D(2)["abij"] -= H.getAB()["bb"];
-
-    D(2)(0,0,0,0) *= 0.5;
-    D(2)(2,0,0,2) *= 0.5;
-
-    D = 1/D;
 
     Z(0) = (U)0.0;
     T(0) = (U)0.0;
     T(1) = (U)0.0;
-    T(2) = H.getABIJ()*D(2);
+    T(2) = H.getABIJ();
+
+    T.weight(D);
 
     energy = 0.25*real(scalar(H.getABIJ()*T(2)));
 
@@ -115,10 +104,10 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
 template <typename U>
 void CCD<U>::iterate()
 {
-    const TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
+    TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
 
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
-    ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
+    Denominator<U>& D = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
 
     TwoElectronOperator<U> H(H_, TwoElectronOperator<U>::AB|
@@ -132,9 +121,6 @@ void CCD<U>::iterate()
     SpinorbitalTensor<U>& WABEF = H.getABCD();
     SpinorbitalTensor<U>& WMNIJ = H.getIJKL();
     SpinorbitalTensor<U>& WAMEI = H.getAIBJ();
-
-    //FAE["aa"] = 0.0;
-    //FMI["ii"] = 0.0;
 
     /**************************************************************************
      *
@@ -190,8 +176,7 @@ void CCD<U>::iterate()
 
     PROFILE_SECTION(calc_EN)
 
-    Z *= D;
-    //Z -= T;
+    Z.weight(D);
     T += Z;
 
     energy = 0.25*real(scalar(H.getABIJ()*T(2)));

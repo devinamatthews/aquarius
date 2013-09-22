@@ -561,7 +561,8 @@ void TaskDAG::execute(Arena& world)
             }
 
             double dt = todouble(toc());
-            Logger::log(world) << "Finished task: " << (*t)->getName() << " in " << dt << " s" << endl;
+            Logger::log(world) << "Finished task: " << (*t)->getName() <<
+                       " in " << std::fixed << std::setprecision(3) << dt << " s" << endl;
 
             for (vector<Product>::iterator p = (*t)->getProducts().begin();p != (*t)->getProducts().end();++p)
             {

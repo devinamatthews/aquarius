@@ -42,7 +42,7 @@ void PerturbedSTTwoElectronOperator<U,2>::initialize(const STTwoElectronOperator
 
     IME["me"]  = X.getIJAB()["mnef"]*TA(1)["fn"];
 
-    IMI["mi"]  = X.getIJKA()["mnie"]*TA(1)["en"];
+    IMI["mi"]  = X.getIJAK()["nmei"]*TA(1)["en"];
     IMI["mi"] += 0.5*X.getIJAB()["mnef"]*TA(2)["efin"];
 
     IAE["ae"]  = X.getAIBC()["amef"]*TA(1)["fm"];
@@ -60,39 +60,39 @@ void PerturbedSTTwoElectronOperator<U,2>::initialize(const STTwoElectronOperator
     this->ai["ai"] -= X.getIJ()["mi"]*TA(1)["am"];
     this->ai["ai"] += X.getIA()["me"]*TA(2)["aeim"];
     this->ai["ai"] -= X.getAIBJ()["amei"]*TA(1)["em"];
-    this->ai["ai"] -= 0.5*X.getIJKA()["mnie"]*TA(2)["aemn"];
+    this->ai["ai"] -= 0.5*X.getIJAK()["nmei"]*TA(2)["aemn"];
     this->ai["ai"] += 0.5*X.getAIBC()["amef"]*TA(2)["efim"];
 
-    this->getIJKA()["getIJKA()"] += X.getIJAB()["ijea"]*TA(1)["ek"];
+    this->getIJAK()["ijak"] += X.getIJAB()["ijae"]*TA(1)["ek"];
 
-    this->getAIBC()["getAIBC()"] -= X.getIJAB()["mibc"]*TA(1)["am"];
+    this->getAIBC()["aibc"] -= X.getIJAB()["mibc"]*TA(1)["am"];
 
-    this->getIJKL()["getIJKL()"] += X.getIJKA()["ijke"]*TA(1)["el"];
-    this->getIJKL()["getIJKL()"] += 0.5*X.getIJAB()["ijef"]*TA(2)["efkl"];
+    this->getIJKL()["ijkl"] += X.getIJAK()["jiek"]*TA(1)["el"];
+    this->getIJKL()["ijkl"] += 0.5*X.getIJAB()["ijef"]*TA(2)["efkl"];
 
-    this->getABCD()["getABCD()"] -= X.getAIBC()["amcd"]*TA(1)["bm"];
-    this->getABCD()["getABCD()"] += 0.5*X.getIJAB()["mncd"]*TA(2)["abmn"];
+    this->getABCD()["abcd"] -= X.getAIBC()["amcd"]*TA(1)["bm"];
+    this->getABCD()["abcd"] += 0.5*X.getIJAB()["mncd"]*TA(2)["abmn"];
 
-    this->getAIBJ()["getAIBJ()"] += X.getAIBC()["aibe"]*TA(1)["ej"];
-    this->getAIBJ()["getAIBJ()"] -= X.getIJKA()["imjb"]*TA(1)["am"];
-    this->getAIBJ()["getAIBJ()"] -= X.getIJAB()["mibe"]*TA(2)["aemj"];
+    this->getAIBJ()["aibj"] += X.getAIBC()["aibe"]*TA(1)["ej"];
+    this->getAIBJ()["aibj"] -= X.getIJAK()["mibj"]*TA(1)["am"];
+    this->getAIBJ()["aibj"] -= X.getIJAB()["mibe"]*TA(2)["aemj"];
 
-    this->getIAJK()["getIAJK()"] += IME["ie"]*T(2)["eajk"];
-    this->getIAJK()["getIAJK()"] += X.getAIBJ()["aiej"]*TA(1)["ek"];
-    this->getIAJK()["getIAJK()"] -= X.getIJKL()["imjk"]*TA(1)["am"];
-    this->getIAJK()["getIAJK()"] += X.getIJKA()["iejm"]*TA(2)["aekm"];
-    this->getIAJK()["getIAJK()"] += 0.5*X.getAIBC()["aife"]*TA(2)["efjk"];
+    this->getAIJK()["aijk"] += IME["ie"]*T(2)["aejk"];
+    this->getAIJK()["aijk"] += X.getAIBJ()["aiek"]*TA(1)["ej"];
+    this->getAIJK()["aijk"] -= X.getIJKL()["mijk"]*TA(1)["am"];
+    this->getAIJK()["aijk"] += X.getIJAK()["miek"]*TA(2)["aejm"];
+    this->getAIJK()["aijk"] += 0.5*X.getAIBC()["aief"]*TA(2)["efjk"];
 
-    this->getABCI()["getABCI()"] -= IME["mc"]*T(2)["abmi"];
-    this->getABCI()["getABCI()"] -= X.getAIBJ()["amci"]*TA(1)["bm"];
-    this->getABCI()["getABCI()"] += X.getABCD()["abce"]*TA(1)["ei"];
-    this->getABCI()["getABCI()"] += X.getAIBC()["amce"]*TA(2)["beim"];
-    this->getABCI()["getABCI()"] += 0.5*X.getIJKA()["nmic"]*TA(2)["abmn"];
+    this->getABCI()["abci"] -= IME["mc"]*T(2)["abmi"];
+    this->getABCI()["abci"] -= X.getAIBJ()["amci"]*TA(1)["bm"];
+    this->getABCI()["abci"] += X.getABCD()["abce"]*TA(1)["ei"];
+    this->getABCI()["abci"] += X.getAIBC()["amce"]*TA(2)["beim"];
+    this->getABCI()["abci"] += 0.5*X.getIJAK()["mnci"]*TA(2)["abmn"];
 
     this->abij["abij"] += IAE["ae"]*T(2)["ebij"];
     this->abij["abij"] -= IMI["mi"]*T(2)["abmj"];
     this->abij["abij"] += X.getABCI()["abej"]*TA(1)["ei"];
-    this->abij["abij"] -= X.getIAJK()["mbij"]*TA(1)["am"];
+    this->abij["abij"] -= X.getAIJK()["bmji"]*TA(1)["am"];
     this->abij["abij"] += 0.5*X.getABCD()["abef"]*TA(2)["efij"];
     this->abij["abij"] += 0.5*X.getIJKL()["mnij"]*TA(2)["abmn"];
     this->abij["abij"] -= X.getAIBJ()["amei"]*TA(2)["ebmj"];
@@ -130,7 +130,7 @@ void PerturbedSTTwoElectronOperator<U,2>::contract(const ExcitationOperator<U,2>
     SpinorbitalTensor<U>& IMI = I.getIJ();
     SpinorbitalTensor<U>& IAE = I.getAB();
 
-    IMI["mi"] = X.getIJKA()["mnie"]*R(1)["en"];
+    IMI["mi"] = X.getIJAK()["nmei"]*R(1)["en"];
     IAE["ae"] = X.getAIBC()["amef"]*R(1)["fm"];
 
     Z(2)["abij"] += IAE["ae"]*TA(2)["ebij"];
@@ -152,7 +152,7 @@ void PerturbedSTTwoElectronOperator<U,2>::contract(const DeexcitationOperator<U,
     IMN["mn"] =  0.5*L(2)["moef"]*TA(2)["efno"];
     IEF["ef"] = -0.5*L(2)["mnfg"]*TA(2)["egmn"];
 
-    Z(1)["ia"] -= IMN["mn"]*X.getIJKA()["nima"];
+    Z(1)["ia"] -= IMN["mn"]*X.getIJAK()["inam"];
     Z(1)["ia"] -= IEF["ef"]*X.getAIBC()["fiea"];
 }
 

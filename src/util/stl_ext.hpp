@@ -116,6 +116,25 @@ namespace std
         typename enable_if<is_same<wchar_t,typename remove_cv<T>::type>::value>::type>
         { static const bool value = true; };
 
+    template <class T, class U = void> struct is_floating_point { static const bool value = false; };
+    template <class T> struct is_floating_point<T,
+        typename enable_if<is_same<float,typename remove_cv<T>::type>::value>::type>
+        { static const bool value = true; };
+    template <class T> struct is_floating_point<T,
+        typename enable_if<is_same<double,typename remove_cv<T>::type>::value>::type>
+        { static const bool value = true; };
+    template <class T> struct is_floating_point<T,
+        typename enable_if<is_same<long double,typename remove_cv<T>::type>::value>::type>
+        { static const bool value = true; };
+
+    template <class T, class U = void> struct is_arithmetic { static const bool value = false; };
+    template <class T> struct is_arithmetic<T,
+        typename enable_if<is_integral<T>::value>::type>
+        { static const bool value = true; };
+    template <class T> struct is_arithmetic<T,
+        typename enable_if<is_floating_point<T>::value>::type>
+        { static const bool value = true; };
+
     template <class T>
     class shared_ptr
     {
@@ -598,6 +617,52 @@ template<typename T> std::vector<T> slice(const std::vector<T>& v, int e1)
     return std::vector<T>(v.begin()+e1, v.end());
 }
 
+template<class Pred1, class Pred2>
+class binary_or
+{
+    protected:
+        Pred1 p1;
+        Pred2 p2;
+
+    public:
+        binary_or(Pred1 p1, Pred2 p2) : p1(p1), p2(p2) {}
+
+        template <typename T>
+        bool operator()(const T& t)
+        {
+            return p1(t)||p2(t);
+        }
+};
+
+template<class Pred1, class Pred2>
+class binary_and
+{
+    protected:
+        Pred1 p1;
+        Pred2 p2;
+
+    public:
+        binary_and(Pred1 p1, Pred2 p2) : p1(p1), p2(p2) {}
+
+        template <typename T>
+        bool operator()(const T& t)
+        {
+            return p1(t)&&p2(t);
+        }
+};
+
+template<class Pred1, class Pred2>
+binary_or<Pred1,Pred2> or1(Pred1 p1, Pred2 p2)
+{
+    return binary_or<Pred1,Pred2>(p1,p2);
+}
+
+template<class Pred1, class Pred2>
+binary_and<Pred1,Pred2> and1(Pred1 p1, Pred2 p2)
+{
+    return binary_and<Pred1,Pred2>(p1,p2);
+}
+
 template<typename T, class Predicate> std::vector<T>& filter(std::vector<T>& v, Predicate pred)
 {
     typename std::vector<T>::iterator i1, i2;
@@ -648,6 +713,25 @@ template<typename T, class Predicate> std::vector<T> filter_copy(const std::vect
 
     v2.resize(i1-v2.begin());
     return v2;
+}
+
+template<typename T> typename enable_if<!is_arithmetic<T>::value,T>::type sum(const std::vector<T>& v)
+{
+    T s;
+    for (int i = 0;i < v.size();i++) s += v[i];
+    return s;
+}
+
+template<typename T> typename enable_if<is_arithmetic<T>::value,T>::type sum(const std::vector<T>& v)
+{
+    T s = (T)0;
+    for (int i = 0;i < v.size();i++) s += v[i];
+    return s;
+}
+
+template<typename T, typename U> bool contains(const T& v, const U& e)
+{
+    return find(v.begin(), v.end(), e) != v.end();
 }
 
 template<typename T> T& uniq(T& v)

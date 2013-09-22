@@ -29,6 +29,7 @@
 #include "tensor/spinorbital_tensor.hpp"
 
 #include "mooperator.hpp"
+#include "denominator.hpp"
 
 namespace aquarius
 {
@@ -37,7 +38,7 @@ namespace op
 
 template <typename T, int np, int nh=np>
 class DeexcitationOperator
-: public MOOperator<T>,
+: public MOOperator,
   public tensor::CompositeTensor< DeexcitationOperator<T,np,nh>,
                                   tensor::SpinorbitalTensor<T>, T >
 {
@@ -49,55 +50,30 @@ class DeexcitationOperator
 
     public:
         DeexcitationOperator(const Arena& arena, const Space& occ, const Space& vrt, int spin=0, int symmetry=AS)
-        : MOOperator<T>(arena, occ, vrt),
+        : MOOperator(arena, occ, vrt),
           tensor::CompositeTensor< DeexcitationOperator<T,np,nh>,
            tensor::SpinorbitalTensor<T>, T >(std::max(np,nh)+1),
           spin(spin)
         {
-            if (abs(spin%2) != (np+nh)%2 || abs(spin) > np+nh) throw std::logic_error("incompatible spin");
+            for (int ex = 0;ex <= std::min(np,nh);ex++)
+            {
+                int nv = ex+(np > nh ? np-nh : 0);
+                int no = ex+(nh > np ? nh-np : 0);
 
-            int nI = occ.nalpha;
-            int ni = occ.nbeta;
-            int nA = vrt.nalpha;
-            int na = vrt.nbeta;
+                tensors[ex+std::abs(np-nh)].tensor =
+                    new tensor::SpinorbitalTensor<T>(arena, std::vec(vrt,occ), std::vec(0,nv), std::vec(no,0), spin);
+            }
+        }
+
+        void weight(const Denominator<T>& d)
+        {
+            std::vector<const std::vector<T>*> da = vec(&d.getDA(), &d.getDI());
+            std::vector<const std::vector<T>*> db = vec(&d.getDa(), &d.getDi());
 
             for (int ex = 0;ex <= std::min(np,nh);ex++)
             {
-                int idx = ex+std::abs(np-nh);
-
-                int npex = (np > nh ? ex+np-nh : ex);
-                int nhex = (nh > np ? ex+nh-np : ex);
-
-                tensors[idx].tensor = new tensor::SpinorbitalTensor<T>(0, autocc::Manifold(npex,nhex), -spin);
-
-                for (int pspin = std::max(-npex,spin-nhex);pspin <= std::min(npex,spin+nhex);pspin++)
-                {
-                    if (abs(pspin%2) != npex%2) continue;
-
-                    int hspin = pspin-spin;
-                    int pa = (npex+pspin)/2;
-                    int pb = (npex-pspin)/2;
-                    int ha = (nhex+hspin)/2;
-                    int hb = (nhex-hspin)/2;
-
-                    int ndim = npex+nhex;
-                    std::vector<int> len(ndim);
-                    std::vector<int> sym(ndim, symmetry);
-
-                    int i = 0;
-                    for (int j = 0;j < ha;j++,i++) len[i] = nI;
-                    for (int j = 0;j < hb;j++,i++) len[i] = ni;
-                    for (int j = 0;j < pa;j++,i++) len[i] = nA;
-                    for (int j = 0;j < pb;j++,i++) len[i] = na;
-
-                    if (ha > 0) sym[ha-1] = NS;
-                    if (ha+hb > 0) sym[ha+hb-1] = NS;
-                    if (ha+hb+pa > 0) sym[ha+hb+pa-1] = NS;
-                    if (ha+hb+pa+pb > 0) sym[ha+hb+pa+pb-1] = NS;
-
-                    tensors[idx].tensor->addSpinCase(new tensor::DistTensor<T>(this->arena, ndim, len, sym, true),
-                                                       0, autocc::Manifold(pa, ha));
-                }
+                if (ex== 0 && np == nh) continue;
+                tensors[ex+std::abs(np-nh)].tensor->weight(da, db);
             }
         }
 

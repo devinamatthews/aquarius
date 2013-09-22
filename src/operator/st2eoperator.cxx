@@ -32,7 +32,7 @@ using namespace aquarius::tensor;
 template <typename U>
 STTwoElectronOperator<U,2>::STTwoElectronOperator(const OneElectronOperator<U>& X,
                                                   const ExcitationOperator<U,2>& T)
-: TwoElectronOperator<U>(X, true), T(T)
+: TwoElectronOperator<U>(X), T(T)
 {
     this->ij["mi"] += this->ia["me"]*T(1)["ei"];
 
@@ -45,7 +45,7 @@ STTwoElectronOperator<U,2>::STTwoElectronOperator(const OneElectronOperator<U>& 
     this->abij["abij"] += this->ab["af"]*T(2)["fbij"];
     this->abij["abij"] -= this->ij["ni"]*T(2)["abnj"];
 
-    this->iajk["mbij"] += this->ia["me"]*T(2)["ebij"];
+    this->aijk["amij"] += this->ia["me"]*T(2)["aeij"];
 
     this->abci["abej"] -= this->ia["me"]*T(2)["abmj"];
 }
@@ -54,7 +54,7 @@ template <typename U>
 STTwoElectronOperator<U,2>::STTwoElectronOperator(const TwoElectronOperator<U>& X,
                                                   const ExcitationOperator<U,2>& T,
                                                   bool isHbar)
-: TwoElectronOperator<U>(X, true), T(T)
+: TwoElectronOperator<U>(X), T(T)
 {
     SpinorbitalTensor<U> Tau(T(2));
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
@@ -63,18 +63,18 @@ STTwoElectronOperator<U,2>::STTwoElectronOperator(const TwoElectronOperator<U>& 
 
     this->ij["mi"] += 0.5*this->ijab["nmef"]*T(2)["efni"];
     this->ij["mi"] += this->ia["me"]*T(1)["ei"];
-    this->ij["mi"] += this->ijka["mnif"]*T(1)["fn"];
+    this->ij["mi"] += this->ijak["nmfi"]*T(1)["fn"];
 
     this->ijkl["mnij"] += 0.5*this->ijab["mnef"]*Tau["efij"];
-    this->ijkl["mnij"] += this->ijka["mnie"]*T(1)["ej"];
+    this->ijkl["mnij"] += this->ijak["nmei"]*T(1)["ej"];
 
-    this->ijka["mnie"] += this->ijab["mnfe"]*T(1)["fi"];
+    this->ijak["mnej"] += this->ijab["mnef"]*T(1)["fj"];
 
     if (!isHbar)
     {
         this->ai["ai"] -= T(1)["em"]*this->aibj["amei"];
         this->ai["ai"] += 0.5*this->aibc["amef"]*Tau["efim"];
-        this->ai["ai"] -= 0.5*this->ijka["mnie"]*T(2)["aemn"];
+        this->ai["ai"] -= 0.5*this->ijak["mnei"]*T(2)["eamn"];
         this->ai["ai"] += T(2)["aeim"]*this->ia["me"];
         this->ai["ai"] += T(1)["ei"]*this->ab["ae"];
         this->ai["ai"] -= T(1)["am"]*this->ij["mi"];
@@ -88,19 +88,19 @@ STTwoElectronOperator<U,2>::STTwoElectronOperator(const TwoElectronOperator<U>& 
     this->ab["ae"] -= this->ia["me"]*T(1)["am"];
     this->ab["ae"] += this->aibc["anef"]*T(1)["fn"];
 
-    this->iajk["mbij"] += 0.5*this->aibc["bmfe"]*Tau["efij"];
-    this->iajk["mbij"] -= this->aibj["bmej"]*T(1)["ei"];
+    this->aijk["amij"] += 0.5*this->aibc["amef"]*Tau["efij"];
+    this->aijk["amij"] += this->aibj["amej"]*T(1)["ei"];
 
     this->aibj["amei"] -= 0.5*this->ijab["mnef"]*T(2)["afin"];
     this->aibj["amei"] -= this->aibc["amfe"]*T(1)["fi"];
-    this->aibj["amei"] += this->ijka["nmie"]*T(1)["an"];
+    this->aibj["amei"] -= this->ijak["nmei"]*T(1)["an"];
 
     if (!isHbar)
     {
         this->abij["abij"] += this->ab["af"]*T(2)["fbij"];
         this->abij["abij"] -= this->ij["ni"]*T(2)["abnj"];
         this->abij["abij"] += this->abci["abej"]*T(1)["ei"];
-        this->abij["abij"] -= this->iajk["mbij"]*T(1)["am"];
+        this->abij["abij"] -= this->aijk["amij"]*T(1)["bm"];
         this->abij["abij"] += 0.5*this->abcd["abef"]*Tau["efij"];
         this->abij["abij"] += 0.5*this->ijkl["mnij"]*Tau["abmn"];
         this->abij["abij"] -= this->aibj["amei"]*T(2)["ebmj"];
@@ -110,20 +110,20 @@ STTwoElectronOperator<U,2>::STTwoElectronOperator(const TwoElectronOperator<U>& 
         this->abij = 0;
     }
 
-    this->iajk["mbij"] += this->ijka["mnie"]*T(2)["bejn"];
-    this->iajk["mbij"] -= this->ijkl["mnij"]*T(1)["bn"];
-    this->iajk["mbij"] += this->ia["me"]*T(2)["ebij"];
+    this->aijk["amij"] += this->ijak["nmej"]*T(2)["aein"];
+    this->aijk["amij"] -= this->ijkl["nmij"]*T(1)["an"];
+    this->aijk["amij"] += this->ia["me"]*T(2)["aeij"];
 
     this->aibj["amei"] -= 0.5*this->ijab["mnef"]*T(2)["afin"];
-    this->aibj["amei"] -= 0.5*this->ijka["nmie"]*T(1)["an"];
+    this->aibj["amei"] += 0.5*this->ijak["nmei"]*T(1)["an"];
 
-    this->abci["abej"] += 0.5*this->ijka["nmje"]*T(2)["abmn"];
+    this->abci["abej"] += 0.5*this->ijak["mnej"]*T(2)["abmn"];
     this->abci["abej"] -= this->aibj["amej"]*T(1)["bm"];
     this->abci["abej"] += this->aibc["amef"]*T(2)["fbmj"];
     this->abci["abej"] += this->abcd["abef"]*T(1)["fj"];
     this->abci["abej"] -= this->ia["me"]*T(2)["abmj"];
 
-    this->aibj["amei"] += 0.5*this->ijka["nmie"]*T(1)["an"];
+    this->aibj["amei"] -= 0.5*this->ijak["nmei"]*T(1)["an"];
 
     this->abcd["abef"] += 0.5*this->ijab["mnef"]*Tau["abmn"];
     this->abcd["abef"] -= this->aibc["amef"]*T(1)["bm"];
@@ -141,7 +141,7 @@ void STTwoElectronOperator<U,2>::contract(const ExcitationOperator<U,2>& R,
     SpinorbitalTensor<U>& IMI = I.getIJ();
     SpinorbitalTensor<U>& IAE = I.getAB();
 
-    IMI["mi"]  = this->ijka["mnie"]*R(1)["en"];
+    IMI["mi"]  = this->ijak["nmei"]*R(1)["en"];
     IMI["mi"] += 0.5*this->ijab["mnef"]*R(2)["efin"];
 
     IAE["ae"]  = this->aibc["amef"]*R(1)["fm"];
@@ -152,14 +152,14 @@ void STTwoElectronOperator<U,2>::contract(const ExcitationOperator<U,2>& R,
     Z(1)["ai"] -= this->aibj["amei"]*R(1)["em"];
     Z(1)["ai"] += this->ia["me"]*R(2)["aeim"];
     Z(1)["ai"] += 0.5*this->aibc["amef"]*R(2)["efim"];
-    Z(1)["ai"] -= 0.5*this->ijka["mnie"]*R(2)["aemn"];
+    Z(1)["ai"] -= 0.5*this->ijak["mnei"]*R(2)["eamn"];
 
     Z(2)["abij"] += this->ab["ae"]*R(2)["ebij"];
     Z(2)["abij"] -= this->ij["mi"]*R(2)["abmj"];
     Z(2)["abij"] += IAE["ae"]*T(2)["ebij"];
     Z(2)["abij"] -= IMI["mi"]*T(2)["abmj"];
     Z(2)["abij"] += this->abci["abej"]*R(1)["ei"];
-    Z(2)["abij"] -= this->iajk["mbij"]*R(1)["am"];
+    Z(2)["abij"] -= this->aijk["amij"]*R(1)["bm"];
     Z(2)["abij"] += 0.5*this->abcd["abef"]*R(2)["efij"];
     Z(2)["abij"] += 0.5*this->ijkl["mnij"]*R(2)["abmn"];
     Z(2)["abij"] -= this->aibj["amei"]*R(2)["ebmj"];
@@ -191,16 +191,16 @@ void STTwoElectronOperator<U,2>::contract(const DeexcitationOperator<U,2>& L,
 
     Z(1)["ia"] -= L(1)["me"]*this->aibj["eiam"];
     Z(1)["ia"] += 0.5*this->abci["efam"]*L(2)["imef"];
-    Z(1)["ia"] -= 0.5*this->iajk["iemn"]*L(2)["mnae"];
+    Z(1)["ia"] -= 0.5*this->aijk["eimn"]*L(2)["mnea"];
     Z(1)["ia"] += L(1)["ie"]*this->ab["ea"];
     Z(1)["ia"] -= L(1)["ma"]*this->ij["im"];
-    Z(1)["ia"] -= IMN["mn"]*this->ijka["nima"];
+    Z(1)["ia"] -= IMN["mn"]*this->ijak["inam"];
     Z(1)["ia"] += IEF["ef"]*this->aibc["fiea"];
 
     Z(2)["ijab"] += this->ab["ea"]*L(2)["ijeb"];
     Z(2)["ijab"] -= this->ij["im"]*L(2)["mjab"];
     Z(2)["ijab"] += this->aibc["ejab"]*L(1)["ie"];
-    Z(2)["ijab"] -= this->ijka["ijmb"]*L(1)["ma"];
+    Z(2)["ijab"] -= this->ijak["jibm"]*L(1)["ma"];
     Z(2)["ijab"] += 0.5*this->abcd["efab"]*L(2)["ijef"];
     Z(2)["ijab"] += 0.5*this->ijkl["ijmn"]*L(2)["mnab"];
     Z(2)["ijab"] -= this->aibj["eiam"]*L(2)["mjeb"];

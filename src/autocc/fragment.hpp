@@ -28,6 +28,7 @@
 #include <ostream>
 #include <string>
 #include <vector>
+#include <cassert>
 
 #include "diagram.hpp"
 
@@ -43,9 +44,39 @@ class Manifold;
 
 std::ostream& operator<<(std::ostream& out, const Fragment& f);
 
-int relativeSign(const std::vector<Line>& s1, const std::vector<Line>& s2);
+template <typename T>
+int relativeSign(const T& s1, const T& s2)
+{
+    return relativeSign(s1.begin(), s1.end(), s2.begin(), s2.end());
+}
 
-//std::vector<Line>& translate(std::vector<Line>& s, const std::vector<Line>& from, const std::vector<Line>& to);
+template <typename iterator>
+int relativeSign(iterator b1, iterator e1, iterator b2, iterator e2)
+{
+    assert((int)(e2-b2) == (int)(e1-b1));
+
+    int sign = 1;
+    int n = (int)(e1-b1);
+    std::vector<bool> seen(n, false);
+
+    for (int i = 0;i < n;i++)
+    {
+        if (seen[i]) continue;
+        int j = i;
+        while (true)
+        {
+            int k;
+            for (k = 0;k < n && (!(*(b1+k) == *(b2+j)) || seen[k]);k++);
+            assert(k < n);
+            j = k;
+            seen[j] = true;
+            if (j == i) break;
+            sign = -sign;
+        }
+    }
+
+    return sign;
+}
 
 class Fragment
 {

@@ -235,8 +235,8 @@ template <typename T>
 void DistTensor<T>::div(T alpha, bool conja, const DistTensor<T>& A,
                                  bool conjb, const DistTensor<T>& B, T beta)
 {
-    dt->align(*A.dt);
-    dt->align(*B.dt);
+    const_cast<tCTF_Tensor<T>*>(A.dt)->align(*dt);
+    const_cast<tCTF_Tensor<T>*>(B.dt)->align(*dt);
     int64_t size, size_A, size_B;
     T* raw_data = getRawData(size);
     const T* raw_data_A = A.getRawData(size_A);
@@ -339,15 +339,15 @@ typename real_type<T>::type DistTensor<T>::norm(int p) const
     T ans = (T)0;
     if (p == 00)
     {
-        ans = dt->reduce(CTF_OP_MAXABS);
+        ans = dt->reduce(CTF_OP_NORM_INFTY);
     }
     else if (p == 1)
     {
-        ans = dt->reduce(CTF_OP_SUMABS);
+        ans = dt->reduce(CTF_OP_NORM1);
     }
     else if (p == 2)
     {
-        ans = sqrt(dt->reduce(CTF_OP_SQNRM2));
+        ans = dt->reduce(CTF_OP_NORM2);
     }
     return abs(ans);
 }
@@ -388,6 +388,33 @@ T DistTensor<T>::dot(bool conja, const DistTensor<T>& A, const string& idx_A,
     dt.getAllData(val);
     assert(val.size()==1);
     return val[0];
+}
+
+template <typename T>
+void DistTensor<T>::weight(const vector<const vector<T>*>& d)
+{
+    assert(d.size() == this->ndim);
+    for (int i = 0;i < d.size();i++) assert(d[i]->size() == len[i]);
+
+    vector<tkv_pair<T> > pairs;
+    getLocalData(pairs);
+
+    for (int i = 0;i < pairs.size();i++)
+    {
+        int64_t k = pairs[i].k;
+
+        T den = 0;
+        for (int j = 0;j < this->ndim;j++)
+        {
+            int o = k%len[j];
+            k = k/len[j];
+            den += (*d[j])[o];
+        }
+
+        pairs[i].d /= den;
+    }
+
+    writeRemoteData(pairs);
 }
 
 INSTANTIATE_SPECIALIZATIONS(DistTensor);

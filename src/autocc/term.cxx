@@ -26,6 +26,7 @@
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
+#include <map>
 
 #include "autocc.hpp"
 
@@ -97,193 +98,86 @@ Term::Term(const Diagram::Type type, const Fraction factor, const vector<Fragmen
 
 Term& Term::fixorder(const vector<Line>& which)
 {
-    vector<Line> oldah, oldbh, oldap, oldbp;
-    vector<Line> newah, newbh, newap, newbp;
-
-    int ahidx = 0, bhidx = 0, apidx = 0, bpidx = 0;
+    int idx = 0;
     vector<Line> inds = indices();
     for (vector<Line>::iterator l = inds.begin();l != inds.end();++l)
     {
-        if (l->isInternal() && find(which.begin(), which.end(), *l) == which.end())
+        if (find(which.begin(), which.end(), *l) == which.end())
         {
-            if (l->isParticle())
-            {
-                if (l->isAlpha())
-                {
-                    apidx++;
-                }
-                else
-                {
-                    bpidx++;
-                }
-            }
-            else
-            {
-                if (l->isAlpha())
-                {
-                    ahidx++;
-                }
-                else
-                {
-                    bhidx++;
-                }
-            }
+            idx = max(idx, l->getIndex());
+        }
+    }
+
+    vector<Line> oldlines, newlines;
+
+    for (vector<Fragment>::iterator f = getFragments().begin();f != getFragments().end();++f)
+    {
+        vector<Line> tofix = intersection(which, filter_copy(f->indices(), and1(isAlpha(),isVirtual())));
+
+        for (vector<Line>::iterator l = tofix.begin();l != tofix.end();++l)
+        {
+            oldlines += *l;
+            newlines += l->asIndex(++idx);
         }
     }
 
     for (vector<Fragment>::iterator f = getFragments().begin();f != getFragments().end();++f)
     {
-        vector<Line> internal;
+        vector<Line> tofix = intersection(which, filter_copy(f->indices(), and1(isAlpha(),isOccupied())));
 
-        for (vector<Line>::iterator i = f->out.begin();i != f->out.end();++i)
+        for (vector<Line>::iterator l = tofix.begin();l != tofix.end();++l)
         {
-            if (find(which.begin(), which.end(), *i) != which.end())
-            {
-                internal.push_back(*i);
-            }
-        }
-
-        for (vector<Line>::iterator i = f->in.begin();i != f->in.end();++i)
-        {
-            if (find(which.begin(), which.end(), *i) != which.end())
-            {
-                internal.push_back(*i);
-            }
-        }
-
-        for (vector<Line>::iterator l = internal.begin();l != internal.end();++l)
-        {
-            if (l->isParticle())
-            {
-                if (l->isAlpha())
-                {
-                    if (find(oldap.begin(), oldap.end(), *l) != oldap.end()) continue;
-                    oldap.push_back(*l);
-                    newap.push_back(Line(apidx++, INTERNAL+PARTICLE+ALPHA));
-                }
-                else
-                {
-                    if (find(oldbp.begin(), oldbp.end(), *l) != oldbp.end()) continue;
-                    oldbp.push_back(*l);
-                    newbp.push_back(Line(bpidx++, INTERNAL+PARTICLE+BETA));
-                }
-            }
-            else
-            {
-                if (l->isAlpha())
-                {
-                    if (find(oldah.begin(), oldah.end(), *l) != oldah.end()) continue;
-                    oldah.push_back(*l);
-                    newah.push_back(Line(ahidx++, INTERNAL+HOLE+ALPHA));
-                }
-                else
-                {
-                    if (find(oldbh.begin(), oldbh.end(), *l) != oldbh.end()) continue;
-                    oldbh.push_back(*l);
-                    newbh.push_back(Line(bhidx++, INTERNAL+HOLE+BETA));
-                }
-            }
+            oldlines += *l;
+            newlines += l->asIndex(++idx);
         }
     }
 
-    translate(oldah+oldbh+oldap+oldbp, newah+newbh+newap+newbp);
+    for (vector<Fragment>::iterator f = getFragments().begin();f != getFragments().end();++f)
+    {
+        vector<Line> tofix = intersection(which, filter_copy(f->indices(), and1(isBeta(),isVirtual())));
+
+        for (vector<Line>::iterator l = tofix.begin();l != tofix.end();++l)
+        {
+            oldlines += *l;
+            newlines += l->asIndex(++idx);
+        }
+    }
+
+    for (vector<Fragment>::iterator f = getFragments().begin();f != getFragments().end();++f)
+    {
+        vector<Line> tofix = intersection(which, filter_copy(f->indices(), and1(isBeta(),isOccupied())));
+
+        for (vector<Line>::iterator l = tofix.begin();l != tofix.end();++l)
+        {
+            oldlines += *l;
+            newlines += l->asIndex(++idx);
+        }
+    }
+
+    translate(oldlines, newlines);
 
     return *this;
 }
 
 Term& Term::fixorder(bool all)
 {
-    vector<Line> oldah, oldbh, oldap, oldbp;
-    vector<Line> newah, newbh, newap, newbp;
-
-    int ahidx = 0, bhidx = 0, apidx = 0, bpidx = 0;
-    for (vector<Fragment>::iterator f = getFragments().begin();f != getFragments().end();++f)
+    if (all)
     {
-        vector<Line> internal;
-
-        if (all)
-        {
-            internal += f->out + f->in;
-        }
-        else
-        {
-            internal += filter_copy(f->out + f->in, isInternal());
-        }
-
-        for (vector<Line>::iterator l = internal.begin();l != internal.end();++l)
-        {
-            if (l->isParticle())
-            {
-                if (l->isAlpha())
-                {
-                    if (find(oldap.begin(), oldap.end(), *l) != oldap.end()) continue;
-                    oldap.push_back(*l);
-                    newap.push_back(Line(apidx++, INTERNAL+PARTICLE+ALPHA));
-                }
-                else
-                {
-                    if (find(oldbp.begin(), oldbp.end(), *l) != oldbp.end()) continue;
-                    oldbp.push_back(*l);
-                    newbp.push_back(Line(bpidx++, INTERNAL+PARTICLE+BETA));
-                }
-            }
-            else
-            {
-                if (l->isAlpha())
-                {
-                    if (find(oldah.begin(), oldah.end(), *l) != oldah.end()) continue;
-                    oldah.push_back(*l);
-                    newah.push_back(Line(ahidx++, INTERNAL+HOLE+ALPHA));
-                }
-                else
-                {
-                    if (find(oldbh.begin(), oldbh.end(), *l) != oldbh.end()) continue;
-                    oldbh.push_back(*l);
-                    newbh.push_back(Line(bhidx++, INTERNAL+HOLE+BETA));
-                }
-            }
-        }
+        fixorder(indices());
     }
-
-    translate(oldah+oldbh+oldap+oldbp, newah+newbh+newap+newbp);
-
-    /*
-    vector<Line> old(newah+newbh+newap+newbp);
-    vector<Line> mininds(old);
-    string minstr = str(*this);
-    do
+    else
     {
-        do
-        {
-            do
-            {
-                do
-                {
-                    Term tmp(*this);
-                    tmp.translate(old, newah+newbh+newap+newbp);
-                    string tmpstr = str(tmp);
-                    if (tmpstr < minstr)
-                    {
-                        minstr = tmpstr;
-                        mininds = newah+newbh+newap+newbp;
-                    }
-                }
-                while (next_permutation(newbh.begin(), newbh.end()));
-            }
-            while (next_permutation(newah.begin(), newah.end()));
-        }
-        while (next_permutation(newbp.begin(), newbp.end()));
+        fixorder(internal());
     }
-    while (next_permutation(newap.begin(), newap.end()));
-
-    translate(old, mininds);
-    */
 
     return *this;
 }
 
 Term& Term::fixexternal()
 {
+    assert(0);
+
+    /*
     vector<Line> oldah, oldbh, oldap, oldbp;
     vector<Line> newah, newbh, newap, newbp;
 
@@ -332,6 +226,7 @@ Term& Term::fixexternal()
     *this *= relativeSign(oldbh, newbh);
     *this *= relativeSign(oldap, newap);
     *this *= relativeSign(oldbp, newbp);
+    */
 
     return *this;
 }
@@ -447,101 +342,19 @@ const Fraction& Term::getFactor() const
 
 Diagram Term::sumall() const
 {
-    Diagram diagram(type);
-
-    vector<Line> indices(this->indices());
-    vector<Line> old(indices);
-
-    vector<Line> uhf(old);
-    for (int x = 0;x < 1<<old.size();x++)
-    {
-        for (int i = 0;i < old.size();i++)
-        {
-            if ((x>>i) & 1)
-            {
-                uhf[i] = old[i].toAlpha();
-            }
-            else
-            {
-                uhf[i] = old[i].toBeta();
-            }
-        }
-
-        Term newterm(*this);
-        newterm.translate(old, uhf);
-
-        if (newterm.checkspin())
-        {
-            //cout << "before:" << endl << diagram;
-            //cout << "trans: " << old << "|" << uhf << endl;
-            //cout << "newterm: " << newterm << endl;
-            diagram += newterm;
-            //cout << "after:" << endl << diagram << endl;
-        }
-    }
-
-    return diagram;
+    return sum(indices());
 }
 
 Diagram Term::suminternal() const
 {
-    Diagram diagram(type);
-
-    vector<Line> indices(this->indices());
-    vector<Line> old(indices);
-    filter(old, isInternal());
-
-    //cout << "inds: " << indices << endl;
-    //cout << "old: " << old << endl;
-
-    vector<Line> uhf(old);
-    for (int x = 0;x < 1<<old.size();x++)
-    {
-        for (int i = 0;i < old.size();i++)
-        {
-            if ((x>>i) & 1)
-            {
-                uhf[i] = old[i].toAlpha();
-            }
-            else
-            {
-                uhf[i] = old[i].toBeta();
-            }
-        }
-
-        //cout << "trans: " << old << "|" << uhf << endl;
-
-        Term newterm(*this);
-        newterm.translate(old, uhf);
-
-        //cout << "newterm: " << newterm << endl;
-
-        if (newterm.checkspin())
-        {
-            //print 'old:',self
-            //print 'new:',newterm
-            diagram += newterm;
-        }
-    }
-
-    return diagram;
+    return sum(internal());
 }
 
-Diagram Term::sum(const vector<Line>& which_) const
+Diagram Term::sum(const vector<Line>& which) const
 {
     Diagram diagram(type);
 
-    vector<Line> which(which_);
-    vector<Line> indices(this->indices());
-    vector<Line> old(indices);
-
-    sort(which.begin(), which.end());
-    vector<Line>::iterator end = set_intersection(indices.begin(), indices.end(),
-                                                  which.begin(), which.end(), old.begin());
-    old.resize((int)(end-old.begin()));
-
-    //cout << "inds: " << indices << endl;
-    //cout << "old: " << old << endl;
+    vector<Line> old = intersection(which, indices());
 
     vector<Line> uhf(old);
     for (int x = 0;x < 1<<old.size();x++)
@@ -550,25 +363,19 @@ Diagram Term::sum(const vector<Line>& which_) const
         {
             if ((x>>i) & 1)
             {
-                uhf[i] = old[i].toAlpha();
+                uhf[i] = old[i].asAlpha();
             }
             else
             {
-                uhf[i] = old[i].toBeta();
+                uhf[i] = old[i].asBeta();
             }
         }
-
-        //cout << "trans: " << old << "|" << uhf << endl;
 
         Term newterm(*this);
         newterm.translate(old, uhf);
 
-        //cout << "newterm: " << newterm << endl;
-
         if (newterm.checkspin())
         {
-            //print 'old:',self
-            //print 'new:',newterm
             diagram += newterm;
         }
     }
@@ -580,10 +387,8 @@ bool Term::checkspin() const
 {
     for (vector<Fragment>::const_iterator it = fragments.begin();it != fragments.end();++it)
     {
-        int nl = 0;
-        for (int i = 0;i < it->out.size();i++) if (it->out[i].isAlpha()) nl++;
-        int nr = 0;
-        for (int i = 0;i < it->in.size();i++) if (it->in[i].isAlpha()) nr++;
+        int nl = count_if(it->out.begin(), it->out.end(), isAlpha());
+        int nr = count_if(it->in.begin(), it->in.end(), isAlpha());
         if (abs(nl-nr) > abs((int)(it->out.size()-it->in.size()))) return false;
     }
 
@@ -608,19 +413,32 @@ vector<Line> Term::indices() const
 
     for (vector<Fragment>::const_iterator f = fragments.begin();f != fragments.end();++f)
     {
-        vector<Line> uniq = f->out + f->in;
-        sort(uniq.begin(), uniq.end());
-        vector<Line>::iterator end = unique(uniq.begin(), uniq.end());
-        uniq.resize((int)(end - uniq.begin()));
-
-        indices += uniq;
+        indices += f->indices();
     }
 
-    sort(indices.begin(), indices.end());
-    vector<Line>::iterator end = unique(indices.begin(), indices.end());
-    indices.resize((int)(end - indices.begin()));
+    return uniq_copy(indices);
+}
 
-    return indices;
+vector<Line> Term::internal() const
+{
+    vector<Line> internal;
+
+    for (vector<Fragment>::const_iterator f1 = getFragments().begin();f1 != getFragments().end();++f1)
+    {
+        for (vector<Fragment>::const_iterator f2 = f1+1;f2 != getFragments().end();++f2)
+        {
+            internal += intersection(f1->indices(), f2->indices());
+        }
+
+        internal += exclude_copy(f1->indices(), uniq_copy(f1->indices()));
+    }
+
+    return uniq_copy(internal);
+}
+
+vector<Line> Term::external() const
+{
+    return exclude_copy(indices(), internal());
 }
 
 const vector<Fragment>& Term::getFragments() const
@@ -643,12 +461,12 @@ Diagram Term::expanduhf() const
 
         vector< vector<Line> > alpha;
         vector< vector<Line> > beta;
-        for (int i = 0;i < f.out.size();i++) f.out[i] = f.out[i].toBeta();
+        for (int i = 0;i < f.out.size();i++) f.out[i].toBeta();
         for (int i = 0;i < f.in.size();i++)
         {
             if (f.in[i].isAlpha())
             {
-                f.in[i] = f.in[i].toBeta();
+                f.in[i].toBeta();
                 alpha.push_back(vector<Line>(1, f.in[i]));
             }
             else
@@ -665,6 +483,7 @@ Diagram Term::expanduhf() const
 
 Diagram Term::expandrhf() const
 {
+    vector<Line> _internal = internal();
     vector<Diagram> choices;
 
     for (vector<Fragment>::const_iterator it = fragments.begin();it != fragments.end();++it)
@@ -677,9 +496,9 @@ Diagram Term::expandrhf() const
         {
             if (f.out[i].isAlpha())
             {
-                if (f.out[i].isInternal())
+                if (find(_internal.begin(), _internal.end(), f.out[i]) != _internal.end())
                 {
-                    f.out[i] = f.out[i].toBeta();
+                    f.out[i].toBeta();
                     f1 += f.out[i];
                 }
                 else
@@ -695,9 +514,9 @@ Diagram Term::expandrhf() const
 
         for (int i = 0;i < f.in.size();i++)
         {
-            if (f.in[i].isAlpha() && f.in[i].isInternal())
+            if (f.in[i].isAlpha() && find(_internal.begin(), _internal.end(), f.out[i]) != _internal.end())
             {
-                f.in[i] = f.in[i].toBeta();
+                f.in[i].toBeta();
             }
         }
 
@@ -737,18 +556,71 @@ Diagram Term::doexpand(const Term& term, vector<Diagram>::iterator first, vector
 
 Diagram Term::symmetrize() const
 {
-    vector<Line> inds(indices());
-    sort(inds.begin(), inds.end());
+    vector<Line> _external = external();
     vector< vector<Line> > particles;
-    vector<Line> occ(inds);
-    vector<Line> vrt(inds);
+    vector< vector<Line> > alpha;
+    vector< vector<Line> > beta;
 
-    filter(vrt, isType<PARTICLE+EXTERNAL>());
-    filter(occ, isType<HOLE+EXTERNAL>());
+    /*
+     * Attempt to trace each external line to another external line.
+     * This will either be possible in which case the pair of lines defines
+     * a "particle", or not possible in the case that the term
+     * contains non-particle-conserving operators.
+     */
+    for (vector<Line>::iterator l = _external.begin();;)
+    {
+        if (l == _external.end()) break;
 
-    for (int i = 0;i < vrt.size();i++) particles.push_back(slice(vrt, i, i+1) + slice(occ, i, i+1));
+        const Line *l1 = &(*l), *l2;
 
-    Diagram diagram(type, vector<Term>(1, *this));
+        do
+        {
+            l2 = NULL;
+            bool found = false;
+
+            for (vector<Fragment>::const_iterator f = fragments.begin();f != fragments.end();++f)
+            {
+                for (int i = 0;i < f->in.size();i++)
+                {
+                    if (f->in[i] == *l1)
+                    {
+                        if (i < f->out.size()) l2 = &f->out[i];
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (found) break;
+
+                for (int i = 0;i < f->out.size();i++)
+                {
+                    if (f->out[i] == *l1)
+                    {
+                        if (i < f->in.size()) l2 = &f->in[i];
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (found) break;
+            }
+
+            swap(l1, l2);
+        }
+        while (l1 != NULL && find(_external.begin(), _external.end(), *l1) == _external.end());
+
+        if (l1 != NULL)
+        {
+            _external.erase(find(_external.begin(), _external.end(), *l1));
+            assert(l->getSpin() == l1->getSpin());
+            particles += vec(*l, *l1);
+            (l->isAlpha() ? alpha : beta) += vec(min(*l, *l1));
+        }
+
+        l = _external.erase(l);
+    }
+
+    Diagram diagram(type, vec(*this));
     for (int i = 0;i < particles.size();i++)
     {
         Diagram tmp(type);
@@ -759,25 +631,9 @@ Diagram Term::symmetrize() const
         diagram += tmp;
     }
 
-    vector< vector<Line> > alpha;
-    vector< vector<Line> > beta;
-    for (int i = 0;i < vrt.size();i++)
-    {
-        if (vrt[i].isAlpha())
-        {
-            alpha.push_back(vector<Line>(1,vrt[i]));
-        }
-        else
-        {
-            beta.push_back(vector<Line>(1,vrt[i]));
-        }
-    }
-
     diagram.antisymmetrize(alpha).antisymmetrize(beta);
 
-    inds = diagram[0].indices();
-    vector<Line> alphas(inds);
-    filter(alphas, isAlpha());
+    vector<Line> alphas = filter_copy(indices(), isAlpha());
     vector<Line> betas(alphas);
     for (int i = 0;i < betas.size();i++) betas[i] = betas[i].toBeta();
 
@@ -853,26 +709,47 @@ pair<Manifold,Manifold>& operator+=(pair<Manifold,Manifold>& p1, pair<Manifold,M
 pair<Manifold,Manifold> Term::getShape() const
 {
     pair<Manifold,Manifold> shape;
-
-    for (vector<Fragment>::const_iterator it = fragments.begin();it != fragments.end();++it)
-    {
-        shape += it->getShape();
-    }
-
+    getShape(shape.first, shape.second);
     return shape;
 }
 
 void Term::getShape(Manifold& left, Manifold& right) const
 {
-    pair<Manifold,Manifold> shape;
+    vector<Line> ex = external();
+    vector<Line> out, in;
 
-    for (vector<Fragment>::const_iterator it = fragments.begin();it != fragments.end();++it)
+    for (vector<Fragment>::const_iterator f = fragments.begin();f != fragments.end();++f)
     {
-        shape += it->getShape();
+        out += f->out;
+        in += f->in;
     }
 
-    left = shape.first;
-    right = shape.second;
+    vector<Line> exout = intersection(ex, uniq_copy(out));
+    vector<Line> exin = intersection(ex, uniq_copy(in));
+
+    for (vector<Line>::const_iterator i = exout.begin();i != exout.end();++i)
+    {
+        if (i->isVirtual())
+        {
+            left.np[i->getType()]++;
+        }
+        else
+        {
+            right.nh[i->getType()]++;
+        }
+    }
+
+    for (vector<Line>::const_iterator i = exin.begin();i != exin.end();++i)
+    {
+        if (i->isVirtual())
+        {
+            right.np[i->getType()]++;
+        }
+        else
+        {
+            left.nh[i->getType()]++;
+        }
+    }
 }
 
 }

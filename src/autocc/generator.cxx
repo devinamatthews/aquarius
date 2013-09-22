@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <climits>
 
 #include "autocc.hpp"
 
@@ -33,22 +34,6 @@ namespace aquarius
 {
 namespace autocc
 {
-
-bool operator<(const pair<Manifold,Manifold>& p1, const pair<Manifold,Manifold>& p2)
-{
-    if (p1.first < p2.first)
-    {
-        return true;
-    }
-    else if (p2.first < p1.first)
-    {
-        return false;
-    }
-    else
-    {
-        return p1.second < p1.first;
-    }
-}
 
 bool BasicManifoldGenerator::generator_next(Manifold& left, Manifold& right)
 {
@@ -62,10 +47,10 @@ bool BasicManifoldGenerator::generator_next(Manifold& left, Manifold& right)
 
     for (it = choices.begin();it != choices.end();++it)
     {
-        if (it->first.np  >= leftMin.np  && it->first.nh  >= leftMin.nh  &&
-            it->first.np  <= leftMax.np  && it->first.nh  <= leftMax.nh  &&
-            it->second.np >= rightMin.np && it->second.nh >= rightMin.nh &&
-            it->second.np <= rightMax.np && it->second.nh <= rightMax.nh)
+        if (it->first.np[0]  >= leftMin.np[0]  && it->first.nh[0]  >= leftMin.nh[0]  &&
+            it->first.np[0]  <= leftMax.np[0]  && it->first.nh[0]  <= leftMax.nh[0]  &&
+            it->second.np[0] >= rightMin.np[0] && it->second.nh[0] >= rightMin.nh[0] &&
+            it->second.np[0] <= rightMax.np[0] && it->second.nh[0] <= rightMax.nh[0])
             generator_yield(left=it->first, right=it->second);
     }
 
@@ -76,22 +61,26 @@ bool BasicManifoldGenerator::generator_next(Manifold& left, Manifold& right)
 
 bool ProductManifoldGenerator::generator_next(Manifold& left, Manifold& right)
 {
+    _one.nh[0] = 1;
+    _max.np[0] = INT_MAX-1;
+    _max.nh[0] = INT_MAX-1;
+
     _ldone = false;
-    for (_l.np = leftMin.np;_l.np <= leftMax.np && !_ldone;_l.np++)
+    for (_l.np[0] = leftMin.np[0];_l.np[0] <= leftMax.np[0] && !_ldone;_l.np[0]++)
     {
         _lhdone = false;
-        for (_l.nh = leftMin.nh;_l.nh <= leftMax.nh && !_ldone && !_lhdone;_l.nh++)
+        for (_l.nh[0] = leftMin.nh[0];_l.nh[0] <= leftMax.nh[0] && !_ldone && !_lhdone;_l.nh[0]++)
         {
             _ldone = true;
 
             _rdone = false;
-            for (_r.np = rightMin.np;_r.np <= rightMax.np && !_rdone;_r.np++)
+            for (_r.np[0] = rightMin.np[0];_r.np[0] <= rightMax.np[0] && !_rdone;_r.np[0]++)
             {
                 _rhdone = false;
-                for (_r.nh = rightMin.nh;_r.nh <= rightMax.nh && !_rdone && !_rhdone;_r.nh++)
+                for (_r.nh[0] = rightMin.nh[0];_r.nh[0] <= rightMax.nh[0] && !_rdone && !_rhdone;_r.nh[0]++)
                 {
-                    if ((!op.flags&CLOSED) &&  (_l == 0 && _r == 0)) continue;
-                    if ((!op.flags&OPEN)   && !(_l == 0 && _r == 0))
+                    if ((!op.flags&CLOSED) &&  (_l.np[0]+_l.nh[0] == 0 && _r.np[0]+_r.nh[0] == 0)) continue;
+                    if ((!op.flags&OPEN)   && !(_l.np[0]+_l.nh[0] == 0 && _r.np[0]+_r.nh[0] == 0))
                     {
                         _ldone = true;
                         _rdone = true;
@@ -103,12 +92,12 @@ bool ProductManifoldGenerator::generator_next(Manifold& left, Manifold& right)
                     _rdone = true;
 
                     cdone = false;
-                    for (c.np = 0;c.np <= Manifold::MAX_VALUE.np && !cdone;c.np++)
+                    for (c.np[0] = 0;c.np[0] < INT_MAX && !cdone;c.np[0]++)
                     {
                         chdone = false;
-                        for (c.nh = 0;c.nh <= Manifold::MAX_VALUE.nh && !cdone && !chdone;c.nh++)
+                        for (c.nh[0] = 0;c.nh[0] < INT_MAX && !cdone && !chdone;c.nh[0]++)
                         {
-                            if ((!op.flags&CONNECTED) && !(c == 0))
+                            if ((!op.flags&CONNECTED) && !(c.np[0]+c.nh[0] == 0))
                             {
                                 cdone = true;
                                 continue;
@@ -116,7 +105,7 @@ bool ProductManifoldGenerator::generator_next(Manifold& left, Manifold& right)
 
                             cdone = true;
 
-                            lGen = op.l->matching(Manifold::MIN_VALUE, _l, c, c+_r);
+                            lGen = op.l->matching(_zero, _l, c, c+_r);
                             while (lGen->next(ll,lr))
                             {
                                 rGen = op.r->matching(_l+c-ll, _l+c-ll, _r+c-lr, _r+c-lr);
@@ -126,8 +115,10 @@ bool ProductManifoldGenerator::generator_next(Manifold& left, Manifold& right)
                                     _rdone = false;
                                     cdone = false;
 
-                                    if ((op.flags&DISCONNECTED) || !(c == 0) ||
-                                        (ll == 0 && lr == 0) || (rl == 0 && rr == 0))
+                                    if ((op.flags&DISCONNECTED) ||
+                                       !(c.np[0]+c.nh[0] == 0) ||
+                                        (ll.np[0]+ll.nh[0] == 0 && lr.np[0]+lr.nh[0] == 0) ||
+                                        (rl.np[0]+rl.nh[0] == 0 && rr.np[0]+rr.nh[0] == 0))
                                     {
                                         generator_yield(left=_l, right=_r);
                                     }
@@ -139,10 +130,8 @@ bool ProductManifoldGenerator::generator_next(Manifold& left, Manifold& right)
                             chdone = cdone;
                             if (cdone)
                             {
-                                lGen = op.l->matching(Manifold::MIN_VALUE,                  _l,
-                                                          c+Manifold(0,1), Manifold::MAX_VALUE);
-                                rGen = op.r->matching(    c+Manifold(0,1), Manifold::MAX_VALUE,
-                                                      Manifold::MIN_VALUE,                  _r);
+                                lGen = op.l->matching(_zero, _l, c+_one, _max);
+                                rGen = op.r->matching(c+_one, _max, _zero, _r);
                                 if (lGen->next(ll,lr) && rGen->next(rl,rr))
                                 {
                                     cdone = false;
@@ -152,10 +141,12 @@ bool ProductManifoldGenerator::generator_next(Manifold& left, Manifold& right)
                                 {
                                     delete lGen;
                                     delete rGen;
-                                    lGen = op.l->matching(Manifold::MIN_VALUE,                  _l,
-                                                           Manifold(c.np+1,0), Manifold::MAX_VALUE);
-                                    rGen = op.r->matching( Manifold(c.np+1,0), Manifold::MAX_VALUE,
-                                                          Manifold::MIN_VALUE,                  _r);
+
+                                    _next.np[0] = c.np[0]+1;
+                                    _next.nh[0] = 0;
+
+                                    lGen = op.l->matching(_zero, _l, _next, _max);
+                                    rGen = op.r->matching(_next, _max, _zero, _r);
                                     if (lGen->next(ll,lr) && rGen->next(rl,rr))
                                     {
                                         cdone = false;
@@ -172,8 +163,7 @@ bool ProductManifoldGenerator::generator_next(Manifold& left, Manifold& right)
                     _rhdone = _rdone;
                     if (_rdone)
                     {
-                        lGen = op.l->matching(Manifold::MIN_VALUE,                  _l,
-                                                 _r+Manifold(0,1), Manifold::MAX_VALUE);
+                        lGen = op.l->matching(_zero, _l, _r+_one, _max);
                         if (lGen->next(ll,lr))
                         {
                             _rdone = false;
@@ -182,8 +172,11 @@ bool ProductManifoldGenerator::generator_next(Manifold& left, Manifold& right)
                         else
                         {
                             delete lGen;
-                            lGen = op.l->matching(Manifold::MIN_VALUE,                  _l,
-                                                  Manifold(_r.np+1,0), Manifold::MAX_VALUE);
+
+                            _next.np[0] = _r.np[0]+1;
+                            _next.nh[0] = 0;
+
+                            lGen = op.l->matching(_zero, _l, _next, _max);
                             if (lGen->next(ll,lr))
                             {
                                 _rdone = false;
@@ -201,25 +194,26 @@ bool ProductManifoldGenerator::generator_next(Manifold& left, Manifold& right)
             _lhdone = _ldone;
             if (_ldone)
             {
-                for (__l.np = 0;__l.np <= _l.np && _ldone && _lhdone;__l.np++)
+                for (__l.np[0] = 0;__l.np[0] <= _l.np[0] && _ldone && _lhdone;__l.np[0]++)
                 {
-                    for (__l.nh = 0;__l.nh <= _l.nh && _ldone && _lhdone;__l.nh++)
+                    for (__l.nh[0] = 0;__l.nh[0] <= _l.nh[0] && _ldone && _lhdone;__l.nh[0]++)
                     {
-                        lGen = op.l->matching(                __l, Manifold::MAX_VALUE,
-                                              Manifold::MIN_VALUE, Manifold::MAX_VALUE);
+                        lGen = op.l->matching(__l, _max, _zero, _max);
                         if (lGen->next(ll,lr))
                         {
                             //cout << "found1 " << ll << ' ' << lr << endl;
 
-                            if (ll.np > _l.np && ll.nh > _l.nh)
+                            if (ll.np[0] > _l.np[0] && ll.nh[0] > _l.nh[0])
                             {
                                 _ldone = false;
                                 _lhdone = false;
                             }
                             else
                             {
-                                rGen = op.r->matching(Manifold(max(0,_l.np-ll.np),max(0,_l.nh+1-ll.nh)), Manifold::MAX_VALUE,
-                                                                                  Manifold::MIN_VALUE, Manifold::MAX_VALUE);
+                                _next.np[0] = max(0,_l.np[0]-ll.np[0]);
+                                _next.nh[0] = max(0,_l.nh[0]+1-ll.nh[0]);
+
+                                rGen = op.r->matching(_next, _max, _zero, _max);
                                 if (rGen->next(rl,rr))
                                 {
                                     //cout << "found2 " << rl << ' ' << rr << endl;
@@ -231,8 +225,10 @@ bool ProductManifoldGenerator::generator_next(Manifold& left, Manifold& right)
                         }
                         delete lGen;
 
-                        lGen = op.l->matching( Manifold(__l.np,0), Manifold::MAX_VALUE,
-                                              Manifold::MIN_VALUE, Manifold::MAX_VALUE);
+                        _next.np[0] = __l.np[0];
+                        _next.nh[0] = 0;
+
+                        lGen = op.l->matching( _next, _max, _zero, _max);
                         if (lGen->next(ll,lr))
                         {
                             //cout << "found3 " << ll << ' ' << lr << endl;
@@ -242,8 +238,10 @@ bool ProductManifoldGenerator::generator_next(Manifold& left, Manifold& right)
                             }
                             else
                             {
-                                rGen = op.r->matching(Manifold(max(0,_l.np+1-ll.np),0), Manifold::MAX_VALUE,
-                                                                 Manifold::MIN_VALUE, Manifold::MAX_VALUE);
+                                _next.np[0] = max(0,_l.np[0]+1-ll.np[0]);
+                                _next.nh[0] = 0;
+
+                                rGen = op.r->matching(_next, _max, _zero, _max);
                                 if (rGen->next(rl,rr))
                                 {
                                     //cout << "found4 " << rl << ' ' << rr << endl;

@@ -40,10 +40,9 @@ void Operator::canonicalize(Term& t)
     vector<Line> oldinds(t.indices());
     vector<Line> newinds(oldinds);
 
-    int ep = 0;
-    int eh = 0;
-    int ip = 0;
-    int ih = 0;
+    int p = 0;
+    int h = 0;
+    for (int pass = 0;pass < 2;pass++)
     for (vector<Line>::iterator l = newinds.begin();l != newinds.end();++l)
     {
         int n = 0;
@@ -53,27 +52,15 @@ void Operator::canonicalize(Term& t)
             if (find(finds.begin(), finds.end(), *l) != finds.end()) n++;
         }
 
-        if (n > 1)
+        if (pass == 1 && n > 1)
         {
-            if (l->isParticle())
-            {
-                *l = Line(ip++, PARTICLE+INTERNAL+ALPHA);
-            }
-            else
-            {
-                *l = Line(ih++, HOLE+INTERNAL+ALPHA);
-            }
+            if (l->isVirtual()) l->toIndex(p++);
+            else                l->toIndex(h++);
         }
-        else
+        else if (pass == 0)
         {
-            if (l->isParticle())
-            {
-                *l = Line(ep++, PARTICLE+EXTERNAL+ALPHA);
-            }
-            else
-            {
-                *l = Line(eh++, HOLE+EXTERNAL+ALPHA);
-            }
+            if (l->isVirtual()) l->toIndex(p++);
+            else                l->toIndex(h++);
         }
     }
 
@@ -98,11 +85,6 @@ void Operator::decrement()
     ref_count--;
     //cout << "decrementing " << this << " to " << ref_count << endl;
     if (ref_count == 0) delete this;
-}
-
-Operator::~Operator()
-{
-    //cout << "destructing " << this << endl;
 }
 
 OperatorProduct& Operator::operator*(Operator& other)
@@ -156,7 +138,7 @@ void BasicOperator::canonicalize()
     }
 }
 
-Diagram BasicOperator::resolve(const Manifold& left, const Manifold& right) const
+Diagram BasicOperator::resolve(Manifold& left, Manifold& right) const
 {
     Diagram matches(Diagram::SPINORBITAL);
 
@@ -198,7 +180,7 @@ ComplexOperator::~ComplexOperator()
     operand->decrement();
 }
 
-Diagram ComplexOperator::resolve(const Manifold& left, const Manifold& right) const
+Diagram ComplexOperator::resolve(Manifold& left, Manifold& right) const
 {
     return operand->resolve(left, right);
 }
@@ -245,7 +227,7 @@ ExponentialOperator::~ExponentialOperator()
     expansion->decrement();
 }
 
-Diagram ExponentialOperator::resolve(const Manifold& left, const Manifold& right) const
+Diagram ExponentialOperator::resolve(Manifold& left, Manifold& right) const
 {
     return expansion->resolve(left, right);
 }
@@ -291,22 +273,17 @@ bool OperatorProduct::isConnected(const Term& t)
 {
     const vector<Fragment>& f(t.getFragments());
 
-    if (f.size() == 1) return true;
-
     for (vector<Fragment>::const_iterator i1 = f.begin();i1 != f.end();++i1)
     {
         bool found = false;
         vector<Line> inds1(i1->indices());
         for (vector<Line>::iterator l1 = inds1.begin();l1 != inds1.end();++l1)
         {
-            if (l1->isInternal())
+            for (vector<Fragment>::const_iterator i2 = f.begin();i2 != f.end();++i2)
             {
-                for (vector<Fragment>::const_iterator i2 = f.begin();i2 != f.end();++i2)
-                {
-                    if (i1 == i2) continue;
-                    vector<Line> inds2(i2->indices());
-                    found |= find(inds2.begin(), inds2.end(), *l1) != inds2.end();
-                }
+                if (i1 == i2) continue;
+                vector<Line> inds2(i2->indices());
+                found |= find(inds2.begin(), inds2.end(), *l1) != inds2.end();
             }
         }
         if (!found) return false;
@@ -317,37 +294,61 @@ bool OperatorProduct::isConnected(const Term& t)
 
 bool OperatorProduct::isOpen(const Term& t)
 {
-    vector<Line> inds(t.indices());
-    for (vector<Line>::iterator l = inds.begin();l != inds.end();++l) if (l->isExternal()) return true;
+    const vector<Fragment>& f(t.getFragments());
+
+    if (f.size() == 1) return true;
+
+    for (vector<Fragment>::const_iterator i1 = f.begin();i1 != f.end();++i1)
+    {
+        bool found = true;
+        vector<Line> inds1(i1->indices());
+        for (vector<Line>::iterator l1 = inds1.begin();l1 != inds1.end();++l1)
+        {
+            bool found2 = false;
+            for (vector<Fragment>::const_iterator i2 = f.begin();i2 != f.end();++i2)
+            {
+                if (i1 == i2) continue;
+                vector<Line> inds2(i2->indices());
+                found2 |= find(inds2.begin(), inds2.end(), *l1) != inds2.end();
+            }
+            found &= found2;
+        }
+        if (!found) return true;
+    }
+
     return false;
 }
 
-Diagram OperatorProduct::resolve(const Manifold& left, const Manifold& right) const
+Diagram OperatorProduct::resolve(Manifold& left, Manifold& right) const
 {
     Diagram res(Diagram::SPINORBITAL);
     ManifoldGenerator *lGen, *rGen;
     Manifold ll, lr, rl, rr, c;
+
+    Manifold _zero, _max;
+    _max.np[0] = INT_MAX;
+    _max.nh[0] = INT_MAX;
 
     /*
      * Find all manifold pairs for l which don't overrun left.
      * The loop over lr may be cut short if it is determined that no higher values can produce
      * a valid contraction.
      */
-    lGen = l->matching(Manifold::MIN_VALUE, left, Manifold::MIN_VALUE, Manifold::MAX_VALUE);
+    lGen = l->matching(_zero, left, _zero, _max);
     while (lGen->next(ll, lr))
     {
         /*
          * For this value of lr, loop over all possible ways to contract.
          */
-        for (c.np = max(0,lr.np-right.np);c.np <= lr.np;c.np++)
+        for (c.np[0] = max(0,lr.np[0]-right.np[0]);c.np[0] <= lr.np[0];c.np[0]++)
         {
-            for (c.nh = max(0,lr.nh-right.nh);c.nh <= lr.nh;c.nh++)
+            for (c.nh[0] = max(0,lr.nh[0]-right.nh[0]);c.nh[0] <= lr.nh[0];c.nh[0]++)
             {
                 rGen = r->matching(left-ll+c, left-ll+c, right-lr+c, right-lr+c);
                 while (rGen->next(rl, rr))
                 {
-                    if (ll == 0 && lr == c &&
-                        rr == 0 && rl == c)
+                    if (ll == _zero && lr == c &&
+                        rr == _zero && rl == c)
                     {
                         if (!(flags&CLOSED)) continue;
                     }
@@ -356,7 +357,7 @@ Diagram OperatorProduct::resolve(const Manifold& left, const Manifold& right) co
                         if (!(flags&OPEN)) continue;
                     }
 
-                    if (c == 0 && !(ll == 0 && lr == 0) && !(rl == 0 && rr == 0))
+                    if (c == _zero && !(ll == _zero && lr == _zero) && !(rl == _zero && rr == _zero))
                     {
                         if (!(flags&DISCONNECTED)) continue;
                     }
@@ -392,38 +393,24 @@ OperatorProduct& OperatorProduct::operator()(int flags)
     return *this;
 }
 
-void OperatorProduct::doProduct(Diagram& res, Term l, Term r, const Manifold& c) const
+void OperatorProduct::doProduct(Diagram& res, Term l, Term r, Manifold& c) const
 {
-    vector<Line> which_p_lr(c.np);
-    vector<Line> which_h_lr(c.nh);
-    vector<Line> which_p_rl(c.np);
-    vector<Line> which_h_rl(c.nh);
+    vector<Line> which_p_lr(c.np[0]);
+    vector<Line> which_h_lr(c.nh[0]);
+    vector<Line> which_p_rl(c.np[0]);
+    vector<Line> which_h_rl(c.nh[0]);
 
     /*
      * Increase indices in r so that it does not conflict with l.
      */
-    int maxep = -1;
-    int maxeh = -1;
-    int maxip = -1;
-    int maxih = -1;
+    int maxp = -1;
+    int maxh = -1;
     vector<Line> linds = l.indices();
     vector<Line> oldrinds(linds);
     for (vector<Line>::iterator i = linds.begin();i != linds.end();++i)
     {
-        if (i->isExternal())
-        {
-            if (i->isParticle())
-                *i = Line(++maxep, EXTERNAL+PARTICLE+ALPHA);
-            else
-                *i = Line(++maxeh, EXTERNAL+HOLE+ALPHA);
-        }
-        else
-        {
-            if (i->isParticle())
-                *i = Line(++maxip, INTERNAL+PARTICLE+ALPHA);
-            else
-                *i = Line(++maxih, INTERNAL+HOLE+ALPHA);
-        }
+        if (i->isVirtual()) i->toIndex(++maxp);
+        else                i->toIndex(++maxh);
     }
 
     l.translate(oldrinds, linds);
@@ -432,28 +419,16 @@ void OperatorProduct::doProduct(Diagram& res, Term l, Term r, const Manifold& c)
     oldrinds = rinds;
     for (vector<Line>::iterator i = rinds.begin();i != rinds.end();++i)
     {
-        if (i->isExternal())
-        {
-            if (i->isParticle())
-                *i = Line(++maxep, EXTERNAL+PARTICLE+ALPHA);
-            else
-                *i = Line(++maxeh, EXTERNAL+HOLE+ALPHA);
-        }
-        else
-        {
-            if (i->isParticle())
-                *i = Line(++maxip, INTERNAL+PARTICLE+ALPHA);
-            else
-                *i = Line(++maxih, INTERNAL+HOLE+ALPHA);
-        }
+        if (i->isVirtual()) i->toIndex(++maxp);
+        else                i->toIndex(++maxh);
     }
 
     r.translate(oldrinds, rinds);
 
-    vector<Line> c_p(c.np);
-    vector<Line> c_h(c.nh);
-    for (vector<Line>::iterator i = c_p.begin();i != c_p.end();++i) *i = Line(++maxip, INTERNAL+PARTICLE+ALPHA);
-    for (vector<Line>::iterator i = c_h.begin();i != c_h.end();++i) *i = Line(++maxih, INTERNAL+HOLE+ALPHA);
+    vector<Line> c_p(c.np[0]);
+    vector<Line> c_h(c.nh[0]);
+    for (vector<Line>::iterator i = c_p.begin();i != c_p.end();++i) *i = Line(++maxp, 0, Line::VIRTUAL, Line::ALPHA);
+    for (vector<Line>::iterator i = c_h.begin();i != c_h.end();++i) *i = Line(++maxh, 0, Line::OCCUPIED, Line::ALPHA);
 
     ProductGenerator which_lr(c, l, ProductGenerator::RIGHT);
     while (which_lr.next(which_p_lr.data(), which_h_lr.data()))
@@ -500,7 +475,7 @@ ManifoldGenerator* OperatorProduct::matching(const Manifold& leftMin, const Mani
     return new ProductManifoldGenerator(leftMin, leftMax, rightMin, rightMax, *this);
 }
 
-OperatorProduct::ProductGenerator::ProductGenerator(const Manifold& c, const Term& term, const Side side)
+OperatorProduct::ProductGenerator::ProductGenerator(Manifold& c, const Term& term, const Side side)
 : c(c), term(term), side(side)
 {
     vector<Fragment> fragments(term.getFragments());
@@ -510,9 +485,9 @@ OperatorProduct::ProductGenerator::ProductGenerator(const Manifold& c, const Ter
         vector<Line> finds;
 
         if (side == LEFT)
-            pindices.push_back(filter_copy(f->getIndicesOut(), isParticle()));
+            pindices.push_back(filter_copy(f->getIndicesOut(), isVirtual()));
         else
-            pindices.push_back(filter_copy(f->getIndicesIn(), isParticle()));
+            pindices.push_back(filter_copy(f->getIndicesIn(), isVirtual()));
 
         how_many_p.push_back(0);
     }
@@ -522,15 +497,15 @@ OperatorProduct::ProductGenerator::ProductGenerator(const Manifold& c, const Ter
         vector<Line> finds;
 
         if (side == LEFT)
-            hindices.push_back(filter_copy(f->getIndicesIn(), isHole()));
+            hindices.push_back(filter_copy(f->getIndicesIn(), isOccupied()));
         else
-            hindices.push_back(filter_copy(f->getIndicesOut(), isHole()));
+            hindices.push_back(filter_copy(f->getIndicesOut(), isOccupied()));
 
         how_many_h.push_back(0);
     }
 
-    which_bin_p.resize(c.np, 0);
-    which_bin_h.resize(c.nh, 0);
+    which_bin_p.resize(c.np[0], 0);
+    which_bin_h.resize(c.nh[0], 0);
 }
 
 bool OperatorProduct::ProductGenerator::generator_next(Line which_p[], Line which_h[])
@@ -539,14 +514,14 @@ bool OperatorProduct::ProductGenerator::generator_next(Line which_p[], Line whic
     while (!pdone)
     {
         how_many_p.assign(how_many_p.size(), 0);
-        for (pi = 0;pi < c.np;pi++)
+        for (pi = 0;pi < c.np[0];pi++)
             how_many_p[which_bin_p[pi]]++;
 
         hdone = false;
         while (!hdone)
         {
             how_many_h.assign(how_many_h.size(), 0);
-            for (hi = 0;hi < c.nh;hi++)
+            for (hi = 0;hi < c.nh[0];hi++)
                 how_many_h[which_bin_h[hi]]++;
 
             valid = true;
@@ -579,36 +554,36 @@ bool OperatorProduct::ProductGenerator::generator_next(Line which_p[], Line whic
                 generator_yield();
             }
 
-            for (hi = 0;hi < c.nh;hi++)
+            for (hi = 0;hi < c.nh[0];hi++)
             {
                 which_bin_h[hi]++;
                 if (which_bin_h[hi] >= how_many_h.size())
                 {
                     which_bin_h[hi] = 0;
-                    if (hi == c.nh-1) hdone = true;
+                    if (hi == c.nh[0]-1) hdone = true;
                 }
                 else
                 {
                     break;
                 }
             }
-            if (c.nh == 0) hdone = true;
+            if (c.nh[0] == 0) hdone = true;
         }
 
-        for (pi = 0;pi < c.np;pi++)
+        for (pi = 0;pi < c.np[0];pi++)
         {
             which_bin_p[pi]++;
             if (which_bin_p[pi] >= how_many_p.size())
             {
                 which_bin_p[pi] = 0;
-                if (pi == c.np-1) pdone = true;
+                if (pi == c.np[0]-1) pdone = true;
             }
             else
             {
                 break;
             }
         }
-        if (c.np == 0) pdone = true;
+        if (c.np[0] == 0) pdone = true;
     }
 
     generator_stop;
@@ -645,7 +620,7 @@ OperatorSum::~OperatorSum()
     r->decrement();
 }
 
-Diagram OperatorSum::resolve(const Manifold& left, const Manifold& right) const
+Diagram OperatorSum::resolve(Manifold& left, Manifold& right) const
 {
     return l->resolve(left, right) + r->resolve(left, right);
 }

@@ -94,6 +94,7 @@ Diagram::Diagram(const Type type, const vector<string>& strings)
         vector<Line> inds(temp.terms[0].indices());
         for (vector<string>::iterator s = assyms.begin();s != assyms.end();++s)
         {
+            /*
             for (int i = 0;i < s->size();i++)
             {
                 if (isalpha((*s)[i]) && find(inds.begin(), inds.end(), Line((*s)[i])) == inds.end())
@@ -108,6 +109,7 @@ Diagram::Diagram(const Type type, const vector<string>& strings)
                     }
                 }
             }
+            */
 
             int lp = s->find('(');
             int oldbar = lp;

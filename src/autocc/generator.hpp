@@ -106,6 +106,7 @@ class ProductManifoldGenerator : public ManifoldGenerator
         Manifold ll, lr, rl, rr, c;
         bool _ldone, _lhdone, _rdone, _rhdone, cdone, chdone;
         Manifold _l, _r, __l;
+        Manifold _zero, _one, _max, _next;
         ProductManifoldGenerator(ProductManifoldGenerator& other);
         ProductManifoldGenerator& operator=(ProductManifoldGenerator& other);
 

@@ -86,11 +86,13 @@ class Iterative : public task::Task
                 iterate();
                 double dt = time::todouble(time::toc());
 
+                int ndigit = (int)(ceil(-log10(convtol))+0.5);
+
                 log(arena) << "Iteration " << iter << " took " << std::fixed <<
                               std::setprecision(3) << dt << " s" << std::endl;
                 log(arena) << "Iteration " << iter <<
-                              " energy = " << std::setprecision(15) << energy <<
-                              ", convergence = " << std::setprecision(8) << conv << std::endl;
+                              " energy = " << std::fixed << std::setprecision(ndigit) << energy <<
+                              ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
             }
 
             if (!isConverged())

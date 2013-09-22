@@ -205,8 +205,7 @@ class CompositeTensor : public Tensor<Derived,T>
                     A.componentExists(i) &&
                     B.componentExists(i))
                 {
-                    beta*(*tensors[i].tensor) += alpha*(A(i))*
-                                                         (B(i));
+                    beta*(*tensors[i].tensor) += alpha*A(i)*B(i);
                 }
             }
         }
@@ -225,8 +224,7 @@ class CompositeTensor : public Tensor<Derived,T>
                     A.componentExists(i) &&
                     B.componentExists(i))
                 {
-                    beta*(*tensors[i].tensor) += alpha*(A(i))/
-                                                         (B(i));
+                    beta*(*tensors[i].tensor) += alpha*A(i)/B(i);
                 }
             }
         }
@@ -253,7 +251,7 @@ class CompositeTensor : public Tensor<Derived,T>
                 if (tensors[i] != NULL &&
                     A.componentExists(i))
                 {
-                    beta*(*tensors[i].tensor) += alpha*(A(i));
+                    beta*(*tensors[i].tensor) += alpha*A(i);
                 }
             }
         }
@@ -269,7 +267,7 @@ class CompositeTensor : public Tensor<Derived,T>
                 if (tensors[i] != NULL &&
                     A.componentExists(i))
                 {
-                    beta*(*tensors[i].tensor) += alpha/(A(i));
+                    beta*(*tensors[i].tensor) += alpha/A(i);
                 }
             }
         }

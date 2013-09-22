@@ -30,17 +30,6 @@
 #include <algorithm>
 #include <iostream>
 
-/*
- * Use of tensor::scalar requires definitions now
- */
-//#include "tensor/tensor.hpp"
-//#include "tensor/dist_tensor.hpp"
-//#include "tensor/spinorbital_tensor.hpp"
-//#include "tensor/composite_tensor.hpp"
-//#include "tensor/symblocked_tensor.hpp"
-//#include "tensor/dense_tensor.hpp"
-//#include "tensor/packed_tensor.hpp"
-
 #include "input/config.hpp"
 #include "util/lapack.h"
 #include "task/task.hpp"

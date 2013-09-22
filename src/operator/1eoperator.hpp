@@ -37,13 +37,12 @@ namespace op
 {
 
 template <typename T, typename Derived>
-class OneElectronOperatorBase : public MOOperator<T>,
+class OneElectronOperatorBase : public MOOperator,
     public tensor::CompositeTensor<Derived,tensor::SpinorbitalTensor<T>,T>
 {
     INHERIT_FROM_COMPOSITE_TENSOR(Derived,tensor::SpinorbitalTensor<T>,T)
 
     protected:
-        const bool hermitian;
         tensor::SpinorbitalTensor<T>& ab;
         tensor::SpinorbitalTensor<T>& ij;
         tensor::SpinorbitalTensor<T>& ai;
@@ -57,60 +56,23 @@ class OneElectronOperatorBase : public MOOperator<T>,
             IJ   = 0x0002,
             AI   = 0x0004,
             IA   = 0x0008,
-            ALL  = 0xffffffff
+            ALL  = 0xFFFF
         };
 
-        OneElectronOperatorBase(const Arena& arena, const Space& occ, const Space& vrt, const bool hermitian=true)
-        : MOOperator<T>(arena, occ, vrt),
-          hermitian(hermitian),
-          ab(this->addTensor(new tensor::SpinorbitalTensor<T>("a,b"))),
-          ij(this->addTensor(new tensor::SpinorbitalTensor<T>("i,j"))),
-          ai(this->addTensor(new tensor::SpinorbitalTensor<T>("a,i"))),
-          ia(this->addTensor(new tensor::SpinorbitalTensor<T>("i,a")))
-        {
-            int nI = occ.nalpha;
-            int ni = occ.nbeta;
-            int nA = vrt.nalpha;
-            int na = vrt.nbeta;
-
-            std::vector<int> sizeAA = std::vec(nA, nA);
-            std::vector<int> sizeaa = std::vec(na, na);
-            std::vector<int> sizeAI = std::vec(nA, nI);
-            std::vector<int> sizeai = std::vec(na, ni);
-            std::vector<int> sizeII = std::vec(nI, nI);
-            std::vector<int> sizeii = std::vec(ni, ni);
-
-            std::vector<int> shapeNN = std::vec(NS, NS);
-
-            ab.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeAA, shapeNN, true), "A,B", "AB");
-            ab.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeaa, shapeNN, true), "a,b", "ab");
-
-            ij.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeII, shapeNN, true), "I,J", "IJ");
-            ij.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeii, shapeNN, true), "i,j", "ij");
-
-            ai.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeAI, shapeNN, true), "A,I", "AI");
-            ai.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeai, shapeNN, true), "a,i", "ai");
-
-            if (hermitian)
-            {
-                ia.addSpinCase(ai(0), "I,A", "AI");
-                ia.addSpinCase(ai(1), "i,a", "ai");
-            }
-            else
-            {
-                ia.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeAI, shapeNN, true), "I,A", "AI");
-                ia.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeai, shapeNN, true), "i,a", "ai");
-            }
-        }
+        OneElectronOperatorBase(const Arena& arena, const Space& occ, const Space& vrt)
+        : MOOperator(arena, occ, vrt),
+          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, std::vec(vrt, occ), std::vec(1,0), std::vec(1,0)))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, std::vec(vrt, occ), std::vec(0,1), std::vec(0,1)))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, std::vec(vrt, occ), std::vec(1,0), std::vec(0,1)))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, std::vec(vrt, occ), std::vec(0,1), std::vec(1,0)))) {}
 
         OneElectronOperatorBase(const MOSpace<T>& occ, const MOSpace<T>& vrt,
-                                const tensor::DistTensor<T>& aoa, const tensor::DistTensor<T>& aob, const bool hermitian=true)
-        : MOOperator<T>(occ.arena, occ, vrt),
-          hermitian(hermitian),
-          ab(this->addTensor(new tensor::SpinorbitalTensor<T>("a,b"))),
-          ij(this->addTensor(new tensor::SpinorbitalTensor<T>("i,j"))),
-          ai(this->addTensor(new tensor::SpinorbitalTensor<T>("a,i"))),
-          ia(this->addTensor(new tensor::SpinorbitalTensor<T>("i,a")))
+                                const tensor::DistTensor<T>& aoa, const tensor::DistTensor<T>& aob)
+        : MOOperator(occ.arena, occ, vrt),
+          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, std::vec<Space>(vrt, occ), std::vec(1,0), std::vec(1,0)))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, std::vec<Space>(vrt, occ), std::vec(0,1), std::vec(0,1)))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, std::vec<Space>(vrt, occ), std::vec(1,0), std::vec(0,1)))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, std::vec<Space>(vrt, occ), std::vec(0,1), std::vec(1,0))))
         {
             const tensor::DistTensor<T>& cA = vrt.Calpha;
             const tensor::DistTensor<T>& ca = vrt.Cbeta;
@@ -146,132 +108,41 @@ class OneElectronOperatorBase : public MOOperator<T>,
             Iq["Iq"] = cI["pI"]*aoa["pq"];
             iq["iq"] = ci["pi"]*aob["pq"];
 
-            ab.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeAA, shapeNN, true), "A,B", "AB");
-            ab.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeaa, shapeNN, true), "a,b", "ab");
+            ab(std::vec(1,0), std::vec(1,0))["AB"] = Aq["Aq"]*cA["qB"];
+            ab(std::vec(0,0), std::vec(0,0))["ab"] = aq["aq"]*ca["qb"];
 
-            ab(1,0,1,0)["AB"] = Aq["Aq"]*cA["qB"];
-            ab(0,0,0,0)["ab"] = aq["aq"]*ca["qb"];
+            ij(std::vec(0,1), std::vec(0,1))["IJ"] = Iq["Iq"]*cI["qJ"];
+            ij(std::vec(0,0), std::vec(0,0))["ij"] = iq["iq"]*ci["qj"];
 
-            ij.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeII, shapeNN, true), "I,J", "IJ");
-            ij.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeii, shapeNN, true), "i,j", "ij");
+            ai(std::vec(1,0), std::vec(0,1))["AI"] = Aq["Aq"]*cI["qI"];
+            ai(std::vec(0,0), std::vec(0,0))["ai"] = aq["aq"]*ci["qi"];
 
-            ij(0,1,0,1)["IJ"] = Iq["Iq"]*cI["qJ"];
-            ij(0,0,0,0)["ij"] = iq["iq"]*ci["qj"];
-
-            ai.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeAI, shapeNN, true), "A,I", "AI");
-            ai.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeai, shapeNN, true), "a,i", "ai");
-
-            ai(1,0,0,1)["AI"] = Aq["Aq"]*cI["qI"];
-            ai(0,0,0,0)["ai"] = aq["aq"]*ci["qi"];
-
-            if (hermitian)
-            {
-                ia.addSpinCase(ai(0), "I,A", "AI");
-                ia.addSpinCase(ai(1), "i,a", "ai");
-            }
-            else
-            {
-                ia.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeAI, shapeNN, true), "I,A", "AI");
-                ia.addSpinCase(new tensor::DistTensor<T>(this->arena, 2, sizeai, shapeNN, true), "i,a", "ai");
-
-                ia(0,1,1,0)["IA"] = Iq["Iq"]*cA["qA"];
-                ia(0,0,0,0)["ia"] = iq["iq"]*ca["qa"];
-            }
+            ia(std::vec(0,1), std::vec(1,0))["IA"] = Iq["Iq"]*cA["qA"];
+            ia(std::vec(0,0), std::vec(0,0))["ia"] = iq["iq"]*ca["qa"];
         }
 
         template <typename otherDerived>
-        OneElectronOperatorBase(OneElectronOperatorBase<T,otherDerived>& other, int copy, bool breakhermicity=false)
-        : MOOperator<T>(other),
-          hermitian(copy == NONE && other.isHermitian()),
-          ab(this->addTensor(new tensor::SpinorbitalTensor<T>("a,b"))),
-          ij(this->addTensor(new tensor::SpinorbitalTensor<T>("i,j"))),
-          ai(this->addTensor(new tensor::SpinorbitalTensor<T>("a,i"))),
-          ia(this->addTensor(new tensor::SpinorbitalTensor<T>("i,a")))
-        {
-            if (copy&AB)
-            {
-                ab.addSpinCase(new tensor::DistTensor<T>(other.getAB()(0)), "A,B", "AB");
-                ab.addSpinCase(new tensor::DistTensor<T>(other.getAB()(1)), "a,b", "ab");
-            }
-            else
-            {
-                ab.addSpinCase(other.getAB()(0), "A,B", "AB");
-                ab.addSpinCase(other.getAB()(1), "a,b", "ab");
-            }
-
-            if (copy&IJ)
-            {
-                ij.addSpinCase(new tensor::DistTensor<T>(other.getIJ()(0)), "I,J", "IJ");
-                ij.addSpinCase(new tensor::DistTensor<T>(other.getIJ()(1)), "i,j", "ij");
-            }
-            else
-            {
-                ij.addSpinCase(other.getIJ()(0), "I,J", "IJ");
-                ij.addSpinCase(other.getIJ()(1), "i,j", "ij");
-            }
-
-            if (copy&AI)
-            {
-                ai.addSpinCase(new tensor::DistTensor<T>(other.getAI()(0)), "A,I", "AI");
-                ai.addSpinCase(new tensor::DistTensor<T>(other.getAI()(1)), "a,i", "ai");
-            }
-            else
-            {
-                ai.addSpinCase(other.getAI()(0), "A,I", "AI");
-                ai.addSpinCase(other.getAI()(1), "a,i", "ai");
-            }
-
-            if (copy&IA)
-            {
-                if (!hermitian || !(copy&AI))
-                {
-                    ia.addSpinCase(new tensor::DistTensor<T>(other.getIA()(0)), "I,A", "AI");
-                    ia.addSpinCase(new tensor::DistTensor<T>(other.getIA()(1)), "i,a", "ai");
-                }
-                else
-                {
-                    ia.addSpinCase(ai(0), "I,A", "AI");
-                    ia.addSpinCase(ai(1), "i,a", "ai");
-                }
-            }
-            else
-            {
-                ia.addSpinCase(other.getIA()(0), "I,A", "AI");
-                ia.addSpinCase(other.getIA()(1), "i,a", "ai");
-            }
-        }
+        OneElectronOperatorBase(OneElectronOperatorBase<T,otherDerived>& other, int copy)
+        : MOOperator(other),
+          ab(copy&AB ? this->addTensor(new tensor::SpinorbitalTensor<T>(other.getAB())) : this->addTensor(other.getAB())),
+          ij(copy&IJ ? this->addTensor(new tensor::SpinorbitalTensor<T>(other.getIJ())) : this->addTensor(other.getIJ())),
+          ai(copy&AI ? this->addTensor(new tensor::SpinorbitalTensor<T>(other.getAI())) : this->addTensor(other.getAI())),
+          ia(copy&IA ? this->addTensor(new tensor::SpinorbitalTensor<T>(other.getIA())) : this->addTensor(other.getIA())) {}
 
         template <typename otherDerived>
-        OneElectronOperatorBase(const OneElectronOperatorBase<T,otherDerived>& other, bool breakhermicity=false)
-        : MOOperator<T>(other),
-          hermitian(other.isHermitian() && !breakhermicity),
-          ab(this->addTensor(new tensor::SpinorbitalTensor<T>("a,b"))),
-          ij(this->addTensor(new tensor::SpinorbitalTensor<T>("i,j"))),
-          ai(this->addTensor(new tensor::SpinorbitalTensor<T>("a,i"))),
-          ia(this->addTensor(new tensor::SpinorbitalTensor<T>("i,a")))
-        {
-            ab.addSpinCase(new tensor::DistTensor<T>(other.getAB()(0)), "A,B", "AB");
-            ab.addSpinCase(new tensor::DistTensor<T>(other.getAB()(1)), "a,b", "ab");
+        OneElectronOperatorBase(const OneElectronOperatorBase<T,otherDerived>& other)
+        : MOOperator(other),
+          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getAB()))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getIJ()))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getAI()))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getIA()))) {}
 
-            ij.addSpinCase(new tensor::DistTensor<T>(other.getIJ()(0)), "I,J", "IJ");
-            ij.addSpinCase(new tensor::DistTensor<T>(other.getIJ()(1)), "i,j", "ij");
-
-            ai.addSpinCase(new tensor::DistTensor<T>(other.getAI()(0)), "A,I", "AI");
-            ai.addSpinCase(new tensor::DistTensor<T>(other.getAI()(1)), "a,i", "ai");
-
-            if (hermitian)
-            {
-                ia.addSpinCase(ai(0), "I,A", "AI");
-                ia.addSpinCase(ai(1), "i,a", "ai");
-            }
-            else
-            {
-                ia.addSpinCase(new tensor::DistTensor<T>(other.getIA()(0)), "I,A", "AI");
-                ia.addSpinCase(new tensor::DistTensor<T>(other.getIA()(1)), "i,a", "ai");
-            }
-        }
-
-        bool isHermitian() const { return hermitian; }
+        OneElectronOperatorBase(const OneElectronOperatorBase<T,Derived>& other)
+        : MOOperator(other),
+          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getAB()))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getIJ()))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getAI()))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getIA()))) {}
 
         tensor::SpinorbitalTensor<T>& getAB() { return ab; }
         tensor::SpinorbitalTensor<T>& getIJ() { return ij; }
@@ -288,20 +159,23 @@ template <typename T>
 class OneElectronOperator : public OneElectronOperatorBase<T,OneElectronOperator<T> >
 {
     public:
-        OneElectronOperator(const Arena& arena, const Space& occ, const Space& vrt, const bool hermitian=true)
-        : OneElectronOperatorBase<T,OneElectronOperator<T> >(arena, occ, vrt, hermitian) {}
+        OneElectronOperator(const Arena& arena, const Space& occ, const Space& vrt)
+        : OneElectronOperatorBase<T,OneElectronOperator<T> >(arena, occ, vrt) {}
 
         OneElectronOperator(const MOSpace<T>& occ, const MOSpace<T>& vrt,
-                            const tensor::DistTensor<T>& aoa, const tensor::DistTensor<T>& aob, const bool hermitian=true)
-        : OneElectronOperatorBase<T,OneElectronOperator<T> >(occ, vrt, aoa, aob, hermitian) {}
+                            const tensor::DistTensor<T>& aoa, const tensor::DistTensor<T>& aob)
+        : OneElectronOperatorBase<T,OneElectronOperator<T> >(occ, vrt, aoa, aob) {}
 
         template <typename Derived>
-        OneElectronOperator(OneElectronOperatorBase<T,Derived>& other, int copy, bool breakhermicity=false)
-        : OneElectronOperatorBase<T,OneElectronOperator<T> >(other, copy, breakhermicity) {}
+        OneElectronOperator(OneElectronOperatorBase<T,Derived>& other, int copy)
+        : OneElectronOperatorBase<T,OneElectronOperator<T> >(other, copy) {}
 
         template <typename Derived>
-        OneElectronOperator(const OneElectronOperatorBase<T,Derived>& other, bool breakhermicity=false)
-        : OneElectronOperatorBase<T,OneElectronOperator<T> >(other, breakhermicity) {}
+        OneElectronOperator(const OneElectronOperatorBase<T,Derived>& other)
+        : OneElectronOperatorBase<T,OneElectronOperator<T> >(other) {}
+
+        OneElectronOperator(const OneElectronOperator<T>& other)
+        : OneElectronOperatorBase<T,OneElectronOperator<T> >(other) {}
 };
 
 }

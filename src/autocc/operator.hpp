@@ -27,6 +27,7 @@
 
 #include <vector>
 #include <string>
+#include <climits>
 
 #include "diagram.hpp"
 #include "fraction.hpp"
@@ -69,13 +70,13 @@ class Operator
         void decrement();
 
     public:
-        virtual ~Operator();
+        virtual ~Operator() {}
 
         OperatorProduct& operator*(Operator& other);
 
         OperatorSum& operator+(Operator& other);
 
-        virtual Diagram resolve(const Manifold& left, const Manifold& right) const = 0;
+        virtual Diagram resolve(Manifold& left, Manifold& right) const = 0;
 
         virtual ManifoldGenerator* matching(const Manifold& leftMin, const Manifold& leftMax,
                                             const Manifold& rightMin, const Manifold& rightMax) const = 0;
@@ -113,7 +114,7 @@ class BasicOperator : public Operator
 
         BasicOperator(const std::vector<Term>& terms);
 
-        virtual Diagram resolve(const Manifold& left, const Manifold& right) const;
+        virtual Diagram resolve(Manifold& left, Manifold& right) const;
 
         virtual ManifoldGenerator* matching(const Manifold& leftMin, const Manifold& leftMax,
                                             const Manifold& rightMin, const Manifold& rightMax) const;
@@ -131,7 +132,7 @@ class ComplexOperator : public Operator
 
         virtual ~ComplexOperator();
 
-        virtual Diagram resolve(const Manifold& left, const Manifold& right) const;
+        virtual Diagram resolve(Manifold& left, Manifold& right) const;
 
         virtual ManifoldGenerator* matching(const Manifold& leftMin, const Manifold& leftMax,
                                             const Manifold& rightMin, const Manifold& rightMax) const;
@@ -158,7 +159,7 @@ class ExponentialOperator : public Operator
     public:
         virtual ~ExponentialOperator();
 
-        virtual Diagram resolve(const Manifold& left, const Manifold& right) const;
+        virtual Diagram resolve(Manifold& left, Manifold& right) const;
 
         virtual ManifoldGenerator* matching(const Manifold& leftMin, const Manifold& leftMax,
                                             const Manifold& rightMin, const Manifold& rightMax) const;
@@ -189,9 +190,9 @@ class OperatorProduct : public Operator
 
         OperatorProduct& operator()(int flags);
 
-        void doProduct(Diagram& res, Term lTerm, Term rTerm, const Manifold& c) const;
+        void doProduct(Diagram& res, Term lTerm, Term rTerm, Manifold& c) const;
 
-        virtual Diagram resolve(const Manifold& left, const Manifold& right) const;
+        virtual Diagram resolve(Manifold& left, Manifold& right) const;
 
         virtual ManifoldGenerator* matching(const Manifold& leftMin, const Manifold& leftMax,
                                             const Manifold& rightMin, const Manifold& rightMax) const;
@@ -202,7 +203,7 @@ class OperatorProduct : public Operator
                 enum Side { LEFT, RIGHT };
 
             private:
-                const Manifold& c;
+                Manifold& c;
                 const Term& term;
                 const Side side;
 
@@ -216,7 +217,7 @@ class OperatorProduct : public Operator
                 int pi, hi, idx;
 
             public:
-                ProductGenerator(const Manifold& c, const Term& term, const Side side);
+                ProductGenerator(Manifold& c, const Term& term, const Side side);
 
                 bool next(Line which_p[], Line which_h[]);
         };
@@ -240,7 +241,7 @@ class OperatorSum : public Operator
     public:
         virtual ~OperatorSum();
 
-        virtual Diagram resolve(const Manifold& left, const Manifold& right) const;
+        virtual Diagram resolve(Manifold& left, Manifold& right) const;
 
         virtual ManifoldGenerator* matching(const Manifold& leftMin, const Manifold& leftMax,
                                             const Manifold& rightMin, const Manifold& rightMax) const;
