@@ -364,7 +364,7 @@ elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
     fi
 	
 	host=bgq
-	blaslibs="-lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r -lm"
+	blaslibs="-L/soft/libraries/alcf/current/xl/LAPACK/lib/ -llapack -lgfortran -lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r -lm"
 	BGQ_ESSL='/soft/libraries/essl/current/'
 	LDFLAGS="-L$BGQ_ESSL/lib64 \
              -L$IBM_MAIN_DIR/xlf/bg/14.1/bglib64/ \
@@ -379,7 +379,7 @@ elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
 	CXXFLAGS='-qsmp=omp -D__STDC_LIMIT_MACROS -Drestrict='
 	DEPS='-M -MF $(DEPDIR)/$(notdir $*).Po'
 	DEFS='-DBGQ -D_POSIX_C_SOURCE=200112L'
-	WARN='-Wall'
+	WARN=' '
 	OPT='-g -O3 -qarch=qp -qtune=qp -qsimd=auto -qhot=level=1 -qprefetch -qunroll=yes -qreport'
 	
 else
