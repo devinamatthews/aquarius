@@ -34,7 +34,7 @@
 #include "../src/dist_tensor/sym_indices.hxx"
 
 #include "symmetry/symmetry.hpp"
-#include "util/distributed.hpp"
+#include "task/task.hpp"
 
 #include "composite_tensor.hpp"
 #include "dist_tensor.hpp"
@@ -45,7 +45,7 @@ namespace tensor
 {
 
 template <class T>
-class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>, public Distributed
+class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>, public task::Resource
 {
     INHERIT_FROM_INDEXABLE_COMPOSITE_TENSOR(SymmetryBlockedTensor<T>,DistTensor<T>,T)
 
@@ -54,12 +54,21 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
         std::vector< std::vector<int> > len;
         std::vector<int> sym;
 
-    public:
-        SymmetryBlockedTensor(const Arena& arena, const symmetry::PointGroup& group, T scalar = (T)0);
+        static std::vector<int> getStrides(const std::string& indices, const int ndim,
+                                           const int len, const std::string& idx_A);
 
+        void allocate(bool zero);
+
+    public:
         SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other);
 
+        SymmetryBlockedTensor(SymmetryBlockedTensor<T>* other);
+
         SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other, T scalar);
+
+        SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& A,
+                              const std::vector<std::vector<int> >& start_A,
+                              const std::vector<std::vector<int> >& len_A);
 
         SymmetryBlockedTensor(const Arena& arena, const symmetry::PointGroup& group,
                               int ndim, const std::vector<std::vector<int> >& len,
@@ -67,20 +76,44 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
 
         virtual ~SymmetryBlockedTensor() {}
 
-        static std::vector<int> getStrides(const std::string& indices, const int ndim,
-                                           const int len, const std::string& idx_A);
+        const symmetry::PointGroup& getGroup() const { return group; }
 
-        virtual void mult(const double alpha, bool conja, const SymmetryBlockedTensor<T>& A, const std::string& idx_A,
-                                              bool conjb, const SymmetryBlockedTensor<T>& B, const std::string& idx_B,
-                          const double beta,                                                 const std::string& idx_C);
+        const std::vector<std::vector<int> >& getLengths() const { return len; }
 
-        virtual void sum(const double alpha, bool conja, const SymmetryBlockedTensor<T>& A, const std::string& idx_A,
-                         const double beta,                                                 const std::string& idx_B);
+        const std::vector<int>& getSymmetry() const { return sym; }
 
-        virtual void scale(const double alpha, const std::string& idx_A);
+        DistTensor<T>& operator()(const std::vector<int>& irreps);
+
+        const DistTensor<T>& operator()(const std::vector<int>& irreps) const;
+
+        bool exists(const std::vector<int>& irreps) const;
+
+        void slice(T alpha, bool conja, const SymmetryBlockedTensor<T>& A,
+                   const std::vector<std::vector<int> >& start_A, T beta);
+
+        void slice(T alpha, bool conja, const SymmetryBlockedTensor<T>& A,
+                   T beta, const std::vector<std::vector<int> >& start_B);
+
+        void slice(T alpha, bool conja, const SymmetryBlockedTensor<T>& A,
+                                        const std::vector<std::vector<int> >& start_A,
+                   T  beta,             const std::vector<std::vector<int> >& start_B,
+                                        const std::vector<std::vector<int> >& len);
+
+        virtual void mult(T alpha, bool conja, const SymmetryBlockedTensor<T>& A, const std::string& idx_A,
+                                   bool conjb, const SymmetryBlockedTensor<T>& B, const std::string& idx_B,
+                          T beta,                                                 const std::string& idx_C);
+
+        virtual void sum(T alpha, bool conja, const SymmetryBlockedTensor<T>& A, const std::string& idx_A,
+                         T beta,                                                 const std::string& idx_B);
+
+        virtual void scale(T alpha, const std::string& idx_A);
 
         virtual T dot(bool conja, const SymmetryBlockedTensor<T>& A, const std::string& idx_A,
                       bool conjb,                                    const std::string& idx_B) const;
+
+        void weight(const std::vector<const std::vector<std::vector<T> >*>& d);
+
+        typename std::real_type<T>::type norm(int p) const;
 };
 
 }

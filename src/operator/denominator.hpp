@@ -39,68 +39,83 @@ template <typename T>
 class Denominator : public op::MOOperator
 {
     protected:
-        std::vector<T> dA, da, dI, di;
+        std::vector<std::vector<T> > dA, da, dI, di;
 
     public:
         template <typename Derived>
         Denominator(const OneElectronOperatorBase<T,Derived>& F)
-        : MOOperator(F),
-          dA(F.vrt.nalpha), da(F.vrt.nbeta),
-          dI(F.occ.nalpha), di(F.occ.nbeta)
+        : MOOperator(F)
         {
-            if (arena.rank == 0)
+            int n = vrt.group.getNumIrreps();
+
+            dA.resize(n);
+            da.resize(n);
+            dI.resize(n);
+            di.resize(n);
+
+            for (int j = 0;j < n;j++)
             {
-                int nA = dA.size();
-                int na = da.size();
-                int nI = dI.size();
-                int ni = di.size();
+                dA[j].resize(vrt.nalpha[j]);
+                da[j].resize(vrt.nbeta[j]);
+                dI[j].resize(occ.nalpha[j]);
+                di[j].resize(occ.nbeta[j]);
 
+                std::vector<int> irreps(2,j);
+
+                if (arena.rank == 0)
                 {
-                    std::vector<tkv_pair<T> > pairs(nA);
-                    for (int i = 0;i < nA;i++) pairs[i].k = i+i*nA;
-                    F.getAB()(std::vec(1,0),std::vec(1,0)).getRemoteData(pairs);
-                    for (int i = 0;i < nA;i++) dA[pairs[i].k/nA] = -pairs[i].d;
+                    int nA = dA[j].size();
+                    int na = da[j].size();
+                    int nI = dI[j].size();
+                    int ni = di[j].size();
+
+                    {
+                        std::vector<tkv_pair<T> > pairs(nA);
+                        for (int i = 0;i < nA;i++) pairs[i].k = i+i*nA;
+                        F.getAB()(std::vec(1,0),std::vec(1,0))(irreps).getRemoteData(pairs);
+                        for (int i = 0;i < nA;i++) dA[j][pairs[i].k/nA] = -pairs[i].d;
+                    }
+
+                    {
+                        std::vector<tkv_pair<T> > pairs(na);
+                        for (int i = 0;i < na;i++) pairs[i].k = i+i*na;
+                        F.getAB()(std::vec(0,0),std::vec(0,0))(irreps).getRemoteData(pairs);
+                        for (int i = 0;i < na;i++) da[j][pairs[i].k/na] = -pairs[i].d;
+                    }
+
+                    {
+                        std::vector<tkv_pair<T> > pairs(nI);
+                        for (int i = 0;i < nI;i++) pairs[i].k = i+i*nI;
+                        F.getIJ()(std::vec(0,1),std::vec(0,1))(irreps).getRemoteData(pairs);
+                        for (int i = 0;i < nI;i++) dI[j][pairs[i].k/nI] = pairs[i].d;
+                    }
+
+                    {
+                        std::vector<tkv_pair<T> > pairs(ni);
+                        for (int i = 0;i < ni;i++) pairs[i].k = i+i*ni;
+                        F.getIJ()(std::vec(0,0),std::vec(0,0))(irreps).getRemoteData(pairs);
+                        for (int i = 0;i < ni;i++) di[j][pairs[i].k/ni] = pairs[i].d;
+                    }
+                }
+                else
+                {
+                    F.getAB()(std::vec(1,0),std::vec(1,0))(irreps).getRemoteData();
+                    F.getAB()(std::vec(0,0),std::vec(0,0))(irreps).getRemoteData();
+                    F.getIJ()(std::vec(0,1),std::vec(0,1))(irreps).getRemoteData();
+                    F.getIJ()(std::vec(0,0),std::vec(0,0))(irreps).getRemoteData();
                 }
 
-                {
-                    std::vector<tkv_pair<T> > pairs(na);
-                    for (int i = 0;i < na;i++) pairs[i].k = i+i*na;
-                    F.getAB()(std::vec(0,0),std::vec(0,0)).getRemoteData(pairs);
-                    for (int i = 0;i < na;i++) da[pairs[i].k/na] = -pairs[i].d;
-                }
-
-                {
-                    std::vector<tkv_pair<T> > pairs(nI);
-                    for (int i = 0;i < nI;i++) pairs[i].k = i+i*nI;
-                    F.getIJ()(std::vec(0,1),std::vec(0,1)).getRemoteData(pairs);
-                    for (int i = 0;i < nI;i++) dI[pairs[i].k/nI] = pairs[i].d;
-                }
-
-                {
-                    std::vector<tkv_pair<T> > pairs(ni);
-                    for (int i = 0;i < ni;i++) pairs[i].k = i+i*ni;
-                    F.getIJ()(std::vec(0,0),std::vec(0,0)).getRemoteData(pairs);
-                    for (int i = 0;i < ni;i++) di[pairs[i].k/ni] = pairs[i].d;
-                }
+                arena.Bcast(dA[j], 0);
+                arena.Bcast(da[j], 0);
+                arena.Bcast(dI[j], 0);
+                arena.Bcast(di[j], 0);
             }
-            else
-            {
-                F.getAB()(std::vec(1,0),std::vec(1,0)).getRemoteData();
-                F.getAB()(std::vec(0,0),std::vec(0,0)).getRemoteData();
-                F.getIJ()(std::vec(0,1),std::vec(0,1)).getRemoteData();
-                F.getIJ()(std::vec(0,0),std::vec(0,0)).getRemoteData();
-            }
-
-            arena.Bcast(dA, 0);
-            arena.Bcast(da, 0);
-            arena.Bcast(dI, 0);
-            arena.Bcast(di, 0);
         }
 
-        const std::vector<T>& getDA() const { return dA; }
-        const std::vector<T>& getDa() const { return da; }
-        const std::vector<T>& getDI() const { return dI; }
-        const std::vector<T>& getDi() const { return di; }
+        const std::vector<std::vector<T> >& getDA() const { return dA; }
+        const std::vector<std::vector<T> >& getDa() const { return da; }
+        const std::vector<std::vector<T> >& getDI() const { return dI; }
+        const std::vector<std::vector<T> >& getDi() const { return di; }
 };
 
 }

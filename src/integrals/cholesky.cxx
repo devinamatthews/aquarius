@@ -30,6 +30,7 @@ using namespace aquarius::tensor;
 using namespace aquarius::input;
 using namespace aquarius::integrals;
 using namespace aquarius::task;
+using namespace aquarius::symmetry;
 
 template <typename T>
 CholeskyIntegrals<T>::CholeskyIntegrals(const Arena& arena, const Context& ctx, const Config& config, const Molecule& molecule)
@@ -58,8 +59,9 @@ CholeskyIntegrals<T>::~CholeskyIntegrals()
 template <typename T>
 void CholeskyIntegrals<T>::test()
 {
-    DistTensor<T> LD(this->arena, 3, vec(nfunc,nfunc,rank), vec(SY,NS,NS), false);
-    DistTensor<T> ints(this->arena, 4, vec(nfunc,nfunc,nfunc,nfunc), vec(NS,NS,NS,NS), false);
+    const PointGroup& group = molecule.getGroup();
+    SymmetryBlockedTensor<T> LD(this->arena, group, 3, vec(vec(nfunc),vec(nfunc),vec(rank)), vec(SY,NS,NS), false);
+    SymmetryBlockedTensor<T> ints(this->arena, group, 4, vec(vec(nfunc),vec(nfunc),vec(nfunc),vec(nfunc)), vec(NS,NS,NS,NS), false);
 
     LD["pqJ"] = (*L)["pqJ"]*(*D)["J"];
     ints["pqrs"] = (*L)["pqJ"]*LD["rsJ"];
@@ -102,7 +104,7 @@ void CholeskyIntegrals<T>::test()
 
                     if (rank == 0)
                     {
-                        ints.getRemoteData(pairs);
+                        ints(0).getRemoteData(pairs);
 
                         T* local_data = local_ints.getData();
                         for (int q = 0;q < ni*nj*nk*nl;q++)
@@ -123,7 +125,7 @@ void CholeskyIntegrals<T>::test()
                     }
                     else
                     {
-                        ints.getRemoteData();
+                        ints(0).getRemoteData();
                     }
 
                     p += shells[l].getNFunc()*shells[l].getNContr();
@@ -271,8 +273,10 @@ void CholeskyIntegrals<T>::decompose()
     delete[] tmp_block_data;
     delete[] tmp_diag;
 
-    this->D = new DistTensor<T>(this->arena, 1, vec(nvec), vec(NS), false);
-    this->L = new DistTensor<T>(this->arena, 3, vec(nfunc,nfunc,nvec), vec(SY,NS,NS), false);
+    const PointGroup& group = molecule.getGroup();
+
+    this->D = new SymmetryBlockedTensor<T>(this->arena, group, 1, vec(vec(nvec)), vec(NS), false);
+    this->L = new SymmetryBlockedTensor<T>(this->arena, group, 3, vec(vec(nfunc),vec(nfunc),vec(nvec)), vec(SY,NS,NS), false);
 
     if (rank == 0)
     {
@@ -282,11 +286,11 @@ void CholeskyIntegrals<T>::decompose()
             pairs[i].k = i;
             pairs[i].d = D[i];
         }
-        this->D->writeRemoteData(pairs);
+        (*this->D)(0).writeRemoteData(pairs);
     }
     else
     {
-        this->D->writeRemoteData();
+        (*this->D)(0).writeRemoteData();
     }
 
     vector<vector<int> > idx = Shell::setupIndices(ctx, molecule);
@@ -332,7 +336,7 @@ void CholeskyIntegrals<T>::decompose()
             }
         }
     }
-    this->L->writeRemoteData(pairs);
+    (*this->L)(0).writeRemoteData(pairs);
 
     //cout << "D:" << endl;
     //this->D->print(cout);

@@ -69,7 +69,9 @@ class mat3x3;
 
 class vec3
 {
-    private:
+    friend class mat3x3;
+
+    protected:
         double v[3];
 
     public:
@@ -91,11 +93,15 @@ class vec3
 
         vec3 operator^(const vec3& other) const;
 
+        vec3 operator-() const;
+
         double& operator[](int i);
 
         const double& operator[](int i) const;
 
         bool operator==(const vec3& other) const;
+
+        vec3& operator=(double other);
 
         operator double*();
 
@@ -115,6 +121,8 @@ class vec3
 
         vec3 operator/(const vec3& other) const;
 
+        mat3x3 operator|(const vec3& other) const;
+
         double norm() const;
 
         vec3& normalize();
@@ -126,14 +134,14 @@ std::ostream& operator<<(std::ostream& os, const vec3& v);
 
 vec3 operator*(const double a, const vec3& v);
 
-vec3 operator/(const double a, const vec3& v);
-
 vec3 unit(const vec3& v);
 
 double norm(const vec3& v);
 
 class mat3x3
 {
+    friend class vec3;
+
     protected:
         double m[3][3];
 
@@ -176,11 +184,27 @@ class mat3x3
 
         bool operator==(const mat3x3& other) const;
 
+        mat3x3& operator=(double other);
+
         mat3x3 operator*(const mat3x3& other) const;
 
         mat3x3 operator+(const mat3x3& other) const;
 
         mat3x3 operator-(const mat3x3& other) const;
+
+        mat3x3& operator+=(const mat3x3& other);
+
+        mat3x3& operator-=(const mat3x3& other);
+
+        mat3x3 operator+(double other) const;
+
+        mat3x3 operator-(double other) const;
+
+        mat3x3 operator*(double other) const;
+
+        mat3x3 operator/(double other) const;
+
+        mat3x3 operator-() const;
 
         vec3 operator*(const vec3& other) const;
 
@@ -194,6 +218,12 @@ class mat3x3
 
         double norm() const;
 };
+
+mat3x3 operator+(double other, const mat3x3& m);
+
+mat3x3 operator-(double other, const mat3x3& m);
+
+mat3x3 operator*(double other, const mat3x3& m);
 
 double norm(const mat3x3& m);
 

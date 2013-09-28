@@ -41,9 +41,9 @@ Multipole<T>::Multipole(const UHF<T>& uhf, int Lmin_, int Lmax_)
 {
     Context context;
     const Molecule& m = uhf.getMolecule();
-    int N = m.getNumOrbitals();
+    vector<int> N = m.getNumOrbitals();
 
-    DistTensor<T> ao(uhf.arena, 2, vec(N,N), vec(NS,NS), false);
+    SymmetryBlockedTensor<T> ao(uhf.arena, m.getGroup(), 2, vec(N,N), vec(NS,NS), false);
 
     int xyztot = 0;
     for (int L = Lmin;L <= Lmax;L++)
@@ -71,7 +71,7 @@ Multipole<T>::Multipole(const UHF<T>& uhf, int Lmin_, int Lmax_)
         for (int xyz = 0;xyz < (L+1)*(L+2)/2;xyz++)
         {
             ao = (T)0;
-            ao.writeRemoteData(pairs[xyz]);
+            //ao.writeRemoteData(pairs[xyz]);
             this->tensors[xyztot++].tensor = new OneElectronOperator<T>(uhf, ao);
         }
     }

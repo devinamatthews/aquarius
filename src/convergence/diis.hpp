@@ -191,14 +191,14 @@ class DIIS
             c[nextrap_real] = -1.0;
 
             /*
-            for (int i = 0;i <= nextrap_real;i++)
+            for (int i = 0;i < nextrap_real;i++)
             {
-                for (int j = 0;j <= nextrap_real;j++)
+                for (int j = 0;j < nextrap_real;j++)
                 {
-                    printf("%+11e ", e[i+j*(nextrap+1)]);
+                    printf("%+.3e ", e[i+j*(nextrap+1)]);
                 }
 
-                printf(": %+11e\n", c[i]);
+                printf(": %+.3e\n", c[i]);
             }
             printf("\n");
             */
@@ -215,6 +215,8 @@ class DIIS
                             c.data(), nextrap+1);
                 if (info != 0) throw std::runtime_error(std::strprintf("DIIS: Info in hesv: %d", info));
             }
+
+            //for (int i = 0;i <= nextrap_real;i++) printf("%+11e ", c[i]); printf("\n");
 
             for (int i = 0;i < ndx;i++)
             {

@@ -73,6 +73,10 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public task::Resou
 
         DistTensor(const DistTensor<T>& A, bool copy=true, bool zero=false);
 
+        DistTensor(DistTensor<T>* A);
+
+        DistTensor(const DistTensor<T>& A, const std::vector<int>& start_A, const std::vector<int>& len_A);
+
         DistTensor(const Arena& arena, int ndim, const std::vector<int>& len, const std::vector<int>& sym,
                    bool zero=true);
 
@@ -105,6 +109,18 @@ class DistTensor : public IndexableTensor< DistTensor<T>,T >, public task::Resou
         void getAllData(std::vector<T>& vals) const;
 
         void getAllData(std::vector<T>& vals, int rank) const;
+
+        void getAllData(int rank) const;
+
+        void slice(T alpha, bool conja, const DistTensor<T>& A,
+                   const std::vector<int>& start_A, T beta);
+
+        void slice(T alpha, bool conja, const DistTensor<T>& A,
+                   T beta, const std::vector<int>& start_B);
+
+        void slice(T alpha, bool conja, const DistTensor<T>& A, const std::vector<int>& start_A,
+                   T  beta,                                     const std::vector<int>& start_B,
+                                                                const std::vector<int>& len);
 
         void div(T alpha, bool conja, const DistTensor<T>& A,
                           bool conjb, const DistTensor<T>& B, T beta);

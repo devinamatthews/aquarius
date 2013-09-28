@@ -68,6 +68,22 @@ DistTensor<T>::DistTensor(const DistTensor<T>& A, bool copy, bool zero)
     }
 }
 
+template <typename T>
+DistTensor<T>::DistTensor(DistTensor<T>* A)
+: IndexableTensor< DistTensor<T>,T >(A->ndim), Resource(A->arena), len(A->len), sym(A->sym)
+{
+    dt = A->dt;
+    delete A;
+}
+
+template <typename T>
+DistTensor<T>::DistTensor(const DistTensor<T>& A, const vector<int>& start_A, const vector<int>& len_A)
+: IndexableTensor< DistTensor<T>,T >(A.ndim), Resource(A.arena), len(len_A), sym(A.sym)
+{
+    allocate();
+    slice((T)1, false, A, start_A, (T)0);
+}
+
 /*
  * Create a tensor of the specified size and shape, optionally zeroing the data
  */
@@ -195,40 +211,89 @@ void DistTensor<T>::getAllData(vector<T>& vals) const
 template <typename T>
 void DistTensor<T>::getAllData(vector<T>& vals, int rank) const
 {
-    if (arena.rank == rank)
+    assert(arena.rank == rank);
+
+    for (int i = 0;i < ndim;i++)
     {
-        vector<tkv_pair<T> > pairs;
-        vector<int> idx(ndim, 0);
-
-        first_packed_indices(ndim, len.data(), sym.data(), idx.data());
-
-        do
+        if (len[i] == 0)
         {
-            int64_t key = 0, stride = 1;
-            for (int i = 0;i < ndim;i++)
-            {
-                key += idx[i]*stride;
-                stride *= len[i];
-            }
-            pairs.push_back(tkv_pair<T>(key, (T)0));
-        }
-        while (next_packed_indices(ndim, len.data(), sym.data(), idx.data()));
-
-        dt->get_remote_data(pairs.size(), pairs.data());
-
-        sort(pairs.begin(), pairs.end());
-        size_t npair = pairs.size();
-        vals.resize(npair);
-
-        for (size_t i = 0;i < npair;i++)
-        {
-            vals[i] = pairs[i].d;
+            vals.clear();
+            return;
         }
     }
-    else
+
+    vector<tkv_pair<T> > pairs;
+    vector<int> idx(ndim, 0);
+
+    first_packed_indices(ndim, len.data(), sym.data(), idx.data());
+
+    do
     {
-        dt->get_remote_data(0, NULL);
+        int64_t key = 0, stride = 1;
+        for (int i = 0;i < ndim;i++)
+        {
+            key += idx[i]*stride;
+            stride *= len[i];
+        }
+        pairs.push_back(tkv_pair<T>(key, (T)0));
     }
+    while (next_packed_indices(ndim, len.data(), sym.data(), idx.data()));
+
+    dt->get_remote_data(pairs.size(), pairs.data());
+
+    sort(pairs.begin(), pairs.end());
+    size_t npair = pairs.size();
+    vals.resize(npair);
+
+    for (size_t i = 0;i < npair;i++)
+    {
+        vals[i] = pairs[i].d;
+    }
+}
+
+template <typename T>
+void DistTensor<T>::getAllData(int rank) const
+{
+    assert(arena.rank != rank);
+    dt->get_remote_data(0, NULL);
+}
+
+template <typename T>
+void DistTensor<T>::slice(T alpha, bool conja, const DistTensor<T>& A,
+                          const vector<int>& start_A, T beta)
+{
+    slice(alpha, conja, A, start_A, beta, vector<int>(this->ndim, 0), len);
+}
+
+template <typename T>
+void DistTensor<T>::slice(T alpha, bool conja, const DistTensor<T>& A,
+                          T beta, const vector<int>& start_B)
+{
+    slice(alpha, conja, A, vector<int>(this->ndim, 0), beta, start_B, A.len);
+}
+
+template <typename T>
+void DistTensor<T>::slice(T alpha, bool conja, const DistTensor<T>& A, const vector<int>& start_A,
+                          T  beta,                                     const vector<int>& start_B,
+                                                                       const vector<int>& len)
+{
+    assert(this->ndim == A.ndim);
+
+    vector<int> end_A(this->ndim);
+    vector<int> end_B(this->ndim);
+
+    for (int i = 0;i < this->ndim;i++)
+    {
+        end_A[i] = start_A[i]+len[i];
+        end_B[i] = start_B[i]+len[i];
+        assert(sym[i] == A.sym[i] && sym[i] == NS);
+        assert(start_A[i] >= 0);
+        assert(start_B[i] >= 0);
+        assert(end_A[i] <= A.len[i]);
+        assert(end_B[i] <= this->len[i]);
+    }
+
+    dt->sum_slice(start_B.data(), end_B.data(), beta, *A.dt, start_A.data(), end_A.data(), alpha);
 }
 
 template <typename T>
@@ -393,6 +458,8 @@ T DistTensor<T>::dot(bool conja, const DistTensor<T>& A, const string& idx_A,
 template <typename T>
 void DistTensor<T>::weight(const vector<const vector<T>*>& d)
 {
+    if (this->ndim == 0) return;
+
     assert(d.size() == this->ndim);
     for (int i = 0;i < d.size();i++) assert(d[i]->size() == len[i]);
 

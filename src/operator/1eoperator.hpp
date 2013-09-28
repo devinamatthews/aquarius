@@ -61,47 +61,48 @@ class OneElectronOperatorBase : public MOOperator,
 
         OneElectronOperatorBase(const Arena& arena, const Space& occ, const Space& vrt)
         : MOOperator(arena, occ, vrt),
-          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, std::vec(vrt, occ), std::vec(1,0), std::vec(1,0)))),
-          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, std::vec(vrt, occ), std::vec(0,1), std::vec(0,1)))),
-          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, std::vec(vrt, occ), std::vec(1,0), std::vec(0,1)))),
-          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, std::vec(vrt, occ), std::vec(0,1), std::vec(1,0)))) {}
+          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(1,0), std::vec(1,0)))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(0,1), std::vec(0,1)))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(1,0), std::vec(0,1)))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(0,1), std::vec(1,0)))) {}
 
         OneElectronOperatorBase(const MOSpace<T>& occ, const MOSpace<T>& vrt,
-                                const tensor::DistTensor<T>& aoa, const tensor::DistTensor<T>& aob)
+                                const tensor::SymmetryBlockedTensor<T>& aoa,
+                                const tensor::SymmetryBlockedTensor<T>& aob)
         : MOOperator(occ.arena, occ, vrt),
-          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, std::vec<Space>(vrt, occ), std::vec(1,0), std::vec(1,0)))),
-          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, std::vec<Space>(vrt, occ), std::vec(0,1), std::vec(0,1)))),
-          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, std::vec<Space>(vrt, occ), std::vec(1,0), std::vec(0,1)))),
-          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, std::vec<Space>(vrt, occ), std::vec(0,1), std::vec(1,0))))
+          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(1,0), std::vec(1,0)))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(0,1), std::vec(0,1)))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(1,0), std::vec(0,1)))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(0,1), std::vec(1,0))))
         {
-            const tensor::DistTensor<T>& cA = vrt.Calpha;
-            const tensor::DistTensor<T>& ca = vrt.Cbeta;
-            const tensor::DistTensor<T>& cI = occ.Calpha;
-            const tensor::DistTensor<T>& ci = occ.Cbeta;
+            const tensor::SymmetryBlockedTensor<T>& cA = vrt.Calpha;
+            const tensor::SymmetryBlockedTensor<T>& ca = vrt.Cbeta;
+            const tensor::SymmetryBlockedTensor<T>& cI = occ.Calpha;
+            const tensor::SymmetryBlockedTensor<T>& ci = occ.Cbeta;
 
-            int N = occ.nao;
-            int nI = occ.nalpha;
-            int ni = occ.nbeta;
-            int nA = vrt.nalpha;
-            int na = vrt.nbeta;
+            const std::vector<int>& N = occ.nao;
+            const std::vector<int>& nI = occ.nalpha;
+            const std::vector<int>& ni = occ.nbeta;
+            const std::vector<int>& nA = vrt.nalpha;
+            const std::vector<int>& na = vrt.nbeta;
 
-            std::vector<int> sizeAA = std::vec(nA, nA);
-            std::vector<int> sizeaa = std::vec(na, na);
-            std::vector<int> sizeAI = std::vec(nA, nI);
-            std::vector<int> sizeai = std::vec(na, ni);
-            std::vector<int> sizeII = std::vec(nI, nI);
-            std::vector<int> sizeii = std::vec(ni, ni);
-            std::vector<int> sizeAN = std::vec(nA, N);
-            std::vector<int> sizeaN = std::vec(na, N);
-            std::vector<int> sizeIN = std::vec(nI, N);
-            std::vector<int> sizeiN = std::vec(ni, N);
+            std::vector<std::vector<int> > sizeAA = std::vec(nA, nA);
+            std::vector<std::vector<int> > sizeaa = std::vec(na, na);
+            std::vector<std::vector<int> > sizeAI = std::vec(nA, nI);
+            std::vector<std::vector<int> > sizeai = std::vec(na, ni);
+            std::vector<std::vector<int> > sizeII = std::vec(nI, nI);
+            std::vector<std::vector<int> > sizeii = std::vec(ni, ni);
+            std::vector<std::vector<int> > sizeAN = std::vec(nA, N);
+            std::vector<std::vector<int> > sizeaN = std::vec(na, N);
+            std::vector<std::vector<int> > sizeIN = std::vec(nI, N);
+            std::vector<std::vector<int> > sizeiN = std::vec(ni, N);
 
             std::vector<int> shapeNN = std::vec(NS, NS);
 
-            tensor::DistTensor<T> Aq(this->arena, 2, sizeAN, shapeNN, false);
-            tensor::DistTensor<T> aq(this->arena, 2, sizeaN, shapeNN, false);
-            tensor::DistTensor<T> Iq(this->arena, 2, sizeIN, shapeNN, false);
-            tensor::DistTensor<T> iq(this->arena, 2, sizeiN, shapeNN, false);
+            tensor::SymmetryBlockedTensor<T> Aq(this->arena, occ.group, 2, sizeAN, shapeNN, false);
+            tensor::SymmetryBlockedTensor<T> aq(this->arena, occ.group, 2, sizeaN, shapeNN, false);
+            tensor::SymmetryBlockedTensor<T> Iq(this->arena, occ.group, 2, sizeIN, shapeNN, false);
+            tensor::SymmetryBlockedTensor<T> iq(this->arena, occ.group, 2, sizeiN, shapeNN, false);
 
             Aq["Aq"] = cA["pA"]*aoa["pq"];
             aq["aq"] = ca["pa"]*aob["pq"];
@@ -163,7 +164,8 @@ class OneElectronOperator : public OneElectronOperatorBase<T,OneElectronOperator
         : OneElectronOperatorBase<T,OneElectronOperator<T> >(arena, occ, vrt) {}
 
         OneElectronOperator(const MOSpace<T>& occ, const MOSpace<T>& vrt,
-                            const tensor::DistTensor<T>& aoa, const tensor::DistTensor<T>& aob)
+                            const tensor::SymmetryBlockedTensor<T>& aoa,
+                            const tensor::SymmetryBlockedTensor<T>& aob)
         : OneElectronOperatorBase<T,OneElectronOperator<T> >(occ, vrt, aoa, aob) {}
 
         template <typename Derived>

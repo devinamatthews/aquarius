@@ -41,6 +41,7 @@ namespace input
 {
 
 class Atom;
+class AtomCartSpec;
 
 class Molecule : public task::Resource
 {
@@ -50,8 +51,10 @@ class Molecule : public task::Resource
         std::vector<Atom> atoms;
         int multiplicity;
         int nelec;
-        int norb;
+        std::vector<int> norb;
         double nucrep;
+        const symmetry::PointGroup *group;
+        double rota[3];
 
         template <typename shell_type, typename atom_iterator_type, typename shell_iterator_type>
         class shell_iterator_ : public std::iterator<std::forward_iterator_tag, shell_type>
@@ -148,6 +151,14 @@ class Molecule : public task::Resource
                 }
         };
 
+        static bool isSymmetric(const std::vector<AtomCartSpec>& cartpos, const mat3x3& op);
+
+        void initGeometry(const input::Config& config, std::vector<AtomCartSpec>& cartpos);
+
+        void initSymmetry(const input::Config& config, std::vector<AtomCartSpec>& cartpos);
+
+        void initBasis(const input::Config& config, const std::vector<AtomCartSpec>& cartpos);
+
     public:
         Molecule(const Arena& arena, const Config& config);
 
@@ -161,11 +172,11 @@ class Molecule : public task::Resource
 
         int getMultiplicity() const { return multiplicity; }
 
-        int getNumOrbitals() const { return norb; }
+        const std::vector<int>& getNumOrbitals() const { return norb; }
 
         double getNuclearRepulsion() const { return nucrep; }
 
-        const symmetry::PointGroup& getPointGroup() const { return symmetry::PointGroup::C1(); }
+        const symmetry::PointGroup& getGroup() const { return *group; }
 
         typedef shell_iterator_<integrals::Shell,
                                 std::vector<Atom>::iterator,

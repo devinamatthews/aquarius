@@ -31,7 +31,8 @@ using namespace aquarius::tensor;
 
 template <typename U>
 TwoElectronDensity<U>::TwoElectronDensity(const MOSpace<U>& occ, const MOSpace<U>& vrt,
-                                          const DistTensor<U>& Da, const DistTensor<U>& Db)
+                                          const SymmetryBlockedTensor<U>& Da,
+                                          const SymmetryBlockedTensor<U>& Db)
 : TwoElectronOperator<U>(OneElectronDensity<U>(occ, vrt, Da, Db))
 {
     this->abcd["abcd"]  =     this->ab["ab"]*this->ab["cd"];

@@ -30,6 +30,7 @@ using namespace aquarius::op;
 using namespace aquarius::tensor;
 using namespace aquarius::autocc;
 using namespace aquarius::task;
+using namespace aquarius::symmetry;
 
 static int conv_idx(const vector<int>& cidx_A, string& iidx_A)
 {
@@ -147,8 +148,8 @@ static int conv_idx(const vector<int>& cidx_A, string& iidx_A,
 
 template<class T>
 SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& t, const T val)
-: IndexableCompositeTensor<SpinorbitalTensor<T>,DistTensor<T>,T >(0, 0),
-  Resource(t.arena), spin(0)
+: IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T >(0, 0),
+  Resource(t.arena), group(t.group), spin(0)
 {
     cases.push_back(SpinCase());
     cases.back().construct(*this, vector<int>(), vector<int>());
@@ -157,8 +158,8 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& t, const T v
 
 template<class T>
 SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& other)
-: IndexableCompositeTensor<SpinorbitalTensor<T>,DistTensor<T>,T >(other),
-  Resource(other.arena), spaces(other.spaces),
+: IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T >(other),
+  Resource(other.arena), group(other.group), spaces(other.spaces),
   nout(other.nout), nin(other.nin), spin(other.spin), cases(other.cases)
 {
     assert(tensors.size() == cases.size());
@@ -170,17 +171,20 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& other)
 
 template<class T>
 SpinorbitalTensor<T>::SpinorbitalTensor(const Arena& arena,
+                                        const PointGroup& group,
                                         const vector<Space>& spaces,
                                         const vector<int>& nout,
                                         const vector<int>& nin, int spin)
-: IndexableCompositeTensor<SpinorbitalTensor<T>,DistTensor<T>,T>(std::sum(nout)+std::sum(nin), 0),
-  Resource(arena), spaces(spaces), nout(nout), nin(nin), spin(spin)
+: IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T>(std::sum(nout)+std::sum(nin), 0),
+  Resource(arena), group(group), spaces(spaces), nout(nout), nin(nin), spin(spin)
 {
     int nspaces = spaces.size();
     int nouttot = std::sum(nout);
     int nintot = std::sum(nin);
     vector<int> whichout(nouttot), whichin(nintot);
     vector<int> alpha_out(nspaces), alpha_in(nspaces);
+
+    for (int i = 0;i < nspaces;i++) assert(group == spaces[i].group);
 
     assert(abs(spin) <= nouttot+nintot);
     assert(abs(spin) >= abs(nouttot-nintot));
@@ -273,7 +277,7 @@ void SpinorbitalTensor<T>::SpinCase::construct(SpinorbitalTensor<T>& t,
                                                const vector<int>& alpha_out,
                                                const vector<int>& alpha_in)
 {
-    vector<int> len(t.ndim);
+    vector<vector<int> > len(t.ndim);
     vector<int> sym(t.ndim, AS);
 
     this->alpha_out = alpha_out;
@@ -311,91 +315,20 @@ void SpinorbitalTensor<T>::SpinCase::construct(SpinorbitalTensor<T>& t,
         if (i > 0) sym[i-1] = NS;
     }
 
-    tensor = new DistTensor<T>(t.arena, t.ndim, len, sym, true);
+    tensor = new SymmetryBlockedTensor<T>(t.arena, t.group, t.ndim, len, sym, true);
     t.addTensor(tensor);
 }
 
-/*
 template<class T>
-void SpinorbitalTensor<T>::matchTypes(const int nin_A, const int nout_A, const vector<Line>& log_A, const string& idx_A,
-                                      const int nin_B, const int nout_B, const vector<Line>& log_B, const string& idx_B,
-                                      vector<Line>& out_A, vector<Line>& in_A,
-                                      vector<Line>& pout_A, vector<Line>& hout_A,
-                                      vector<Line>& pin_A, vector<Line>& hin_A,
-                                      vector<Line>& sum_A)
+SymmetryBlockedTensor<T>& SpinorbitalTensor<T>::operator()(const vector<int>& alpha_out,
+                                                           const vector<int>& alpha_in)
 {
-    for (int i = 0;i < nout_A;i++)
-    {
-        int j;
-        for (j = 0;j < nout_B+nin_B;j++)
-        {
-            if (idx_A[i] == idx_B[j])
-            {
-                bool aisp = log_A[i].isParticle();
-                bool bisp = log_B[j].isParticle();
-                if (aisp != bisp)
-                    throw logic_error("types do not match");
-                out_A[i] = Line(idx_A[i], log_B[j].getType());
-                if (log_B[j].isParticle())
-                {
-                    pin_A += Line(idx_A[i], log_B[j].getType());
-                }
-                else
-                {
-                    hin_A += Line(idx_A[i], log_B[j].getType());
-                }
-                break;
-            }
-        }
-        if (j == nout_B+nin_B)
-        {
-            out_A[i] = Line(idx_A[i], log_A[i].getType());
-            sum_A += Line(idx_A[i], log_A[i].getType());
-        }
-    }
-
-    for (int i = nout_A;i < nout_A+nin_A;i++)
-    {
-        int j;
-        for (j = 0;j < nout_B+nin_B;j++)
-        {
-            if (idx_A[i] == idx_B[j])
-            {
-                bool aisp = log_A[i].isParticle();
-                bool bisp = log_B[j].isParticle();
-                if (aisp != bisp)
-                    throw logic_error("types do not match");
-                in_A[i-nout_A] = Line(idx_A[i], log_B[j].getType());
-                if (log_B[j].isParticle())
-                {
-                    pout_A += Line(idx_A[i], log_B[j].getType());
-                }
-                else
-                {
-                    hout_A += Line(idx_A[i], log_B[j].getType());
-                }
-                break;
-            }
-        }
-        if (j == nout_B+nin_B)
-        {
-            in_A[i-nout_A] = Line(idx_A[i], log_A[i].getType());
-            sum_A += Line(idx_A[i], log_A[i].getType());
-        }
-    }
-}
-*/
-
-template<class T>
-DistTensor<T>& SpinorbitalTensor<T>::operator()(const vector<int>& alpha_out,
-                                                const vector<int>& alpha_in)
-{
-    return const_cast<DistTensor<T>&>(const_cast<const SpinorbitalTensor<T>&>(*this)(alpha_out, alpha_in));
+    return const_cast<SymmetryBlockedTensor<T>&>(const_cast<const SpinorbitalTensor<T>&>(*this)(alpha_out, alpha_in));
 }
 
 template<class T>
-const DistTensor<T>& SpinorbitalTensor<T>::operator()(const vector<int>& alpha_out,
-                                                      const vector<int>& alpha_in) const
+const SymmetryBlockedTensor<T>& SpinorbitalTensor<T>::operator()(const vector<int>& alpha_out,
+                                                                 const vector<int>& alpha_in) const
 {
     for (typename vector<SpinCase>::const_iterator sc = cases.begin();sc != cases.end();++sc)
     {
@@ -411,6 +344,8 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
                                                bool conjb, const SpinorbitalTensor<T>& B, const string& idx_B,
                                 const T beta_,                                            const string& idx_C)
 {
+    assert(group == A.group);
+    assert(group == B.group);
     assert(idx_A.size() == A.ndim);
     assert(idx_B.size() == B.ndim);
     assert(idx_C.size() == this->ndim);
@@ -714,8 +649,8 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
                      idx_B_, idx_B__,
                      idx_C_, idx_C__);
 
-            const DistTensor<T>& tensor_A = A(alpha_out_A, alpha_in_A);
-            const DistTensor<T>& tensor_B = B(alpha_out_B, alpha_in_B);
+            const SymmetryBlockedTensor<T>& tensor_A = A(alpha_out_A, alpha_in_A);
+            const SymmetryBlockedTensor<T>& tensor_B = B(alpha_out_B, alpha_in_B);
 
             //cout << alpha << " " << beta[sc] << " " << *t << endl;
             //cout <<    tensor_A.getSymmetry() << " " << alpha_out_A << " " << alpha_in_A << endl;
@@ -729,311 +664,13 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
             beta[sc] = 1.0;
         }
     }
-
-//    /*
-//    cout << "contracting: " << alpha << " * " << A.logical << "[";
-//    for (int i = 0;i < A.ndim;i++) cout << idx_A[i] << ' ';
-//    cout << "] " << B.logical << "[";
-//    for (int i = 0;i < B.ndim;i++) cout << idx_B[i] << ' ';
-//    cout << "] -> " << beta_ << " " << logical << "[";
-//    for (int i = 0;i <   ndim;i++) cout << idx_C[i] << ' ';
-//    cout << "]\n" << endl;
-//    */
-//
-//    vector<int> idx_A_(idx_A.size());
-//    vector<int> idx_B_(idx_B.size());
-//    vector<int> idx_C_(idx_C.size());
-//
-//    int nouttot_A = sum(A.nout);
-//    int nintot_A  = sum(A.nin);
-//    int nouttot_B = sum(A.nout);
-//    int nintot_B  = sum(A.nin);
-//    int nouttot_C = sum(nout);
-//    int nintot_C  = sum(nin);
-//
-//    vector<T> beta(cases.size(), beta_);
-//
-//    vector<Line> sAin(nintot_A);
-//    vector<Line> sAout(nouttot_A);
-//    vector<Line> sBin(nintot_B);
-//    vector<Line> sBout(nouttot_B);
-//    vector<Line> sCin(nintot_C);
-//    vector<Line> sCout(nouttot_C);
-//
-//    for (typename vector<SpinCase>::const_iterator scC = cases.begin();scC != cases.end();++scC)
-//    {
-//        vector<Line> sum;
-//        vector<Line> sum2;
-//        vector<Line> apo, bpo;
-//        vector<Line> aho, bho;
-//        vector<Line> api, bpi;
-//        vector<Line> ahi, bhi;
-//
-//        matchTypes(A.nA+A.nM, A.nE+A.nI,    A.logical, idx_A,
-//                     nA+  nM,   nE+  nI, scC->logical, idx_C,
-//                   sAout, sAin, apo, aho, api, ahi, sum);
-//
-//        matchTypes(B.nA+B.nM, B.nE+B.nI,    B.logical, idx_B,
-//                     nA+  nM,   nE+  nI, scC->logical, idx_C,
-//                   sBout, sBin, bpo, bho, bpi, bhi, sum);
-//
-//        uniq(sum);
-//        for (int i = 0;i < sum.size();i++)
-//        {
-//            sum2 += sum[i].toAlpha();
-//            sum2 += sum[i].toBeta();
-//        }
-//
-//        {
-//            int i;
-//            for (i = 0;i < A.nA+A.nM;i++)
-//            {
-//                int j;
-//                for (j = 0;j < B.nA+B.nM;j++)
-//                {
-//                    if (idx_A[i] == idx_B[j])
-//                    {
-//                        bool aisp = A.logical[i].isParticle();
-//                        bool bisp = B.logical[j].isParticle();
-//                        if (aisp != bisp)
-//                                throw logic_error("types do not match");
-//                        sAout[i] = sBout[j];
-//                    }
-//                }
-//                for (;j < B.ndim;j++)
-//                {
-//                    if (idx_A[i] == idx_B[j])
-//                    {
-//                        bool aisp = A.logical[i].isParticle();
-//                        bool bisp = B.logical[j].isParticle();
-//                        if (aisp != bisp)
-//                                throw logic_error("types do not match");
-//                        sAout[i] = sBin[j-B.nA-B.nM];
-//                    }
-//                }
-//            }
-//            for (;i < A.ndim;i++)
-//            {
-//                int j;
-//                for (j = 0;j < B.nA+B.nM;j++)
-//                {
-//                    if (idx_A[i] == idx_B[j])
-//                    {
-//                        bool aisp = A.logical[i].isParticle();
-//                        bool bisp = B.logical[j].isParticle();
-//                        if (aisp != bisp)
-//                                throw logic_error("types do not match");
-//                        sAin[i-A.nA-A.nM] = sBout[j];
-//                    }
-//                }
-//                for (;j < B.ndim;j++)
-//                {
-//                    if (idx_A[i] == idx_B[j])
-//                    {
-//                        bool aisp = A.logical[i].isParticle();
-//                        bool bisp = B.logical[j].isParticle();
-//                        if (aisp != bisp)
-//                                throw logic_error("types do not match");
-//                        sAin[i-A.nA-A.nM] = sBin[j-B.nA-B.nM];
-//                    }
-//                }
-//            }
-//        }
-//
-//        for (int i = 0;i < nA+nM;i++)
-//        {
-//            sCout[i] = Line(idx_C[i], scC->logical[i].getType());
-//        }
-//
-//        for (int i = 0;i < nE+nI;i++)
-//        {
-//            sCin[i] = Line(idx_C[nA+nM+i], scC->logical[nA+nM+i].getType());
-//        }
-//
-//        Fragment uhfsA("T", sAout, sAin);
-//        Fragment uhfsB("U", sBout, sBin);
-//        Fragment uhfsC("V", sCout, sCin);
-//
-//        vector<Line> isect;
-//
-//        uniq(apo);
-//        uniq(bpo);
-//        isect = intersection(apo, bpo);
-//        exclude(apo, isect);
-//        exclude(bpo, isect);
-//        uniq(aho);
-//        uniq(bho);
-//        isect = intersection(aho, bho);
-//        exclude(aho, isect);
-//        exclude(bho, isect);
-//        uniq(api);
-//        uniq(bpi);
-//        isect = intersection(api, bpi);
-//        exclude(api, isect);
-//        exclude(bpi, isect);
-//        uniq(ahi);
-//        uniq(bhi);
-//        isect = intersection(ahi, bhi);
-//        exclude(ahi, isect);
-//        exclude(bhi, isect);
-//
-//        //cout << apo << "," << bpo << "|" << aho << "," << bho << "|" <<
-//        //             api << "," << bpi << "|" << ahi << "," << bhi << endl;
-//
-//        vector< vector<Line> > assym(2);
-//
-//        Diagram d(Diagram::UHF);
-//        d += Term(Diagram::UHF)*uhfsA*uhfsB;
-//        assym[0] = apo;
-//        assym[1] = bpo;
-//        if (!apo.empty() && !bpo.empty()) d.antisymmetrize(assym);
-//        assym[0] = aho;
-//        assym[1] = bho;
-//        if (!aho.empty() && !bho.empty()) d.antisymmetrize(assym);
-//        assym[0] = api;
-//        assym[1] = bpi;
-//        if (!api.empty() && !bpi.empty()) d.antisymmetrize(assym);
-//        assym[0] = ahi;
-//        assym[1] = bhi;
-//        if (!ahi.empty() && !bhi.empty()) d.antisymmetrize(assym);
-//        d.sum(sum);
-//        d.fixorder(sum2);
-//
-//        /*
-//         * Remove terms which are antisymmetrizations of same-spin groups
-//         */
-//        vector<Term> terms = d.getTerms();
-//        for (vector<Term>::iterator t1 = terms.begin();t1 != terms.end();++t1)
-//        {
-//            for (vector<Term>::iterator t2 = t1+1;t2 != terms.end();++t2)
-//            {
-//                if (Term(*t1).fixorder(true) == Term(*t2).fixorder(true))
-//                {
-//                    d -= *t1;
-//                    break;
-//                }
-//            }
-//        }
-//
-//        terms = d.getTerms();
-//        for (vector<Term>::iterator t = terms.begin();t != terms.end();++t)
-//        {
-//            *t *= uhfsC;
-//
-//            //cout << *t << endl;
-//
-//            double diagFactor = t->getFactor();
-//
-//            vector<Fragment>::iterator fA, fB, fC;
-//            for (vector<Fragment>::iterator f = t->getFragments().begin();f != t->getFragments().end();++f)
-//            {
-//                if (f->getOp() == "T") fA = f;
-//                if (f->getOp() == "U") fB = f;
-//                if (f->getOp() == "V") fC = f;
-//            }
-//
-//            vector<Line> out_A = fA->getIndicesOut();
-//            vector<Line>  in_A = fA->getIndicesIn();
-//            vector<Line> out_B = fB->getIndicesOut();
-//            vector<Line>  in_B = fB->getIndicesIn();
-//            vector<Line> out_C = fC->getIndicesOut();
-//            vector<Line>  in_C = fC->getIndicesIn();
-//
-//            int nA_A = count_if(out_A.begin(), out_A.end(), isType<PARTICLE+ALPHA>());
-//            int nM_A = count_if(out_A.begin(), out_A.end(), isType<    HOLE+ALPHA>());
-//            int nE_A = count_if( in_A.begin(),  in_A.end(), isType<PARTICLE+ALPHA>());
-//            int nI_A = count_if( in_A.begin(),  in_A.end(), isType<    HOLE+ALPHA>());
-//
-//            int nA_B = count_if(out_B.begin(), out_B.end(), isType<PARTICLE+ALPHA>());
-//            int nM_B = count_if(out_B.begin(), out_B.end(), isType<    HOLE+ALPHA>());
-//            int nE_B = count_if( in_B.begin(),  in_B.end(), isType<PARTICLE+ALPHA>());
-//            int nI_B = count_if( in_B.begin(),  in_B.end(), isType<    HOLE+ALPHA>());
-//
-//            typename vector<SpinCase>::const_iterator scA = A.cases.end();
-//            for (typename vector<SpinCase>::const_iterator sc = A.cases.begin();sc != A.cases.end();++sc)
-//            {
-//                if (nA_A == sc->nA && nM_A == sc->nM &&
-//                    nE_A == sc->nE && nI_A == sc->nI) scA = sc;
-//            }
-//            if (scA == A.cases.end()) throw logic_error("no matching spin case for tensor A");
-//
-//            typename vector<SpinCase>::const_iterator scB = B.cases.end();
-//            for (typename vector<SpinCase>::const_iterator sc = B.cases.begin();sc != B.cases.end();++sc)
-//            {
-//                if (nA_B == sc->nA && nM_B == sc->nM &&
-//                    nE_B == sc->nE && nI_B == sc->nI) scB = sc;
-//            }
-//            if (scB == B.cases.end()) throw logic_error("no matching spin case for tensor B");
-//
-//            vector<Line> lA(A.ndim);
-//            for (int i = 0;i < A.nA+A.nM;i++)
-//            {
-//                idx_A_[scA->log_to_phys[i]] = out_A[i].asInt();
-//                lA[scA->log_to_phys[i]] = out_A[i];
-//            }
-//
-//            for (int i = A.nA+A.nM;i < A.ndim;i++)
-//            {
-//                idx_A_[scA->log_to_phys[i]] = in_A[i-A.nA-A.nM].asInt();
-//                lA[scA->log_to_phys[i]] = in_A[i-A.nA-A.nM];
-//            }
-//
-//            vector<Line> lB(B.ndim);
-//            for (int i = 0;i < B.nA+B.nM;i++)
-//            {
-//                idx_B_[scB->log_to_phys[i]] = out_B[i].asInt();
-//                lB[scB->log_to_phys[i]] = out_B[i];
-//            }
-//
-//            for (int i = B.nA+B.nM;i < B.ndim;i++)
-//            {
-//                idx_B_[scB->log_to_phys[i]] = in_B[i-B.nA-B.nM].asInt();
-//                lB[scB->log_to_phys[i]] = in_B[i-B.nA-B.nM];
-//            }
-//
-//            vector<Line> lC(ndim);
-//            for (int i = 0;i < nA+nM;i++)
-//            {
-//                idx_C_[scC->log_to_phys[i]] = out_C[i].asInt();
-//                lC[scC->log_to_phys[i]] = out_C[i];
-//            }
-//
-//            for (int i = nA+nM;i < ndim;i++)
-//            {
-//                idx_C_[scC->log_to_phys[i]] = in_C[i-nA-nM].asInt();
-//                lC[scC->log_to_phys[i]] = in_C[i-nA-nM];
-//            }
-//
-//            /*
-//            //if (A.logical == "aijk")
-//            //{
-//                cout << scA->log_to_phys << ' ' << scB->log_to_phys <<
-//                        ' ' << scC->log_to_phys << endl;
-//            cout << "A(" << lA << ") B(" << lB << ") C(" << lC << ") " <<
-//                    alpha*scA->permFactor*scB->permFactor*scC->permFactor*diagFactor <<
-//                    ' ' << beta[(int)(scC-cases.begin())] << endl << endl;
-//            //}
-//            */
-//
-//            string idx_A__, idx_iteratorB__, idx_C__;
-//            conv_idx(idx_A_, idx_A__,
-//                     idx_B_, idx_B__,
-//                     idx_C_, idx_C__);
-//
-//            scC->tensor->mult(alpha*(T)(scA->permFactor*scB->permFactor*scC->permFactor*diagFactor),
-//            //scC->tensor.mult(alpha*diagFactor,
-//                              conja, *scA->tensor, idx_A__, conjb, *scB->tensor, idx_B__,
-//                              beta[(int)(scC-cases.begin())], idx_C__);
-//
-//            beta[(int)(scC-cases.begin())] = 1.0;
-//        }
-//    }
 }
 
 template<class T>
 void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTensor<T>& A, const string& idx_A,
                                const T beta_,                                            const string& idx_B)
 {
+    assert(group == A.group);
     assert(idx_A.size() == A.ndim);
     assert(idx_B.size() == this->ndim);
     assert(spaces == A.spaces || this->ndim == 0 || A.ndim == 0);
@@ -1247,7 +884,7 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
 
             //cout << alpha << " " << beta[sc] << " " << *t << endl;
 
-            const DistTensor<T>& tensor_A = A(alpha_out_A, alpha_in_A);
+            const SymmetryBlockedTensor<T>& tensor_A = A(alpha_out_A, alpha_in_A);
 
             scB.tensor->sum(alpha*diagFactor, conja, tensor_A, idx_A__,
                                     beta[sc],                  idx_B__);
@@ -1255,144 +892,6 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
             beta[sc] = 1.0;
         }
     }
-
-//    vector<int> idx_A_(idx_A.size());
-//    vector<int> idx_B_(idx_B.size());
-//
-//    //cout << "summing [";
-//    //for (int i = 0;i < A.ndim;i++) cout << idx_A[i] << ' ';
-//    //cout << "] [";
-//    //for (int i = 0;i <   ndim;i++) cout << idx_B[i] << ' ';
-//    //cout << "]" << endl;
-//
-//    vector<T> beta(cases.size(), beta_);
-//
-//    vector<Line> sAin(A.nA+A.nM);
-//    vector<Line> sAout(A.nE+A.nI);
-//
-//    vector<Line> sBin(nA+nM);
-//    vector<Line> sBout(nE+nI);
-//
-//    for (typename vector<SpinCase>::const_iterator scB = cases.begin();scB != cases.end();++scB)
-//    {
-//        vector<Line> sum;
-//        vector<Line> sum2;
-//        vector<Line> apo, aho, api, ahi;
-//
-//        matchTypes(A.nA+A.nM, A.nE+A.nI,    A.logical, idx_A,
-//                     nA+  nM,   nE+  nI, scB->logical, idx_B,
-//                   sAout, sAin, apo, aho, api, ahi, sum);
-//
-//        for (int i = 0;i < sum.size();i++)
-//        {
-//            sum2 += sum[i].toAlpha();
-//            sum2 += sum[i].toBeta();
-//        }
-//
-//        for (int i = 0;i < nA+nM;i++)
-//        {
-//            sBout[i] = Line(idx_B[i], scB->logical[i].getType());
-//        }
-//
-//        for (int i = 0;i < nE+nI;i++)
-//        {
-//            sBin[i] = Line(idx_B[nA+nM+i], scB->logical[nA+nM+i].getType());
-//        }
-//
-//        Fragment uhfsA("T", sAout, sAin);
-//        Fragment uhfsB("U", sBout, sBin);
-//
-//        Diagram d(Diagram::UHF);
-//        d += Term(Diagram::UHF)*uhfsA;
-//        d.sum(sum);
-//        d.fixorder(sum2);
-//
-//        vector<Term> terms = d.getTerms();
-//        for (vector<Term>::iterator t = terms.begin();t != terms.end();++t)
-//        {
-//            *t *= uhfsB;
-//
-//            double diagFactor = t->getFactor();
-//
-//            //cout << *t << endl;
-//
-//            vector<Fragment>::iterator fA, fB;
-//            for (vector<Fragment>::iterator f = t->getFragments().begin();f != t->getFragments().end();++f)
-//            {
-//                if (f->getOp() == "T") fA = f;
-//                if (f->getOp() == "U") fB = f;
-//            }
-//
-//            vector<Line> out_A = fA->getIndicesOut();
-//            vector<Line>  in_A = fA->getIndicesIn();
-//            vector<Line> out_B = fB->getIndicesOut();
-//            vector<Line>  in_B = fB->getIndicesIn();
-//
-//            int nA_A = count_if(out_A.begin(), out_A.end(), isType<PARTICLE+ALPHA>());
-//            int nM_A = count_if(out_A.begin(), out_A.end(), isType<    HOLE+ALPHA>());
-//            int nE_A = count_if( in_A.begin(),  in_A.end(), isType<PARTICLE+ALPHA>());
-//            int nI_A = count_if( in_A.begin(),  in_A.end(), isType<    HOLE+ALPHA>());
-//
-//            typename vector<SpinCase>::const_iterator scA = A.cases.end();
-//            for (typename vector<SpinCase>::const_iterator sc = A.cases.begin();sc != A.cases.end();++sc)
-//            {
-//                //printf("%d %d %d %d - %d %d %d %d\n", nA_A, nM_A, nE_A, nI_A,
-//                //       sc->nA, sc->nM, sc->nE, sc->nI);
-//                if (nA_A == sc->nA && nM_A == sc->nM &&
-//                    nE_A == sc->nE && nI_A == sc->nI) scA = sc;
-//            }
-//            if (scA == A.cases.end()) throw logic_error("no matching spin case for tensor A");
-//
-//            vector<Line> lA(A.ndim);
-//            for (int i = 0;i < A.nA+A.nM;i++)
-//            {
-//                idx_A_[scA->log_to_phys[i]] = out_A[i].asInt();
-//                lA[scA->log_to_phys[i]] = out_A[i];
-//            }
-//
-//            for (int i = A.nA+A.nM;i < A.ndim;i++)
-//            {
-//                idx_A_[scA->log_to_phys[i]] = in_A[i-A.nA-A.nM].asInt();
-//                lA[scA->log_to_phys[i]] = in_A[i-A.nA-A.nM];
-//            }
-//
-//            vector<Line> lB(ndim);
-//            for (int i = 0;i < nA+nM;i++)
-//            {
-//                idx_B_[scB->log_to_phys[i]] = out_B[i].asInt();
-//                lB[scB->log_to_phys[i]] = out_B[i];
-//            }
-//
-//            for (int i = nA+nM;i < ndim;i++)
-//            {
-//                idx_B_[scB->log_to_phys[i]] = in_B[i-nA-nM].asInt();
-//                lB[scB->log_to_phys[i]] = in_B[i-nA-nM];
-//            }
-//
-//            //cout << scA->log_to_phys << ' ' << scB->log_to_phys << endl;
-//
-//            //if (logical == "aijk")
-//            //{
-//            //cout << Fragment("A", lA, vector<Line>()) << ' ' <<
-//            //             Fragment("B", lB, vector<Line>()) << ' ' <<
-//            //             alpha << '*' << scA->permFactor << '*' <<
-//            //             scB->permFactor << '*' << diagFactor <<
-//            //             //alpha << '*' << diagFactor <<
-//            //             ' ' << beta[(int)(scB-cases.begin())] << endl;
-//            //}
-//
-//            string idx_A__, idx_B__;
-//            conv_idx(idx_A_, idx_A__,
-//                     idx_B_, idx_B__);
-//
-//            scB->tensor->sum(alpha*(T)(scA->permFactor*scB->permFactor*diagFactor),
-//            //scB->tensor.sum(alpha*diagFactor,
-//                              conja, *scA->tensor, idx_A__,
-//                              beta[(int)(scB-cases.begin())], idx_B__);
-//
-//            beta[(int)(scB-cases.begin())] = 1.0;
-//        }
-//    }
 }
 
 template<class T>
@@ -1413,10 +912,10 @@ void SpinorbitalTensor<T>::scale(const T alpha, const string& idx_A)
 }
 
 template<class T>
-void SpinorbitalTensor<T>::weight(const vector<const vector<T>*>& da,
-                                  const vector<const vector<T>*>& db)
+void SpinorbitalTensor<T>::weight(const vector<const vector<vector<T> >*>& da,
+                                  const vector<const vector<vector<T> >*>& db)
 {
-    vector<const vector<T>*> d(this->ndim);
+    vector<const vector<vector<T> >*> d(this->ndim);
 
     for (typename vector<SpinCase>::iterator sc = cases.begin();sc != cases.end();++sc)
     {
@@ -1445,9 +944,32 @@ T SpinorbitalTensor<T>::dot(bool conja, const SpinorbitalTensor<T>& A, const str
                  conjb, *this, idx_B,
               0,                  "");
     vector<T> vals;
-    sodt(0).getAllData(vals);
+    sodt(0)(0).getAllData(vals);
     assert(vals.size() == 1);
     return vals[0];
+}
+
+template<class T>
+typename std::real_type<T>::type SpinorbitalTensor<T>::norm(int p) const
+{
+    typename std::real_type<T>::type nrm = 0;
+
+    for (typename vector<SpinCase>::const_iterator sc = cases.begin();sc != cases.end();++sc)
+    {
+        double factor = 1;
+        for (int s = 0;s < spaces.size();s++)
+        {
+            factor *= binom(nout[s], sc->alpha_out[s]);
+            factor *= binom( nin[s],  sc->alpha_in[s]);
+        }
+
+        if      (p == 2) factor = sqrt(factor);
+        else if (p == 0) factor = 1;
+
+        nrm += factor*sc->tensor->norm(p);
+    }
+
+    return nrm;
 }
 
 INSTANTIATE_SPECIALIZATIONS(SpinorbitalTensor);

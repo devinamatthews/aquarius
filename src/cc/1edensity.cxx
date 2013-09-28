@@ -31,7 +31,8 @@ using namespace aquarius::tensor;
 
 template <typename U>
 OneElectronDensity<U>::OneElectronDensity(const MOSpace<U>& occ, const MOSpace<U>& vrt,
-                                          const DistTensor<U>& Da, const DistTensor<U>& Db)
+                                          const SymmetryBlockedTensor<U>& Da,
+                                          const SymmetryBlockedTensor<U>& Db)
 : OneElectronOperator<U>(occ, vrt, Da, Db) {}
 
 /*

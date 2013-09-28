@@ -36,7 +36,7 @@
 #include "util/blas.h"
 #include "util/stl_ext.hpp"
 #include "symmetry/symmetry.hpp"
-#include "tensor/dist_tensor.hpp"
+#include "tensor/symblocked_tensor.hpp"
 #include "task/task.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
@@ -147,14 +147,15 @@ class OneElectronIntegrals
 class OneElectronIntegralsTask : public task::Task
 {
     public:
-        class OneElectronIntegral : public tensor::DistTensor<double>
+        class OneElectronIntegral : public tensor::SymmetryBlockedTensor<double>
         {
             protected:
                 std::string name;
 
             public:
-                OneElectronIntegral(const Arena& arena, const std::string& name, int norb)
-                : tensor::DistTensor<double>(arena, 2, std::vec(norb,norb), std::vec(NS,NS), true),
+                OneElectronIntegral(const Arena& arena, const std::string& name,
+                                    const symmetry::PointGroup& group, const std::vector<int>& norb)
+                : tensor::SymmetryBlockedTensor<double>(arena, group, 2, std::vec(norb,norb), std::vec(NS,NS), true),
                   name(name) {}
         };
 
@@ -165,26 +166,26 @@ class OneElectronIntegralsTask : public task::Task
 
 struct OVI : public OneElectronIntegralsTask::OneElectronIntegral
 {
-    OVI(const Arena& arena, int norb)
-    : OneElectronIntegral(arena, "Overlap Integrals", norb) {}
+    OVI(const Arena& arena, const symmetry::PointGroup& group, const std::vector<int>& norb)
+    : OneElectronIntegral(arena, "Overlap Integrals", group, norb) {}
 };
 
 struct NAI : public OneElectronIntegralsTask::OneElectronIntegral
 {
-    NAI(const Arena& arena, int norb)
-    : OneElectronIntegral(arena, "Nuclear Attraction Integrals", norb) {}
+    NAI(const Arena& arena, const symmetry::PointGroup& group, const std::vector<int>& norb)
+    : OneElectronIntegral(arena, "Nuclear Attraction Integrals", group, norb) {}
 };
 
 struct KEI : public OneElectronIntegralsTask::OneElectronIntegral
 {
-    KEI(const Arena& arena, int norb)
-    : OneElectronIntegral(arena, "Kinetic Energy Integrals", norb) {}
+    KEI(const Arena& arena, const symmetry::PointGroup& group, const std::vector<int>& norb)
+    : OneElectronIntegral(arena, "Kinetic Energy Integrals", group, norb) {}
 };
 
 struct OneElectronHamiltonian : public OneElectronIntegralsTask::OneElectronIntegral
 {
-    OneElectronHamiltonian(const Arena& arena, int norb)
-    : OneElectronIntegral(arena, "One-electron Hamiltonian", norb) {}
+    OneElectronHamiltonian(const Arena& arena, const symmetry::PointGroup& group, const std::vector<int>& norb)
+    : OneElectronIntegral(arena, "One-electron Hamiltonian", group, norb) {}
 };
 
 }

@@ -27,7 +27,7 @@
 
 #include "2eints.hpp"
 
-#include "tensor/dist_tensor.hpp"
+#include "tensor/symblocked_tensor.hpp"
 #include "tensor/dense_tensor.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
@@ -71,8 +71,8 @@ class CholeskyIntegrals : public task::Resource
         std::vector<Shell> shells;
         T delta;
         T cond;
-        tensor::DistTensor<T>* L;
-        tensor::DistTensor<T>* D;
+        tensor::SymmetryBlockedTensor<T>* L;
+        tensor::SymmetryBlockedTensor<T>* D;
         int ndiag;
         int nfunc;
         int nblock;
@@ -86,9 +86,9 @@ class CholeskyIntegrals : public task::Resource
 
         int getRank() const { return nvec; }
 
-        const tensor::DistTensor<T>& getL() const { return *L; }
+        const tensor::SymmetryBlockedTensor<T>& getL() const { return *L; }
 
-        const tensor::DistTensor<T>& getD() const { return *D; }
+        const tensor::SymmetryBlockedTensor<T>& getD() const { return *D; }
 
     protected:
 

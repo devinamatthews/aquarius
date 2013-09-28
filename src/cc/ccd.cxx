@@ -72,9 +72,7 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
 
     energy = 0.25*real(scalar(H.getABIJ()*T(2)));
 
-    conv =          T(2)(0).norm(00);
-    conv = max(conv,T(2)(1).norm(00));
-    conv = max(conv,T(2)(2).norm(00));
+    conv = T.norm(00);
 
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
     put("mp2", new Scalar(arena, energy));
@@ -181,11 +179,7 @@ void CCD<U>::iterate()
 
     energy = 0.25*real(scalar(H.getABIJ()*T(2)));
 
-    conv =          Z(1)(0).norm(00);
-    conv = max(conv,Z(1)(1).norm(00));
-    conv = max(conv,Z(2)(0).norm(00));
-    conv = max(conv,Z(2)(1).norm(00));
-    conv = max(conv,Z(2)(2).norm(00));
+    conv = Z.norm(00);
 
     diis.extrapolate(T, Z);
 

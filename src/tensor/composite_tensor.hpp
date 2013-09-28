@@ -48,6 +48,7 @@ namespace tensor
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::sum; \
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::invert; \
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::dot; \
+        using aquarius::tensor::CompositeTensor< Derived, Base, T >::exists; \
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::operator(); \
         using aquarius::tensor::Tensor< Derived,T >::getDerived; \
         using aquarius::tensor::Tensor< Derived,T >::operator=; \
@@ -81,6 +82,7 @@ namespace tensor
         using aquarius::tensor::IndexableCompositeTensor< Derived, Base, T >::operator-=; \
         using aquarius::tensor::IndexableTensorBase< Derived, T >::operator[]; \
         using aquarius::tensor::CompositeTensor< Derived, Base, T >::operator(); \
+        using aquarius::tensor::CompositeTensor< Derived, Base, T >::exists; \
         using aquarius::tensor::Tensor< Derived,T >::getDerived; \
         using aquarius::tensor::Tensor< Derived,T >::operator*=; \
         using aquarius::tensor::Tensor< Derived,T >::operator/=; \
@@ -151,7 +153,7 @@ class CompositeTensor : public Tensor<Derived,T>
 
         int getNumTensors() const { return tensors.size(); }
 
-        bool componentExists(int idx) const
+        bool exists(int idx) const
         {
             return tensors[idx] != NULL;
         }
@@ -201,9 +203,7 @@ class CompositeTensor : public Tensor<Derived,T>
 
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL &&
-                    A.componentExists(i) &&
-                    B.componentExists(i))
+                if (tensors[i] != NULL && A.exists(i) && B.exists(i))
                 {
                     beta*(*tensors[i].tensor) += alpha*A(i)*B(i);
                 }
@@ -220,9 +220,7 @@ class CompositeTensor : public Tensor<Derived,T>
 
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL &&
-                    A.componentExists(i) &&
-                    B.componentExists(i))
+                if (tensors[i] != NULL && A.exists(i) && B.exists(i))
                 {
                     beta*(*tensors[i].tensor) += alpha*A(i)/B(i);
                 }
@@ -248,8 +246,7 @@ class CompositeTensor : public Tensor<Derived,T>
 
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL &&
-                    A.componentExists(i))
+                if (tensors[i] != NULL && A.exists(i))
                 {
                     beta*(*tensors[i].tensor) += alpha*A(i);
                 }
@@ -264,8 +261,7 @@ class CompositeTensor : public Tensor<Derived,T>
 
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL &&
-                    A.componentExists(i))
+                if (tensors[i] != NULL && A.exists(i))
                 {
                     beta*(*tensors[i].tensor) += alpha/A(i);
                 }
@@ -282,8 +278,7 @@ class CompositeTensor : public Tensor<Derived,T>
 
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL &&
-                    A.componentExists(i))
+                if (tensors[i] != NULL && A.exists(i))
                 {
                     s += tensors[i].tensor->dot(conja, A(i), conjb);
                 }

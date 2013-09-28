@@ -233,6 +233,11 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
             }
         }
     }
+
+    for (int i = 0;i < nirrep;i++)
+    {
+        irreps.push_back(Representation(*this, characters[i]));
+    }
 }
 
 bool PointGroup::areConjugate(int i, int j) const
@@ -319,9 +324,9 @@ double PointGroup::cartesianParity(int x, int y, int z, int op) const
            ((z&1) == 1 && ops[op][2][2] < 0 ? -1 : 1);
 }
 
-Representation PointGroup::getIrrep(int i) const
+const Representation& PointGroup::getIrrep(int i) const
 {
-    return Representation(*this, characters[i]);
+    return irreps[i];
 }
 
 Representation PointGroup::getIrrep(int i, int r) const
@@ -473,56 +478,6 @@ Representation& Representation::operator-=(const Representation& other)
         (*this)[i] -= other[i];
     }
     return *this;
-}
-
-mat3x3 Rotation(vec3 axis, double degrees)
-{
-    axis.normalize();
-    double c = cos(degrees*M_PI/180);
-    double s = sin(degrees*M_PI/180);
-    double x = axis[0];
-    double y = axis[1];
-    double z = axis[2];
-    return mat3x3(x*x*(1-c)+c  , x*y*(1-c)-z*s, x*z*(1-c)+y*s,
-                  x*y*(1-c)+z*s, y*y*(1-c)+c  , y*z*(1-c)-x*s,
-                  x*z*(1-c)-y*s, y*z*(1-c)+x*s, z*z*(1-c)+c  );
-}
-
-mat3x3 Reflection(vec3 axis)
-{
-    axis.normalize();
-    double x = axis[0];
-    double y = axis[1];
-    double z = axis[2];
-    return mat3x3(1-2*x*x,  -2*x*y,  -2*x*z,
-                   -2*x*y, 1-2*y*y,  -2*y*z,
-                   -2*x*z,  -2*y*z, 1-2*z*z);
-}
-
-mat3x3 Identity()
-{
-    return mat3x3(1, 0, 0,
-                  0, 1, 0,
-                  0, 0, 1);
-}
-
-mat3x3 Inversion()
-{
-    return mat3x3(-1,  0,  0,
-                   0, -1,  0,
-                   0,  0, -1);
-}
-
-template <int n>
-mat3x3 C(const vec3& axis)
-{
-    return Rotation(axis, 360.0/n);
-}
-
-template <int n>
-mat3x3 S(const vec3& axis)
-{
-    return Rotation(axis, 360.0/n)*Reflection(axis);
 }
 
 /*

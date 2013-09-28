@@ -28,6 +28,7 @@
 #include <iostream>
 #include <cassert>
 
+#include "lapack.h"
 #include "math_ext.h"
 
 extern "C"
@@ -214,6 +215,14 @@ bool vec3::operator==(const vec3& other) const
            v[2] == other[2];
 }
 
+vec3& vec3::operator=(double other)
+{
+    v[0] = other;
+    v[1] = other;
+    v[2] = other;
+    return *this;
+}
+
 vec3& vec3::operator+=(const vec3& other)
 {
     v[0] += other[0];
@@ -247,6 +256,14 @@ vec3 vec3::operator^(const vec3& other) const
                 v[0]*other[1] - v[1]*other[0]);
 }
 
+vec3 vec3::operator-() const
+{
+    vec3 r;
+    r[0] = -(*this)[0];
+    r[1] = -(*this)[1];
+    r[2] = -(*this)[2];
+    return r;
+}
 double& vec3::operator[](int i)
 {
     return v[i];
@@ -312,14 +329,16 @@ vec3 operator*(const double a, const vec3& v)
     return vec3(v) *= a;
 }
 
-vec3 operator/(const double a, const vec3& v)
-{
-    return vec3(v) /= a;
-}
-
 vec3 vec3::operator/(const vec3& other) const
 {
     return vec3(*this).orthogonalize(other);
+}
+
+mat3x3 vec3::operator|(const vec3& other) const
+{
+    return mat3x3(v[0]*other[0],v[0]*other[1],v[0]*other[2],
+                  v[1]*other[0],v[1]*other[1],v[1]*other[2],
+                  v[2]*other[0],v[2]*other[1],v[2]*other[2]);
 }
 
 vec3 unit(const vec3& v)
@@ -433,6 +452,20 @@ bool mat3x3::operator==(const mat3x3& other) const
            m[2][0] == other[2][0] && m[2][1] == other[2][1] && m[2][2] == other[2][2];
 }
 
+mat3x3& mat3x3::operator=(double other)
+{
+    m[0][0] = other;
+    m[1][0] = other;
+    m[2][0] = other;
+    m[0][1] = other;
+    m[1][1] = other;
+    m[2][1] = other;
+    m[0][2] = other;
+    m[1][2] = other;
+    m[2][2] = other;
+    return *this;
+}
+
 mat3x3 mat3x3::operator*(const mat3x3& other) const
 {
     mat3x3 r;
@@ -478,6 +511,124 @@ mat3x3 mat3x3::operator-(const mat3x3& other) const
     return r;
 }
 
+mat3x3& mat3x3::operator+=(const mat3x3& other)
+{
+    m[0][0] += other[0][0];
+    m[0][1] += other[0][1];
+    m[0][2] += other[0][2];
+    m[1][0] += other[1][0];
+    m[1][1] += other[1][1];
+    m[1][2] += other[1][2];
+    m[2][0] += other[2][0];
+    m[2][1] += other[2][1];
+    m[2][2] += other[2][2];
+    return *this;
+}
+
+mat3x3& mat3x3::operator-=(const mat3x3& other)
+{
+    m[0][0] -= other[0][0];
+    m[0][1] -= other[0][1];
+    m[0][2] -= other[0][2];
+    m[1][0] -= other[1][0];
+    m[1][1] -= other[1][1];
+    m[1][2] -= other[1][2];
+    m[2][0] -= other[2][0];
+    m[2][1] -= other[2][1];
+    m[2][2] -= other[2][2];
+    return *this;
+}
+
+mat3x3 operator+(double other, const mat3x3& m)
+{
+    return m+other;
+}
+
+mat3x3 operator-(double other, const mat3x3& m)
+{
+    return -(m-other);
+}
+
+mat3x3 operator*(double other, const mat3x3& m)
+{
+    return m*other;
+}
+
+mat3x3 mat3x3::operator+(double other) const
+{
+    mat3x3 r;
+    r[0][0] = (*this)[0][0] + other;
+    r[0][1] = (*this)[0][1];
+    r[0][2] = (*this)[0][2];
+    r[1][0] = (*this)[1][0];
+    r[1][1] = (*this)[1][1] + other;
+    r[1][2] = (*this)[1][2];
+    r[2][0] = (*this)[2][0];
+    r[2][1] = (*this)[2][1];
+    r[2][2] = (*this)[2][2] + other;
+    return r;
+}
+
+mat3x3 mat3x3::operator-(double other) const
+{
+    mat3x3 r;
+    r[0][0] = (*this)[0][0] - other;
+    r[0][1] = (*this)[0][1];
+    r[0][2] = (*this)[0][2];
+    r[1][0] = (*this)[1][0];
+    r[1][1] = (*this)[1][1] - other;
+    r[1][2] = (*this)[1][2];
+    r[2][0] = (*this)[2][0];
+    r[2][1] = (*this)[2][1];
+    r[2][2] = (*this)[2][2] - other;
+    return r;
+}
+
+mat3x3 mat3x3::operator*(double other) const
+{
+    mat3x3 r;
+    r[0][0] = (*this)[0][0]*other;
+    r[0][1] = (*this)[0][1]*other;
+    r[0][2] = (*this)[0][2]*other;
+    r[1][0] = (*this)[1][0]*other;
+    r[1][1] = (*this)[1][1]*other;
+    r[1][2] = (*this)[1][2]*other;
+    r[2][0] = (*this)[2][0]*other;
+    r[2][1] = (*this)[2][1]*other;
+    r[2][2] = (*this)[2][2]*other;
+    return r;
+}
+
+mat3x3 mat3x3::operator/(double other) const
+{
+    mat3x3 r;
+    r[0][0] = (*this)[0][0]/other;
+    r[0][1] = (*this)[0][1]/other;
+    r[0][2] = (*this)[0][2]/other;
+    r[1][0] = (*this)[1][0]/other;
+    r[1][1] = (*this)[1][1]/other;
+    r[1][2] = (*this)[1][2]/other;
+    r[2][0] = (*this)[2][0]/other;
+    r[2][1] = (*this)[2][1]/other;
+    r[2][2] = (*this)[2][2]/other;
+    return r;
+}
+
+mat3x3 mat3x3::operator-() const
+{
+    mat3x3 r;
+    r[0][0] = -(*this)[0][0];
+    r[0][1] = -(*this)[0][1];
+    r[0][2] = -(*this)[0][2];
+    r[1][0] = -(*this)[1][0];
+    r[1][1] = -(*this)[1][1];
+    r[1][2] = -(*this)[1][2];
+    r[2][0] = -(*this)[2][0];
+    r[2][1] = -(*this)[2][1];
+    r[2][2] = -(*this)[2][2];
+    return r;
+}
+
 vec3 mat3x3::operator*(const vec3& other) const
 {
     vec3 r;
@@ -499,7 +650,8 @@ mat3x3::operator const double*() const
 
 void mat3x3::diagonalize(vec3& eigenvalues, mat3x3& eigenvectors) const
 {
-
+    eigenvectors = *this;
+    dsyev('V','U',3,(double*)eigenvectors.m,3,eigenvalues.v);
 }
 
 mat3x3 mat3x3::identity()
@@ -527,9 +679,9 @@ ostream& operator<<(ostream& os, const mat3x3& m)
 {
     ios_base::fmtflags oldfmt = os.flags();
     os << scientific << showpos << setprecision(12) << setw(20);
-    os <<  "/" << m[0][0] << " " << m[0][1] << " " << m[0][2] << "\\";
-    os <<  "|" << m[1][0] << " " << m[1][1] << " " << m[1][2] << "|";
-    os << "\\" << m[2][0] << " " << m[2][1] << " " << m[2][2] << "/";
+    os <<  "/" << m[0][0] << " " << m[0][1] << " " << m[0][2] << "\\\n";
+    os <<  "|" << m[1][0] << " " << m[1][1] << " " << m[1][2] << "|\n";
+    os << "\\" << m[2][0] << " " << m[2][1] << " " << m[2][2] << "/\n";
     os.flags(oldfmt);
     return os;
 }

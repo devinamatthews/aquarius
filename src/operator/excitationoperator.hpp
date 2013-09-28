@@ -62,14 +62,14 @@ class ExcitationOperator
                 int no = ex+(nh > np ? nh-np : 0);
 
                 tensors[ex+std::abs(np-nh)].tensor =
-                    new tensor::SpinorbitalTensor<T>(arena, std::vec(vrt,occ), std::vec(nv,0), std::vec(0,no), spin);
+                    new tensor::SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt,occ), std::vec(nv,0), std::vec(0,no), spin);
             }
         }
 
         void weight(const Denominator<T>& d)
         {
-            std::vector<const std::vector<T>*> da = vec(&d.getDA(), &d.getDI());
-            std::vector<const std::vector<T>*> db = vec(&d.getDa(), &d.getDi());
+            std::vector<const std::vector<std::vector<T> >*> da = vec(&d.getDA(), &d.getDI());
+            std::vector<const std::vector<std::vector<T> >*> db = vec(&d.getDa(), &d.getDi());
 
             for (int ex = 0;ex <= std::min(np,nh);ex++)
             {
@@ -88,6 +88,21 @@ class ExcitationOperator
             }
 
             return s;
+        }
+
+        /*
+         * Return the largest p-norm of the constituent operators
+         */
+        typename std::real_type<T>::type norm(int p) const
+        {
+            typename std::real_type<T>::type nrm = 0;
+
+            for (int i = 0;i <= std::min(np,nh);i++)
+            {
+                nrm = std::max(nrm,(*this)(i).norm(p));
+            }
+
+            return nrm;
         }
 };
 

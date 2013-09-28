@@ -22,6 +22,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
+#include <cstdlib>
+#include "tensor/symblocked_tensor.hpp"
+
 #include "time/time.hpp"
 #include "task/task.hpp"
 

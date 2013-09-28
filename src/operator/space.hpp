@@ -25,7 +25,7 @@
 #ifndef _AQUARIUS_OPERATOR_SPACE_HPP_
 #define _AQUARIUS_OPERATOR_SPACE_HPP_
 
-#include "tensor/dist_tensor.hpp"
+#include "tensor/symblocked_tensor.hpp"
 #include "util/stl_ext.hpp"
 #include "util/distributed.hpp"
 #include "task/task.hpp"
@@ -37,17 +37,25 @@ namespace op
 
 struct Space
 {
-    const int nalpha;
-    const int nbeta;
+    const symmetry::PointGroup& group;
+    const std::vector<int> nalpha;
+    const std::vector<int> nbeta;
 
-    Space() : nalpha(0), nbeta(0) {}
+    Space(const symmetry::PointGroup& group)
+    : group(group), nalpha(group.getNumIrreps(), 0), nbeta(group.getNumIrreps(), 0) {}
 
-    Space(int nalpha, int nbeta) : nalpha(nalpha), nbeta(nbeta) {}
+    Space(const symmetry::PointGroup& group, const std::vector<int>& nalpha, const std::vector<int>& nbeta)
+    : group(group), nalpha(nalpha), nbeta(nbeta)
+    {
+        assert(nalpha.size() == group.getNumIrreps());
+        assert(nbeta.size() == group.getNumIrreps());
+    }
 
     Space& operator=(const Space& other)
     {
-        const_cast<int&>(nalpha) = other.nalpha;
-        const_cast<int&>(nbeta) = other.nbeta;
+        assert(group == other.group);
+        const_cast<std::vector<int>&>(nalpha).assign(other.nalpha.begin(), other.nalpha.end());
+        const_cast<std::vector<int>&>(nbeta).assign(other.nbeta.begin(), other.nbeta.end());
         return *this;
     }
 
@@ -60,14 +68,21 @@ struct Space
 template <class T>
 struct MOSpace : public Space, public task::Resource
 {
-    const int nao;
-    const tensor::DistTensor<T> Calpha;
-    const tensor::DistTensor<T> Cbeta;
+    const std::vector<int> nao;
+    const tensor::SymmetryBlockedTensor<T> Calpha;
+    const tensor::SymmetryBlockedTensor<T> Cbeta;
 
-    MOSpace(const tensor::DistTensor<T>& Calpha, const tensor::DistTensor<T>& Cbeta)
-    : Space(Calpha.getLengths()[1], Cbeta.getLengths()[1]),
+    MOSpace(const tensor::SymmetryBlockedTensor<T>& Calpha, const tensor::SymmetryBlockedTensor<T>& Cbeta)
+    : Space(Calpha.getGroup(), Calpha.getLengths()[1], Cbeta.getLengths()[1]),
       Resource(Calpha.arena),
       nao(Calpha.getLengths()[0]),
+      Calpha(Calpha),
+      Cbeta(Cbeta) {}
+
+    MOSpace(tensor::SymmetryBlockedTensor<T>* Calpha, tensor::SymmetryBlockedTensor<T>* Cbeta)
+    : Space(Calpha->getGroup(), Calpha->getLengths()[1], Cbeta->getLengths()[1]),
+      Resource(Calpha->arena),
+      nao(Calpha->getLengths()[0]),
       Calpha(Calpha),
       Cbeta(Cbeta) {}
 };

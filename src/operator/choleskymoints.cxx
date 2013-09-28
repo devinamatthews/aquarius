@@ -32,6 +32,7 @@ using namespace aquarius::input;
 using namespace aquarius::integrals;
 using namespace aquarius::op;
 using namespace aquarius::task;
+using namespace aquarius::symmetry;
 
 template <typename T>
 CholeskyMOIntegrals<T>::CholeskyMOIntegrals(const string& name, const Config& config)
@@ -46,54 +47,56 @@ void CholeskyMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     const MOSpace<T>& occ = this->template get<MOSpace<T> >("occ");
     const MOSpace<T>& vrt = this->template get<MOSpace<T> >("vrt");
 
-    const DistTensor<T>& Fa = this->template get<DistTensor<T> >("Fa");
-    const DistTensor<T>& Fb = this->template get<DistTensor<T> >("Fb");
+    const SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
+    const SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
 
     this->put("H", new TwoElectronOperator<T>(OneElectronOperator<T>(occ, vrt, Fa, Fb)));
     TwoElectronOperator<T>& H = this->template get<TwoElectronOperator<T> >("H");
 
     const CholeskyIntegrals<T>& chol = this->template get<CholeskyIntegrals<T> >("cholesky");
 
-    const DistTensor<T>& cA = vrt.Calpha;
-    const DistTensor<T>& ca = vrt.Cbeta;
-    const DistTensor<T>& cI = occ.Calpha;
-    const DistTensor<T>& ci = occ.Cbeta;
-    const DistTensor<T>& Lpq = chol.getL();
-    const DistTensor<T>& D = chol.getD();
+    const SymmetryBlockedTensor<T>& cA = vrt.Calpha;
+    const SymmetryBlockedTensor<T>& ca = vrt.Cbeta;
+    const SymmetryBlockedTensor<T>& cI = occ.Calpha;
+    const SymmetryBlockedTensor<T>& ci = occ.Cbeta;
+    const SymmetryBlockedTensor<T>& Lpq = chol.getL();
+    const SymmetryBlockedTensor<T>& D = chol.getD();
 
-    int N = occ.nao;
-    int nI = occ.nalpha;
-    int ni = occ.nbeta;
-    int nA = vrt.nalpha;
-    int na = vrt.nbeta;
+    const PointGroup& group = occ.group;
+
+    const vector<int>& N = occ.nao;
+    const vector<int>& nI = occ.nalpha;
+    const vector<int>& ni = occ.nbeta;
+    const vector<int>& nA = vrt.nalpha;
+    const vector<int>& na = vrt.nbeta;
     int R = chol.getRank();
 
-    vector<int> sizeIIR = vec(nI, nI, R);
-    vector<int> sizeiiR = vec(ni, ni, R);
-    vector<int> sizeAAR = vec(nA, nA, R);
-    vector<int> sizeaaR = vec(na, na, R);
-    vector<int> sizeAIR = vec(nA, nI, R);
-    vector<int> sizeaiR = vec(na, ni, R);
+    vector<vector<int> > sizeIIR = vec(nI, nI, vec(R));
+    vector<vector<int> > sizeiiR = vec(ni, ni, vec(R));
+    vector<vector<int> > sizeAAR = vec(nA, nA, vec(R));
+    vector<vector<int> > sizeaaR = vec(na, na, vec(R));
+    vector<vector<int> > sizeAIR = vec(nA, nI, vec(R));
+    vector<vector<int> > sizeaiR = vec(na, ni, vec(R));
 
     vector<int> shapeNNN = vec(NS, NS, NS);
 
-    DistTensor<T> LIJ(arena, 3, sizeIIR, shapeNNN, false);
-    DistTensor<T> Lij(arena, 3, sizeiiR, shapeNNN, false);
-    DistTensor<T> LAB(arena, 3, sizeAAR, shapeNNN, false);
-    DistTensor<T> Lab(arena, 3, sizeaaR, shapeNNN, false);
-    DistTensor<T> LAI(arena, 3, sizeAIR, shapeNNN, false);
-    DistTensor<T> Lai(arena, 3, sizeaiR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LIJ(arena, group, 3, sizeIIR, shapeNNN, false);
+    SymmetryBlockedTensor<T> Lij(arena, group, 3, sizeiiR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LAB(arena, group, 3, sizeAAR, shapeNNN, false);
+    SymmetryBlockedTensor<T> Lab(arena, group, 3, sizeaaR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LAI(arena, group, 3, sizeAIR, shapeNNN, false);
+    SymmetryBlockedTensor<T> Lai(arena, group, 3, sizeaiR, shapeNNN, false);
 
     {
-        vector<int> sizeNIR = vec(N, nI, R);
-        vector<int> sizeNiR = vec(N, ni, R);
-        vector<int> sizeNAR = vec(N, nA, R);
-        vector<int> sizeNaR = vec(N, na, R);
+        vector<vector<int> > sizeNIR = vec(N, nI, vec(R));
+        vector<vector<int> > sizeNiR = vec(N, ni, vec(R));
+        vector<vector<int> > sizeNAR = vec(N, nA, vec(R));
+        vector<vector<int> > sizeNaR = vec(N, na, vec(R));
 
-        DistTensor<T> LpI(arena, 3, sizeNIR, shapeNNN, false);
-        DistTensor<T> Lpi(arena, 3, sizeNiR, shapeNNN, false);
-        DistTensor<T> LpA(arena, 3, sizeNAR, shapeNNN, false);
-        DistTensor<T> Lpa(arena, 3, sizeNaR, shapeNNN, false);
+        SymmetryBlockedTensor<T> LpI(arena, group, 3, sizeNIR, shapeNNN, false);
+        SymmetryBlockedTensor<T> Lpi(arena, group, 3, sizeNiR, shapeNNN, false);
+        SymmetryBlockedTensor<T> LpA(arena, group, 3, sizeNAR, shapeNNN, false);
+        SymmetryBlockedTensor<T> Lpa(arena, group, 3, sizeNaR, shapeNNN, false);
 
         LpI["pIR"] = Lpq["pqR"]*cI["qI"];
         Lpi["piR"] = Lpq["pqR"]*ci["qi"];
@@ -108,12 +111,12 @@ void CholeskyMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
         Lab["abR"] = Lpa["pbR"]*ca["pa"];
     }
 
-    DistTensor<T> LDIJ(arena, 3, sizeIIR, shapeNNN, false);
-    DistTensor<T> LDij(arena, 3, sizeiiR, shapeNNN, false);
-    DistTensor<T> LDAB(arena, 3, sizeAAR, shapeNNN, false);
-    DistTensor<T> LDab(arena, 3, sizeaaR, shapeNNN, false);
-    DistTensor<T> LDAI(arena, 3, sizeAIR, shapeNNN, false);
-    DistTensor<T> LDai(arena, 3, sizeaiR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LDIJ(arena, group, 3, sizeIIR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LDij(arena, group, 3, sizeiiR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LDAB(arena, group, 3, sizeAAR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LDab(arena, group, 3, sizeaaR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LDAI(arena, group, 3, sizeAIR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LDai(arena, group, 3, sizeaiR, shapeNNN, false);
 
     LDIJ["IJR"] = D["R"]*LIJ["IJR"];
     LDij["ijR"] = D["R"]*Lij["ijR"];

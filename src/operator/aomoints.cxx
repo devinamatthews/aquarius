@@ -37,6 +37,7 @@ using namespace aquarius::tensor;
 using namespace aquarius::input;
 using namespace aquarius::integrals;
 using namespace aquarius::task;
+using namespace aquarius::symmetry;
 
 template <typename T>
 AOMOIntegrals<T>::AOMOIntegrals(const string& name, const Config& config)
@@ -572,24 +573,24 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     const MOSpace<T>& occ = this->template get<MOSpace<T> >("occ");
     const MOSpace<T>& vrt = this->template get<MOSpace<T> >("vrt");
 
-    const DistTensor<T>& Fa = this->template get<DistTensor<T> >("Fa");
-    const DistTensor<T>& Fb = this->template get<DistTensor<T> >("Fb");
+    const SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
+    const SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
 
     this->put("H", new TwoElectronOperator<T>(OneElectronOperator<T>(occ, vrt, Fa, Fb)));
     TwoElectronOperator<T>& H = this->template get<TwoElectronOperator<T> >("H");
 
     const ERI& ints = this->template get<ERI>("I");
 
-    const DistTensor<T>& cA_ = vrt.Calpha;
-    const DistTensor<T>& ca_ = vrt.Cbeta;
-    const DistTensor<T>& cI_ = occ.Calpha;
-    const DistTensor<T>& ci_ = occ.Cbeta;
+    const DistTensor<T>& cA_ = vrt.Calpha(0);
+    const DistTensor<T>& ca_ = vrt.Cbeta(0);
+    const DistTensor<T>& cI_ = occ.Calpha(0);
+    const DistTensor<T>& ci_ = occ.Cbeta(0);
 
-    int N = occ.nao;
-    int nI = occ.nalpha;
-    int ni = occ.nbeta;
-    int nA = vrt.nalpha;
-    int na = vrt.nbeta;
+    int N = occ.nao[0];
+    int nI = occ.nalpha[0];
+    int ni = occ.nbeta[0];
+    int nA = vrt.nalpha[0];
+    int na = vrt.nbeta[0];
 
     DistTensor<T> ABIJ__(arena, 4, vec(nA,nA,nI,nI), vec(NS,NS,NS,NS), false);
     DistTensor<T> abij__(arena, 4, vec(na,na,ni,ni), vec(NS,NS,NS,NS), false);
@@ -652,7 +653,7 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals CDAB = RDAB.transform(A, 'N', nA, cA.data(), N);
     RDAB.free();
     PROFILE_SECTION(j)
-    CDAB.transcribe(H.getABCD()(vec(2,0),vec(2,0)), true, true, NONE);
+    CDAB.transcribe(H.getABCD()(vec(2,0),vec(2,0))(0), true, true, NONE);
     PROFILE_STOP
     CDAB.free();
 
@@ -670,14 +671,14 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals CDab = RDab.transform(A, 'N', nA, cA.data(), N);
     RDab.free();
     PROFILE_SECTION(k)
-    CDab.transcribe(H.getABCD()(vec(1,0),vec(1,0)), false, false, NONE);
+    CDab.transcribe(H.getABCD()(vec(1,0),vec(1,0))(0), false, false, NONE);
     PROFILE_STOP
     CDab.free();
 
     abrs_integrals cdab = Rdab.transform(A, 'N', na, ca.data(), N);
     Rdab.free();
     PROFILE_SECTION(l)
-    cdab.transcribe(H.getABCD()(vec(0,0),vec(0,0)), true, true, NONE);
+    cdab.transcribe(H.getABCD()(vec(0,0),vec(0,0))(0), true, true, NONE);
     PROFILE_STOP
     cdab.free();
 
@@ -696,14 +697,14 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals BCAI = RCAI.transform(A, 'N', nA, cA.data(), N);
     RCAI.free();
     PROFILE_SECTION(m)
-    BCAI.transcribe(H.getABCI()(vec(2,0),vec(1,1)), true, false, NONE);
+    BCAI.transcribe(H.getABCI()(vec(2,0),vec(1,1))(0), true, false, NONE);
     PROFILE_STOP
     BCAI.free();
 
     abrs_integrals bcAI = RcAI.transform(A, 'N', na, ca.data(), N);
     RcAI.free();
     PROFILE_SECTION(n)
-    bcAI.transcribe(H.getABCI()(vec(1,0),vec(0,1)), false, false, PQ);
+    bcAI.transcribe(H.getABCI()(vec(1,0),vec(0,1))(0), false, false, PQ);
     PROFILE_STOP
     bcAI.free();
 
@@ -730,21 +731,21 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals BCai = RCai.transform(A, 'N', nA, cA.data(), N);
     RCai.free();
     PROFILE_SECTION(p)
-    BCai.transcribe(H.getABCI()(vec(1,0),vec(1,0)), false, false, NONE);
+    BCai.transcribe(H.getABCI()(vec(1,0),vec(1,0))(0), false, false, NONE);
     PROFILE_STOP
     BCai.free();
 
     abrs_integrals bcai = Rcai.transform(A, 'N', na, ca.data(), N);
     Rcai.free();
     PROFILE_SECTION(q)
-    bcai.transcribe(H.getABCI()(vec(0,0),vec(0,0)), true, false, NONE);
+    bcai.transcribe(H.getABCI()(vec(0,0),vec(0,0))(0), true, false, NONE);
     PROFILE_STOP
     bcai.free();
 
     abrs_integrals BJai = RJai.transform(A, 'N', nA, cA.data(), N);
     RJai.free();
     PROFILE_SECTION(r)
-    BJai.transcribe(H.getABIJ()(vec(1,0),vec(0,1)), false, false, NONE);
+    BJai.transcribe(H.getABIJ()(vec(1,0),vec(0,1))(0), false, false, NONE);
     PROFILE_STOP
     BJai.free();
 
@@ -771,21 +772,21 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals ABIJ = RBIJ.transform(A, 'N', nA, cA.data(), N);
     RBIJ.free();
     PROFILE_SECTION(t)
-    ABIJ.transcribe(H.getAIBJ()(vec(1,1),vec(1,1)), false, false, NONE);
+    ABIJ.transcribe(H.getAIBJ()(vec(1,1),vec(1,1))(0), false, false, NONE);
     PROFILE_STOP
     ABIJ.free();
 
     abrs_integrals abIJ = RbIJ.transform(A, 'N', na, ca.data(), N);
     RbIJ.free();
     PROFILE_SECTION(u)
-    abIJ.transcribe(H.getAIBJ()(vec(0,1),vec(0,1)), false, false, NONE);
+    abIJ.transcribe(H.getAIBJ()(vec(0,1),vec(0,1))(0), false, false, NONE);
     PROFILE_STOP
     abIJ.free();
 
     abrs_integrals akIJ = RlIJ.transform(A, 'N', na, ca.data(), N);
     RlIJ.free();
     PROFILE_SECTION(v)
-    akIJ.transcribe(H.getAIJK()(vec(0,1),vec(0,1)), false, false, RS);
+    akIJ.transcribe(H.getAIJK()(vec(0,1),vec(0,1))(0), false, false, RS);
     PROFILE_STOP
     akIJ.free();
 
@@ -793,11 +794,11 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals KLIJ = RLIJ.transform(A, 'N', nI, cI.data(), N);
     RLIJ.free();
     PROFILE_SECTION(w)
-    AKIJ.transcribe(H.getAIJK()(vec(1,1),vec(0,2)), false, true, NONE);
+    AKIJ.transcribe(H.getAIJK()(vec(1,1),vec(0,2))(0), false, true, NONE);
     PROFILE_STOP
     AKIJ.free();
     PROFILE_SECTION(x)
-    KLIJ.transcribe(H.getIJKL()(vec(0,2),vec(0,2)), true, true, NONE);
+    KLIJ.transcribe(H.getIJKL()(vec(0,2),vec(0,2))(0), true, true, NONE);
     PROFILE_STOP
     KLIJ.free();
 
@@ -817,14 +818,14 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals ABij = RBij.transform(A, 'N', nA, cA.data(), N);
     RBij.free();
     PROFILE_SECTION(a)
-    ABij.transcribe(H.getAIBJ()(vec(1,0),vec(1,0)), false, false, NONE);
+    ABij.transcribe(H.getAIBJ()(vec(1,0),vec(1,0))(0), false, false, NONE);
     PROFILE_STOP
     ABij.free();
 
     abrs_integrals abij = Rbij.transform(A, 'N', na, ca.data(), N);
     Rbij.free();
     PROFILE_SECTION(b)
-    abij.transcribe(H.getAIBJ()(vec(0,0),vec(0,0)), false, false, NONE);
+    abij.transcribe(H.getAIBJ()(vec(0,0),vec(0,0))(0), false, false, NONE);
     PROFILE_STOP
     abij.free();
 
@@ -832,11 +833,11 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals KLij = RLij.transform(A, 'N', nI, cI.data(), N);
     RLij.free();
     PROFILE_SECTION(c)
-    AKij.transcribe(H.getAIJK()(vec(1,0),vec(0,1)), false, false, NONE);
+    AKij.transcribe(H.getAIJK()(vec(1,0),vec(0,1))(0), false, false, NONE);
     PROFILE_STOP
     AKij.free();
     PROFILE_SECTION(d)
-    KLij.transcribe(H.getIJKL()(vec(0,1),vec(0,1)), false, false, NONE);
+    KLij.transcribe(H.getIJKL()(vec(0,1),vec(0,1))(0), false, false, NONE);
     PROFILE_STOP
     KLij.free();
 
@@ -844,13 +845,29 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals klij = Rlij.transform(A, 'N', ni, ci.data(), N);
     Rlij.free();
     PROFILE_SECTION(e)
-    akij.transcribe(H.getAIJK()(vec(0,0),vec(0,0)), false, true, NONE);
+    akij.transcribe(H.getAIJK()(vec(0,0),vec(0,0))(0), false, true, NONE);
     PROFILE_STOP
     akij.free();
     PROFILE_SECTION(f)
-    klij.transcribe(H.getIJKL()(vec(0,0),vec(0,0)), true, true, NONE);
+    klij.transcribe(H.getIJKL()(vec(0,0),vec(0,0))(0), true, true, NONE);
     PROFILE_STOP
     klij.free();
+
+    /*
+     * Make <AI||BJ> and <ai||bj>
+     */
+    PROFILE_SECTION(g)
+    H.getAIBJ()(vec(1,1),vec(1,1))(0)["AIBJ"] -= ABIJ__["ABJI"];
+    H.getAIBJ()(vec(0,0),vec(0,0))(0)["aibj"] -= abij__["abji"];
+    PROFILE_STOP
+
+    /*
+     * Make <AB||IJ> and <ab||ij>
+     */
+    PROFILE_SECTION(h)
+    H.getABIJ()(vec(2,0),vec(0,2))(0)["ABIJ"] = 0.5*ABIJ__["ABIJ"];
+    H.getABIJ()(vec(0,0),vec(0,0))(0)["abij"] = 0.5*abij__["abij"];
+    PROFILE_STOP
 
     H.getIJAK()(vec(0,2),vec(1,1))["JKAI"] = H.getAIJK()(vec(1,1),vec(0,2))["AIJK"];
     H.getIJAK()(vec(0,1),vec(1,0))["JkAi"] = H.getAIJK()(vec(1,0),vec(0,1))["AiJk"];
@@ -861,22 +878,6 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     H.getAIBC()(vec(1,0),vec(1,0))["AiBc"] = H.getABCI()(vec(1,0),vec(1,0))["BcAi"];
     H.getAIBC()(vec(0,1),vec(1,0))["aIBc"] = H.getABCI()(vec(1,0),vec(0,1))["BcaI"];
     H.getAIBC()(vec(0,0),vec(0,0))["aibc"] = H.getABCI()(vec(0,0),vec(0,0))["bcai"];
-
-    /*
-     * Make <AI||BJ> and <ai||bj>
-     */
-    PROFILE_SECTION(g)
-    H.getAIBJ()(vec(1,1),vec(1,1))["AIBJ"] -= ABIJ__["ABJI"];
-    H.getAIBJ()(vec(0,0),vec(0,0))["aibj"] -= abij__["abji"];
-    PROFILE_STOP
-
-    /*
-     * Make <AB||IJ> and <ab||ij>
-     */
-    PROFILE_SECTION(h)
-    H.getABIJ()(vec(2,0),vec(0,2))["ABIJ"] = 0.5*ABIJ__["ABIJ"];
-    H.getABIJ()(vec(0,0),vec(0,0))["abij"] = 0.5*abij__["abij"];
-    PROFILE_STOP
 
     H.getIJAB()(vec(0,2),vec(2,0))["IJAB"] = H.getABIJ()(vec(2,0),vec(0,2))["ABIJ"];
     H.getIJAB()(vec(0,1),vec(1,0))["IjAb"] = H.getABIJ()(vec(1,0),vec(0,1))["AbIj"];

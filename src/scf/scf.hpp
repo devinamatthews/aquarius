@@ -30,7 +30,7 @@
 #include <complex>
 #include <iomanip>
 
-#include "tensor/dist_tensor.hpp"
+#include "tensor/symblocked_tensor.hpp"
 #include "integrals/1eints.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
@@ -52,9 +52,11 @@ template <typename T>
 class UHF : public Iterative
 {
     protected:
-				bool frozen_core;
+        bool frozen_core;
         T damping;
-        aquarius::convergence::DIIS< tensor::DistTensor<T> > diis;
+        std::vector<int> occ_alpha, occ_beta;
+        std::vector<std::vector<typename std::real_type<T>::type> > E_alpha, E_beta;
+        aquarius::convergence::DIIS< tensor::SymmetryBlockedTensor<T> > diis;
 
     public:
         UHF(const std::string& type, const std::string& name, const input::Config& config);
@@ -69,8 +71,6 @@ class UHF : public Iterative
         void calcS2();
 
         void diagonalizeFock();
-
-        void fixPhase(tensor::DistTensor<T>& C);
 
         virtual void buildFock() = 0;
 

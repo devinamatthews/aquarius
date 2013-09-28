@@ -27,6 +27,8 @@
 
 #include <stdint.h>
 #include <cassert>
+#include <cfloat>
+#include <cmath>
 
 #include "util/math_ext.h"
 
@@ -137,6 +139,7 @@ class PointGroup
         const char **op_names;
         std::vector<int> op_inverse;
         std::vector<int> op_product;
+        std::vector<Representation> irreps;
 
         PointGroup(int order, int nirrep, int ngenerators, const char *name,
                    const char **irrep_names, const int *generators, const double *generator_reps,
@@ -166,7 +169,7 @@ class PointGroup
         /*
          * Get the chacter representation of the given irrep
          */
-        Representation getIrrep(int i) const;
+        const Representation& getIrrep(int i) const;
 
         /*
          * Get the representation of the given row of the given irrep
@@ -190,8 +193,67 @@ class PointGroup
 
         int getOpProduct(int i, int j) const { return op_product[i*order+j]; }
 
-        Representation totallySymmetricIrrep() const { return getIrrep(0); }
+        const Representation& totallySymmetricIrrep() const { return getIrrep(0); }
 };
+
+inline mat3x3 Rotation(vec3 axis, double degrees)
+{
+    axis.normalize();
+    double c = cos(degrees*M_PI/180);
+    double s = sin(degrees*M_PI/180);
+    double x = axis[0];
+    double y = axis[1];
+    double z = axis[2];
+    return mat3x3(x*x*(1-c)+c  , x*y*(1-c)-z*s, x*z*(1-c)+y*s,
+                  x*y*(1-c)+z*s, y*y*(1-c)+c  , y*z*(1-c)-x*s,
+                  x*z*(1-c)-y*s, y*z*(1-c)+x*s, z*z*(1-c)+c  );
+}
+
+inline mat3x3 Rotation(vec3 a, vec3 b)
+{
+    a.normalize();
+    b.normalize();
+    vec3 axis = a^b;
+    double cost = a*b;
+    return cost+(b|a)-(a|b)+(1-cost)*(axis|axis)/(axis*axis+DBL_MIN);
+}
+
+inline mat3x3 Reflection(vec3 axis)
+{
+    axis.normalize();
+    double x = axis[0];
+    double y = axis[1];
+    double z = axis[2];
+    return mat3x3(1-2*x*x,  -2*x*y,  -2*x*z,
+                   -2*x*y, 1-2*y*y,  -2*y*z,
+                   -2*x*z,  -2*y*z, 1-2*z*z);
+}
+
+inline mat3x3 Identity()
+{
+    return mat3x3(1, 0, 0,
+                  0, 1, 0,
+                  0, 0, 1);
+}
+
+inline mat3x3 Inversion()
+{
+    return mat3x3(-1,  0,  0,
+                   0, -1,  0,
+                   0,  0, -1);
+}
+
+template <int n>
+mat3x3 C(const vec3& axis)
+{
+    return Rotation(axis, 360.0/n);
+}
+
+template <int n>
+mat3x3 S(const vec3& axis)
+{
+    return Rotation(axis, 360.0/n)*Reflection(axis);
+}
 
 }
 }

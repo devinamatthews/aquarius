@@ -33,6 +33,52 @@ template class name<std::complex<double> >; \
 template class name<std::complex<float> >;
 */
 
+#ifdef __cplusplus
+
+#include <algorithm>
+#include <cstdio>
+
+inline void printmatrix(int nc, int nr, const double *m,
+                        int width, int prec, int maxwidth)
+{
+    if (nr == 0 || nc == 0)
+    {
+        printf("{empty}\n");
+        return;
+    }
+
+    width = std::max(width,prec+3);
+
+    int maxcol = std::max(1,(maxwidth-3-2)/(width+1));
+
+    for (int cb = 0;cb < nc;cb += maxcol)
+    {
+        printf("     ");
+        for (int c = cb;c < std::min(nc,cb+maxcol);c++)
+        {
+            printf(" %*d", width, c+1);
+        }
+        printf("\n");
+
+        printf("    +");
+        for (int i = 0;i < std::min(nc-cb,maxcol)*(width+1);i++) printf("-");
+        printf("\n");
+
+        for (int r = 0;r < nr;r++)
+        {
+            printf("%3d |", r+1);
+            for (int c = cb;c < std::min(nc,cb+maxcol);c++)
+            {
+                printf(" % *.*f", width, prec, m[c*nr+r]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
+}
+
+#endif
+
 #define INSTANTIATE_SPECIALIZATIONS(name) \
 template class name<double>;
 

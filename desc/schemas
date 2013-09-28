@@ -10,6 +10,8 @@ molecule
 		int 1,
 	charge?
 		int 0,
+	symmetry?
+		bool true,
 	atom+
 	{
 		basis_set? string,

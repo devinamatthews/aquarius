@@ -304,7 +304,7 @@ void OneElectronIntegrals::ao2so2(size_t nother, int r, double* aointegrals, dou
                     int w = a.getIrrepOfFunc(i,e);
                     int x = b.getIrrepOfFunc(j,f);
 
-                    if (!(group.getIrrep(w)*group.getIrrep(w)).isTotallySymmetric()) continue;
+                    if (!(group.getIrrep(w)*group.getIrrep(x)).isTotallySymmetric()) continue;
 
                     double fac = b.getParity(j,r)*group.character(x,r);
                     axpy(nother, fac, aointegrals, 1, sointegrals, 1);
@@ -444,11 +444,20 @@ void OneElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
 {
     const Molecule& molecule = get<Molecule>("molecule");
 
-    Context ctx;
+    Context ctx(Context::ISCF);
+
+    const vector<int>& N = molecule.getNumOrbitals();
+    int n = molecule.getGroup().getNumIrreps();
+
+    vector<int> irrep;
+    for (int i = 0;i < n;i++) irrep += vector<int>(N[i],i);
+
+    vector<uint16_t> start(n,0);
+    for (int i = 1;i < n;i++) start[i] = start[i-1]+N[i-1];
 
     vector<vector<int> > idx = Shell::setupIndices(ctx, molecule);
     vector<Shell> shells(molecule.getShellsBegin(), molecule.getShellsEnd());
-    vector<tkv_pair<double> > ovi_pairs, nai_pairs, kei_pairs;
+    vector<vector<tkv_pair<double> > > ovi_pairs(n), nai_pairs(n), kei_pairs(n);
     vector<Center> centers;
 
     for (vector<Atom>::const_iterator i = molecule.getAtomsBegin();i != molecule.getAtomsEnd();++i)
@@ -473,33 +482,42 @@ void OneElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
                 size_t nproc;
 
                 nproc = s.process(ctx, idx[a], idx[b], nint, ints.data(), idxs.data());
-                for (int i = 0;i < nproc;i++)
+                for (int k = 0;k < nproc;k++)
                 {
-                    ovi_pairs.push_back(tkv_pair<double>(idxs[i].i*molecule.getNumOrbitals()+idxs[i].j, ints[i]));
-                    if (idxs[i].i != idxs[i].j)
-                    {
-                        ovi_pairs.push_back(tkv_pair<double>(idxs[i].j*molecule.getNumOrbitals()+idxs[i].i, ints[i]));
-                    }
+                    int irr = irrep[idxs[k].i];
+                    assert(irr == irrep[idxs[k].j]);
+
+                    uint16_t i = idxs[k].i-start[irr];
+                    uint16_t j = idxs[k].j-start[irr];
+
+                                ovi_pairs[irr].push_back(tkv_pair<double>(i*N[irr]+j, ints[k]));
+                    if (i != j) ovi_pairs[irr].push_back(tkv_pair<double>(j*N[irr]+i, ints[k]));
                 }
 
                 nproc = t.process(ctx, idx[a], idx[b], nint, ints.data(), idxs.data());
-                for (int i = 0;i < nproc;i++)
+                for (int k = 0;k < nproc;k++)
                 {
-                    kei_pairs.push_back(tkv_pair<double>(idxs[i].i*molecule.getNumOrbitals()+idxs[i].j, ints[i]));
-                    if (idxs[i].i != idxs[i].j)
-                    {
-                        kei_pairs.push_back(tkv_pair<double>(idxs[i].j*molecule.getNumOrbitals()+idxs[i].i, ints[i]));
-                    }
+                    int irr = irrep[idxs[k].i];
+                    assert(irr == irrep[idxs[k].j]);
+
+                    uint16_t i = idxs[k].i-start[irr];
+                    uint16_t j = idxs[k].j-start[irr];
+
+                                kei_pairs[irr].push_back(tkv_pair<double>(i*N[irr]+j, ints[k]));
+                    if (i != j) kei_pairs[irr].push_back(tkv_pair<double>(j*N[irr]+i, ints[k]));
                 }
 
                 nproc = g.process(ctx, idx[a], idx[b], nint, ints.data(), idxs.data());
-                for (int i = 0;i < nproc;i++)
+                for (int k = 0;k < nproc;k++)
                 {
-                    nai_pairs.push_back(tkv_pair<double>(idxs[i].i*molecule.getNumOrbitals()+idxs[i].j, ints[i]));
-                    if (idxs[i].i != idxs[i].j)
-                    {
-                        nai_pairs.push_back(tkv_pair<double>(idxs[i].j*molecule.getNumOrbitals()+idxs[i].i, ints[i]));
-                    }
+                    int irr = irrep[idxs[k].i];
+                    assert(irr == irrep[idxs[k].j]);
+
+                    uint16_t i = idxs[k].i-start[irr];
+                    uint16_t j = idxs[k].j-start[irr];
+
+                                nai_pairs[irr].push_back(tkv_pair<double>(i*N[irr]+j, ints[k]));
+                    if (i != j) nai_pairs[irr].push_back(tkv_pair<double>(j*N[irr]+i, ints[k]));
                 }
             }
 
@@ -507,18 +525,20 @@ void OneElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
         }
     }
 
-    OVI *ovi = new OVI(arena, molecule.getNumOrbitals());
-    ovi->writeRemoteData(ovi_pairs);
+    OVI *ovi = new OVI(arena, molecule.getGroup(), N);
+    KEI *kei = new KEI(arena, molecule.getGroup(), N);
+    NAI *nai = new NAI(arena, molecule.getGroup(), N);
+    OneElectronHamiltonian *oeh = new OneElectronHamiltonian(arena, molecule.getGroup(), N);
 
-    KEI *kei = new KEI(arena, molecule.getNumOrbitals());
-    kei->writeRemoteData(kei_pairs);
-
-    NAI *nai = new NAI(arena, molecule.getNumOrbitals());
-    nai->writeRemoteData(nai_pairs);
-
-    OneElectronHamiltonian *oeh = new OneElectronHamiltonian(arena, molecule.getNumOrbitals());
-    oeh->writeRemoteData(kei_pairs);
-    oeh->writeRemoteData(1.0, 1.0, nai_pairs);
+    for (int i = 0;i < n;i++)
+    {
+        vector<int> irreps(2,i);
+        (*ovi)(irreps).writeRemoteData(ovi_pairs[i]);
+        (*kei)(irreps).writeRemoteData(kei_pairs[i]);
+        (*nai)(irreps).writeRemoteData(nai_pairs[i]);
+        (*oeh)(irreps).writeRemoteData(kei_pairs[i]);
+        (*oeh)(irreps).writeRemoteData(1.0, 1.0, nai_pairs[i]);
+    }
 
     put("S", ovi);
     put("T", kei);

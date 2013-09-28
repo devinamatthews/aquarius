@@ -50,37 +50,58 @@ void AOUHF<T>::buildFock()
     const Molecule& molecule =this->template get<Molecule>("molecule");
     const ERI& ints = this->template get<ERI>("I");
 
-    int norb = molecule.getNumOrbitals();
+    const vector<int>& norb = molecule.getNumOrbitals();
+    int nirrep = molecule.getGroup().getNumIrreps();
 
-    DistTensor<T>& H = this->template get<DistTensor<T> >("H");
-    DistTensor<T>& Da = this->template get<DistTensor<T> >("Da");
-    DistTensor<T>& Db = this->template get<DistTensor<T> >("Db");
-    DistTensor<T>& Fa = this->template get<DistTensor<T> >("Fa");
-    DistTensor<T>& Fb = this->template get<DistTensor<T> >("Fb");
+    vector<int> irrep;
+    for (int i = 0;i < nirrep;i++) irrep += vector<int>(norb[i],i);
+
+    vector<int> start(nirrep,0);
+    for (int i = 1;i < nirrep;i++) start[i] = start[i-1]+norb[i-1];
+
+    SymmetryBlockedTensor<T>& H = this->template get<SymmetryBlockedTensor<T> >("H");
+    SymmetryBlockedTensor<T>& Da = this->template get<SymmetryBlockedTensor<T> >("Da");
+    SymmetryBlockedTensor<T>& Db = this->template get<SymmetryBlockedTensor<T> >("Db");
+    SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
+    SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
 
     Arena& arena = H.arena;
 
-    vector<T> focka, fockb;
-    vector<T> densa, densb;
+    vector<vector<T> > focka(nirrep), fockb(nirrep);
+    vector<vector<T> > densa(nirrep), densb(nirrep);
+    vector<vector<T> > densab(nirrep);
 
-    H.getAllData(focka, 0);
-    assert(arena.rank != 0 || focka.size() == norb*norb);
-    H.getAllData(fockb, 0);
-    assert(arena.rank != 0 || focka.size() == norb*norb);
-
-    if (arena.rank != 0)
+    for (int i = 0;i < nirrep;i++)
     {
-        focka.resize(norb*norb, (T)0);
-        fockb.resize(norb*norb, (T)0);
+        vector<int> irreps(2,i);
+
+        if (arena.rank == 0)
+        {
+            H(irreps).getAllData(focka[i],0);
+            assert(focka[i].size() == norb[i]*norb[i]);
+            fockb[i] = focka[i];
+        }
+        else
+        {
+            H(irreps).getAllData(0);
+            focka[i].resize(norb[i]*norb[i], (T)0);
+            fockb[i].resize(norb[i]*norb[i], (T)0);
+        }
+
+        Da(irreps).getAllData(densa[i]);
+        assert(densa[i].size() == norb[i]*norb[i]);
+        Db(irreps).getAllData(densb[i]);
+        assert(densa[i].size() == norb[i]*norb[i]);
+
+        densab[i] = densa[i];
+        axpy(norb[i]*norb[i], 1.0, densb[i].data(), 1, densab[i].data(), 1);
+
+        if (Da.norm(2) > 1e-10)
+        {
+            //fill(focka[i].begin(), focka[i].end(), 0.0);
+            //fill(fockb[i].begin(), fockb[i].end(), 0.0);
+        }
     }
-
-    Da.getAllData(densa);
-    assert(densa.size() == norb*norb);
-    Db.getAllData(densb);
-    assert(densa.size() == norb*norb);
-
-    vector<T> densab(densa);
-    axpy(norb*norb, 1.0, densb.data(), 1, densab.data(), 1);
 
     const vector<T>& eris = ints.ints;
     const vector<idx4_t>& idxs = ints.idxs;
@@ -93,15 +114,28 @@ void AOUHF<T>::buildFock()
         size_t n0 = (neris*tid)/nt;
         size_t n1 = (neris*(tid+1))/nt;
 
-        vector<T> focka_local(norb*norb, (T)0);
-        vector<T> fockb_local(norb*norb, (T)0);
+        vector<vector<T> > focka_local(nirrep);
+        vector<vector<T> > fockb_local(nirrep);
+
+        for (int i = 0;i < nirrep;i++)
+        {
+            focka_local[i].resize(norb[i]*norb[i], (T)0);
+            fockb_local[i].resize(norb[i]*norb[i], (T)0);
+        }
 
         for (size_t n = n0;n < n1;n++)
         {
-            int i = idxs[n].i;
-            int j = idxs[n].j;
-            int k = idxs[n].k;
-            int l = idxs[n].l;
+            int irri = irrep[idxs[n].i];
+            int irrj = irrep[idxs[n].j];
+            int irrk = irrep[idxs[n].k];
+            int irrl = irrep[idxs[n].l];
+
+            if (irri != irrj && irri != irrk && irri != irrl) continue;
+
+            int i = idxs[n].i-start[irri];
+            int j = idxs[n].j-start[irrj];
+            int k = idxs[n].k-start[irrk];
+            int l = idxs[n].l-start[irrl];
 
             /*
             if (i < j)
@@ -120,9 +154,12 @@ void AOUHF<T>::buildFock()
             printf("%d %d %d %d %25.15e\n", i+1, j+1, k+1, l+1, eris[n].value);
             */
 
-            bool ieqj = i == j;
-            bool keql = k == l;
-            bool ijeqkl = min(i,j) == min(k,l) && max(i,j) == max(k,l);
+            bool ieqj = i == j && irri == irrj;
+            bool keql = k == l && irrk == irrl;
+            bool ijeqkl = i == k && irri == irrk && j == l && irrj == irrl;
+
+            //cout << irri << " " << irrj << " " << irrk << " " << irrl << " "
+            //        << i << " " << j << " " << k << " " << l << endl;
 
             /*
              * Exchange contribution: Fa(ac) -= Da(bd)*(ab|cd)
@@ -130,21 +167,27 @@ void AOUHF<T>::buildFock()
 
             T e = 2.0*eris[n]*(ijeqkl ? 0.5 : 1.0);
 
-            focka_local[i+k*norb] -= densa[j+l*norb]*e;
-            fockb_local[i+k*norb] -= densb[j+l*norb]*e;
-            if (!keql)
+            if (irri == irrk && irrj == irrl)
             {
-                focka_local[i+l*norb] -= densa[j+k*norb]*e;
-                fockb_local[i+l*norb] -= densb[j+k*norb]*e;
+                focka_local[irri][i+k*norb[irri]] -= densa[irrj][j+l*norb[irrj]]*e;
+                fockb_local[irri][i+k*norb[irri]] -= densb[irrj][j+l*norb[irrj]]*e;
+            }
+            if (!keql && irri == irrl && irrj == irrk)
+            {
+                focka_local[irri][i+l*norb[irri]] -= densa[irrj][j+k*norb[irrj]]*e;
+                fockb_local[irri][i+l*norb[irri]] -= densb[irrj][j+k*norb[irrj]]*e;
             }
             if (!ieqj)
             {
-                focka_local[j+k*norb] -= densa[i+l*norb]*e;
-                fockb_local[j+k*norb] -= densb[i+l*norb]*e;
-                if (!keql)
+                if (irri == irrl && irrj == irrk)
                 {
-                    focka_local[j+l*norb] -= densa[i+k*norb]*e;
-                    fockb_local[j+l*norb] -= densb[i+k*norb]*e;
+                    focka_local[irrj][j+k*norb[irrj]] -= densa[irri][i+l*norb[irri]]*e;
+                    fockb_local[irrj][j+k*norb[irrj]] -= densb[irri][i+l*norb[irri]]*e;
+                }
+                if (!keql && irri == irrk && irrj == irrl)
+                {
+                    focka_local[irrj][j+l*norb[irrj]] -= densa[irri][i+k*norb[irri]]*e;
+                    fockb_local[irrj][j+l*norb[irrj]] -= densb[irri][i+k*norb[irri]]*e;
                 }
             }
 
@@ -154,60 +197,74 @@ void AOUHF<T>::buildFock()
 
             e = 2.0*e*(keql ? 0.5 : 1.0)*(ieqj ? 0.5 : 1.0);
 
-            focka_local[i+j*norb] += densab[k+l*norb]*e;
-            fockb_local[i+j*norb] += densab[k+l*norb]*e;
-            focka_local[k+l*norb] += densab[i+j*norb]*e;
-            fockb_local[k+l*norb] += densab[i+j*norb]*e;
+            if (irri == irrj && irrk == irrl)
+            {
+                focka_local[irri][i+j*norb[irri]] += densab[irrk][k+l*norb[irrk]]*e;
+                fockb_local[irri][i+j*norb[irri]] += densab[irrk][k+l*norb[irrk]]*e;
+                focka_local[irrk][k+l*norb[irrk]] += densab[irri][i+j*norb[irri]]*e;
+                fockb_local[irrk][k+l*norb[irrk]] += densab[irri][i+j*norb[irri]]*e;
+            }
         }
 
         #pragma omp critical
         {
-            axpy(norb*norb, (T)1, focka_local.data(), 1, focka.data(), 1);
-            axpy(norb*norb, (T)1, fockb_local.data(), 1, fockb.data(), 1);
+            for (int irr = 0;irr < nirrep;irr++)
+            {
+                axpy(norb[irr]*norb[irr], (T)1, focka_local[irr].data(), 1, focka[irr].data(), 1);
+                axpy(norb[irr]*norb[irr], (T)1, fockb_local[irr].data(), 1, fockb[irr].data(), 1);
+            }
         }
     }
 
-    for (int i = 0;i < norb;i++)
+    for (int irr = 0;irr < nirrep;irr++)
     {
-        for (int j = 0;j < i;j++)
+        for (int i = 0;i < norb[irr];i++)
         {
-            focka[i+j*norb] = 0.5*(focka[i+j*norb]+focka[j+i*norb]);
-            focka[j+i*norb] = focka[i+j*norb];
-            fockb[i+j*norb] = 0.5*(fockb[i+j*norb]+fockb[j+i*norb]);
-            fockb[j+i*norb] = fockb[i+j*norb];
+            for (int j = 0;j < i;j++)
+            {
+                focka[irr][i+j*norb[irr]] = 0.5*(focka[irr][i+j*norb[irr]]+focka[irr][j+i*norb[irr]]);
+                focka[irr][j+i*norb[irr]] = focka[irr][i+j*norb[irr]];
+                fockb[irr][i+j*norb[irr]] = 0.5*(fockb[irr][i+j*norb[irr]]+fockb[irr][j+i*norb[irr]]);
+                fockb[irr][j+i*norb[irr]] = fockb[irr][i+j*norb[irr]];
+            }
         }
     }
 
-    if (arena.rank == 0)
+    for (int i = 0;i < nirrep;i++)
     {
-        arena.Reduce(focka, MPI::SUM);
-        arena.Reduce(fockb, MPI::SUM);
+        vector<int> irreps(2,i);
 
-        vector<tkv_pair<T> > pairs(norb*norb);
-
-        for (int p = 0;p < norb*norb;p++)
+        if (arena.rank == 0)
         {
-            pairs[p].d = focka[p];
-            pairs[p].k = p;
+            arena.Reduce(focka[i], MPI::SUM);
+            arena.Reduce(fockb[i], MPI::SUM);
+
+            vector<tkv_pair<T> > pairs(norb[i]*norb[i]);
+
+            for (int p = 0;p < norb[i]*norb[i];p++)
+            {
+                pairs[p].d = focka[i][p];
+                pairs[p].k = p;
+            }
+
+            Fa(irreps).writeRemoteData(pairs);
+
+            for (int p = 0;p < norb[i]*norb[i];p++)
+            {
+                pairs[p].d = fockb[i][p];
+                pairs[p].k = p;
+            }
+
+            Fb(irreps).writeRemoteData(pairs);
         }
-
-        Fa.writeRemoteData(pairs);
-
-        for (int p = 0;p < norb*norb;p++)
+        else
         {
-            pairs[p].d = fockb[p];
-            pairs[p].k = p;
+            arena.Reduce(focka[i], MPI::SUM, 0);
+            arena.Reduce(fockb[i], MPI::SUM, 0);
+
+            Fa(irreps).writeRemoteData();
+            Fb(irreps).writeRemoteData();
         }
-
-        Fb.writeRemoteData(pairs);
-    }
-    else
-    {
-        arena.Reduce(focka, MPI::SUM, 0);
-        arena.Reduce(fockb, MPI::SUM, 0);
-
-        Fa.writeRemoteData();
-        Fb.writeRemoteData();
     }
 }
 

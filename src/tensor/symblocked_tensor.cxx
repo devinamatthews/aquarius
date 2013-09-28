@@ -27,24 +27,25 @@
 using namespace std;
 using namespace aquarius::tensor;
 using namespace aquarius::symmetry;
-
-template <class T>
-SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const Arena& arena, const PointGroup& group, T scalar)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(0, 0), Distributed(arena),
-  group(group), len(0), sym(0)
-{
-    tensors.resize(1, NULL);
-    tensors[0] = new DistTensor<T>(arena, scalar);
-}
+using namespace aquarius::task;
 
 template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(other), Distributed(other.arena),
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(other), Resource(other.arena),
   group(other.group), len(other.len), sym(other.sym) {}
 
 template <class T>
+SymmetryBlockedTensor<T>::SymmetryBlockedTensor(SymmetryBlockedTensor<T>* other)
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(other->ndim, 0), Resource(other->arena),
+  group(other->group), len(other->len), sym(other->sym)
+{
+    tensors.swap(other->tensors);
+    delete other;
+}
+
+template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other, T scalar)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(0, 0), Distributed(other.arena),
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(0, 0), Resource(other.arena),
   group(other.group), len(0), sym(0)
 {
     tensors.resize(1, NULL);
@@ -52,15 +53,31 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& 
 }
 
 template <class T>
+SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& A,
+                                                const vector<vector<int> >& start_A,
+                                                const vector<vector<int> >& len_A)
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(A.ndim, 0), Resource(A.arena),
+  group(A.group), len(len_A), sym(A.sym)
+{
+    allocate(false);
+    slice((T)1, false, A, start_A, (T)0);
+}
+
+template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const Arena& arena, const PointGroup& group,
                                                 int ndim, const vector<vector<int> >& len,
                                                 const vector<int>& sym, bool zero)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(ndim, 0), Distributed(arena),
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(ndim, 0), Resource(arena),
   group(group), len(len), sym(sym)
 {
     assert(sym.size() == ndim);
     assert(len.size() == ndim);
+    allocate(zero);
+}
 
+template <class T>
+void SymmetryBlockedTensor<T>::allocate(bool zero)
+{
     int n = group.getNumIrreps();
     vector<Representation> irreps;
     for (int i = 0;i < n;i++) irreps.push_back(group.getIrrep(i));
@@ -82,8 +99,6 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const Arena& arena, const PointG
     vector<Representation> prod(ndim+1, group.totallySymmetricIrrep());
     for (bool done = false;!done;t++)
     {
-        cout << idx << prod[0].isTotallySymmetric() << endl;
-
         if (prod[0].isTotallySymmetric())
         {
             vector<int> subsym(sym);
@@ -104,36 +119,165 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const Arena& arena, const PointG
                 }
             }
 
+            assert(t < ntensors);
             if (ok) tensors[t].tensor = new DistTensor<T>(arena, ndim, sublen, subsym, zero);
         }
 
         for (int i = 0;i < ndim;i++)
         {
-            idx[i]++;
+            idx[i] = (idx[i] == n-1 ? 0 : idx[i]+1);
+            sublen[i] = len[i][idx[i]];
 
-            if (idx[i] < n)
+            if (idx[i] != 0)
             {
-                idx[i] = 0;
-                sublen[i] = len[i][idx[i]];
-
                 for (int j = i;j >= 0;j--)
                 {
-                    prod[j] = irreps[idx[j]]*prod[j+1];
+                    prod[j] = prod[j+1];
+                    prod[j] *= irreps[idx[j]];
                 }
-
                 break;
             }
             else if (i == ndim-1)
             {
                 done = true;
             }
-            else
-            {
-                sublen[i] = len[i][idx[i]];
-            }
         }
 
         if (ndim == 0) done = true;
+    }
+}
+
+template <class T>
+DistTensor<T>& SymmetryBlockedTensor<T>::operator()(const vector<int>& irreps)
+{
+    return const_cast<DistTensor<T>&>(const_cast<const SymmetryBlockedTensor<T>&>(*this)(irreps));
+}
+
+template <class T>
+const DistTensor<T>& SymmetryBlockedTensor<T>::operator()(const vector<int>& irreps) const
+{
+    assert(irreps.size() == this->ndim);
+
+    int n = group.getNumIrreps();
+
+    int off = 0;
+    int stride = 1;
+    for (int i = 0;i < ndim;i++)
+    {
+        off += stride*irreps[i];
+        stride *= n;
+    }
+
+    assert(tensors[off].tensor != NULL);
+
+    return *tensors[off].tensor;
+}
+
+template <class T>
+bool SymmetryBlockedTensor<T>::exists(const vector<int>& irreps) const
+{
+    assert(irreps.size() == this->ndim);
+
+    int n = group.getNumIrreps();
+
+    int off = 0;
+    int stride = 1;
+    for (int i = 0;i < ndim;i++)
+    {
+        off += stride*irreps[i];
+        stride *= n;
+    }
+
+    return tensors[off].tensor != NULL;
+}
+
+template <class T>
+void SymmetryBlockedTensor<T>::slice(T alpha, bool conja, const SymmetryBlockedTensor<T>& A,
+                                     const vector<vector<int> >& start_A, T beta)
+{
+    int n = group.getNumIrreps();
+    slice(alpha, conja, A, start_A, beta, vector<vector<int> >(this->ndim,vector<int>(n,0)), len);
+}
+
+template <class T>
+void SymmetryBlockedTensor<T>::slice(T alpha, bool conja, const SymmetryBlockedTensor<T>& A,
+                                     T beta, const vector<vector<int> >& start_B)
+{
+    int n = group.getNumIrreps();
+    slice(alpha, conja, A, vector<vector<int> >(this->ndim,vector<int>(n,0)), beta, start_B, A.len);
+}
+
+template <class T>
+void SymmetryBlockedTensor<T>::slice(T alpha, bool conja, const SymmetryBlockedTensor<T>& A,
+                                                          const vector<vector<int> >& start_A,
+                                     T  beta,             const vector<vector<int> >& start_B,
+                                                          const vector<vector<int> >& len)
+{
+    assert(this->ndim == A.ndim);
+
+    int n = group.getNumIrreps();
+
+    vector<vector<int> > end_A(ndim);
+    vector<vector<int> > end_B(ndim);
+
+    for (int i = 0;i < ndim;i++)
+    {
+        end_A[i].resize(n);
+        end_B[i].resize(n);
+
+        assert(sym[i] == A.sym[i] && sym[i] == NS);
+        for (int j = 0;j < n;j++)
+        {
+            end_A[i][j] = start_A[i][j]+len[i][j];
+            end_B[i][j] = start_B[i][j]+len[i][j];
+            assert(start_A[i][j] >= 0);
+            assert(start_B[i][j] >= 0);
+            assert(end_A[i][j] <= A.len[i][j]);
+            assert(end_B[i][j] <= this->len[i][j]);
+        }
+    }
+
+    vector<int> stride(ndim,1);
+    for (int i = 1;i < ndim;i++) stride[i] = stride[i-1]*n;
+
+    int off_A = 0;
+    vector<int> iA(ndim, 0);
+    vector<int> start_A_sub(ndim);
+    vector<int> start_B_sub(ndim);
+    vector<int> len_sub(ndim);
+    for (bool doneA = false;!doneA;)
+    {
+        if (tensors[off_A] != NULL && A.tensors[off_A] != NULL)
+        {
+            for (int i = 0;i < ndim;i++)
+            {
+                start_A_sub[i] = start_A[i][iA[i]];
+                start_B_sub[i] = start_B[i][iA[i]];
+                len_sub[i] = len[i][iA[i]];
+            }
+
+            tensors[off_A].tensor->slice(alpha, conja, *A.tensors[off_A].tensor, start_A_sub,
+                                          beta,                                  start_B_sub, len_sub);
+        }
+
+        for (int i = 0;i < ndim;i++)
+        {
+            iA[i]++;
+            off_A += stride[i];
+
+            if (iA[i] == n)
+            {
+                iA[i] = 0;
+                off_A -= stride[i]*n;
+                if (i == ndim-1) doneA = true;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        if (this->ndim == 0) doneA = true;
     }
 }
 
@@ -144,7 +288,7 @@ vector<int> SymmetryBlockedTensor<T>::getStrides(const string& indices, const in
     vector<int> strides(indices.size(), 0);
     vector<int> stride_A(ndim);
 
-    stride_A[0] = 1;
+    if (ndim > 0) stride_A[0] = 1;
     for (int i = 1;i < ndim;i++)
     {
         stride_A[i] = stride_A[i-1]*len;
@@ -165,18 +309,18 @@ vector<int> SymmetryBlockedTensor<T>::getStrides(const string& indices, const in
 }
 
 template <class T>
-void SymmetryBlockedTensor<T>::mult(const double alpha, bool conja, const SymmetryBlockedTensor<T>& A, const string& idx_A,
-                                                        bool conjb, const SymmetryBlockedTensor<T>& B, const string& idx_B,
-                                     const double beta,                                                const string& idx_C)
+void SymmetryBlockedTensor<T>::mult(T alpha, bool conja, const SymmetryBlockedTensor<T>& A, const string& idx_A,
+                                             bool conjb, const SymmetryBlockedTensor<T>& B, const string& idx_B,
+                                    T  beta,                                                const string& idx_C)
 {
     assert(group == A.group);
     assert(group == B.group);
 
     int n = group.getNumIrreps();
 
-    string idx_A_ = idx_A_;
-    string idx_B_ = idx_B_;
-    string idx_C_ = idx_C_;
+    string idx_A_ = idx_A;
+    string idx_B_ = idx_B;
+    string idx_C_ = idx_C;
 
     double f1 = align_symmetric_indices(A.ndim, idx_A_, A.sym.data(),
                                         B.ndim, idx_B_, B.sym.data(),
@@ -223,6 +367,8 @@ void SymmetryBlockedTensor<T>::mult(const double alpha, bool conja, const Symmet
                 tensors[off_C].tensor->mult(alpha*f1/f2, conja, *A.tensors[off_A].tensor, idx_A_,
                                                          conjb, *B.tensors[off_B].tensor, idx_B_,
                                             beta_      ,                                  idx_C_);
+
+                beta_ = 1.0;
             }
 
             for (int i = 0;i < nAB;i++)
@@ -231,11 +377,11 @@ void SymmetryBlockedTensor<T>::mult(const double alpha, bool conja, const Symmet
                 off_A += stride_A_AB[i];
                 off_B += stride_B_AB[i];
 
-                if (iAB[i] == n)
+                if (iAB[i] >= n)
                 {
+                    off_A -= stride_A_AB[i]*iAB[i];
+                    off_B -= stride_B_AB[i]*iAB[i];
                     iAB[i] = 0;
-                    off_A -= stride_A_AB[i]*n;
-                    off_B -= stride_B_AB[i]*n;
                     if (i == nAB-1) doneAB = true;
                 }
                 else
@@ -245,8 +391,6 @@ void SymmetryBlockedTensor<T>::mult(const double alpha, bool conja, const Symmet
             }
 
             if (nAB == 0) doneAB = true;
-
-            beta_ = 1.0;
         }
 
         for (int i = 0;i < nC;i++)
@@ -256,12 +400,12 @@ void SymmetryBlockedTensor<T>::mult(const double alpha, bool conja, const Symmet
             off_B += stride_B_C[i];
             off_C += stride_C[i];
 
-            if (iC[i] == n)
+            if (iC[i] >= n)
             {
+                off_A -= stride_A_C[i]*iC[i];
+                off_B -= stride_B_C[i]*iC[i];
+                off_C -= stride_C[i]*iC[i];
                 iC[i] = 0;
-                off_A -= stride_A_C[i]*n;
-                off_B -= stride_B_C[i]*n;
-                off_C -= stride_C[i]*n;
                 if (i == nC-1) doneC = true;
             }
             else
@@ -275,15 +419,15 @@ void SymmetryBlockedTensor<T>::mult(const double alpha, bool conja, const Symmet
 }
 
 template <class T>
-void SymmetryBlockedTensor<T>::sum(const double alpha, bool conja, const SymmetryBlockedTensor<T>& A, const string& idx_A,
-                                    const double beta,                                                const string& idx_B)
+void SymmetryBlockedTensor<T>::sum(T alpha, bool conja, const SymmetryBlockedTensor<T>& A, const string& idx_A,
+                                   T  beta,                                                const string& idx_B)
 {
     assert(group == A.group);
 
     int n = group.getNumIrreps();
 
-    string idx_A_ = idx_A_;
-    string idx_B_ = idx_B_;
+    string idx_A_ = idx_A;
+    string idx_B_ = idx_B;
 
     double f = align_symmetric_indices(A.ndim, idx_A_, A.sym.data(),
                                          ndim, idx_B_,   sym.data());
@@ -365,7 +509,7 @@ void SymmetryBlockedTensor<T>::sum(const double alpha, bool conja, const Symmetr
 }
 
 template <class T>
-void SymmetryBlockedTensor<T>::scale(const double alpha, const string& idx_A)
+void SymmetryBlockedTensor<T>::scale(T alpha, const string& idx_A)
 {
     int n = group.getNumIrreps();
 
@@ -474,6 +618,111 @@ T SymmetryBlockedTensor<T>::dot(bool conja, const SymmetryBlockedTensor<T>& A, c
     }
 
     return sum;
+}
+
+template <class T>
+void SymmetryBlockedTensor<T>::weight(const vector<const vector<vector<T> >*>& d)
+{
+    int n = group.getNumIrreps();
+
+    vector<int> stride(ndim,1);
+    for (int i = 1;i < ndim;i++) stride[i] = stride[i-1]*n;
+
+    int off_A = 0;
+    vector<int> iA(this->ndim, 0);
+    vector<const vector<T>*> dsub(this->ndim);
+    for (bool doneA = false;!doneA;)
+    {
+        if (tensors[off_A] != NULL)
+        {
+            for (int i = 0;i < this->ndim;i++) dsub[i] = &((*d[i])[iA[i]]);
+            tensors[off_A].tensor->weight(dsub);
+        }
+
+        for (int i = 0;i < this->ndim;i++)
+        {
+            iA[i]++;
+            off_A += stride[i];
+
+            if (iA[i] == n)
+            {
+                iA[i] = 0;
+                off_A -= stride[i]*n;
+                if (i == this->ndim-1) doneA = true;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        if (ndim == 0) doneA = true;
+    }
+}
+
+template <class T>
+typename std::real_type<T>::type SymmetryBlockedTensor<T>::norm(int p) const
+{
+    typename std::real_type<T>::type nrm = 0;
+
+    int n = group.getNumIrreps();
+
+    vector<int> stride(ndim,1);
+    for (int i = 1;i < ndim;i++) stride[i] = stride[i-1]*n;
+
+    int off_A = 0;
+    vector<int> iA(this->ndim, 0);
+    vector<const vector<T>*> dsub(this->ndim);
+    for (bool doneA = false;!doneA;)
+    {
+        if (tensors[off_A] != NULL)
+        {
+            double factor = 1;
+            const vector<int>& subsym = tensors[off_A].tensor->getSymmetry();
+            for (int i = 0;i < ndim;)
+            {
+                int j; for (j = i;sym[j] != NS;j++); j++;
+
+                int m = j-i;
+                for (int k = i;k < j;)
+                {
+                    int l; for (l = k;subsym[l] != NS;l++); l++;
+                    int o = l-k;
+                    factor *= binom(m,o);
+                    m -= o;
+                    k = l;
+                }
+
+                i = j;
+            }
+
+            if      (p == 2) factor = sqrt(factor);
+            else if (p == 0) factor = 1;
+
+            nrm += factor*tensors[off_A].tensor->norm(p);
+        }
+
+        for (int i = 0;i < this->ndim;i++)
+        {
+            iA[i]++;
+            off_A += stride[i];
+
+            if (iA[i] == n)
+            {
+                iA[i] = 0;
+                off_A -= stride[i]*n;
+                if (i == this->ndim-1) doneA = true;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        if (ndim == 0) doneA = true;
+    }
+
+    return nrm;
 }
 
 INSTANTIATE_SPECIALIZATIONS(SymmetryBlockedTensor);

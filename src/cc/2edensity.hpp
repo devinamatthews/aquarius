@@ -46,7 +46,8 @@ class TwoElectronDensity : public op::TwoElectronOperator<U>
          * P2_abcd = P1_ab P1_cd + 1/2 P1_ac P1_bd
          */
         TwoElectronDensity(const op::MOSpace<U>& occ, const op::MOSpace<U>& vrt,
-                           const tensor::DistTensor<U>& Da, const tensor::DistTensor<U>& Db);
+                           const tensor::SymmetryBlockedTensor<U>& Da,
+                           const tensor::SymmetryBlockedTensor<U>& Db);
 
         /*
          * Form the unrelaxed CCSD Density

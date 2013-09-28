@@ -75,11 +75,7 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
     energy = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
 
-    conv =          T(1)(0).norm(00);
-    conv = max(conv,T(1)(1).norm(00));
-    conv = max(conv,T(2)(0).norm(00));
-    conv = max(conv,T(2)(1).norm(00));
-    conv = max(conv,T(2)(2).norm(00));
+    conv = T.norm(00);
 
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
     put("mp2", new Scalar(arena, energy));
@@ -125,11 +121,7 @@ void CCSD<U>::iterate()
 
     energy = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
 
-    conv =          Z(1)(0).norm(00);
-    conv = max(conv,Z(1)(1).norm(00));
-    conv = max(conv,Z(2)(0).norm(00));
-    conv = max(conv,Z(2)(1).norm(00));
-    conv = max(conv,Z(2)(2).norm(00));
+    conv = Z.norm(00);
 
     diis.extrapolate(T, Z);
 }

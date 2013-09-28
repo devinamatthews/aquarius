@@ -223,16 +223,16 @@ Shell::Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bo
         {
             for (int m = l;m > 0;m--)
             {
-                for (int x = 0;x <= l;x++)
-                    for (int y = 0;y <= l-x;y++)
-                        cart2spher[k++] = cartcoef(l, m, x, y, l-x-y);
-                for (int x = 0;x <= l;x++)
-                    for (int y = 0;y <= l-x;y++)
-                        cart2spher[k++] = cartcoef(l, -m, x, y, l-x-y);
+                for (int x = 0;x <= L;x++)
+                    for (int y = 0;y <= L-x;y++)
+                        cart2spher[k++] = cartcoef(l, m, x, y, L-x-y);
+                for (int x = 0;x <= L;x++)
+                    for (int y = 0;y <= L-x;y++)
+                        cart2spher[k++] = cartcoef(l, -m, x, y, L-x-y);
             }
-            for (int x = 0;x <= l;x++)
-                for (int y = 0;y <= l-x;y++)
-                    cart2spher[k++] = cartcoef(l, 0, x, y, l-x-y);
+            for (int x = 0;x <= L;x++)
+                for (int y = 0;y <= L-x;y++)
+                    cart2spher[k++] = cartcoef(l, 0, x, y, L-x-y);
         }
         assert(k == nfunc*(L+1)*(L+2)/2);
     }
@@ -247,7 +247,7 @@ Shell::~Shell()
 
 vector<vector<int> > Shell::setupIndices(const Context& ctx, const Molecule& m)
 {
-    int nirrep = m.getPointGroup().getNumIrreps();
+    int nirrep = m.getGroup().getNumIrreps();
 
     vector<vector<int> > idx;
     vector<int> nfunc(nirrep, (int)0);

@@ -25,8 +25,8 @@
 #include "2eints.hpp"
 #include "internal.h"
 
-#define TMP_BUFSIZE 100
-#define INTEGRAL_CUTOFF 1e-14
+#define TMP_BUFSIZE 65536
+#define INTEGRAL_CUTOFF 1e-13
 
 /**
  * Compute the index of a function in cartesian angular momentum.
@@ -139,7 +139,7 @@ TwoElectronIntegrals::TwoElectronIntegrals(const Shell& a, const Shell& b, const
     vector<int> dcrr = group.DCR(ca.getStabilizer(), cb.getStabilizer(), lambdar);
     vector<int> dcrs = group.DCR(cc.getStabilizer(), cd.getStabilizer(), lambdas);
     vector<int> dcrt = group.DCR(intersection(ca.getStabilizer(), cb.getStabilizer()),
-                                      intersection(cc.getStabilizer(), cd.getStabilizer()), lambdat);
+                                 intersection(cc.getStabilizer(), cd.getStabilizer()), lambdat);
     double coef = (double)group.getOrder()/(double)lambdat;
 
     for (int i = 0;i < dcrr.size();i++)
@@ -184,6 +184,10 @@ size_t TwoElectronIntegrals::process(const Context& ctx, const vector<int>& idxa
                                      size_t nprocess, double* integrals, idx4_t* indices, double cutoff)
 {
     const PointGroup& group = a.getCenter().getPointGroup();
+    Representation z = group.getIrrep(0);
+    Representation yz = group.getIrrep(0);
+    Representation xyz = group.getIrrep(0);
+    Representation wxyz = group.getIrrep(0);
 
     size_t m = 0;
     size_t n = 0;
@@ -197,18 +201,21 @@ size_t TwoElectronIntegrals::process(const Context& ctx, const vector<int>& idxa
                 {
                     for (int u = 0;u < d.getDegeneracy();u++)
                     {
+                        z = group.getIrrep(d.getIrrepOfFunc(l,u));
                         for (int t = 0;t < c.getDegeneracy();t++)
                         {
+                            yz = z;
+                            yz *= group.getIrrep(c.getIrrepOfFunc(k,t));
                             for (int s = 0;s < b.getDegeneracy();s++)
                             {
+                                xyz = yz;
+                                xyz *= group.getIrrep(b.getIrrepOfFunc(j,s));
                                 for (int r = 0;r < a.getDegeneracy();r++)
                                 {
-                                    const Representation w = group.getIrrep(a.getIrrepOfFunc(i,r));
-                                    const Representation x = group.getIrrep(b.getIrrepOfFunc(j,s));
-                                    const Representation y = group.getIrrep(c.getIrrepOfFunc(k,t));
-                                    const Representation z = group.getIrrep(d.getIrrepOfFunc(l,u));
+                                    wxyz = xyz;
+                                    wxyz *= group.getIrrep(a.getIrrepOfFunc(i,r));
 
-                                    if (!(w*x*y*z).isTotallySymmetric()) continue;
+                                    if (!wxyz.isTotallySymmetric()) continue;
 
                                     for (int h = 0;h < d.getNContr();h++)
                                     {
@@ -263,6 +270,9 @@ size_t TwoElectronIntegrals::process(const Context& ctx, const vector<int>& idxa
 void TwoElectronIntegrals::ao2so4(size_t nother, int r, int t, int st, double* aointegrals, double* sointegrals)
 {
     const PointGroup& group = a.getCenter().getPointGroup();
+    Representation yz = group.getIrrep(0);
+    Representation xyz = group.getIrrep(0);
+    Representation wxyz = group.getIrrep(0);
 
     for (int l = 0;l < d.getNFunc();l++)
     {
@@ -274,18 +284,24 @@ void TwoElectronIntegrals::ao2so4(size_t nother, int r, int t, int st, double* a
                 {
                     for (int h = 0;h < d.getDegeneracy();h++)
                     {
+                        int z = d.getIrrepOfFunc(l,h);
                         for (int g = 0;g < c.getDegeneracy();g++)
                         {
+                            int y = c.getIrrepOfFunc(k,g);
+                            yz = group.getIrrep(z);
+                            yz *= group.getIrrep(y);
                             for (int f = 0;f < b.getDegeneracy();f++)
                             {
+                                int x = b.getIrrepOfFunc(j,f);
+                                xyz = yz;
+                                xyz *= group.getIrrep(x);
                                 for (int e = 0;e < a.getDegeneracy();e++)
                                 {
                                     int w = a.getIrrepOfFunc(i,e);
-                                    int x = b.getIrrepOfFunc(j,f);
-                                    int y = c.getIrrepOfFunc(k,g);
-                                    int z = d.getIrrepOfFunc(l,h);
-                                    if (!(group.getIrrep(w)*group.getIrrep(x)*
-                                          group.getIrrep(y)*group.getIrrep(z)).isTotallySymmetric()) continue;
+                                    wxyz = xyz;
+                                    wxyz *= group.getIrrep(w);
+
+                                    if (!wxyz.isTotallySymmetric()) continue;
 
                                     double fac = b.getParity(j,r) *group.character(x,r)*
                                                  c.getParity(k,t) *group.character(y,t)*
@@ -519,8 +535,13 @@ void TwoElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
 
     ERI* eri = new ERI(arena);
 
-    double tmpval[TMP_BUFSIZE];
-    idx4_t tmpidx[TMP_BUFSIZE];
+    Context ctx(Context::ISCF);
+
+    vector<double> tmpval(TMP_BUFSIZE);
+    vector<idx4_t> tmpidx(TMP_BUFSIZE);
+
+    const vector<int>& N = molecule.getNumOrbitals();
+    int nirrep = molecule.getGroup().getNumIrreps();
 
     vector<vector<int> > idx = Shell::setupIndices(Context(), molecule);
     vector<Shell> shells(molecule.getShellsBegin(), molecule.getShellsEnd());
@@ -541,11 +562,11 @@ void TwoElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
                         TwoElectronIntegrals block(shells[a], shells[b], shells[c], shells[d], ERIEvaluator());
 
                         size_t n;
-                        while ((n = block.process(Context(), idx[a], idx[b], idx[c], idx[d],
-                                                  TMP_BUFSIZE, tmpval, tmpidx, INTEGRAL_CUTOFF)) != 0)
+                        while ((n = block.process(ctx, idx[a], idx[b], idx[c], idx[d],
+                                                  TMP_BUFSIZE, tmpval.data(), tmpidx.data(), INTEGRAL_CUTOFF)) != 0)
                         {
-                            eri->ints.insert(eri->ints.end(), tmpval, tmpval+n);
-                            eri->idxs.insert(eri->idxs.end(), tmpidx, tmpidx+n);
+                            eri->ints.insert(eri->ints.end(), tmpval.data(), tmpval.data()+n);
+                            eri->idxs.insert(eri->idxs.end(), tmpidx.data(), tmpidx.data()+n);
                         }
                     }
                     abcd++;
@@ -561,7 +582,7 @@ void TwoElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
         if (eri->idxs[i].i > eri->idxs[i].j) std::swap(eri->idxs[i].i, eri->idxs[i].j);
         if (eri->idxs[i].k > eri->idxs[i].l) std::swap(eri->idxs[i].k, eri->idxs[i].l);
         if (eri->idxs[i].i > eri->idxs[i].k ||
-            (eri->idxs[i].i == eri->idxs[i].j && eri->idxs[i].j > eri->idxs[i].l))
+            (eri->idxs[i].i == eri->idxs[i].k && eri->idxs[i].j > eri->idxs[i].l))
         {
             std::swap(eri->idxs[i].i, eri->idxs[i].k);
             std::swap(eri->idxs[i].j, eri->idxs[i].l);

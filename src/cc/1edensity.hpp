@@ -42,7 +42,8 @@ class OneElectronDensity : public op::OneElectronOperator<U>
          * Form the SCF density
          */
         OneElectronDensity(const op::MOSpace<U>& occ, const op::MOSpace<U>& vrt,
-                           const tensor::DistTensor<U>& Da, const tensor::DistTensor<U>& Db);
+                           const tensor::SymmetryBlockedTensor<U>& Da,
+                           const tensor::SymmetryBlockedTensor<U>& Db);
 
         /*
          * Form the unrelaxed CCSD density

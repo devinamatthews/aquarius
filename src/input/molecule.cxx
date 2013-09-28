@@ -189,29 +189,47 @@ REGISTER_TASK(MoleculeTask,"molecule");
 Molecule::Molecule(const Arena& arena, const Config& config)
 : Resource(arena)
 {
-    string name;
-    bool hasDefaultBasis;
-    bool contaminants = config.get<bool>("basis.contaminants");
-    bool spherical = config.get<bool>("basis.spherical");
-    bool angstrom = (config.get<string>("units") == "angstrom");
-    bool zmat = (config.get<string>("coords") == "internal");
-    BasisSet defaultBasis;
-
-    try
-    {
-        name = config.get<string>("basis.basis_set");
-        defaultBasis = BasisSet(TOPDIR "/basis/" + name);
-        hasDefaultBasis = true;
-    }
-    catch (EntryNotFoundError& e)
-    {
-        hasDefaultBasis = false;
-    }
-
     nelec = -config.get<int>("charge");
     multiplicity = config.get<int>("multiplicity");
 
     vector<AtomCartSpec> cartpos;
+    initGeometry(config, cartpos);
+    initSymmetry(config, cartpos);
+    initBasis(config, cartpos);
+
+    if (arena.rank == 0)
+    {
+        printf("\nMolecular Geometry:\n\n");
+        for (vector<Atom>::iterator it = atoms.begin();it != atoms.end();++it)
+        {
+            if (it->getCenter().getElement().getSymbol() != "X")
+            {
+                for (vector<vec3>::const_iterator pos = it->getCenter().getCenters().begin();
+                     pos != it->getCenter().getCenters().end();++pos)
+                    printf("%3s % 20.15f % 20.15f % 20.15f\n", it->getCenter().getElement().getSymbol().c_str(),
+                            (*pos)[0], (*pos)[1], (*pos)[2]);
+            }
+        }
+        cout << endl;
+    }
+
+    if ((nelec+multiplicity)%2 != 1 || multiplicity > nelec+1)
+        throw logic_error("incompatible number of electrons and spin multiplicity");
+
+    if (arena.rank == 0)
+    {
+        printf("Rotation constants (MHz): %15.6f %15.6f %15.6f\n", 29979.246*rota[0], 29979.246*rota[1], 29979.246*rota[2]);
+        cout << "The molecular point group is " << group->getName() << endl;
+        cout << "There are " << norb << " atomic orbitals by irrep\n";
+        cout << "There are " << getNumAlphaElectrons() << " alpha and "
+                             << getNumBetaElectrons() << " beta electrons\n\n";
+    }
+}
+
+void Molecule::initGeometry(const Config& config, vector<AtomCartSpec>& cartpos)
+{
+    bool angstrom = (config.get<string>("units") == "angstrom");
+    bool zmat = (config.get<string>("coords") == "internal");
     double bohr = (angstrom ? config.get<double>("angstrom2bohr") : 1);
 
     if (zmat)
@@ -267,7 +285,7 @@ Molecule::Molecule(const Arena& arena, const Config& config)
     {
         Element e = Element::getElement(it->symbol.c_str());
         nelec += e.getAtomicNumber();
-				it->pos *= bohr;
+                it->pos *= bohr;
         com += it->pos*e.getMass();
         totmass += e.getMass();
     }
@@ -279,22 +297,317 @@ Molecule::Molecule(const Arena& arena, const Config& config)
         it->pos -= com;
     }
 
-    //TODO: getSymmetry();
-
-    if (arena.rank == 0)
+    nucrep = 0;
+    for (vector<AtomCartSpec>::iterator a = cartpos.begin();a != cartpos.end();++a)
     {
-        printf("\nMolecular Geometry:\n\n");
-        for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
+        for (vector<AtomCartSpec>::iterator b = cartpos.begin();b != a;++b)
         {
-						if (it->symbol != "X")
-            printf("%3s % 20.15f % 20.15f % 20.15f\n", it->symbol.c_str(), it->pos[0], it->pos[1], it->pos[2]);
+            Element ea = Element::getElement(a->symbol.c_str());
+            Element eb = Element::getElement(b->symbol.c_str());
+            nucrep += ea.getCharge()*eb.getCharge()/norm(a->pos-b->pos);
+        }
+    }
+}
+
+bool Molecule::isSymmetric(const vector<AtomCartSpec>& cartpos, const mat3x3& op)
+{
+    for (vector<AtomCartSpec>::const_iterator i1 = cartpos.begin();i1 != cartpos.end();++i1)
+    {
+        vec3 newpos = i1->pos*op;
+
+        bool found = false;
+        for (vector<AtomCartSpec>::const_iterator i2 = cartpos.begin();i2 != cartpos.end();++i2)
+        {
+            if (norm(newpos-i2->pos) < 1e-8) found = true;
+        }
+        if (!found) return false;
+    }
+
+    return true;
+}
+
+void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
+{
+    mat3x3 I;
+
+    for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
+    {
+        vec3& r = it->pos;
+        Element e = Element::getElement(it->symbol.c_str());
+        double m = e.getMass();
+        I += m*(r*r-(r|r));
+    }
+
+    vec3 A;
+    mat3x3 R;
+    I.diagonalize(A, R);
+
+    for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
+    {
+        it->pos = it->pos*R;
+    }
+
+    I = 0;
+    for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
+    {
+        vec3& r = it->pos;
+        Element e = Element::getElement(it->symbol.c_str());
+        double m = e.getMass();
+        I += m*(r*r-(r|r));
+    }
+
+    for (int i = 0;i < 3;i++)
+    {
+        for (int j = 0;j < 3;j++)
+        {
+            if (i != j) assert(I[i][j] < 1e-12);
         }
     }
 
-    norb = 0;
+    vec3 x(1,0,0);
+    vec3 y(0,1,0);
+    vec3 z(0,0,1);
+    mat3x3 O = Identity();
+
+    if (config.get<bool>("symmetry"))
+    {
+        if (A[1] < 1e-8)
+        {
+            /*
+             * Atom: K (treat as D6h)
+             */
+            //group = &PointGroup::D6h();
+            group = &PointGroup::D2h();
+        }
+        else if (A[0] < 1e-8)
+        {
+            /*
+             * Linear molecules: CXv, DXh (treat as C6h and D6h)
+             */
+            if (isSymmetric(cartpos, Inversion()))
+            {
+                //group = &PointGroup::D6h();
+                group = &PointGroup::D2h();
+            }
+            else
+            {
+                //group = &PointGroup::C6v();
+                group = &PointGroup::C2v();
+            }
+            /*
+             * Orient so that the molecule is along z
+             */
+            for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
+            {
+                if (it->pos.norm() > 1e-8)
+                {
+                    O = Rotation(it->pos, z);
+                    break;
+                }
+            }
+        }
+        else if (2*abs(A[0]-A[2])/(A[0]+A[2]) < 1e-8)
+        {
+            /*
+             * Spherical rotors: Td, Oh, Ih
+             */
+            assert(0);
+        }
+        else if (2*abs(A[0]-A[1])/(A[0]+A[1]) < 1e-8 ||
+                 2*abs(A[1]-A[2])/(A[1]+A[2]) < 1e-8)
+        {
+            /*
+             * Symmetric rotors: Cn, Cnv, Cnh, Dn, Dnh (all n>2), S2n, Dnd
+             */
+            assert(0);
+        }
+        else
+        {
+            /*
+             * Asymmetric rotors: C1, Cs, Ci, C2, C2v, C2h, D2, D2h
+             */
+            bool c2x = isSymmetric(cartpos, C<2>(x));
+            bool c2y = isSymmetric(cartpos, C<2>(y));
+            bool c2z = isSymmetric(cartpos, C<2>(z));
+            bool sx = isSymmetric(cartpos, Reflection(x));
+            bool sy = isSymmetric(cartpos, Reflection(y));
+            bool sz = isSymmetric(cartpos, Reflection(z));
+            bool inv = isSymmetric(cartpos, Inversion());
+
+            if (c2x && c2y && c2z)
+            {
+                /*
+                 * D2, D2h
+                 */
+                if (inv)
+                {
+                    group = &PointGroup::D2h();
+                }
+                else
+                {
+                    group = &PointGroup::D2();
+                }
+                /*
+                 * No reorientation needed
+                 */
+            }
+            else if (c2x || c2y || c2z)
+            {
+                /*
+                 * C2, C2v, C2h
+                 */
+                if (inv)
+                {
+                    group = &PointGroup::C2h();
+                }
+                else if (sx || sy || sz)
+                {
+                    group = &PointGroup::C2v();
+                }
+                else
+                {
+                    group = &PointGroup::C2();
+                }
+                /*
+                 * Put C2 along z and make X > Y
+                 */
+                if (c2x)
+                {
+                    // x,y,z -> y,z,x
+                    O = C<3>(vec3(1,1,1));
+                }
+                if (c2y)
+                {
+                    // x,y,z -> x,z,y
+                    O = C<4>(x);
+                }
+            }
+            else if (sx || sy || sz)
+            {
+                /*
+                 * Cs
+                 */
+                group = &PointGroup::Cs();
+                /*
+                 * Put reflection plane orthogonal to z and make X > Y
+                 */
+                if (sx)
+                {
+                    // x,y,z -> y,z,x
+                    O = C<3>(vec3(1,1,1));
+                }
+                if (sy)
+                {
+                    // x,y,z -> x,z,y
+                    O = C<4>(x);
+                }
+            }
+            else
+            {
+                /*
+                 * C1, Ci
+                 */
+                if (inv)
+                {
+                    group = &PointGroup::Ci();
+                }
+                else
+                {
+                    group = &PointGroup::C1();
+                }
+                /*
+                 * No reorientation needed
+                 */
+            }
+        }
+    }
+    else
+    {
+        group = &PointGroup::C1();
+    }
+
     for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
     {
-        Atom a(Center(PointGroup::C1(), it->pos, Element::getElement(it->symbol)));
+        it->pos = O*it->pos;
+    }
+
+    I = 0;
+    for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
+    {
+        vec3& r = it->pos;
+        Element e = Element::getElement(it->symbol.c_str());
+        double m = e.getMass();
+        I += m*(r*r-(r|r));
+    }
+
+    for (int i = 0;i < 3;i++)
+    {
+        for (int j = 0;j < 3;j++)
+        {
+            if (i != j) assert(I[i][j] < 1e-12);
+        }
+    }
+
+    rota[0] = 60.199687/I[0][0];
+    rota[1] = 60.199687/I[1][1];
+    rota[2] = 60.199687/I[2][2];
+
+    for (vector<AtomCartSpec>::iterator i1 = cartpos.begin();;++i1)
+    {
+        if (i1 == cartpos.end()) break;
+
+        vector<vec3> otherpos;
+        for (int op = 0;op < group->getOrder();op++)
+        {
+            vec3 afterop = group->getOp(op)*i1->pos;
+            if (norm(i1->pos-afterop) > 1e-8) otherpos.push_back(afterop);
+        }
+
+        for (vector<AtomCartSpec>::iterator i2 = i1;;)
+        {
+            if (i2 == cartpos.end()) break;
+
+            bool match = false;
+            for (vector<vec3>::iterator pos = otherpos.begin();pos != otherpos.end();++pos)
+            {
+                if (norm(*pos-i2->pos) < 1e-8) match = true;
+            }
+
+            if (match)
+            {
+                i2 = cartpos.erase(i2);
+            }
+            else
+            {
+                ++i2;
+            }
+        }
+    }
+}
+
+void Molecule::initBasis(const Config& config, const vector<AtomCartSpec>& cartpos)
+{
+    bool contaminants = config.get<bool>("basis.contaminants");
+    bool spherical = config.get<bool>("basis.spherical");
+
+    BasisSet defaultBasis;
+    bool hasDefaultBasis;
+    try
+    {
+        string name = config.get<string>("basis.basis_set");
+        defaultBasis = BasisSet(TOPDIR "/basis/" + name);
+        hasDefaultBasis = true;
+    }
+    catch (EntryNotFoundError& e)
+    {
+        hasDefaultBasis = false;
+    }
+
+    norb.resize(group->getNumIrreps(), 0);
+
+    for (vector<AtomCartSpec>::const_iterator it = cartpos.begin();it != cartpos.end();++it)
+    {
+        Atom a(Center(*group, it->pos, Element::getElement(it->symbol)));
         if (it->basisSet != "")
         {
             BasisSet(TOPDIR "/basis/" + it->basisSet).apply(a, spherical, contaminants);
@@ -304,31 +617,14 @@ Molecule::Molecule(const Arena& arena, const Config& config)
             defaultBasis.apply(a, spherical, contaminants);
         }
 
+        atoms.push_back(a);
+
         for (vector<Shell>::iterator s = a.getShellsBegin();s != a.getShellsEnd();++s)
         {
-            norb += s->getNFunc()*s->getNContr()*s->getDegeneracy();
-        }
-
-        atoms.push_back(a);
-    }
-
-    if ((nelec+multiplicity)%2 != 1 || multiplicity > nelec+1)
-        throw logic_error("incompatible number of electrons and spin multiplicity");
-
-    if (arena.rank == 0)
-    {
-        printf("\nThere are %d atomic orbitals\n", norb);
-        printf("There are %d alpha and %d beta electrons\n\n", getNumAlphaElectrons(), getNumBetaElectrons());
-    }
-
-    nucrep = 0;
-    for (vector<Atom>::const_iterator a = atoms.begin();a != atoms.end();++a)
-    {
-        for (vector<Atom>::const_iterator b = atoms.begin();b != a;++b)
-        {
-            nucrep += a->getCenter().getElement().getCharge() *
-                      b->getCenter().getElement().getCharge() /
-                      dist(a->getCenter().getCenter(0), b->getCenter().getCenter(0));
+            for (int i = 0;i < group->getNumIrreps();i++)
+            {
+                norb[i] += s->getNFuncInIrrep(i)*s->getNContr();
+            }
         }
     }
 }

@@ -469,7 +469,7 @@ bool next_packed_indices(const int ndim, const int* len, const int* sym, int* id
     {
         if (i == ndim - 1)
         {
-            if (idx[i] == len[i]-1)
+            if (idx[i] >= len[i]-1)
             {
                 return false;
             }
@@ -481,9 +481,9 @@ bool next_packed_indices(const int ndim, const int* len, const int* sym, int* id
         }
         else
         {
-            if ((sym[i] == SY && idx[i] == idx[i+1]) ||
-                ((sym[i] == AS || sym[i] == SH) && idx[i] == idx[i+1]-1) ||
-                (idx[i] == len[i]-1))
+            if ((sym[i] == SY && idx[i] >= idx[i+1]) ||
+                ((sym[i] == AS || sym[i] == SH) && idx[i] >= idx[i+1]-1) ||
+                (idx[i] >= len[i]-1))
             {
                 if (i == 0)
                 {
