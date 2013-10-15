@@ -29,6 +29,7 @@
 #include <cassert>
 #include <algorithm>
 #include <iostream>
+#include <limits>
 
 #include "input/config.hpp"
 #include "util/lapack.h"
@@ -213,6 +214,20 @@ class DIIS
                 std::copy(e.begin(), e.end(), tmp.begin());
                 info = hesv('U', nextrap_real+1, 1, tmp.data(), nextrap+1, ipiv.data(),
                             c.data(), nextrap+1);
+
+                /*
+                 * Attempt to stave off singularity due to "exact" convergence
+                 */
+                if (info > 0)
+                {
+                    dtype eps = e[nextrap_real-1+(nextrap_real-1)*(nextrap+1)]*
+                                std::numeric_limits<typename std::real_type<dtype>::type>::epsilon();
+                    std::copy(e.begin(), e.end(), tmp.begin());
+                    axpy(nextrap_real, 1.0, &eps, 0, tmp.data(), nextrap+1);
+                    info = hesv('U', nextrap_real+1, 1, tmp.data(), nextrap+1, ipiv.data(),
+                                c.data(), nextrap+1);
+                }
+
                 if (info != 0) throw std::runtime_error(std::strprintf("DIIS: Info in hesv: %d", info));
             }
 

@@ -25,6 +25,11 @@
 #ifndef _AQUARIUS_UTIL_H_
 #define _AQUARIUS_UTIL_H_
 
+#define DIV_FLOPS 30
+#define SQRT_FLOPS 30
+#define EXP_FLOPS 30
+#define LOG_FLOPS 30
+
 /*
 #define INSTANTIATE_SPECIALIZATIONS(name) \
 template class name<double>; \

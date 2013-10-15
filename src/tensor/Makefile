@@ -4,7 +4,7 @@ include ../../rules.mk
 libs: $(libdir)/libtensor.a
 $(libdir)/libtensor.a: \
 dense_tensor.o \
-dist_tensor.o \
+ctf_tensor.o \
 spinorbital_tensor.o \
 symblocked_tensor.o \
 tensor_densify.o \

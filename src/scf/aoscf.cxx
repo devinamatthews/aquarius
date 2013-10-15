@@ -94,6 +94,7 @@ void AOUHF<T>::buildFock()
         assert(densa[i].size() == norb[i]*norb[i]);
 
         densab[i] = densa[i];
+        PROFILE_FLOPS(norb[i]*norb[i]);
         axpy(norb[i]*norb[i], 1.0, densb[i].data(), 1, densab[i].data(), 1);
 
         if (Da.norm(2) > 1e-10)
@@ -169,11 +170,13 @@ void AOUHF<T>::buildFock()
 
             if (irri == irrk && irrj == irrl)
             {
+                PROFILE_FLOPS(4);
                 focka_local[irri][i+k*norb[irri]] -= densa[irrj][j+l*norb[irrj]]*e;
                 fockb_local[irri][i+k*norb[irri]] -= densb[irrj][j+l*norb[irrj]]*e;
             }
             if (!keql && irri == irrl && irrj == irrk)
             {
+                PROFILE_FLOPS(4);
                 focka_local[irri][i+l*norb[irri]] -= densa[irrj][j+k*norb[irrj]]*e;
                 fockb_local[irri][i+l*norb[irri]] -= densb[irrj][j+k*norb[irrj]]*e;
             }
@@ -181,11 +184,13 @@ void AOUHF<T>::buildFock()
             {
                 if (irri == irrl && irrj == irrk)
                 {
+                    PROFILE_FLOPS(4);
                     focka_local[irrj][j+k*norb[irrj]] -= densa[irri][i+l*norb[irri]]*e;
                     fockb_local[irrj][j+k*norb[irrj]] -= densb[irri][i+l*norb[irri]]*e;
                 }
                 if (!keql && irri == irrk && irrj == irrl)
                 {
+                    PROFILE_FLOPS(4);
                     focka_local[irrj][j+l*norb[irrj]] -= densa[irri][i+k*norb[irri]]*e;
                     fockb_local[irrj][j+l*norb[irrj]] -= densb[irri][i+k*norb[irri]]*e;
                 }
@@ -199,6 +204,7 @@ void AOUHF<T>::buildFock()
 
             if (irri == irrj && irrk == irrl)
             {
+                PROFILE_FLOPS(6);
                 focka_local[irri][i+j*norb[irri]] += densab[irrk][k+l*norb[irrk]]*e;
                 fockb_local[irri][i+j*norb[irri]] += densab[irrk][k+l*norb[irrk]]*e;
                 focka_local[irrk][k+l*norb[irrk]] += densab[irri][i+j*norb[irri]]*e;
@@ -210,6 +216,7 @@ void AOUHF<T>::buildFock()
         {
             for (int irr = 0;irr < nirrep;irr++)
             {
+                PROFILE_FLOPS(2*norb[irr]*norb[irr]);
                 axpy(norb[irr]*norb[irr], (T)1, focka_local[irr].data(), 1, focka[irr].data(), 1);
                 axpy(norb[irr]*norb[irr], (T)1, fockb_local[irr].data(), 1, fockb[irr].data(), 1);
             }
@@ -218,6 +225,7 @@ void AOUHF<T>::buildFock()
 
     for (int irr = 0;irr < nirrep;irr++)
     {
+        PROFILE_FLOPS(2*norb[irr]*(norb[irr]-1));
         for (int i = 0;i < norb[irr];i++)
         {
             for (int j = 0;j < i;j++)
@@ -236,6 +244,7 @@ void AOUHF<T>::buildFock()
 
         if (arena.rank == 0)
         {
+            PROFILE_FLOPS(2*norb[i]*norb[i]);
             arena.Reduce(focka[i], MPI::SUM);
             arena.Reduce(fockb[i], MPI::SUM);
 
@@ -259,6 +268,7 @@ void AOUHF<T>::buildFock()
         }
         else
         {
+            PROFILE_FLOPS(2*norb[i]*norb[i]);
             arena.Reduce(focka[i], MPI::SUM, 0);
             arena.Reduce(fockb[i], MPI::SUM, 0);
 

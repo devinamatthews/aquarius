@@ -35,6 +35,7 @@
 #include "memory/memory.h"
 #include "util/math_ext.h"
 #include "util/blas.h"
+#include "util/stl_ext.hpp"
 #include "symmetry/symmetry.hpp"
 
 namespace aquarius

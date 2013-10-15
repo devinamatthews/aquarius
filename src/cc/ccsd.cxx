@@ -58,6 +58,14 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
     put("T", new ExcitationOperator<U,2>(arena, occ, vrt));
     puttmp("Z", new ExcitationOperator<U,2>(arena, occ, vrt));
     puttmp("D", new Denominator<U>(H));
+    puttmp("W", new TwoElectronOperator<U>(const_cast<TwoElectronOperator<U>&>(H),
+                                           TwoElectronOperator<U>::AB|
+                                           TwoElectronOperator<U>::IJ|
+                                           TwoElectronOperator<U>::IA|
+                                           TwoElectronOperator<U>::IJKL|
+                                           TwoElectronOperator<U>::IJAK|
+                                           TwoElectronOperator<U>::AIJK|
+                                           TwoElectronOperator<U>::AIBJ));
 
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
     Denominator<U>& D = gettmp<Denominator<U> >("D");
@@ -77,6 +85,10 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
     conv = T.norm(00);
 
+    Logger::log(arena) << "MP2AA = " << setprecision(15) <<
+            0.25*real(scalar(H.getABIJ()(vec(2,0),vec(0,2))*T(2)(vec(2,0),vec(0,2)))) << endl;
+    Logger::log(arena) << "MP2AB = " << setprecision(15) <<
+                 real(scalar(H.getABIJ()(vec(1,0),vec(0,1))*T(2)(vec(1,0),vec(0,1)))) << endl;
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
     put("mp2", new Scalar(arena, energy));
 
@@ -110,8 +122,9 @@ void CCSD<U>::iterate()
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
     Denominator<U>& D = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+    TwoElectronOperator<U>& W = gettmp<TwoElectronOperator<U> >("W");
 
-    STExcitationOperator<U,2>::transform(H, T, Z);
+    STExcitationOperator<U,2>::transform(H, T, Z, W);
 
     Z.weight(D);
     T += Z;
@@ -151,22 +164,22 @@ double CCSD<U>::getProjectedS2(const MOSpace<U>& occ, const MOSpace<U>& vrt,
     vector<int> sizein = vec(ni,N);
     vector<int> sizeAaIi = vec(nA,na,nI,ni);
 
-    const DistTensor<U>& CA = vrt.Calpha;
-    const DistTensor<U>& Ca = vrt.Cbeta;
-    const DistTensor<U>& CI = occ.Calpha;
-    const DistTensor<U>& Ci = occ.Cbeta;
+    const CTFTensor<U>& CA = vrt.Calpha;
+    const CTFTensor<U>& Ca = vrt.Cbeta;
+    const CTFTensor<U>& CI = occ.Calpha;
+    const CTFTensor<U>& Ci = occ.Cbeta;
 
     //TODO
-    DistTensor<U> S(arena, 2, vec(N,N), shapeNN, true);
+    CTFTensor<U> S(arena, 2, vec(N,N), shapeNN, true);
 
-    DistTensor<U> DAI(arena, 2, sizeAI, shapeNN, false);
-    DistTensor<U> DAi(arena, 2, sizeAi, shapeNN, false);
-    DistTensor<U> DaI(arena, 2, sizeaI, shapeNN, false);
-    DistTensor<U> Dai(arena, 2, sizeai, shapeNN, false);
-    DistTensor<U> DIj(arena, 2, sizeIi, shapeNN, false);
-    DistTensor<U> DAbIj(arena, 4, sizeAaIi, shapeNNNN, false);
-    DistTensor<U> tmp1(arena, 2, sizeIn, shapeNN, false);
-    DistTensor<U> tmp2(arena, 2, sizein, shapeNN, false);
+    CTFTensor<U> DAI(arena, 2, sizeAI, shapeNN, false);
+    CTFTensor<U> DAi(arena, 2, sizeAi, shapeNN, false);
+    CTFTensor<U> DaI(arena, 2, sizeaI, shapeNN, false);
+    CTFTensor<U> Dai(arena, 2, sizeai, shapeNN, false);
+    CTFTensor<U> DIj(arena, 2, sizeIi, shapeNN, false);
+    CTFTensor<U> DAbIj(arena, 4, sizeAaIi, shapeNNNN, false);
+    CTFTensor<U> tmp1(arena, 2, sizeIn, shapeNN, false);
+    CTFTensor<U> tmp2(arena, 2, sizein, shapeNN, false);
 
     tmp1["Iq"] = CI["pI"]*S["pq"];
     DIj["Ij"] = tmp1["Iq"]*Ci["qj"];
@@ -179,9 +192,9 @@ double CCSD<U>::getProjectedS2(const MOSpace<U>& occ, const MOSpace<U>& vrt,
     Dai["ai"] = DaI["aJ"]*DIj["Ji"];
     DAbIj["AbIj"] = DAi["Aj"]*DaI["bI"];
 
-    const DistTensor<U>& T1A = T1(1,0,0,1);
-    const DistTensor<U>& T1B = T1(0,0,0,0);
-    DistTensor<U> TauAB(T2(1,0,0,1));
+    const CTFTensor<U>& T1A = T1(1,0,0,1);
+    const CTFTensor<U>& T1B = T1(0,0,0,0);
+    CTFTensor<U> TauAB(T2(1,0,0,1));
 
     TauAB["AbIj"] += T1A["AI"]*T1B["bj"];
 

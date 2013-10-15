@@ -128,9 +128,9 @@ void osinv(int la, int lb, int lc, int ld,
                     qfac[i+1*aosize3] = posw[1] - posq[1];
                     qfac[i+2*aosize3] = posw[2] - posq[2];
 
-                    s1fac[i] = 1.0/(2*zp);
-                    s2fac[i] = 1.0/(2*zq);
-                     gfac[i] = 1.0/(2*(zp+zq));
+                    s1fac[i] = 0.5/zp;
+                    s2fac[i] = 0.5/zq;
+                     gfac[i] = 0.5/(zp+zq);
                     t1fac[i] = -gfac[i]*zq/zp;
                     t2fac[i] = -gfac[i]*zp/zq;
 
@@ -150,6 +150,7 @@ void osinv(int la, int lb, int lc, int ld,
             }
 		}
     }
+    PROFILE_FLOPS((int64_t)na*nb*nc*nd*(vmax+56+17*DIV_FLOPS+SQRT_FLOPS+EXP_FLOPS));
 
     // fill table with x
     filltable(aosize3, xtable, la, lb, lc, ld,
@@ -252,6 +253,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
     d = 0;
 	if (d < ld)
 	{
+	    PROFILE_FLOPS(3*np*(vmax-d));
 		for (int v = 0;v < vmax-d;v++)
 		{
 			ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -267,6 +269,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 	c = 0;
 	if (c < lc)
 	{
+        PROFILE_FLOPS(3*np*(vmax-c-d));
 		for (int v = 0;v < vmax-c-d;v++)
 		{
 			ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -282,6 +285,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 	b = 0;
 	if (b < lb)
 	{
+        PROFILE_FLOPS(3*np*(vmax-b-c-d));
 		for (int v = 0;v < vmax-b-c-d;v++)
 		{
 			ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -297,6 +301,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 	a = 0;
 	if (a < la)
 	{
+        PROFILE_FLOPS(3*np*(vmax-a-b-c-d));
 		for (int v = 0;v < vmax-a-b-c-d;v++)
 		{
 			ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -314,6 +319,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 	{
 		if (a < la)
 		{
+	        PROFILE_FLOPS(8*np*(vmax-a-b-c-d));
 			for (int v = 0;v < vmax-a-b-c-d;v++)
 			{
 				ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -335,6 +341,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 	{
 		if (b < lb)
 		{
+	        PROFILE_FLOPS(8*np*(vmax-b-c-d));
 			for (int v = 0;v < vmax-b-c-d;v++)
 			{
 				ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -352,6 +359,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 		a = 0;
 		if (a < la)
 		{
+	        PROFILE_FLOPS(8*np*(vmax-a-b-c-d));
 			for (int v = 0;v < vmax-a-b-c-d;v++)
 			{
 				ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -371,6 +379,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 		{
 			if (a < la)
 			{
+		        PROFILE_FLOPS(13*np*(vmax-a-b-c-d));
 				for (int v = 0;v < vmax-a-b-c-d;v++)
 				{
 					ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -396,6 +405,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 	{
 		if (c < lc)
 		{
+	        PROFILE_FLOPS(8*np*(vmax-c-d));
 			for (int v = 0;v < vmax-c-d;v++)
 			{
 				ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -413,6 +423,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 		b = 0;
 		if (b < lb)
 		{
+	        PROFILE_FLOPS(6*np*(vmax-b-c-d));
 			for (int v = 0;v < vmax-b-c-d;v++)
 			{
 				ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -429,6 +440,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 		a = 0;
 		if (a < la)
 		{
+	        PROFILE_FLOPS(6*np*(vmax-a-b-c-d));
 			for (int v = 0;v < vmax-a-b-c-d;v++)
 			{
 				ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -447,6 +459,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 		{
 			if (a < la)
 			{
+		        PROFILE_FLOPS(11*np*(vmax-a-b-c-d));
 				for (int v = 0;v < vmax-a-b-c-d;v++)
 				{
 					ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -469,6 +482,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 		{
 			if (b < lb)
 			{
+		        PROFILE_FLOPS(11*np*(vmax-b-c-d));
 				for (int v = 0;v < vmax-b-c-d;v++)
 				{
 					ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -487,6 +501,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 			a = 0;
 			if (a < la)
 			{
+		        PROFILE_FLOPS(11*np*(vmax-a-b-c-d));
 				for (int v = 0;v < vmax-a-b-c-d;v++)
 				{
 					ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -507,6 +522,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 			{
 				if (a < la)
 				{
+			        PROFILE_FLOPS(16*np*(vmax-a-b-c-d));
 					for (int v = 0;v < vmax-a-b-c-d;v++)
 					{
 						ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -535,6 +551,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
     {
         if (d < ld)
         {
+            PROFILE_FLOPS(8*np*(vmax-d));
             for (int v = 0;v < vmax-d;v++)
             {
 				ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -552,6 +569,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
         c = 0;
 		if (c < lc)
 		{
+	        PROFILE_FLOPS(8*np*(vmax-c-d));
 			for (int v = 0;v < vmax-c-d;v++)
 			{
 				ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -569,6 +587,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 		b = 0;
 		if (b < lb)
 		{
+	        PROFILE_FLOPS(6*np*(vmax-b-c-d));
 			for (int v = 0;v < vmax-b-c-d;v++)
 			{
 				ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -585,6 +604,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 		a = 0;
 		if (a < la)
 		{
+	        PROFILE_FLOPS(6*np*(vmax-a-b-c-d));
 			for (int v = 0;v < vmax-a-b-c-d;v++)
 			{
 				ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -603,6 +623,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 		{
 			if (a < la)
 			{
+		        PROFILE_FLOPS(11*np*(vmax-a-b-c-d));
 				for (int v = 0;v < vmax-a-b-c-d;v++)
 				{
 					ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -625,6 +646,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 		{
 			if (b < lb)
 			{
+		        PROFILE_FLOPS(11*np*(vmax-b-c-d));
 				for (int v = 0;v < vmax-b-c-d;v++)
 				{
 					ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -643,6 +665,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 			a = 0;
 			if (a < la)
 			{
+		        PROFILE_FLOPS(11*np*(vmax-a-b-c-d));
 				for (int v = 0;v < vmax-a-b-c-d;v++)
 				{
 					ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -663,6 +686,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 			{
 				if (a < la)
 				{
+			        PROFILE_FLOPS(16*np*(vmax-a-b-c-d));
 					for (int v = 0;v < vmax-a-b-c-d;v++)
 					{
 						ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -689,6 +713,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
         {
             if (c < lc)
             {
+                PROFILE_FLOPS(13*np*(vmax-c-d));
                 for (int v = 0;v < vmax-c-d;v++)
                 {
 					ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -708,6 +733,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
             b = 0;
 			if (b < lb)
 			{
+		        PROFILE_FLOPS(9*np*(vmax-b-c-d));
 				for (int v = 0;v < vmax-b-c-d;v++)
 				{
 					ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -725,6 +751,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 			a = 0;
 			if (a < la)
 			{
+		        PROFILE_FLOPS(9*np*(vmax-a-b-c-d));
 				for (int v = 0;v < vmax-a-b-c-d;v++)
 				{
 					ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -744,6 +771,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
 			{
 				if (a < la)
 				{
+			        PROFILE_FLOPS(14*np*(vmax-a-b-c-d));
 					for (int v = 0;v < vmax-a-b-c-d;v++)
 					{
 						ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -767,6 +795,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
             {
                 if (b < lb)
                 {
+                    PROFILE_FLOPS(14*np*(vmax-b-c-d));
                     for (int v = 0;v < vmax-b-c-d;v++)
                     {
 						ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -786,6 +815,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
                 a = 0;
 				if (a < la)
 				{
+			        PROFILE_FLOPS(14*np*(vmax-a-b-c-d));
 					for (int v = 0;v < vmax-a-b-c-d;v++)
 					{
 						ALIGNED_LOOP(int p = 0;p < np;p++)
@@ -807,6 +837,7 @@ static void filltable(int np, double* restrict table, int la, int lb, int lc, in
                 {
                     if (a < la)
                     {
+                        PROFILE_FLOPS(19*np*(vmax-a-b-c-d));
                         for (int v = 0;v < vmax-a-b-c-d;v++)
                         {
 							ALIGNED_LOOP(int p = 0;p < np;p++)

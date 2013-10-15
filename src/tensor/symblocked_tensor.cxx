@@ -31,12 +31,12 @@ using namespace aquarius::task;
 
 template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(other), Resource(other.arena),
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(other), Resource(other.arena),
   group(other.group), len(other.len), sym(other.sym) {}
 
 template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(SymmetryBlockedTensor<T>* other)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(other->ndim, 0), Resource(other->arena),
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(other->ndim, 0), Resource(other->arena),
   group(other->group), len(other->len), sym(other->sym)
 {
     tensors.swap(other->tensors);
@@ -45,18 +45,18 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(SymmetryBlockedTensor<T>* other)
 
 template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other, T scalar)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(0, 0), Resource(other.arena),
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(0, 0), Resource(other.arena),
   group(other.group), len(0), sym(0)
 {
     tensors.resize(1, NULL);
-    tensors[0].tensor = new DistTensor<T>(other.arena, scalar);
+    tensors[0].tensor = new CTFTensor<T>(other.arena, scalar);
 }
 
 template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& A,
                                                 const vector<vector<int> >& start_A,
                                                 const vector<vector<int> >& len_A)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(A.ndim, 0), Resource(A.arena),
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(A.ndim, 0), Resource(A.arena),
   group(A.group), len(len_A), sym(A.sym)
 {
     allocate(false);
@@ -67,7 +67,7 @@ template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const Arena& arena, const PointGroup& group,
                                                 int ndim, const vector<vector<int> >& len,
                                                 const vector<int>& sym, bool zero)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>(ndim, 0), Resource(arena),
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(ndim, 0), Resource(arena),
   group(group), len(len), sym(sym)
 {
     assert(sym.size() == ndim);
@@ -120,7 +120,7 @@ void SymmetryBlockedTensor<T>::allocate(bool zero)
             }
 
             assert(t < ntensors);
-            if (ok) tensors[t].tensor = new DistTensor<T>(arena, ndim, sublen, subsym, zero);
+            if (ok) tensors[t].tensor = new CTFTensor<T>(this->arena, ndim, sublen, subsym, zero);
         }
 
         for (int i = 0;i < ndim;i++)
@@ -148,13 +148,13 @@ void SymmetryBlockedTensor<T>::allocate(bool zero)
 }
 
 template <class T>
-DistTensor<T>& SymmetryBlockedTensor<T>::operator()(const vector<int>& irreps)
+CTFTensor<T>& SymmetryBlockedTensor<T>::operator()(const vector<int>& irreps)
 {
-    return const_cast<DistTensor<T>&>(const_cast<const SymmetryBlockedTensor<T>&>(*this)(irreps));
+    return const_cast<CTFTensor<T>&>(const_cast<const SymmetryBlockedTensor<T>&>(*this)(irreps));
 }
 
 template <class T>
-const DistTensor<T>& SymmetryBlockedTensor<T>::operator()(const vector<int>& irreps) const
+const CTFTensor<T>& SymmetryBlockedTensor<T>::operator()(const vector<int>& irreps) const
 {
     assert(irreps.size() == this->ndim);
 
@@ -446,21 +446,104 @@ void SymmetryBlockedTensor<T>::sum(T alpha, bool conja, const SymmetryBlockedTen
     vector<int> stride_A_B = getStrides(inds_B, A.ndim, n, idx_A_);
     vector<int> stride_B = getStrides(inds_B, ndim, n, idx_B_);
 
+    vector<T> beta_(tensors.size(), beta);
+
     int off_A = 0;
     int off_B = 0;
     vector<int> iB(nB, 0);
     for (bool doneB = false;!doneB;)
     {
-        double beta_ = beta;
-
         vector<int> iA(nA, 0);
         for (bool doneA = false;!doneA;)
         {
             if (A.tensors[off_A] != NULL &&
                   tensors[off_B] != NULL)
             {
-                tensors[off_B].tensor->sum(alpha*f, conja, *A.tensors[off_A].tensor, idx_A_,
-                                             beta_,                                  idx_B_);
+                tensors[off_B].tensor->sum(     alpha*f, conja, *A.tensors[off_A].tensor, idx_A_,
+                                           beta_[off_B],                                  idx_B_);
+                beta_[off_B] = 1.0;
+            }
+            else if (A.tensors[off_A] != NULL)
+            {
+                vector<int> iBr(ndim);
+                string idx_Br(idx_B_);
+
+                for (int i = 0;i < ndim;i++)
+                {
+                    for (int j = 0;j < nB;j++)
+                    {
+                        if (inds_B[j] == idx_B_[i]) iBr[i] = iB[j];
+                    }
+                }
+
+                vector<int> iBr0(iBr);
+
+                double f2 = 1;
+                for (int i = 0, j = 0;i < ndim;i++)
+                {
+                    if (sym[i] == NS && i != j)
+                    {
+                        cosort(&iBr[j], &iBr[i]+1, &idx_Br[j], &idx_Br[i]+1);
+                        if (sym[j] == AS) f2 *= relativeSign(&iBr[j], &iBr[i]+1, &iBr0[j], &iBr0[i]+1);
+                        j = i+1;
+                    }
+                }
+
+                int off_Br = 0;
+                int stride = 1;
+                for (int i = 0;i < ndim;i++)
+                {
+                    off_Br += iBr[i]*stride;
+                    stride *= n;
+                }
+
+                if (tensors[off_Br] != NULL)
+                {
+                    tensors[off_Br].tensor->sum(   alpha*f*f2, conja, *A.tensors[off_A].tensor, idx_A_,
+                                                beta_[off_Br],                                  idx_Br);
+                    beta_[off_Br] = 1.0;
+                }
+            }
+            else if (tensors[off_B] != NULL)
+            {
+                vector<int> iAr(ndim);
+                string idx_Ar(idx_A_);
+
+                for (int i = 0;i < A.ndim;i++)
+                {
+                    for (int j = 0;j < nA;j++)
+                    {
+                        if (inds_A[j] == idx_A_[i]) iAr[i] = iA[j];
+                    }
+                }
+
+                vector<int> iAr0(iAr);
+
+                double f2 = 1;
+                for (int i = 0, j = 0;i < A.ndim;i++)
+                {
+                    if (A.sym[i] == NS && i != j)
+                    {
+                        cosort(&iAr[j], &iAr[i]+1, &idx_Ar[j], &idx_Ar[i]+1);
+                        if (A.sym[j] == AS) f2 *= relativeSign(&iAr[j], &iAr[i]+1, &iAr0[j], &iAr0[i]+1);
+                        j = i+1;
+                    }
+                }
+
+                int off_Ar = 0;
+                int stride = 1;
+                for (int i = 0;i < A.ndim;i++)
+                {
+                    off_Ar += iAr[i]*stride;
+                    stride *= n;
+                }
+
+                if (A.tensors[off_Ar] != NULL)
+                {
+                    tensors[off_B].tensor->sum(  alpha*f*f2, conja, *A.tensors[off_Ar].tensor, idx_Ar,
+                                               beta_[off_B],                                   idx_B_);
+                    beta_[off_B] = 1.0;
+                }
             }
 
             for (int i = 0;i < nA;i++)
@@ -481,8 +564,6 @@ void SymmetryBlockedTensor<T>::sum(T alpha, bool conja, const SymmetryBlockedTen
             }
 
             if (nA == 0) doneA = true;
-
-            beta_ = 1.0;
         }
 
         for (int i = 0;i < nB;i++)
@@ -696,10 +777,20 @@ typename std::real_type<T>::type SymmetryBlockedTensor<T>::norm(int p) const
                 i = j;
             }
 
-            if      (p == 2) factor = sqrt(factor);
-            else if (p == 0) factor = 1;
+            typename std::real_type<T>::type subnrm = tensors[off_A].tensor->norm(p);
 
-            nrm += factor*tensors[off_A].tensor->norm(p);
+            if (p == 2)
+            {
+                nrm += factor*subnrm*subnrm;
+            }
+            else if (p == 0)
+            {
+                nrm = max(nrm,subnrm);
+            }
+            else if (p == 1)
+            {
+                nrm += factor*subnrm;
+            }
         }
 
         for (int i = 0;i < this->ndim;i++)
@@ -721,6 +812,8 @@ typename std::real_type<T>::type SymmetryBlockedTensor<T>::norm(int p) const
 
         if (ndim == 0) doneA = true;
     }
+
+    if (p == 2) nrm = sqrt(nrm);
 
     return nrm;
 }

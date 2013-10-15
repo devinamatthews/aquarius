@@ -52,8 +52,14 @@ class STExcitationOperator<U,2> : public ExcitationOperator<U,2>
         static void transform(const OneElectronOperator<U>& X, const ExcitationOperator<U,2>& T,
                               ExcitationOperator<U,2>& Z);
 
+        static void transform(const OneElectronOperator<U>& X, const ExcitationOperator<U,2>& T,
+                              ExcitationOperator<U,2>& Z, OneElectronOperator<U>& W);
+
         static void transform(const TwoElectronOperator<U>& X, const ExcitationOperator<U,2>& T,
                               ExcitationOperator<U,2>& Z);
+
+        static void transform(const TwoElectronOperator<U>& X, const ExcitationOperator<U,2>& T,
+                              ExcitationOperator<U,2>& Z, TwoElectronOperator<U>& W);
 };
 
 }

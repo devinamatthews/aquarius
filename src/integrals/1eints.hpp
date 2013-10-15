@@ -191,4 +191,9 @@ struct OneElectronHamiltonian : public OneElectronIntegralsTask::OneElectronInte
 }
 }
 
+namespace std
+{
+    template<> struct is_pod<aquarius::idx2_t> { static const bool value = true; };
+}
+
 #endif

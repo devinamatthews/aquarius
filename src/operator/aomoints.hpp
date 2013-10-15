@@ -25,6 +25,8 @@
 #ifndef _AQUARIUS_OPERATOR_AOMOINTS_HPP_
 #define _AQUARIUS_OPERATOR_AOMOINTS_HPP_
 
+#include <valarray>
+
 #include "scf/aoscf.hpp"
 #include "integrals/2eints.hpp"
 
@@ -49,21 +51,21 @@ class AOMOIntegrals : public MOIntegrals<T>
 
         struct pqrs_integrals : Distributed
         {
-            int np, nq, nr, ns;
-            size_t nints;
-            T *ints;
-            idx4_t *idxs;
+            const symmetry::PointGroup& group;
+            std::vector<int> np, nq, nr, ns;
+            std::vararray<T> ints;
+            std::vararray<idx4_t> idxs;
 
             /*
              * Read integrals in and break (pq|rs)=(rs|pq) symmetry
              */
-            pqrs_integrals(int norb, const integrals::ERI& aoints);
+            pqrs_integrals(const std::vector<int>& norb, const integrals::ERI& aoints);
 
             pqrs_integrals(abrs_integrals& abrs);
 
             void free();
 
-            void sortInts(bool rles, size_t& nrs, size_t*& rscount);
+            void sortInts(bool rles, size_t& nrs, std::vector<size_t>& rscount);
 
             /*
              * Redistribute integrals such that each node has all pq for each rs pair
@@ -73,11 +75,13 @@ class AOMOIntegrals : public MOIntegrals<T>
 
         struct abrs_integrals : Distributed
         {
-            int na, nb, nr, ns;
-            size_t nints;
-            T *ints;
-            size_t nrs;
-            idx2_t *rs;
+            const symmetry::PointGroup& group;
+            std::vector<int> na, nb, nr, ns;
+            std::vararray<T> ints;
+            std::vararray<idx2_t> rs;
+
+            abrs_integrals(const Arena& arena, const symmetry::PointGroup& group)
+            : Distributed(arena), group(group) {}
 
             /*
              * Expand (p_i q_j|r_k s_l) into (pq|r_k s_l), where pleq = true indicates
@@ -90,11 +94,15 @@ class AOMOIntegrals : public MOIntegrals<T>
              *
              * C is ldc*nc if trans = 'N' and ldc*[na|nb] if trans = 'T'
              */
-            abrs_integrals transform(Index index, const char trans, const int nc, const double* C, const int ldc);
+            abrs_integrals transform(Index index, const std::vector<int>& nc, const std::vector<std::vector<T> >& C);
 
-            void transcribe(tensor::DistTensor<T>& tensor, bool assymij, bool assymkl, Side swap);
+            void transcribe(tensor::SymmetryBlockedTensor<T>& tensor, bool assymij, bool assymkl, Side swap);
 
             void free();
+
+            size_t getNumAB(idx2_t rs);
+
+            size_t getNumAB(idx2_t rs, std::vector<size_t>& offab);
         };
 
     protected:

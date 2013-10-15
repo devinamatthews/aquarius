@@ -104,15 +104,15 @@ T TwoElectronOperator<T>::dot(bool conja, const TwoElectronOperator<T>& A, bool 
     sum += this->ia.dot(conja, A.ia, conjb);
     sum += this->ij.dot(conja, A.ij, conjb);
 
-    sum += (T)0.25*ijkl.dot(conja, A.ijkl, conjb);
-    sum += (T)0.25*abcd.dot(conja, A.abcd, conjb);
-    sum += (T)0.25*abij.dot(conja, A.abij, conjb);
-    sum += (T)0.25*ijab.dot(conja, A.ijab, conjb);
-    sum +=  (T)0.5*abci.dot(conja, A.abci, conjb);
-    sum +=  (T)0.5*aibc.dot(conja, A.aibc, conjb);
-    sum +=  (T)0.5*ijak.dot(conja, A.ijak, conjb);
-    sum +=  (T)0.5*aijk.dot(conja, A.aijk, conjb);
-    sum +=         aibj.dot(conja, A.aibj, conjb);
+    sum += 0.25*ijkl.dot(conja, A.ijkl, conjb);
+    sum += 0.25*abcd.dot(conja, A.abcd, conjb);
+    sum += 0.25*abij.dot(conja, A.abij, conjb);
+    sum += 0.25*ijab.dot(conja, A.ijab, conjb);
+    sum +=  0.5*abci.dot(conja, A.abci, conjb);
+    sum +=  0.5*aibc.dot(conja, A.aibc, conjb);
+    sum +=  0.5*ijak.dot(conja, A.ijak, conjb);
+    sum +=  0.5*aijk.dot(conja, A.aijk, conjb);
+    sum +=      aibj.dot(conja, A.aibj, conjb);
 
     return sum;
 }

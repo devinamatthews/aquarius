@@ -22,7 +22,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#include "limits.h"
+#include <algorithm>
+#include <numeric>
+#include <limits.h>
 
 #include "aomoints.hpp"
 
@@ -47,8 +49,8 @@ AOMOIntegrals<T>::AOMOIntegrals(const string& name, const Config& config)
 }
 
 template <typename T>
-AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(int norb, const ERI& aoints)
-: Distributed(aoints.arena)
+AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(const vector<int>& norb, const ERI& aoints)
+: Distributed(aoints.arena), group(aoints.group)
 {
     PROFILE_FUNCTION
 
@@ -57,7 +59,7 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(int norb, const ERI& aoints)
     const vector<T>& oldints = aoints.ints;
     const vector<idx4_t>& oldidxs = aoints.idxs;
     size_t noldints = oldints.size();
-    nints = noldints;
+    size_t nints = noldints;
 
     for (size_t i = 0;i < noldints;i++)
     {
@@ -70,8 +72,8 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(int norb, const ERI& aoints)
         }
     }
 
-    ints = SAFE_MALLOC(T, nints);
-    idxs = SAFE_MALLOC(idx4_t, nints);
+    ints.resize(nints);
+    idxs.resize(nints);
 
     size_t j = 0;
     for (size_t i = 0;i < noldints;i++)
@@ -82,12 +84,6 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(int norb, const ERI& aoints)
         if (idx.i > idx.j) swap(idx.i, idx.j);
         if (idx.k > idx.l) swap(idx.k, idx.l);
 
-        assert(idx.i < np);
-        assert(idx.j < nq);
-        assert(idx.k < nr);
-        assert(idx.l < ns);
-
-        assert(j < nints);
         ints[j] = val;
         idxs[j] = idx;
         j++;
@@ -96,7 +92,6 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(int norb, const ERI& aoints)
         {
             swap(idx.i, idx.k);
             swap(idx.j, idx.l);
-            assert(j < nints);
             ints[j] = val;
             idxs[j] = idx;
             j++;
@@ -109,7 +104,7 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(int norb, const ERI& aoints)
 
 template <typename T>
 AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(abrs_integrals& abrs)
-: Distributed(abrs.arena)
+: Distributed(abrs.arena), group(abrs.group)
 {
     PROFILE_FUNCTION
 
@@ -118,33 +113,59 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(abrs_integrals& abrs)
     nr = abrs.na;
     ns = abrs.nb;
 
-    nints = abrs.nints;
-    ints = abrs.ints;
-    idxs = SAFE_MALLOC(idx4_t, nints);
+    int n = group.getNumIrreps();
+
+    vector<int> irrepp;
+    for (int i = 0;i < n;i++) irrepp += vector<int>(np[i],i);
+    vector<int> irrepq;
+    for (int i = 0;i < n;i++) irrepq += vector<int>(nq[i],i);
+
+    vector<int> startr(n,0);
+    for (int i = 1;i < n;i++) startr[i] = startr[i-1]+nr[i-1];
+    vector<int> starts(n,0);
+    for (int i = 1;i < n;i++) starts[i] = starts[i-1]+ns[i-1];
+
+    Representation irrpq(group), irrpqs(group), irrpqrs(group);
+
+    ints.swap(abrs.ints);
+    idxs.resize(ints.size());
     size_t ipqrs, irs;
-    for (ipqrs = 0, irs = 0;irs < abrs.nrs;irs++)
+    for (ipqrs = 0, irs = 0;irs < abrs.rs.size();irs++)
     {
         int p = abrs.rs[irs].i;
         int q = abrs.rs[irs].j;
-        assert(p >= 0 && p < np);
-        assert(q >= 0 && q < nq);
+        int irrp = irrepp[p];
+        int irrq = irrepq[q];
+        irrpq = group.getIrrep(irrp)*group.getIrrep(irrq);
 
-        for (int s = 0;s < ns;s++)
+        for (int irrs = 0;irrs < n;irrs++)
         {
-            for (int r = 0;r < nr;r++)
+            irrpqs = irrpq;
+            irrpqs *= group.getIrrep(irrs);
+
+            for (int irrr = 0;irrr < n;irrr++)
             {
-                assert(ipqrs < nints);
-                idxs[ipqrs].i = p;
-                idxs[ipqrs].j = q;
-                idxs[ipqrs].k = r;
-                idxs[ipqrs].l = s;
-                ipqrs++;
+                irrpqrs = irrpqs;
+                irrpqrs *= group.getIrrep(irrr);
+                if (!irrpqrs.isTotallySymmetric()) continue;
+
+                for (int s = starts[irrs];s < starts[irrs]+ns[irrs];s++)
+                {
+                    for (int r = startr[irrr];r < startr[irrr]+nr[irrr];r++)
+                    {
+                        idxs[ipqrs].i = p;
+                        idxs[ipqrs].j = q;
+                        idxs[ipqrs].k = r;
+                        idxs[ipqrs].l = s;
+                        ipqrs++;
+                    }
+                }
             }
         }
     }
-    assert(ipqrs == nints);
+    assert(ipqrs == ints.size());
 
-    FREE(abrs.rs);
+    abrs.free();
 
     PROFILE_STOP
 }
@@ -152,52 +173,45 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(abrs_integrals& abrs)
 template <typename T>
 void AOMOIntegrals<T>::pqrs_integrals::free()
 {
-    FREE(ints);
-    FREE(idxs);
+    ints.clear();
+    idxs.clear();
 }
 
 template <typename T>
-void AOMOIntegrals<T>::pqrs_integrals::sortInts(bool rles, size_t& nrs, size_t*& rscount)
+void AOMOIntegrals<T>::pqrs_integrals::sortInts(bool rles, size_t& nrs, vector<size_t>& rscount)
 {
+    size_t nrtot = sum(nr);
+    size_t nstot = sum(ns);
+
     if (rles)
     {
-        nrs = nr*(nr+1)/2;
+        assert(nr == ns);
+        nrs = nrtot*(nrtot+1)/2;
     }
     else
     {
-        nrs = nr*ns;
+        nrs = nrtot*nstot;
     }
 
-    rscount = SAFE_MALLOC(size_t, nrs);
-    fill(rscount, rscount+nrs, 0);
+    rscount.assign(nrs, 0);
 
-    for (size_t i = 0;i < nints;i++)
+    for (size_t i = 0;i < ints.size();i++)
     {
-        if (rles)
-        {
-            assert(idxs[i].k+idxs[i].l*(idxs[i].l+1)/2 < nrs);
-            rscount[idxs[i].k+idxs[i].l*(idxs[i].l+1)/2]++;
-        }
-        else
-        {
-            assert(idxs[i].k+idxs[i].l*nr < nrs);
-            rscount[idxs[i].k+idxs[i].l*nr]++;
-        }
+        if (rles) rscount[idxs[i].k+idxs[i].l*(idxs[i].l+1)/2]++;
+        else      rscount[idxs[i].k+idxs[i].l*nrtot]++;
     }
 
-    size_t *rsoff = SAFE_MALLOC(size_t, nrs);
-
-    rsoff[0] = 0;
+    vector<size_t> rsoff(nrs, 0);
     for (size_t i = 1;i < nrs;i++) rsoff[i] = rsoff[i-1]+rscount[i-1];
-    assert(rsoff[nrs-1]+rscount[nrs-1] == nints);
+    assert(rsoff[nrs-1]+rscount[nrs-1] == ints.size());
 
-    T* newints = SAFE_MALLOC(T, nints);
-    idx4_t* newidxs = SAFE_MALLOC(idx4_t, nints);
+    vararray<T> newints(ints.size());
+    vararray<idx4_t> newidxs(ints.size());
 
-    for (size_t i = 0;i < nints;i++)
+    for (size_t i = 0;i < ints.size();i++)
     {
         size_t rs = (rles ? idxs[i].k+idxs[i].l*(idxs[i].l+1)/2
-                          : idxs[i].k+idxs[i].l*nr);
+                          : idxs[i].k+idxs[i].l*nrtot);
 
         newints[rsoff[rs]] = ints[i];
         newidxs[rsoff[rs]] = idxs[i];
@@ -207,9 +221,6 @@ void AOMOIntegrals<T>::pqrs_integrals::sortInts(bool rles, size_t& nrs, size_t*&
 
     swap(ints, newints);
     swap(idxs, newidxs);
-    FREE(newints);
-    FREE(newidxs);
-    FREE(rsoff);
 }
 
 /*
@@ -220,18 +231,20 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
 {
     PROFILE_FUNCTION
 
-    assert(sizeof(short) == sizeof(int16_t));
-    MPI::Datatype IDX4_T_TYPE = MPI::Datatype(MPI_SHORT).Create_contiguous(4);
-    IDX4_T_TYPE.Commit();
+    static MPI::Datatype IDX4_T_TYPE = MPI::DATATYPE_NULL;
+
+    if (IDX4_T_TYPE == MPI::DATATYPE_NULL)
+    {
+        IDX4_T_TYPE = MPI_TYPE_<uint16_t>::value().Create_contiguous(4);
+        IDX4_T_TYPE.Commit();
+    }
 
     size_t nrs;
-    size_t *rscount;
+    vector<size_t> rscount;
     sortInts(rles, nrs, rscount);
 
-    size_t *sendcount = SAFE_MALLOC(size_t, nproc);
-    size_t *recvcount = SAFE_MALLOC(size_t, nproc);
-    fill(sendcount, sendcount+nproc, 0);
-    fill(recvcount, recvcount+nproc, 0);
+    vector<size_t> sendcount(nproc, 0);
+    vector<size_t> recvcount(nproc, 0);
 
     for (int i = 0;i < nproc;i++)
     {
@@ -242,22 +255,16 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
         }
     }
 
-    FREE(rscount);
-
     PROFILE_SECTION(collect_comm)
-    this->arena.Alltoall(sendcount, recvcount, 1);
+    this->arena.Alltoall(sendcount, recvcount);
     PROFILE_STOP
 
-    size_t nnewints = 0;
-    for (int i = 0;i < nproc;i++) nnewints += recvcount[i];
+    size_t nnewints = sum(recvcount);
+    vararray<T> newints(nnewints);
+    vararray<idx4_t> newidxs(nnewints);
 
-//    assert(allsum(nints) == allsum(nnewints));
-
-    T* newints = SAFE_MALLOC(T, nnewints);
-    idx4_t* newidxs = SAFE_MALLOC(idx4_t, nnewints);
-
-    int *realsendcount = SAFE_MALLOC(int, nproc);
-    int *realrecvcount = SAFE_MALLOC(int, nproc);
+    vector<int> realsendcount(nproc);
+    vector<int> realrecvcount(nproc);
 
     for (int i = 0;i < nproc;i++)
     {
@@ -268,91 +275,96 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
     }
 
     PROFILE_SECTION(collect_comm)
-    this->arena.Alltoallv(ints, realsendcount, newints, realrecvcount);
-
-    this->arena.Alltoallv(idxs, realsendcount, newidxs, realrecvcount, IDX4_T_TYPE);
+    this->arena.Alltoallv(ints.data(), realsendcount.data(), newints.data(), realrecvcount.data());
+    this->arena.Alltoallv(idxs.data(), realsendcount.data(), newidxs.data(), realrecvcount.data(), IDX4_T_TYPE);
     PROFILE_STOP
 
-    FREE(realsendcount);
-    FREE(realrecvcount);
-    FREE(sendcount);
-    FREE(recvcount);
-
-    nints = nnewints;
     swap(ints, newints);
     swap(idxs, newidxs);
-    FREE(newints);
-    FREE(newidxs);
+    newints.clear();
+    newidxs.clear();
 
     sortInts(rles, nrs, rscount);
-    FREE(rscount);
 
     PROFILE_STOP
 }
 
 template <typename T>
 AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const bool pleq)
-: Distributed(pqrs.arena)
+: Distributed(pqrs.arena), group(pqrs.group)
 {
     PROFILE_FUNCTION
+
+    int n = group.getNumIrreps();
+    Representation irrrs(group), irrbrs(group), irrabrs(group);
 
     na = pqrs.np;
     nb = pqrs.nq;
     nr = pqrs.nr;
     ns = pqrs.ns;
 
-    nrs = (pqrs.nints > 0 ? 1 : 0);
-    for (size_t ipqrs = 1;ipqrs < pqrs.nints;ipqrs++)
+    vector<int> irrepa;
+    for (int i = 0;i < n;i++) irrepa += vector<int>(na[i],i);
+    vector<int> irrepb;
+    for (int i = 0;i < n;i++) irrepb += vector<int>(nb[i],i);
+
+    vector<int> starta(n,0);
+    for (int i = 1;i < n;i++) starta[i] = starta[i-1]+na[i-1];
+    vector<int> startb(n,0);
+    for (int i = 1;i < n;i++) startb[i] = startb[i-1]+nb[i-1];
+
+    size_t nrs = 0;
+    size_t nints = 0;
+    for (size_t ipqrs = 0;ipqrs < pqrs.ints.size();ipqrs++)
     {
-        assert( pqrs.idxs[ipqrs].l  > pqrs.idxs[ipqrs-1].l ||
+        assert( ipqrs == 0 ||
+                pqrs.idxs[ipqrs].l  > pqrs.idxs[ipqrs-1].l ||
                (pqrs.idxs[ipqrs].l == pqrs.idxs[ipqrs-1].l &&
                 pqrs.idxs[ipqrs].k >= pqrs.idxs[ipqrs-1].k));
-        if (pqrs.idxs[ipqrs].k != pqrs.idxs[ipqrs-1].k ||
-            pqrs.idxs[ipqrs].l != pqrs.idxs[ipqrs-1].l) nrs++;
+        if (ipqrs == 0 ||
+            pqrs.idxs[ipqrs].k != pqrs.idxs[ipqrs-1].k ||
+            pqrs.idxs[ipqrs].l != pqrs.idxs[ipqrs-1].l)
+        {
+            nints += getNumAB(idx2_t(pqrs.idxs[ipqrs].k, pqrs.idxs[ipqrs].l));
+            nrs++;
+        }
     }
 
-    rs = SAFE_MALLOC(idx2_t, nrs);
-    nints = nrs*na*nb;
-    ints = SAFE_MALLOC(T, nints);
-    fill(ints, ints+nints, (T)0);
+    rs.resize(nrs);
+    ints.assign(nints, (T)0);
 
-    size_t ipqrs = 0, irs = 0, iabrs = 0;
-    if (nrs > 0)
+    size_t iabrs = 0;
+    size_t irs = -1;
+    size_t nab = 0;
+    vector<size_t> offab(n*n);
+    for (size_t ipqrs = 0;ipqrs < pqrs.ints.size();ipqrs++)
     {
-        rs[0].i = pqrs.idxs[0].k;
-        rs[0].j = pqrs.idxs[0].l;
-        assert(rs[0].i < nr);
-        assert(rs[0].j < ns);
-    }
-    for (;ipqrs < pqrs.nints;ipqrs++)
-    {
-        assert(ipqrs >= 0 && ipqrs < pqrs.nints);
-        if (ipqrs > 0 &&
-            (pqrs.idxs[ipqrs].k != pqrs.idxs[ipqrs-1].k ||
-             pqrs.idxs[ipqrs].l != pqrs.idxs[ipqrs-1].l))
+        if (ipqrs == 0 ||
+            pqrs.idxs[ipqrs].k != pqrs.idxs[ipqrs-1].k ||
+            pqrs.idxs[ipqrs].l != pqrs.idxs[ipqrs-1].l)
         {
             irs++;
-            iabrs += na*nb;
+            iabrs += nab;
             assert(irs >= 0 && irs < nrs);
             rs[irs].i = pqrs.idxs[ipqrs].k;
             rs[irs].j = pqrs.idxs[ipqrs].l;
-            assert(rs[irs].i < nr);
-            assert(rs[irs].j < ns);
+            fill(offab.begin(), offab.end(), SIZE_MAX);
+            nab = getNumAB(rs[irs], offab);
         }
 
-        int p = pqrs.idxs[ipqrs].i;
-        int q = pqrs.idxs[ipqrs].j;
+        int irra = irrepa[pqrs.idxs[ipqrs].i];
+        int irrb = irrepb[pqrs.idxs[ipqrs].j];
+        int a = pqrs.idxs[ipqrs].i-starta[irra];
+        int b = pqrs.idxs[ipqrs].j-startb[irrb];
 
-        assert(iabrs >= 0 && iabrs+na*nb <= nints);
-        assert(p >= 0 && p < na);
-        assert(q >= 0 && q < nb);
-        ints[iabrs+p+q*na] = pqrs.ints[ipqrs];
-        if (p != q && pleq)
-            ints[iabrs+q+p*na] = pqrs.ints[ipqrs];
+        assert(offab[irra+irrb*n] != SIZE_MAX);
+        assert(a >= 0 && a < na[irra]);
+        assert(b >= 0 && b < nb[irrb]);
+                  ints[iabrs+offab[irra+irrb*n]+a+b*na[irra]] = pqrs.ints[ipqrs];
+        if (pleq) ints[iabrs+offab[irrb+irra*n]+b+a*nb[irrb]] = pqrs.ints[ipqrs];
     }
-    assert(irs == nrs-1 || nrs == 0);
-    assert(iabrs == nints-na*nb || nrs == 0);
-    assert(ipqrs == pqrs.nints);
+    assert(irs+1 == nrs);
+    assert(iabrs+nab == ints.size());
 
     pqrs.free();
 
@@ -360,71 +372,137 @@ AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const boo
 }
 
 template <typename T>
-typename AOMOIntegrals<T>::abrs_integrals AOMOIntegrals<T>::abrs_integrals::transform(Index index, const char trans, const int nc, const double* C, const int ldc)
+typename AOMOIntegrals<T>::abrs_integrals
+AOMOIntegrals<T>::abrs_integrals::transform(Index index, const vector<int>& nc, const vector<vector<T> >& C)
 {
-    abrs_integrals out = *this;
+    abrs_integrals out(arena, group);
 
-    out.rs = SAFE_MALLOC(idx2_t, nrs);
-    copy(rs, rs+nrs, out.rs);
+    out.nr = nr;
+    out.ns = ns;
+    out.rs = rs;
+
+    int n = group.getNumIrreps();
 
     if (index == A)
     {
-        out.na = nc;
-        out.nints = nrs*nc*nb;
-        out.ints = SAFE_MALLOC(T, out.nints);
+        vector<size_t> offab(n*n);
+        vector<size_t> offcb(n*n);
 
-        if (nc == 0) return out;
+        out.na = nc;
+        out.nb = nb;
+
+        size_t nints = 0;
+        vector<size_t> offabrs(rs.size());
+        vector<size_t> offcbrs(rs.size());
+        for (size_t irs = 0;irs < rs.size();irs++)
+        {
+            size_t nab =     getNumAB(rs[irs]);
+            size_t ncb = out.getNumAB(rs[irs]);
+            if (irs < rs.size()-1)
+            {
+                offabrs[irs+1] = offabrs[irs]+nab;
+                offcbrs[irs+1] = offcbrs[irs]+ncb;
+            }
+            nints += ncb;
+        }
+        out.ints.clear();
+        out.ints.resize(nints, 0);
 
         PROFILE_SECTION(transform)
-        #pragma omp parallel
+        long_int flops = 0;
+        #pragma omp parallel for schedule(static), reduction(+:flops)
+        for (size_t irs = 0;irs < rs.size();irs++)
         {
-            int nt = omp_get_num_threads();
-            int tid = omp_get_thread_num();
-            int n0 = (nb*nrs*tid)/nt;
-            int n1 = (nb*nrs*(tid+1))/nt;
-            int nn = n1-n0;
-            if (trans == 'N')
+            fill(offab.begin(), offab.end(), SIZE_MAX);
+            fill(offcb.begin(), offcb.end(), SIZE_MAX);
+                getNumAB(rs[irs], offab);
+            out.getNumAB(rs[irs], offcb);
+
+            for (int irrb = 0;irrb < n;irrb++)
             {
-                gemm('T', 'N', nc, nn, na, 1.0,              C, ldc,
-                                                    ints+n0*na,  na,
-                                           0.0, out.ints+n0*nc,  nc);
-            }
-            else
-            {
-                gemm('N', 'N', nc, nn, na, 1.0,              C, ldc,
-                                                    ints+n0*na,  na,
-                                           0.0, out.ints+n0*nc,  nc);
+                for (int irra = 0;irra < n;irra++)
+                {
+                    if (offab[irra+irrb*n] == SIZE_MAX || offcb[irra+irrb*n] == SIZE_MAX) continue;
+                    if (nc[irra] == 0 || nb[irrb] == 0 || na[irra] == 0) continue;
+
+                    assert(offabrs[irs]+offab[irra+irrb*n] >= 0);
+                    assert(offabrs[irs]+offab[irra+irrb*n] < ints.size());
+                    assert(offabrs[irs]+offab[irra+irrb*n]+na[irra]*nb[irrb] > 0);
+                    assert(offabrs[irs]+offab[irra+irrb*n]+na[irra]*nb[irrb] <= ints.size());
+                    assert(offcbrs[irs]+offcb[irra+irrb*n] >= 0);
+                    assert(offcbrs[irs]+offcb[irra+irrb*n] < out.ints.size());
+                    assert(offcbrs[irs]+offcb[irra+irrb*n]+nc[irra]*nb[irrb] > 0);
+                    assert(offcbrs[irs]+offcb[irra+irrb*n]+nc[irra]*nb[irrb] <= out.ints.size());
+                    gemm('T', 'N', nc[irra], nb[irrb], na[irra],
+                         1.0,                                  C[irra].data(), na[irra],
+                                  ints.data()+offabrs[irs]+offab[irra+irrb*n], na[irra],
+                         1.0, out.ints.data()+offcbrs[irs]+offcb[irra+irrb*n], nc[irra]);
+                    flops += 2*nc[irra]*nb[irrb]*na[irra]+nc[irra]*nb[irrb];
+                }
             }
         }
+        PROFILE_FLOPS(flops);
         PROFILE_STOP
     }
     else
     {
-        out.nb = nc;
-        out.nints = nrs*na*nc;
-        out.ints = SAFE_MALLOC(T, out.nints);
+        vector<size_t> offab(n*n);
+        vector<size_t> offac(n*n);
 
-        if (nc == 0) return out;
+        out.na = na;
+        out.nb = nc;
+
+        size_t nints = 0;
+        vector<size_t> offabrs(rs.size(), 0);
+        vector<size_t> offacrs(rs.size(), 0);
+        for (size_t irs = 0;irs < rs.size();irs++)
+        {
+            size_t nab =     getNumAB(rs[irs]);
+            size_t nac = out.getNumAB(rs[irs]);
+            if (irs < rs.size()-1)
+            {
+                offabrs[irs+1] = offabrs[irs]+nab;
+                offacrs[irs+1] = offacrs[irs]+nac;
+            }
+            nints += nac;
+        }
+        out.ints.clear();
+        out.ints.resize(nints, 0);
 
         PROFILE_SECTION(transform)
+        long_int flops = 0;
         #pragma omp parallel for schedule(static)
-        for (size_t irs = 0;irs < nrs;irs++)
+        for (size_t irs = 0;irs < rs.size();irs++)
         {
-            size_t iin = irs*na*nb;
-            size_t iout = irs*na*nc;
-            if (trans == 'N')
+            fill(offab.begin(), offab.end(), SIZE_MAX);
+            fill(offac.begin(), offac.end(), SIZE_MAX);
+                getNumAB(rs[irs], offab);
+            out.getNumAB(rs[irs], offac);
+
+            for (int irrb = 0;irrb < n;irrb++)
             {
-                gemm('N', 'N', na, nc, nb, 1.0,      ints+iin,  na,
-                                                            C, ldc,
-                                           0.0, out.ints+iout,  na);
-            }
-            else
-            {
-                gemm('N', 'T', na, nc, nb, 1.0,      ints+iin,  na,
-                                                            C, ldc,
-                                           0.0, out.ints+iout,  na);
+                for (int irra = 0;irra < n;irra++)
+                {
+                    if (offab[irra+irrb*n] == SIZE_MAX || offac[irra+irrb*n] == SIZE_MAX) continue;
+                    if (nc[irrb] == 0 || nb[irrb] == 0 || na[irra] == 0) continue;
+
+                    assert(offabrs[irs]+offab[irra+irrb*n] >= 0);
+                    assert(offabrs[irs]+offab[irra+irrb*n] < ints.size());
+                    assert(offabrs[irs]+offab[irra+irrb*n]+na[irra]*nb[irrb] > 0);
+                    assert(offabrs[irs]+offab[irra+irrb*n]+na[irra]*nb[irrb] <= ints.size());
+                    assert(offacrs[irs]+offac[irra+irrb*n] >= 0);
+                    assert(offacrs[irs]+offac[irra+irrb*n] < out.ints.size());
+                    assert(offacrs[irs]+offac[irra+irrb*n]+na[irra]*nc[irrb] > 0);
+                    assert(offacrs[irs]+offac[irra+irrb*n]+na[irra]*nc[irrb] <= out.ints.size());
+                    gemm('N', 'N', na[irra], nc[irrb], nb[irrb],
+                         1.0,     ints.data()+offabrs[irs]+offab[irra+irrb*n], na[irra],
+                                                               C[irrb].data(), nb[irrb],
+                         1.0, out.ints.data()+offacrs[irs]+offac[irra+irrb*n], na[irra]);
+                    flops += 2*nc[irra]*nb[irrb]*na[irra]+nc[irra]*na[irra];
+                }
             }
         }
+        PROFILE_FLOPS(flops);
         PROFILE_STOP
     }
 
@@ -432,130 +510,161 @@ typename AOMOIntegrals<T>::abrs_integrals AOMOIntegrals<T>::abrs_integrals::tran
 }
 
 template <typename T>
-void AOMOIntegrals<T>::abrs_integrals::transcribe(DistTensor<T>& tensor, bool assymij, bool assymkl, Side swap)
+void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symtensor, bool assymij, bool assymkl, Side swap)
 {
     PROFILE_FUNCTION
 
     if (assymij) assert(na == nr);
     if (assymkl) assert(nb == ns);
 
-    vector<tkv_pair<T> > pairs;
+    int n = group.getNumIrreps();
+
+    vector<int> irrepr;
+    for (int i = 0;i < n;i++) irrepr += vector<int>(nr[i],i);
+    vector<int> irreps;
+    for (int i = 0;i < n;i++) irreps += vector<int>(ns[i],i);
+
+    vector<int> startr(n);
+    for (int i = 1;i < n;i++) startr[i] = startr[i-1]+nr[i-1];
+    vector<int> starts(n);
+    for (int i = 1;i < n;i++) starts[i] = starts[i-1]+ns[i-1];
+
+    vector<int> starta(n);
+    for (int i = 1;i < n;i++) starta[i] = starta[i-1]+na[i-1];
+    vector<int> startb(n);
+    for (int i = 1;i < n;i++) startb[i] = startb[i-1]+nb[i-1];
+
+    vector<size_t> offab(n*n);
+    vector<int> symirrs(4);
+    Representation irrrs(group), irrbrs(group), irrabrs(group);
+
+    vector<size_t> offrs(rs.size(), 0);
+    for (size_t i = 1;i < rs.size();i++)
+    {
+        offrs[i] = offrs[i-1]+getNumAB(rs[i-1]);
+    }
+
+    int nrtot = sum(nr);
+
+    //vector<kv_pair> pairs;
+    //CTFTensor<T>& tensor = symtensor(0);
 
     /*
      * (ab|rs) -> <ar|bs>
      */
-    PROFILE_SECTION(7)
-    for (size_t idx = 0,irs = 0;irs < nrs;irs++)
+    double nrmall = 0;
+    for (int irrs = 0;irrs < n;irrs++)
     {
-        int r = rs[irs].i;
-        int s = rs[irs].j;
-
-        for (int b = 0;b < nb;b++)
+        for (int irrr = 0;irrr < n;irrr++)
         {
-            for (int a = 0;a < na;a++)
+            if (nr[irrr] == 0 || ns[irrs] == 0) continue;
+
+            irrrs = group.getIrrep(irrr)*group.getIrrep(irrs);
+            fill(offab.begin(), offab.end(), SIZE_MAX);
+            size_t nab = getNumAB(rs[startr[irrr]+starts[irrs]*nrtot], offab);
+
+            for (int irrb = 0;irrb < n;irrb++)
             {
-                if ((!assymij || a < r) && (!assymkl || b < s))
+                irrbrs = irrrs;
+                irrbrs *= group.getIrrep(irrb);
+
+                for (int irra = 0;irra < n;irra++)
                 {
-                    if (swap == PQ)
+                    irrabrs = irrbrs;
+                    irrabrs *= group.getIrrep(irra);
+
+                    if (!irrabrs.isTotallySymmetric()) continue;
+                    if (assymij && assymkl && irrb > irrs) continue;
+
+                    symirrs[0] = irra;
+                    symirrs[1] = irrr;
+                    symirrs[2] = irrb;
+                    symirrs[3] = irrs;
+                    if (swap == PQ || (assymij && irra > irrr)) std::swap(symirrs[0], symirrs[1]);
+                    if (swap == RS || (assymkl && irrb > irrs)) std::swap(symirrs[2], symirrs[3]);
+
+                    CTFTensor<T>& tensor = symtensor(symirrs);
+
+                    /*
+                     * both halves are written for antisymmetrized tensors, but not the diagonal
+                     */
+                    size_t npair = na[irra]*(assymij && irra == irrr ? nr[irrr]-1 : nr[irrr])*
+                                   nb[irrb]*(assymkl && irrb == irrs ? ns[irrs]-1 : ns[irrs]);
+                    if (assymij && assymkl && irrb == irrs) npair /= 2;
+
+                    vararray<kv_pair> pairs(npair);
+
+                    double nrm = 0;
+                    size_t pair = 0;
+                    for (int s = 0;s < ns[irrs];s++)
                     {
-                        pairs.push_back(tkv_pair<T>(((((int64_t)s)*nb+b)*na+a)*nr+r, -ints[idx]));
+                        for (int r = 0;r < nr[irrr];r++)
+                        {
+                            //printf("%d %d %d %d 0 %d 0 %d %d %ld %ld\n", irra, irrb, irrr, irrs, r, s,
+                            //       (r+startr[irrr])+(s+starts[irrs])*nrtot,
+                            //       (long)offrs[(r+startr[irrr])+(s+starts[irrs])*nrtot],
+                            //       (long)offab[irra+irrb*n]);
+
+                            size_t idx = offrs[(r+startr[irrr])+(s+starts[irrs])*nrtot]+offab[irra+irrb*n]-1;
+
+                            for (int b = 0;b < nb[irrb];b++)
+                            {
+                                for (int a = 0;a < na[irra];a++)
+                                {
+                                    idx++;
+
+                                    T val = ints[idx];
+
+                                    int i = a; int i0 = starta[irra]; int ni = na[irra];
+                                    int j = r; int j0 = startr[irrr]; int nj = nr[irrr];
+                                    int k = b; int k0 = startb[irrb]; int nk = nb[irrb];
+                                    int l = s; int l0 = starts[irrs]; int nl = ns[irrs];
+
+                                    if ((assymij && i+i0 == j+j0) ||
+                                        (assymkl && k+k0 == l+l0)) continue;
+
+                                    if (swap == PQ || (assymij && i+i0 > j+j0))
+                                    {
+                                        val = -val;
+                                        std::swap(i,j);
+                                        std::swap(ni,nj);
+                                    }
+                                    if (swap == RS || (assymkl && k+k0 > l+l0))
+                                    {
+                                        if (swap != RS && assymij) continue;
+                                        val = -val;
+                                        std::swap(k,l);
+                                        std::swap(nk,nl);
+                                    }
+
+                                    nrm += val*val;
+                                    pairs[pair].k = ((((int64_t)l)*nk+k)*nj+j)*ni+i;
+                                    pairs[pair].d = val;
+
+                                    pair++;
+                                }
+                            }
+                        }
                     }
-                    else if (swap == RS)
-                    {
-                        pairs.push_back(tkv_pair<T>(((((int64_t)b)*ns+s)*nr+r)*na+a, -ints[idx]));
-                    }
-                    else
-                    {
-                        pairs.push_back(tkv_pair<T>(((((int64_t)s)*nb+b)*nr+r)*na+a, ints[idx]));
-                    }
+                    assert(pair == pairs.size());
+
+                    nrmall += nrm;
+                    //cout << symirrs << " " << sqrt(nrm) << endl;
+
+                    if (assymij && irra == irrr) assert(tensor.getSymmetry()[0] == AS);
+                    if (assymkl && irrb == irrs) assert(tensor.getSymmetry()[2] == AS);
+                    assert(tensor.getLengths()[0] == (swap == PQ || (assymij && irra > irrr) ? nr[irrr] : na[irra]));
+                    assert(tensor.getLengths()[1] == (swap == PQ || (assymij && irra > irrr) ? na[irra] : nr[irrr]));
+                    assert(tensor.getLengths()[2] == (swap == RS || (assymkl && irrb > irrs) ? ns[irrs] : nb[irrb]));
+                    assert(tensor.getLengths()[3] == (swap == RS || (assymkl && irrb > irrs) ? nb[irrb] : ns[irrs]));
+                    tensor.writeRemoteData(1, 1, pairs);
                 }
-                idx++;
             }
         }
     }
-    PROFILE_STOP
+    //cout << "total: " << sqrt(nrmall) << endl;
 
-    PROFILE_SECTION(8)
-    if (assymij) assert(tensor.getSymmetry()[0] == AS);
-    if (assymkl) assert(tensor.getSymmetry()[2] == AS);
-    assert(tensor.getLengths()[0] == (swap == PQ ? nr : na));
-    assert(tensor.getLengths()[1] == (swap == PQ ? na : nr));
-    assert(tensor.getLengths()[2] == (swap == RS ? ns : nb));
-    assert(tensor.getLengths()[3] == (swap == RS ? nb : ns));
-    tensor.writeRemoteData(1, 0, pairs);
-    pairs.clear();
-    PROFILE_STOP
-
-    if (assymij)
-    {
-        /*
-         * -(ab|rs) -> <ra|bs>
-         */
-        PROFILE_SECTION(9)
-        for (size_t idx = 0,irs = 0;irs < nrs;irs++)
-        {
-            int r = rs[irs].i;
-            int s = rs[irs].j;
-
-            for (int b = 0;b < nb;b++)
-            {
-                for (int a = 0;a < na;a++)
-                {
-                    if (swap == RS)
-                    {
-                        if (r < a && (!assymkl || b < s))
-                            pairs.push_back(tkv_pair<T>(((((int64_t)b)*ns+s)*na+a)*nr+r, -ints[idx]));
-                    }
-                    else
-                    {
-                        if (r < a && (!assymkl || b < s))
-                            pairs.push_back(tkv_pair<T>(((((int64_t)s)*nb+b)*na+a)*nr+r, ints[idx]));
-                    }
-                    idx++;
-                }
-            }
-        }
-        PROFILE_STOP
-
-        PROFILE_SECTION(10)
-        tensor.writeRemoteData(-1, 1, pairs);
-        PROFILE_STOP
-    }
-    else if (assymkl)
-    {
-        /*
-         * -(ab|rs) -> <ar|sb>
-         */
-        PROFILE_SECTION(11)
-        for (size_t idx = 0,irs = 0;irs < nrs;irs++)
-        {
-            int r = rs[irs].i;
-            int s = rs[irs].j;
-
-            for (int b = 0;b < nb;b++)
-            {
-                for (int a = 0;a < na;a++)
-                {
-                    if (swap == PQ)
-                    {
-                        if (s < b)
-                            pairs.push_back(tkv_pair<T>(((((int64_t)b)*ns+s)*na+a)*nr+r, -ints[idx]));
-                    }
-                    else
-                    {
-                        if (s < b)
-                            pairs.push_back(tkv_pair<T>(((((int64_t)b)*ns+s)*nr+r)*na+a, ints[idx]));
-                    }
-                    idx++;
-                }
-            }
-        }
-        PROFILE_STOP
-
-        PROFILE_SECTION(12)
-        tensor.writeRemoteData(-1, 1, pairs);
-        PROFILE_STOP
-    }
+    //tensor.writeRemoteData(pairs);
 
     PROFILE_STOP
 }
@@ -563,8 +672,85 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(DistTensor<T>& tensor, bool as
 template <typename T>
 void AOMOIntegrals<T>::abrs_integrals::free()
 {
-    FREE(ints);
-    FREE(rs);
+    ints.clear();
+    rs.clear();
+}
+
+template <typename T>
+size_t AOMOIntegrals<T>::abrs_integrals::getNumAB(idx2_t rs)
+{
+    int n = group.getNumIrreps();
+
+    Representation irrrs(group), irrbrs(group), irrabrs(group);
+
+    vector<int> irrepr;
+    for (int i = 0;i < n;i++) irrepr += vector<int>(nr[i],i);
+    vector<int> irreps;
+    for (int i = 0;i < n;i++) irreps += vector<int>(ns[i],i);
+
+    irrrs = group.getIrrep(irrepr[rs.i])*
+            group.getIrrep(irreps[rs.j]);
+
+    size_t nab = 0;
+    for (int irrb = 0;irrb < n;irrb++)
+    {
+        irrbrs = irrrs;
+        irrbrs *= group.getIrrep(irrb);
+
+        for (int irra = 0;irra < n;irra++)
+        {
+            irrabrs = irrbrs;
+            irrabrs *= group.getIrrep(irra);
+
+            if (irrabrs.isTotallySymmetric()) nab += na[irra]*nb[irrb];
+        }
+    }
+
+    return nab;
+}
+
+template <typename T>
+size_t AOMOIntegrals<T>::abrs_integrals::getNumAB(idx2_t rs, std::vector<size_t>& offab)
+{
+    int n = group.getNumIrreps();
+
+    Representation irrrs(group), irrbrs(group), irrabrs(group);
+
+    vector<int> irrepr;
+    for (int i = 0;i < n;i++) irrepr += vector<int>(nr[i],i);
+    vector<int> irreps;
+    for (int i = 0;i < n;i++) irreps += vector<int>(ns[i],i);
+
+    irrrs = group.getIrrep(irrepr[rs.i])*
+            group.getIrrep(irreps[rs.j]);
+
+    size_t nab = 0;
+    for (int irrb = 0;irrb < n;irrb++)
+    {
+        irrbrs = irrrs;
+        irrbrs *= group.getIrrep(irrb);
+
+        for (int irra = 0;irra < n;irra++)
+        {
+            irrabrs = irrbrs;
+            irrabrs *= group.getIrrep(irra);
+
+            if (irrabrs.isTotallySymmetric())
+            {
+                offab[irra+irrb*n] = nab;
+                nab += na[irra]*nb[irrb];
+            }
+        }
+    }
+
+    return nab;
+}
+
+template <typename T>
+T absmax(const vararray<T>& c)
+{
+    //return c[iamax(c.size(), c.data(), 1)];
+    return nrm2(c.size(), c.data(), 1);
 }
 
 template <typename T>
@@ -577,37 +763,50 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     const SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
 
     this->put("H", new TwoElectronOperator<T>(OneElectronOperator<T>(occ, vrt, Fa, Fb)));
+    //this->put("H", new TwoElectronOperator<T>(arena, occ, vrt));
     TwoElectronOperator<T>& H = this->template get<TwoElectronOperator<T> >("H");
 
     const ERI& ints = this->template get<ERI>("I");
 
-    const DistTensor<T>& cA_ = vrt.Calpha(0);
-    const DistTensor<T>& ca_ = vrt.Cbeta(0);
-    const DistTensor<T>& cI_ = occ.Calpha(0);
-    const DistTensor<T>& ci_ = occ.Cbeta(0);
+    const SymmetryBlockedTensor<T>& cA_ = vrt.Calpha;
+    const SymmetryBlockedTensor<T>& ca_ = vrt.Cbeta;
+    const SymmetryBlockedTensor<T>& cI_ = occ.Calpha;
+    const SymmetryBlockedTensor<T>& ci_ = occ.Cbeta;
 
-    int N = occ.nao[0];
-    int nI = occ.nalpha[0];
-    int ni = occ.nbeta[0];
-    int nA = vrt.nalpha[0];
-    int na = vrt.nbeta[0];
+    int n = ints.group.getNumIrreps();
+    const vector<int>& N = occ.nao;
+    const vector<int>& nI = occ.nalpha;
+    const vector<int>& ni = occ.nbeta;
+    const vector<int>& nA = vrt.nalpha;
+    const vector<int>& na = vrt.nbeta;
 
-    DistTensor<T> ABIJ__(arena, 4, vec(nA,nA,nI,nI), vec(NS,NS,NS,NS), false);
-    DistTensor<T> abij__(arena, 4, vec(na,na,ni,ni), vec(NS,NS,NS,NS), false);
+    vector<int> nI_ = vec(sum(nI))+vector<int>(n-1,0);
+    vector<int> ni_ = vec(sum(ni))+vector<int>(n-1,0);
+    vector<int> nA_ = vec(sum(nA))+vector<int>(n-1,0);
+    vector<int> na_ = vec(sum(na))+vector<int>(n-1,0);
 
-    vector<T> cA, ca, cI, ci;
+    SymmetryBlockedTensor<T> ABIJ__(arena, ints.group, 4, vec(nA,nA,nI,nI), vec(NS,NS,NS,NS), false);
+    SymmetryBlockedTensor<T> abij__(arena, ints.group, 4, vec(na,na,ni,ni), vec(NS,NS,NS,NS), false);
+
+    vector<vector<T> > cA(n), ca(n), cI(n), ci(n);
 
     /*
      * Read transformation coefficients
      */
-    cA_.getAllData(cA);
-    assert(cA.size() == N*nA);
-    ca_.getAllData(ca);
-    assert(ca.size() == N*na);
-    cI_.getAllData(cI);
-    assert(cI.size() == N*nI);
-    ci_.getAllData(ci);
-    assert(ci.size() == N*ni);
+    for (int i = 0;i < n;i++)
+    {
+        vector<int> irreps = vec(i,i);
+        cA_(irreps).getAllData(cA[i]);
+        assert(cA[i].size() == N[i]*nA[i]);
+        ca_(irreps).getAllData(ca[i]);
+        assert(ca[i].size() == N[i]*na[i]);
+        cI_(irreps).getAllData(cI[i]);
+        assert(cI[i].size() == N[i]*nI[i]);
+        ci_(irreps).getAllData(ci[i]);
+        assert(ci[i].size() == N[i]*ni[i]);
+    }
+
+    #define SHOWIT(name) cout << #name ": " << absmax(name.ints) << endl;
 
     /*
      * Resort integrals so that each node has (pq|r_k s_l) where pq
@@ -620,24 +819,35 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     /*
      * First quarter-transformation
      */
-    abrs_integrals PArs = PQrs.transform(B, 'N', nA, cA.data(), N);
-    abrs_integrals Pars = PQrs.transform(B, 'N', na, ca.data(), N);
-    abrs_integrals PIrs = PQrs.transform(B, 'N', nI, cI.data(), N);
-    abrs_integrals Pirs = PQrs.transform(B, 'N', ni, ci.data(), N);
+    //SHOWIT(PQrs);
+    abrs_integrals PArs = PQrs.transform(B, nA, cA);
+    //SHOWIT(PArs);
+    abrs_integrals Pars = PQrs.transform(B, na, ca);
+    //SHOWIT(Pars);
+    abrs_integrals PIrs = PQrs.transform(B, nI, cI);
+    //SHOWIT(PIrs);
+    abrs_integrals Pirs = PQrs.transform(B, ni, ci);
+    //SHOWIT(Pirs);
     PQrs.free();
 
     /*
      * Second quarter-transformation
      */
-    abrs_integrals ABrs = PArs.transform(A, 'N', nA, cA.data(), N);
+    abrs_integrals ABrs = PArs.transform(A, nA, cA);
+    //SHOWIT(ABrs);
     PArs.free();
-    abrs_integrals abrs = Pars.transform(A, 'N', na, ca.data(), N);
+    abrs_integrals abrs = Pars.transform(A, na, ca);
+    //SHOWIT(abrs);
     Pars.free();
-    abrs_integrals AIrs = PIrs.transform(A, 'N', nA, cA.data(), N);
-    abrs_integrals IJrs = PIrs.transform(A, 'N', nI, cI.data(), N);
+    abrs_integrals AIrs = PIrs.transform(A, nA, cA);
+    //SHOWIT(AIrs);
+    abrs_integrals IJrs = PIrs.transform(A, nI, cI);
+    //SHOWIT(IJrs);
     PIrs.free();
-    abrs_integrals airs = Pirs.transform(A, 'N', na, ca.data(), N);
-    abrs_integrals ijrs = Pirs.transform(A, 'N', ni, ci.data(), N);
+    abrs_integrals airs = Pirs.transform(A, na, ca);
+    //SHOWIT(airs);
+    abrs_integrals ijrs = Pirs.transform(A, ni, ci);
+    //SHOWIT(ijrs);
     Pirs.free();
 
     /*
@@ -647,14 +857,15 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     rsAB.collect(false);
 
     abrs_integrals RSAB(rsAB, true);
-    abrs_integrals RDAB = RSAB.transform(B, 'N', nA, cA.data(), N);
+    //SHOWIT(RSAB);
+    abrs_integrals RDAB = RSAB.transform(B, nA, cA);
+    //SHOWIT(RDAB);
     RSAB.free();
 
-    abrs_integrals CDAB = RDAB.transform(A, 'N', nA, cA.data(), N);
+    abrs_integrals CDAB = RDAB.transform(A, nA, cA);
+    //SHOWIT(CDAB);
     RDAB.free();
-    PROFILE_SECTION(j)
-    CDAB.transcribe(H.getABCD()(vec(2,0),vec(2,0))(0), true, true, NONE);
-    PROFILE_STOP
+    CDAB.transcribe(H.getABCD()(vec(2,0),vec(2,0)), true, true, NONE);
     CDAB.free();
 
     /*
@@ -664,22 +875,23 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     rsab.collect(false);
 
     abrs_integrals RSab(rsab, true);
-    abrs_integrals RDab = RSab.transform(B, 'N', nA, cA.data(), N);
-    abrs_integrals Rdab = RSab.transform(B, 'N', na, ca.data(), N);
+    //SHOWIT(RSab);
+    abrs_integrals RDab = RSab.transform(B, nA, cA);
+    //SHOWIT(RDab);
+    abrs_integrals Rdab = RSab.transform(B, na, ca);
+    //SHOWIT(Rdab);
     RSab.free();
 
-    abrs_integrals CDab = RDab.transform(A, 'N', nA, cA.data(), N);
+    abrs_integrals CDab = RDab.transform(A, nA, cA);
+    //SHOWIT(CDab);
     RDab.free();
-    PROFILE_SECTION(k)
-    CDab.transcribe(H.getABCD()(vec(1,0),vec(1,0))(0), false, false, NONE);
-    PROFILE_STOP
+    CDab.transcribe(H.getABCD()(vec(1,0),vec(1,0)), false, false, NONE);
     CDab.free();
 
-    abrs_integrals cdab = Rdab.transform(A, 'N', na, ca.data(), N);
+    abrs_integrals cdab = Rdab.transform(A, na, ca);
+    //SHOWIT(cdab);
     Rdab.free();
-    PROFILE_SECTION(l)
-    cdab.transcribe(H.getABCD()(vec(0,0),vec(0,0))(0), true, true, NONE);
-    PROFILE_STOP
+    cdab.transcribe(H.getABCD()(vec(0,0),vec(0,0)), true, true, NONE);
     cdab.free();
 
     /*
@@ -689,30 +901,31 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     rsAI.collect(false);
 
     abrs_integrals RSAI(rsAI, true);
-    abrs_integrals RCAI = RSAI.transform(B, 'N', nA, cA.data(), N);
-    abrs_integrals RcAI = RSAI.transform(B, 'N', na, ca.data(), N);
-    abrs_integrals RJAI = RSAI.transform(B, 'N', nI, cI.data(), N);
+    //SHOWIT(RSAI);
+    abrs_integrals RCAI = RSAI.transform(B, nA, cA);
+    //SHOWIT(RCAI);
+    abrs_integrals RcAI = RSAI.transform(B, na, ca);
+    //SHOWIT(RcAI);
+    abrs_integrals RJAI = RSAI.transform(B, nI, cI);
+    //SHOWIT(RJAI);
     RSAI.free();
 
-    abrs_integrals BCAI = RCAI.transform(A, 'N', nA, cA.data(), N);
+    abrs_integrals BCAI = RCAI.transform(A, nA, cA);
+    //SHOWIT(BCAI);
     RCAI.free();
-    PROFILE_SECTION(m)
-    BCAI.transcribe(H.getABCI()(vec(2,0),vec(1,1))(0), true, false, NONE);
-    PROFILE_STOP
+    BCAI.transcribe(H.getABCI()(vec(2,0),vec(1,1)), true, false, NONE);
     BCAI.free();
 
-    abrs_integrals bcAI = RcAI.transform(A, 'N', na, ca.data(), N);
+    abrs_integrals bcAI = RcAI.transform(A, na, ca);
+    //SHOWIT(bcAI);
     RcAI.free();
-    PROFILE_SECTION(n)
-    bcAI.transcribe(H.getABCI()(vec(1,0),vec(0,1))(0), false, false, PQ);
-    PROFILE_STOP
+    bcAI.transcribe(H.getABCI()(vec(1,0),vec(0,1)), false, false, PQ);
     bcAI.free();
 
-    abrs_integrals BJAI = RJAI.transform(A, 'N', nA, cA.data(), N);
+    abrs_integrals BJAI = RJAI.transform(A, nA, cA);
+    //SHOWIT(BJAI);
     RJAI.free();
-    PROFILE_SECTION(o)
     BJAI.transcribe(ABIJ__, false, false, NONE);
-    PROFILE_STOP
     BJAI.free();
 
     /*
@@ -722,38 +935,39 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     rsai.collect(false);
 
     abrs_integrals RSai(rsai, true);
-    abrs_integrals RCai = RSai.transform(B, 'N', nA, cA.data(), N);
-    abrs_integrals Rcai = RSai.transform(B, 'N', na, ca.data(), N);
-    abrs_integrals RJai = RSai.transform(B, 'N', nI, cI.data(), N);
-    abrs_integrals Rjai = RSai.transform(B, 'N', ni, ci.data(), N);
+    //SHOWIT(RSai);
+    abrs_integrals RCai = RSai.transform(B, nA, cA);
+    //SHOWIT(RCai);
+    abrs_integrals Rcai = RSai.transform(B, na, ca);
+    //SHOWIT(Rcai);
+    abrs_integrals RJai = RSai.transform(B, nI, cI);
+    //SHOWIT(RJai);
+    abrs_integrals Rjai = RSai.transform(B, ni, ci);
+    //SHOWIT(Rjai);
     RSai.free();
 
-    abrs_integrals BCai = RCai.transform(A, 'N', nA, cA.data(), N);
+    abrs_integrals BCai = RCai.transform(A, nA, cA);
+    //SHOWIT(BCai);
     RCai.free();
-    PROFILE_SECTION(p)
-    BCai.transcribe(H.getABCI()(vec(1,0),vec(1,0))(0), false, false, NONE);
-    PROFILE_STOP
+    BCai.transcribe(H.getABCI()(vec(1,0),vec(1,0)), false, false, NONE);
     BCai.free();
 
-    abrs_integrals bcai = Rcai.transform(A, 'N', na, ca.data(), N);
+    abrs_integrals bcai = Rcai.transform(A, na, ca);
+    //SHOWIT(bcai);
     Rcai.free();
-    PROFILE_SECTION(q)
-    bcai.transcribe(H.getABCI()(vec(0,0),vec(0,0))(0), true, false, NONE);
-    PROFILE_STOP
+    bcai.transcribe(H.getABCI()(vec(0,0),vec(0,0)), true, false, NONE);
     bcai.free();
 
-    abrs_integrals BJai = RJai.transform(A, 'N', nA, cA.data(), N);
+    abrs_integrals BJai = RJai.transform(A, nA, cA);
+    //SHOWIT(BJai);
     RJai.free();
-    PROFILE_SECTION(r)
-    BJai.transcribe(H.getABIJ()(vec(1,0),vec(0,1))(0), false, false, NONE);
-    PROFILE_STOP
+    BJai.transcribe(H.getABIJ()(vec(1,0),vec(0,1)), false, false, NONE);
     BJai.free();
 
-    abrs_integrals bjai = Rjai.transform(A, 'N', na, ca.data(), N);
+    abrs_integrals bjai = Rjai.transform(A, na, ca);
+    //SHOWIT(bjai);
     Rjai.free();
-    PROFILE_SECTION(s)
     bjai.transcribe(abij__, false, false, NONE);
-    PROFILE_STOP
     bjai.free();
 
     /*
@@ -763,43 +977,43 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     rsIJ.collect(false);
 
     abrs_integrals RSIJ(rsIJ, true);
-    abrs_integrals RBIJ = RSIJ.transform(B, 'N', nA, cA.data(), N);
-    abrs_integrals RbIJ = RSIJ.transform(B, 'N', na, ca.data(), N);
-    abrs_integrals RLIJ = RSIJ.transform(B, 'N', nI, cI.data(), N);
-    abrs_integrals RlIJ = RSIJ.transform(B, 'N', ni, ci.data(), N);
+    //SHOWIT(RSIJ);
+    abrs_integrals RBIJ = RSIJ.transform(B, nA, cA);
+    //SHOWIT(RBIJ);
+    abrs_integrals RbIJ = RSIJ.transform(B, na, ca);
+    //SHOWIT(RbIJ);
+    abrs_integrals RLIJ = RSIJ.transform(B, nI, cI);
+    //SHOWIT(RLIJ);
+    abrs_integrals RlIJ = RSIJ.transform(B, ni, ci);
+    //SHOWIT(RlIJ);
     RSIJ.free();
 
-    abrs_integrals ABIJ = RBIJ.transform(A, 'N', nA, cA.data(), N);
+    abrs_integrals ABIJ = RBIJ.transform(A, nA, cA);
+    //SHOWIT(ABIJ);
     RBIJ.free();
-    PROFILE_SECTION(t)
-    ABIJ.transcribe(H.getAIBJ()(vec(1,1),vec(1,1))(0), false, false, NONE);
-    PROFILE_STOP
+    ABIJ.transcribe(H.getAIBJ()(vec(1,1),vec(1,1)), false, false, NONE);
     ABIJ.free();
 
-    abrs_integrals abIJ = RbIJ.transform(A, 'N', na, ca.data(), N);
+    abrs_integrals abIJ = RbIJ.transform(A, na, ca);
+    //SHOWIT(abIJ);
     RbIJ.free();
-    PROFILE_SECTION(u)
-    abIJ.transcribe(H.getAIBJ()(vec(0,1),vec(0,1))(0), false, false, NONE);
-    PROFILE_STOP
+    abIJ.transcribe(H.getAIBJ()(vec(0,1),vec(0,1)), false, false, NONE);
     abIJ.free();
 
-    abrs_integrals akIJ = RlIJ.transform(A, 'N', na, ca.data(), N);
+    abrs_integrals akIJ = RlIJ.transform(A, na, ca);
+    //SHOWIT(akIJ);
     RlIJ.free();
-    PROFILE_SECTION(v)
-    akIJ.transcribe(H.getAIJK()(vec(0,1),vec(0,1))(0), false, false, RS);
-    PROFILE_STOP
+    akIJ.transcribe(H.getAIJK()(vec(0,1),vec(0,1)), false, false, RS);
     akIJ.free();
 
-    abrs_integrals AKIJ = RLIJ.transform(A, 'N', nA, cA.data(), N);
-    abrs_integrals KLIJ = RLIJ.transform(A, 'N', nI, cI.data(), N);
+    abrs_integrals AKIJ = RLIJ.transform(A, nA, cA);
+    //SHOWIT(AKIJ);
+    abrs_integrals KLIJ = RLIJ.transform(A, nI, cI);
+    //SHOWIT(KLIJ);
     RLIJ.free();
-    PROFILE_SECTION(w)
-    AKIJ.transcribe(H.getAIJK()(vec(1,1),vec(0,2))(0), false, true, NONE);
-    PROFILE_STOP
+    AKIJ.transcribe(H.getAIJK()(vec(1,1),vec(0,2)), false, true, NONE);
     AKIJ.free();
-    PROFILE_SECTION(x)
-    KLIJ.transcribe(H.getIJKL()(vec(0,2),vec(0,2))(0), true, true, NONE);
-    PROFILE_STOP
+    KLIJ.transcribe(H.getIJKL()(vec(0,2),vec(0,2)), true, true, NONE);
     KLIJ.free();
 
     /*
@@ -809,66 +1023,70 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     rsij.collect(false);
 
     abrs_integrals RSij(rsij, true);
-    abrs_integrals RBij = RSij.transform(B, 'N', nA, cA.data(), N);
-    abrs_integrals Rbij = RSij.transform(B, 'N', na, ca.data(), N);
-    abrs_integrals RLij = RSij.transform(B, 'N', nI, cI.data(), N);
-    abrs_integrals Rlij = RSij.transform(B, 'N', ni, ci.data(), N);
+    //SHOWIT(RSij);
+    abrs_integrals RBij = RSij.transform(B, nA, cA);
+    //SHOWIT(RBij);
+    abrs_integrals Rbij = RSij.transform(B, na, ca);
+    //SHOWIT(Rbij);
+    abrs_integrals RLij = RSij.transform(B, nI, cI);
+    //SHOWIT(RLij);
+    abrs_integrals Rlij = RSij.transform(B, ni, ci);
+    //SHOWIT(Rlij);
     RSij.free();
 
-    abrs_integrals ABij = RBij.transform(A, 'N', nA, cA.data(), N);
+    abrs_integrals ABij = RBij.transform(A, nA, cA);
+    //SHOWIT(ABij);
     RBij.free();
-    PROFILE_SECTION(a)
-    ABij.transcribe(H.getAIBJ()(vec(1,0),vec(1,0))(0), false, false, NONE);
-    PROFILE_STOP
+    ABij.transcribe(H.getAIBJ()(vec(1,0),vec(1,0)), false, false, NONE);
     ABij.free();
 
-    abrs_integrals abij = Rbij.transform(A, 'N', na, ca.data(), N);
+    abrs_integrals abij = Rbij.transform(A, na, ca);
+    //SHOWIT(abij);
     Rbij.free();
-    PROFILE_SECTION(b)
-    abij.transcribe(H.getAIBJ()(vec(0,0),vec(0,0))(0), false, false, NONE);
-    PROFILE_STOP
+    abij.transcribe(H.getAIBJ()(vec(0,0),vec(0,0)), false, false, NONE);
     abij.free();
 
-    abrs_integrals AKij = RLij.transform(A, 'N', nA, cA.data(), N);
-    abrs_integrals KLij = RLij.transform(A, 'N', nI, cI.data(), N);
+    abrs_integrals AKij = RLij.transform(A, nA, cA);
+    //SHOWIT(AKij);
+    abrs_integrals KLij = RLij.transform(A, nI, cI);
+    //SHOWIT(KLij);
     RLij.free();
-    PROFILE_SECTION(c)
-    AKij.transcribe(H.getAIJK()(vec(1,0),vec(0,1))(0), false, false, NONE);
-    PROFILE_STOP
+    AKij.transcribe(H.getAIJK()(vec(1,0),vec(0,1)), false, false, NONE);
     AKij.free();
-    PROFILE_SECTION(d)
-    KLij.transcribe(H.getIJKL()(vec(0,1),vec(0,1))(0), false, false, NONE);
-    PROFILE_STOP
+    KLij.transcribe(H.getIJKL()(vec(0,1),vec(0,1)), false, false, NONE);
     KLij.free();
 
-    abrs_integrals akij = Rlij.transform(A, 'N', na, ca.data(), N);
-    abrs_integrals klij = Rlij.transform(A, 'N', ni, ci.data(), N);
+    abrs_integrals akij = Rlij.transform(A, na, ca);
+    //SHOWIT(akij);
+    abrs_integrals klij = Rlij.transform(A, ni, ci);
+    //SHOWIT(klij);
     Rlij.free();
-    PROFILE_SECTION(e)
-    akij.transcribe(H.getAIJK()(vec(0,0),vec(0,0))(0), false, true, NONE);
-    PROFILE_STOP
+    akij.transcribe(H.getAIJK()(vec(0,0),vec(0,0)), false, true, NONE);
     akij.free();
-    PROFILE_SECTION(f)
-    klij.transcribe(H.getIJKL()(vec(0,0),vec(0,0))(0), true, true, NONE);
-    PROFILE_STOP
+    klij.transcribe(H.getIJKL()(vec(0,0),vec(0,0)), true, true, NONE);
     klij.free();
 
     /*
      * Make <AI||BJ> and <ai||bj>
      */
-    PROFILE_SECTION(g)
-    H.getAIBJ()(vec(1,1),vec(1,1))(0)["AIBJ"] -= ABIJ__["ABJI"];
-    H.getAIBJ()(vec(0,0),vec(0,0))(0)["aibj"] -= abij__["abji"];
-    PROFILE_STOP
+    H.getAIBJ()(vec(1,1),vec(1,1))["AIBJ"] -= ABIJ__["ABJI"];
+    H.getAIBJ()(vec(0,0),vec(0,0))["aibj"] -= abij__["abji"];
 
     /*
      * Make <AB||IJ> and <ab||ij>
      */
-    PROFILE_SECTION(h)
-    H.getABIJ()(vec(2,0),vec(0,2))(0)["ABIJ"] = 0.5*ABIJ__["ABIJ"];
-    H.getABIJ()(vec(0,0),vec(0,0))(0)["abij"] = 0.5*abij__["abij"];
-    PROFILE_STOP
+    H.getABIJ()(vec(2,0),vec(0,2))["ABIJ"] = 0.5*ABIJ__["ABIJ"];
+    H.getABIJ()(vec(0,0),vec(0,0))["abij"] = 0.5*abij__["abij"];
 
+    /*
+     * Make <Ai|bJ> = -<Ab|Ji> and <aI|Bj> = -<Ba|Ij>
+     */
+    H.getAIBJ()(vec(1,0),vec(0,1))["AibJ"] = -H.getABIJ()(vec(1,0),vec(0,1))["AbJi"];
+    H.getAIBJ()(vec(0,1),vec(1,0))["aIBj"] = -H.getABIJ()(vec(1,0),vec(0,1))["BaIj"];
+
+    /*
+     * Fill in pieces which are equal by Hermicity
+     */
     H.getIJAK()(vec(0,2),vec(1,1))["JKAI"] = H.getAIJK()(vec(1,1),vec(0,2))["AIJK"];
     H.getIJAK()(vec(0,1),vec(1,0))["JkAi"] = H.getAIJK()(vec(1,0),vec(0,1))["AiJk"];
     H.getIJAK()(vec(0,1),vec(0,1))["JkaI"] = H.getAIJK()(vec(0,1),vec(0,1))["aIJk"];
@@ -884,12 +1102,41 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     H.getIJAB()(vec(0,0),vec(0,0))["ijab"] = H.getABIJ()(vec(0,0),vec(0,0))["abij"];
 
     /*
-     * Make <Ai|bJ> = -<Ab|Ji> and <aI|Bj> = -<Ba|Ij>
-     */
-    PROFILE_SECTION(i)
-    H.getAIBJ()(vec(1,0),vec(0,1))["AibJ"] = -H.getABIJ()(vec(1,0),vec(0,1))["AbJi"];
-    H.getAIBJ()(vec(0,1),vec(1,0))["aIBj"] = -H.getABIJ()(vec(1,0),vec(0,1))["BaIj"];
-    PROFILE_STOP
+    cout << "ABCD: " << setprecision(15) << H.getABCD()(vec(2,0),vec(2,0)).norm(2) << endl;
+    cout << "AbCd: " << setprecision(15) << H.getABCD()(vec(1,0),vec(1,0)).norm(2) << endl;
+    cout << "abcd: " << setprecision(15) << H.getABCD()(vec(0,0),vec(0,0)).norm(2) << endl;
+    cout << "ABCI: " << setprecision(15) << H.getABCI()(vec(2,0),vec(1,1)).norm(2) << endl;
+    cout << "AbCi: " << setprecision(15) << H.getABCI()(vec(1,0),vec(1,0)).norm(2) << endl;
+    cout << "AbcI: " << setprecision(15) << H.getABCI()(vec(1,0),vec(0,1)).norm(2) << endl;
+    cout << "abci: " << setprecision(15) << H.getABCI()(vec(0,0),vec(0,0)).norm(2) << endl;
+    cout << "AIBC: " << setprecision(15) << H.getAIBC()(vec(1,1),vec(2,0)).norm(2) << endl;
+    cout << "AiBc: " << setprecision(15) << H.getAIBC()(vec(1,0),vec(1,0)).norm(2) << endl;
+    cout << "aIBc: " << setprecision(15) << H.getAIBC()(vec(0,1),vec(1,0)).norm(2) << endl;
+    cout << "aibc: " << setprecision(15) << H.getAIBC()(vec(0,0),vec(0,0)).norm(2) << endl;
+    cout << "ABIJ: " << setprecision(15) << H.getABIJ()(vec(2,0),vec(0,2)).norm(2) << endl;
+    cout << "AbIj: " << setprecision(15) << H.getABIJ()(vec(1,0),vec(0,1)).norm(2) << endl;
+    cout << "abij: " << setprecision(15) << H.getABIJ()(vec(0,0),vec(0,0)).norm(2) << endl;
+    cout << "AIBJ: " << setprecision(15) << H.getAIBJ()(vec(1,1),vec(1,1)).norm(2) << endl;
+    cout << "AiBj: " << setprecision(15) << H.getAIBJ()(vec(1,0),vec(1,0)).norm(2) << endl;
+    cout << "aIbJ: " << setprecision(15) << H.getAIBJ()(vec(0,1),vec(0,1)).norm(2) << endl;
+    cout << "AibJ: " << setprecision(15) << H.getAIBJ()(vec(1,0),vec(0,1)).norm(2) << endl;
+    cout << "aIBj: " << setprecision(15) << H.getAIBJ()(vec(0,1),vec(1,0)).norm(2) << endl;
+    cout << "aibj: " << setprecision(15) << H.getAIBJ()(vec(0,0),vec(0,0)).norm(2) << endl;
+    cout << "IJAB: " << setprecision(15) << H.getIJAB()(vec(0,2),vec(2,0)).norm(2) << endl;
+    cout << "IjAb: " << setprecision(15) << H.getIJAB()(vec(0,1),vec(1,0)).norm(2) << endl;
+    cout << "ijab: " << setprecision(15) << H.getIJAB()(vec(0,0),vec(0,0)).norm(2) << endl;
+    cout << "AIJK: " << setprecision(15) << H.getAIJK()(vec(1,1),vec(0,2)).norm(2) << endl;
+    cout << "AiJk: " << setprecision(15) << H.getAIJK()(vec(1,0),vec(0,1)).norm(2) << endl;
+    cout << "aIJk: " << setprecision(15) << H.getAIJK()(vec(0,1),vec(0,1)).norm(2) << endl;
+    cout << "aijk: " << setprecision(15) << H.getAIJK()(vec(0,0),vec(0,0)).norm(2) << endl;
+    cout << "IJAK: " << setprecision(15) << H.getIJAK()(vec(0,2),vec(1,1)).norm(2) << endl;
+    cout << "IjAk: " << setprecision(15) << H.getIJAK()(vec(0,1),vec(1,0)).norm(2) << endl;
+    cout << "IjaK: " << setprecision(15) << H.getIJAK()(vec(0,1),vec(0,1)).norm(2) << endl;
+    cout << "ijak: " << setprecision(15) << H.getIJAK()(vec(0,0),vec(0,0)).norm(2) << endl;
+    cout << "IJKL: " << setprecision(15) << H.getIJKL()(vec(0,2),vec(0,2)).norm(2) << endl;
+    cout << "IjKl: " << setprecision(15) << H.getIJKL()(vec(0,1),vec(0,1)).norm(2) << endl;
+    cout << "ijkl: " << setprecision(15) << H.getIJKL()(vec(0,0),vec(0,0)).norm(2) << endl;
+    */
 }
 
 INSTANTIATE_SPECIALIZATIONS(AOMOIntegrals);

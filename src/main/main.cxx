@@ -79,7 +79,7 @@ int main(int argc, char **argv)
         TaskDAG dag(argv[1]);
         dag.execute(world);
 
-        print_timers();
+        Timer::printTimers(world);
     }
 
 #ifdef ELEMENTAL

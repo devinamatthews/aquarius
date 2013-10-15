@@ -39,6 +39,8 @@
 #include <cstdarg>
 #include <cstdio>
 
+#include "memory/memory.h"
+
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) || _MSC_VER >= 1600 || __cplusplus >= 201103l
 
 #include <type_traits>
@@ -133,6 +135,14 @@ namespace std
         { static const bool value = true; };
     template <class T> struct is_arithmetic<T,
         typename enable_if<is_floating_point<T>::value>::type>
+        { static const bool value = true; };
+
+    template <class T, class U = void> struct is_pod { static const bool value = false; };
+    template <class T> struct is_pod<T,
+        typename enable_if<is_arithmetic<T>::value>::type>
+        { static const bool value = true; };
+    template <class T> struct is_pod<complex<T>,
+        typename enable_if<is_arithmetic<T>::value>::type>
         { static const bool value = true; };
 
     template <class T>
@@ -314,12 +324,1302 @@ namespace std
                 return ptr != NULL;
             }
     };
-}
 
-template<typename I1, typename I2, typename Pred>
-I2 copy_if(I1 begin, I1 end, I2 result, Pred pred)
-{
-    return remove_copy_if(begin, end, result, not1(pred));
+    template <class T>
+    class myvector : public vector<T>
+    {
+        public:
+            using typename vector<T>::size_type;
+            using typename vector<T>::value_type;
+            using typename vector<T>::pointer;
+            using typename vector<T>::const_pointer;
+
+            explicit myvector() : vector<T>() {}
+
+            explicit myvector(size_type n, const value_type& val = value_type())
+            : vector<T>(n, val) {}
+
+            template <class InputIterator>
+            myvector (InputIterator first, InputIterator last)
+            : vector<T>(first, last) {}
+
+            myvector (const myvector& x)
+            : vector<T>(x) {}
+
+            pointer data()
+            {
+                if (this->size() == 0)
+                {
+                    return NULL;
+                }
+                else
+                {
+                    return &(*this)[0];
+                }
+            }
+
+            const_pointer data() const
+            {
+                if (this->size() == 0)
+                {
+                    return NULL;
+                }
+                else
+                {
+                    return &(*this)[0];
+                }
+            }
+    };
+    #define vector myvector
+
+    #define valarray myvalarray
+    template <class T>
+    class valarray
+    {
+        friend void swap(valarray& v1, valarray& v2)
+        {
+            v1.swap(v2);
+        }
+
+        friend T* begin(valarray& v)
+        {
+            return v.ptr;
+        }
+
+        friend const T* begin(const valarray& v)
+        {
+            return v.ptr;
+        }
+
+        friend T* end(valarray& v)
+        {
+            return v.ptr+v.n;
+        }
+
+        friend const T* end(const valarray& v)
+        {
+            return v.ptr+v.n;
+        }
+
+        friend valarray operator+(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]+v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator-(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]-v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator*(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]*v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator/(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]/v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator%(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]%v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator^(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]^v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator&(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]&v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator|(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]|v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator<<(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]<<v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator>>(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]>>v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator+(const T& v1, const valarray& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1+v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator-(const T& v1, const valarray& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1-v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator*(const T& v1, const valarray& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1*v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator/(const T& v1, const valarray& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1/v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator%(const T& v1, const valarray& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1%v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator^(const T& v1, const valarray& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1^v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator&(const T& v1, const valarray& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1&v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator|(const T& v1, const valarray& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1|v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator<<(const T& v1, const valarray& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1<<v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator>>(const T& v1, const valarray& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1>>v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray operator+(const valarray& v1, const T& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]+v2;
+            }
+
+            return out;
+        }
+
+        friend valarray operator-(const valarray& v1, const T& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]-v2;
+            }
+
+            return out;
+        }
+
+        friend valarray operator*(const valarray& v1, const T& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]*v2;
+            }
+
+            return out;
+        }
+
+        friend valarray operator/(const valarray& v1, const T& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]/v2;
+            }
+
+            return out;
+        }
+
+        friend valarray operator%(const valarray& v1, const T& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]%v2;
+            }
+
+            return out;
+        }
+
+        friend valarray operator^(const valarray& v1, const T& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]^v2;
+            }
+
+            return out;
+        }
+
+        friend valarray operator&(const valarray& v1, const T& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]&v2;
+            }
+
+            return out;
+        }
+
+        friend valarray operator|(const valarray& v1, const T& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]|v2;
+            }
+
+            return out;
+        }
+
+        friend valarray operator<<(const valarray& v1, const T& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]<<v2;
+            }
+
+            return out;
+        }
+
+        friend valarray operator>>(const valarray& v1, const T& v2)
+        {
+            valarray out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]>>v2;
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator&&(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]&&v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator||(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]||v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator==(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]==v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator!=(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]!=v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator<(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]<v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator>(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]>v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator<=(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]<=v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator>=(const valarray& v1, const valarray& v2)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(v1.n == v2.n);
+            #endif
+
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]>=v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator&&(const T& v1, const valarray& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1&&v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator||(const T& v1, const valarray& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1||v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator==(const T& v1, const valarray& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1==v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator!=(const T& v1, const valarray& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1!=v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator<(const T& v1, const valarray& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1<v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator>(const T& v1, const valarray& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1>v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator<=(const T& v1, const valarray& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1<=v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator>=(const T& v1, const valarray& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1>=v2[i];
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator&&(const valarray& v1, const T& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]&&v2;
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator||(const valarray& v1, const T& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]||v2;
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator==(const valarray& v1, const T& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]==v2;
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator!=(const valarray& v1, const T& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]!=v2;
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator<(const valarray& v1, const T& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]<v2;
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator>(const valarray& v1, const T& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]>v2;
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator<=(const valarray& v1, const T& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]<=v2;
+            }
+
+            return out;
+        }
+
+        friend valarray<bool> operator>=(const valarray& v1, const T& v2)
+        {
+            valarray<bool> out(v1.n, false);
+
+            for (size_t i = 0;i < v1.n;i++)
+            {
+                out[i] = v1[i]>=v2;
+            }
+
+            return out;
+        }
+
+        protected:
+            T* ptr;
+            size_t n;
+
+            valarray(size_t n, bool nozero)
+            : ptr(NULL), n(n)
+            {
+                if (n > 0) ptr = new T[n];
+            }
+
+        public:
+            valarray()
+            : ptr(NULL), n(0) {}
+
+            explicit valarray (size_t n)
+            : ptr(NULL), n(n)
+            {
+                if (n > 0)
+                {
+                    ptr = new T[n];
+                    fill(ptr, ptr+n, T());
+                }
+            }
+
+            valarray (const T& val, size_t n)
+            : ptr(NULL), n(n)
+            {
+                if (n > 0)
+                {
+                    ptr = new T[n];
+                    fill(ptr, ptr+n, val);
+                }
+            }
+
+            valarray (const T* p, size_t n)
+            : ptr(NULL), n(n)
+            {
+                if (n > 0)
+                {
+                    ptr = new T[n];
+                    copy(p, p+n, ptr);
+                }
+            }
+
+            valarray (const valarray& x)
+            : ptr(NULL), n(x.n)
+            {
+                if (n > 0)
+                {
+                    ptr = new T[n];
+                    copy(x.ptr, x.ptr+n, ptr);
+                }
+            }
+
+            ~valarray()
+            {
+                if (ptr != NULL) delete[] ptr;
+            }
+
+            valarray apply(T func(T)) const
+            {
+                valarray out(n, false);
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    out[i] = func(ptr[i]);
+                }
+
+                return out;
+            }
+
+            valarray apply(T func(const T&)) const
+            {
+                valarray out(n, false);
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    out[i] = func(ptr[i]);
+                }
+
+                return out;
+            }
+
+            valarray cshift(int s) const
+            {
+                valarray out(n, false);
+
+                if (s >= n || s <= -n) s = s%n;
+
+                if (s < 0)
+                {
+                    copy(ptr    , ptr+n+s, out.ptr-s);
+                    copy(ptr+n+s, ptr+n  , out.ptr  );
+                }
+                else
+                {
+                    copy(ptr+s, ptr+n, out.ptr    );
+                    copy(ptr  , ptr+s, out.ptr+n-s);
+                }
+
+                return out;
+            }
+
+            T max() const
+            {
+                if (n == 0) return T();
+
+                T mx = ptr[0];
+
+                for (size_t i = 1;i < n;i++)
+                {
+                    mx = max(mx, ptr[i]);
+                }
+
+                return mx;
+            }
+
+            T min() const
+            {
+                if (n == 0) return T();
+
+                T mn = ptr[0];
+
+                for (size_t i = 1;i < n;i++)
+                {
+                    mn = min(mn, ptr[i]);
+                }
+
+                return mn;
+            }
+
+            valarray& operator=(const valarray& other)
+            {
+                if (n != other.n)
+                {
+                    if (ptr != NULL) delete[] ptr;
+                    if (other.n > 0) ptr = new T[other.n];
+                }
+
+                n = other.n;
+                copy(other.ptr, other.ptr+n, ptr);
+
+                return *this;
+            }
+
+            T& operator[](size_t i)
+            {
+                #ifdef _GLIBCXX_DEBUG
+                assert(i < n);
+                #endif
+                return ptr[i];
+            }
+
+            T operator[](size_t i) const
+            {
+                #ifdef _GLIBCXX_DEBUG
+                assert(i < n);
+                #endif
+                return ptr[i];
+            }
+
+            void resize(size_t sz, T c = T())
+            {
+                if (n > 0) delete[] ptr;
+                n = sz;
+                if (n > 0) ptr = new T[n];
+                fill(ptr, ptr+n, c);
+            }
+
+            valarray shift(int s) const
+            {
+                valarray out(n, false);
+
+                if (s >= n || s <= -n) s = s%n;
+
+                if (s < 0)
+                {
+                    copy(ptr, ptr+n+s, out.ptr-s);
+                    fill(out.ptr, out.ptr-s, T());
+                }
+                else
+                {
+                    copy(ptr+s, ptr+n, out.ptr);
+                    fill(out.ptr+n-s, out.ptr+n, T());
+                }
+
+                return out;
+            }
+
+            size_t size() const
+            {
+                return n;
+            }
+
+            T sum() const
+            {
+                T s = T();
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    s += ptr[i];
+                }
+
+                return s;
+            }
+
+            void swap(valarray& other)
+            {
+                swap(n, other.n);
+                swap(ptr, other.ptr);
+            }
+
+            valarray operator+() const
+            {
+                return valarray(*this);
+            }
+
+            valarray operator-() const
+            {
+                valarray out(n, false);
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    out[i] = -ptr[i];
+                }
+
+                return out;
+            }
+
+            valarray operator~() const
+            {
+                valarray out(n, false);
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    out[i] = ~ptr[i];
+                }
+
+                return out;
+            }
+
+            valarray<bool> operator!() const
+            {
+                valarray<bool> out(n, false);
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    out[i] = !ptr[i];
+                }
+
+                return out;
+            }
+
+            valarray& operator*= (const valarray& rhs)
+            {
+                #ifdef _GLIBCXX_DEBUG
+                assert(n == rhs.n);
+                #endif
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] *= rhs[i];
+                }
+
+                return *this;
+            }
+
+            valarray& operator/= (const valarray& rhs)
+            {
+                #ifdef _GLIBCXX_DEBUG
+                assert(n == rhs.n);
+                #endif
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] /= rhs[i];
+                }
+
+                return *this;
+            }
+
+            valarray& operator%= (const valarray& rhs)
+            {
+                #ifdef _GLIBCXX_DEBUG
+                assert(n == rhs.n);
+                #endif
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] %= rhs[i];
+                }
+
+                return *this;
+            }
+
+            valarray& operator+= (const valarray& rhs)
+            {
+                #ifdef _GLIBCXX_DEBUG
+                assert(n == rhs.n);
+                #endif
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] += rhs[i];
+                }
+
+                return *this;
+            }
+
+            valarray& operator-= (const valarray& rhs)
+            {
+                #ifdef _GLIBCXX_DEBUG
+                assert(n == rhs.n);
+                #endif
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] -= rhs[i];
+                }
+
+                return *this;
+            }
+
+            valarray& operator^= (const valarray& rhs)
+            {
+                #ifdef _GLIBCXX_DEBUG
+                assert(n == rhs.n);
+                #endif
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] ^= rhs[i];
+                }
+
+                return *this;
+            }
+
+            valarray& operator&= (const valarray& rhs)
+            {
+                #ifdef _GLIBCXX_DEBUG
+                assert(n == rhs.n);
+                #endif
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] &= rhs[i];
+                }
+
+                return *this;
+            }
+
+            valarray& operator|= (const valarray& rhs)
+            {
+                #ifdef _GLIBCXX_DEBUG
+                assert(n == rhs.n);
+                #endif
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] |= rhs[i];
+                }
+
+                return *this;
+            }
+
+            valarray& operator<<= (const valarray& rhs)
+            {
+                #ifdef _GLIBCXX_DEBUG
+                assert(n == rhs.n);
+                #endif
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] <<= rhs[i];
+                }
+
+                return *this;
+            }
+
+            valarray& operator>>= (const valarray& rhs)
+            {
+                #ifdef _GLIBCXX_DEBUG
+                assert(n == rhs.n);
+                #endif
+
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] >>= rhs[i];
+                }
+
+                return *this;
+            }
+
+            valarray& operator*= (const T& val)
+            {
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] *= val;
+                }
+
+                return *this;
+            }
+
+            valarray& operator/= (const T& val)
+            {
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] /= val;
+                }
+
+                return *this;
+            }
+
+            valarray& operator%= (const T& val)
+            {
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] %= val;
+                }
+
+                return *this;
+            }
+
+            valarray& operator+= (const T& val)
+            {
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] += val;
+                }
+
+                return *this;
+            }
+
+            valarray& operator-= (const T& val)
+            {
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] -= val;
+                }
+
+                return *this;
+            }
+
+            valarray& operator^= (const T& val)
+            {
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] ^= val;
+                }
+
+                return *this;
+            }
+
+            valarray& operator&= (const T& val)
+            {
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] &= val;
+                }
+
+                return *this;
+            }
+
+            valarray& operator|= (const T& val)
+            {
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] |= val;
+                }
+
+                return *this;
+            }
+
+            valarray& operator<<= (const T& val)
+            {
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] <<= val;
+                }
+
+                return *this;
+            }
+
+            valarray& operator>>= (const T& val)
+            {
+                for (size_t i = 0;i < n;i++)
+                {
+                    ptr[i] >>= val;
+                }
+
+                return *this;
+            }
+    };
+
+    template<typename I1, typename I2, typename Pred>
+    I2 copy_if(I1 begin, I1 end, I2 result, Pred pred)
+    {
+        return remove_copy_if(begin, end, result, not1(pred));
+    }
 }
 
 #endif
@@ -346,6 +1646,245 @@ template <class T, class U>
 struct if_exists
 {
     typedef U type;
+};
+
+template <class T>
+class vararray
+{
+    friend void swap(vararray& v1, vararray& v2)
+    {
+        v1.swap(v2);
+    }
+
+    friend bool operator==(const vararray& lhs, const vararray& rhs)
+    {
+        return equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+
+    friend  bool operator!=(const vararray& lhs, const vararray& rhs)
+    {
+        return !equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+
+    friend  bool operator<(const vararray& lhs, const vararray& rhs)
+    {
+        return lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+    }
+
+    friend  bool operator<=(const vararray& lhs, const vararray& rhs)
+    {
+        return !lexicographical_compare(rhs.begin(), rhs.end(), lhs.begin(), lhs.end());
+    }
+
+    friend  bool operator>(const vararray& lhs, const vararray& rhs)
+    {
+        return lexicographical_compare(rhs.begin(), rhs.end(), lhs.begin(), lhs.end());
+    }
+
+    friend  bool operator>=(const vararray& lhs, const vararray& rhs)
+    {
+        return !lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+    }
+
+    public:
+        typedef T value_type;
+        typedef T& reference;
+        typedef const T& const_reference;
+        typedef T* pointer;
+        typedef const T* const_pointer;
+        typedef T* iterator;
+        typedef const T* const_iterator;
+        typedef std::reverse_iterator<iterator> reverse_iterator;
+        typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+        typedef ptrdiff_t difference_type;
+        typedef size_t size_type;
+
+    protected:
+        pointer ptr;
+        size_type n;
+
+    public:
+        vararray()
+        : ptr(NULL), n(0) {}
+
+        explicit vararray(size_type n)
+        : ptr(NULL), n(n)
+        {
+            if (n > 0)
+            {
+                ptr = SAFE_MALLOC(T,n);
+                if (!is_pod<T>::value) fill(ptr, ptr+n, value_type());
+            }
+        }
+
+        vararray(size_type n, const value_type& val)
+        : ptr(NULL), n(n)
+        {
+            if (n > 0)
+            {
+                ptr = SAFE_MALLOC(T,n);
+                fill(ptr, ptr+n, val);
+            }
+        }
+
+        template <class RAIterator>
+        vararray(RAIterator first, RAIterator last)
+        : ptr(NULL), n(0)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(first < last);
+            #endif
+            n = last-first;
+            if (n > 0) ptr = SAFE_MALLOC(T,n);
+            for (size_t i = 0;first != last;i++,++first)
+            {
+                ptr[i] = *first;
+            }
+        }
+
+        vararray(const vararray& x)
+        : ptr(NULL), n(x.n)
+        {
+            if (n > 0)
+            {
+                ptr = SAFE_MALLOC(T,n);
+                copy(x.ptr, x.ptr+n, ptr);
+            }
+        }
+
+        ~vararray()
+        {
+            if (ptr != NULL) FREE(ptr);
+        }
+
+        vararray& operator=(const vararray& other)
+        {
+            if (ptr != NULL) FREE(ptr);
+            n = other.n;
+            if (n > 0)
+            {
+                ptr = SAFE_MALLOC(T,n);
+                copy(other.ptr, other.ptr+n, ptr);
+            }
+            return *this;
+        }
+
+        iterator begin() { return ptr; }
+
+        const_iterator begin() const { return ptr; }
+
+        iterator end()  { return ptr+n; }
+
+        const_iterator end() const  { return ptr+n; }
+
+        reverse_iterator rbegin()  { return reverse_iterator(ptr+n); }
+
+        const_reverse_iterator rbegin() const  { return const_reverse_iterator(ptr+n); }
+
+        reverse_iterator rend() { return reverse_iterator(ptr); }
+
+        const_reverse_iterator rend() const { return const_reverse_iterator(ptr); }
+
+        size_type size() const { return n; }
+
+        size_type max_size() const { return n; }
+
+        void resize(size_type n)
+        {
+            ptr = SAFE_REALLOC(T,ptr,n);
+            if (n > this->n && !is_pod<T>::value) fill(ptr+this->n, ptr+n, value_type());
+            this->n = n;
+        }
+
+        void resize(size_type n, value_type val)
+        {
+            ptr = SAFE_REALLOC(T,ptr,n);
+            if (n > this->n) fill(ptr+this->n, ptr+n, val);
+            this->n = n;
+        }
+
+        bool empty() const { return n > 0; }
+
+        reference operator[](size_type i) { return at(i); }
+
+        const_reference operator[](size_type i) const { return at(i); }
+
+        reference at(size_type i)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(i < n);
+            #endif
+            return ptr[i];
+        }
+
+        const_reference at(size_type i) const
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(i < n);
+            #endif
+            return ptr[i];
+        }
+
+        reference front() { return at(0); }
+
+        const_reference front() const { return at(0); }
+
+        reference back()
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(n > 0);
+            #endif
+            return at(n-1);
+        }
+
+        const_reference back() const
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(n > 0);
+            #endif
+            return at(n-1);
+        }
+
+        pointer data() { return ptr; }
+
+        const_pointer data() const { return ptr; }
+
+        template <class RAIterator>
+        void assign(RAIterator first, RAIterator last)
+        {
+            #ifdef _GLIBCXX_DEBUG
+            assert(first < last);
+            #endif
+            this->n = last-first;
+            ptr = SAFE_REALLOC(T,ptr,n);
+            for (size_type i = 0;first != last;i++,++first)
+            {
+                ptr[i] = *first;
+            }
+        }
+
+        void assign(size_type n, const value_type& val)
+        {
+            this->n = n;
+            ptr = SAFE_REALLOC(T,ptr,n);
+            fill(ptr, ptr+n, val);
+        }
+
+        void swap(vararray& other)
+        {
+            std::swap(ptr, other.ptr);
+            std::swap(n, other.n);
+        }
+
+        void clear()
+        {
+            if (ptr != NULL)
+            {
+                FREE(ptr);
+                ptr = NULL;
+            }
+            n = 0;
+        }
 };
 
 template<typename T>

@@ -38,6 +38,8 @@
 #include <cstring>
 #include <strings.h>
 
+#include "util/stl_ext.hpp"
+
 namespace aquarius
 {
 namespace input

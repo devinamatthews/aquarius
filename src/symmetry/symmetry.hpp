@@ -31,6 +31,7 @@
 #include <cmath>
 
 #include "util/math_ext.h"
+#include "util/stl_ext.hpp"
 
 namespace aquarius
 {
@@ -46,11 +47,11 @@ class Representation : public std::vector<double>
     protected:
         const PointGroup& group;
 
-        Representation(const PointGroup& group);
-
         Representation(const PointGroup& group, const std::vector<double>& rep);
 
     public:
+        Representation(const PointGroup& group);
+
         Representation(const PointGroup& group, int L, int m);
 
         Representation(const PointGroup& group, int x, int y, int z);

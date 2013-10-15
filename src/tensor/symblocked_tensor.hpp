@@ -37,7 +37,7 @@
 #include "task/task.hpp"
 
 #include "composite_tensor.hpp"
-#include "dist_tensor.hpp"
+#include "ctf_tensor.hpp"
 
 namespace aquarius
 {
@@ -45,9 +45,10 @@ namespace tensor
 {
 
 template <class T>
-class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTensor<T>,DistTensor<T>,T>, public task::Resource
+class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>,
+                              public task::Resource
 {
-    INHERIT_FROM_INDEXABLE_COMPOSITE_TENSOR(SymmetryBlockedTensor<T>,DistTensor<T>,T)
+    INHERIT_FROM_INDEXABLE_COMPOSITE_TENSOR(SymmetryBlockedTensor<T>,CTFTensor<T>,T)
 
     protected:
         const symmetry::PointGroup& group;
@@ -82,9 +83,9 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
 
         const std::vector<int>& getSymmetry() const { return sym; }
 
-        DistTensor<T>& operator()(const std::vector<int>& irreps);
+        CTFTensor<T>& operator()(const std::vector<int>& irreps);
 
-        const DistTensor<T>& operator()(const std::vector<int>& irreps) const;
+        const CTFTensor<T>& operator()(const std::vector<int>& irreps) const;
 
         bool exists(const std::vector<int>& irreps) const;
 

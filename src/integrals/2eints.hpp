@@ -121,10 +121,11 @@ class TwoElectronIntegrals
 class ERI : public task::Resource
 {
     public:
+        const symmetry::PointGroup& group;
         std::vector<double> ints;
         std::vector<idx4_t> idxs;
 
-        ERI(const Arena& arena) : Resource(arena) {}
+        ERI(const Arena& arena, const symmetry::PointGroup& group) : Resource(arena), group(group) {}
 
         void print(task::Printer& p) const;
 };
@@ -138,6 +139,11 @@ class TwoElectronIntegralsTask : public task::Task
 };
 
 }
+}
+
+namespace std
+{
+    template<> struct is_pod<aquarius::idx4_t> { static const bool value = true; };
 }
 
 #endif

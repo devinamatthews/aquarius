@@ -313,7 +313,7 @@ bool Molecule::isSymmetric(const vector<AtomCartSpec>& cartpos, const mat3x3& op
 {
     for (vector<AtomCartSpec>::const_iterator i1 = cartpos.begin();i1 != cartpos.end();++i1)
     {
-        vec3 newpos = i1->pos*op;
+        vec3 newpos = op*i1->pos;
 
         bool found = false;
         for (vector<AtomCartSpec>::const_iterator i2 = cartpos.begin();i2 != cartpos.end();++i2)
@@ -367,163 +367,254 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
     vec3 x(1,0,0);
     vec3 y(0,1,0);
     vec3 z(0,0,1);
+    vec3 xyz(1,1,1);
     mat3x3 O = Identity();
 
-    if (config.get<bool>("symmetry"))
+    string subgrp = config.get<string>("subgroup");
+
+    if (A[1] < 1e-8)
     {
-        if (A[1] < 1e-8)
+        /*
+         * Atom: K (treat as D6h)
+         */
+        //group = &PointGroup::D6h();
+        group = &PointGroup::D2h();
+
+        if (subgrp == "full" || subgrp == "D2h") {}
+        else if (subgrp == "C2v") group = &PointGroup::C2v();
+        else if (subgrp == "C2h") group = &PointGroup::C2h();
+        else if (subgrp == "D2") group = &PointGroup::D2();
+        else if (subgrp == "C2") group = &PointGroup::C2();
+        else if (subgrp == "Ci") group = &PointGroup::Ci();
+        else if (subgrp == "Cs") group = &PointGroup::Cs();
+        else if (subgrp == "C1") group = &PointGroup::C1();
+        else throw runtime_error(subgrp + "is not a valid subgroup of D2h");
+    }
+    else if (A[0] < 1e-8)
+    {
+        /*
+         * Put molecule along z (initially it will be along x)
+         */
+        O = C<4>(y);
+        /*
+         * Linear molecules: CXv, DXh (treat as C6v and D6h)
+         */
+        if (isSymmetric(cartpos, Inversion()))
         {
-            /*
-             * Atom: K (treat as D6h)
-             */
             //group = &PointGroup::D6h();
             group = &PointGroup::D2h();
+
+            if (subgrp == "full" || subgrp == "D2h") {}
+            else if (subgrp == "C2v") group = &PointGroup::C2v();
+            else if (subgrp == "C2h") group = &PointGroup::C2h();
+            else if (subgrp == "D2") group = &PointGroup::D2();
+            else if (subgrp == "C2") group = &PointGroup::C2();
+            else if (subgrp == "Ci") group = &PointGroup::Ci();
+            else if (subgrp == "Cs") group = &PointGroup::Cs();
+            else if (subgrp == "C1") group = &PointGroup::C1();
+            else throw runtime_error(subgrp + "is not a valid subgroup of D2h");
         }
-        else if (A[0] < 1e-8)
+        else
+        {
+            //group = &PointGroup::C6v();
+            group = &PointGroup::C2v();
+
+            if (subgrp == "full" || subgrp == "C2v") {}
+            else if (subgrp == "C2") group = &PointGroup::C2();
+            else if (subgrp == "Cs")
+            {
+                group = &PointGroup::Cs();
+                O = Identity();
+            }
+            else if (subgrp == "C1") group = &PointGroup::C1();
+            else throw runtime_error(subgrp + "is not a valid subgroup of C2v");
+        }
+    }
+    else if (2*abs(A[0]-A[2])/(A[0]+A[2]) < 1e-8)
+    {
+        /*
+         * Spherical rotors: Td, Oh, Ih
+         */
+        assert(0);
+    }
+    else if (2*abs(A[0]-A[1])/(A[0]+A[1]) < 1e-8 ||
+             2*abs(A[1]-A[2])/(A[1]+A[2]) < 1e-8)
+    {
+        /*
+         * Symmetric rotors: Cn, Cnv, Cnh, Dn, Dnh (all n>2), S2n, Dnd (both n>1)
+         */
+        assert(0);
+    }
+    else
+    {
+        /*
+         * Asymmetric rotors: C1, Cs, Ci, C2, C2v, C2h, D2, D2h
+         */
+        bool c2x = isSymmetric(cartpos, C<2>(x));
+        bool c2y = isSymmetric(cartpos, C<2>(y));
+        bool c2z = isSymmetric(cartpos, C<2>(z));
+        bool sx = isSymmetric(cartpos, Reflection(x));
+        bool sy = isSymmetric(cartpos, Reflection(y));
+        bool sz = isSymmetric(cartpos, Reflection(z));
+        bool inv = isSymmetric(cartpos, Inversion());
+
+        if (c2x && c2y && c2z)
         {
             /*
-             * Linear molecules: CXv, DXh (treat as C6h and D6h)
+             * D2, D2h
              */
-            if (isSymmetric(cartpos, Inversion()))
+            if (inv)
             {
-                //group = &PointGroup::D6h();
                 group = &PointGroup::D2h();
+
+                if (subgrp == "full" || subgrp == "D2h") {}
+                else if (subgrp == "C2v") group = &PointGroup::C2v();
+                else if (subgrp == "C2h") group = &PointGroup::C2h();
+                else if (subgrp == "D2") group = &PointGroup::D2();
+                else if (subgrp == "C2") group = &PointGroup::C2();
+                else if (subgrp == "Ci") group = &PointGroup::Ci();
+                else if (subgrp == "Cs") group = &PointGroup::Cs();
+                else if (subgrp == "C1") group = &PointGroup::C1();
+                else throw runtime_error(subgrp + "is not a valid subgroup of D2h");
             }
             else
             {
-                //group = &PointGroup::C6v();
-                group = &PointGroup::C2v();
+                group = &PointGroup::D2();
+
+                if (subgrp == "full" || subgrp == "D2") {}
+                else if (subgrp == "C2") group = &PointGroup::C2();
+                else if (subgrp == "C1") group = &PointGroup::C1();
+                else throw runtime_error(subgrp + "is not a valid subgroup of D2");
             }
+        }
+        else if (c2x || c2y || c2z)
+        {
             /*
-             * Orient so that the molecule is along z
+             * Put C2 along z and make X > Y
              */
-            for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
+            if (c2x)
             {
-                if (it->pos.norm() > 1e-8)
+                // x,y,z -> y,z,x
+                O = C<3>(xyz);
+            }
+            if (c2y)
+            {
+                // x,y,z -> x,z,y
+                O = C<4>(x);
+            }
+            /*
+             * C2, C2v, C2h
+             */
+            if (inv)
+            {
+                group = &PointGroup::C2h();
+
+                if (subgrp == "full" || subgrp == "C2h") {}
+                else if (subgrp == "C2") group = &PointGroup::C2();
+                else if (subgrp == "Ci")
                 {
-                    O = Rotation(it->pos, z);
-                    break;
+                    group = &PointGroup::Ci();
+                    O = Identity();
                 }
+                else if (subgrp == "Cs") group = &PointGroup::Cs();
+                else if (subgrp == "C1")
+                {
+                    group = &PointGroup::C1();
+                    O = Identity();
+                }
+                else throw runtime_error(subgrp + "is not a valid subgroup of C2h");
+            }
+            else if (sx || sy || sz)
+            {
+                group = &PointGroup::C2v();
+
+                if (subgrp == "full" || subgrp == "C2v") {}
+                else if (subgrp == "C2") group = &PointGroup::C2();
+                else if (subgrp == "Cs")
+                {
+                    group = &PointGroup::Cs();
+                    /*
+                     * Put sigma along z and make X > Y
+                     */
+                    if (c2z)
+                    {
+                        // x,y,z -> x,z,y
+                        O = C<4>(x);
+                    }
+                    else
+                    {
+                        O = Identity();
+                    }
+                }
+                else if (subgrp == "C1")
+                {
+                    group = &PointGroup::C1();
+                    O = Identity();
+                }
+                else throw runtime_error(subgrp + "is not a valid subgroup of C2v");
+            }
+            else
+            {
+                group = &PointGroup::C2();
+
+                if (subgrp == "full" || subgrp == "C2") {}
+                else if (subgrp == "C1")
+                {
+                    group = &PointGroup::C1();
+                    O = Identity();
+                }
+                else throw runtime_error(subgrp + "is not a valid subgroup of C2");
             }
         }
-        else if (2*abs(A[0]-A[2])/(A[0]+A[2]) < 1e-8)
+        else if (sx || sy || sz)
         {
             /*
-             * Spherical rotors: Td, Oh, Ih
+             * Cs
              */
-            assert(0);
-        }
-        else if (2*abs(A[0]-A[1])/(A[0]+A[1]) < 1e-8 ||
-                 2*abs(A[1]-A[2])/(A[1]+A[2]) < 1e-8)
-        {
+            group = &PointGroup::Cs();
             /*
-             * Symmetric rotors: Cn, Cnv, Cnh, Dn, Dnh (all n>2), S2n, Dnd
+             * Put reflection plane orthogonal to z and make X > Y
              */
-            assert(0);
+            if (sx)
+            {
+                // x,y,z -> y,z,x
+                O = C<3>(xyz);
+            }
+            if (sy)
+            {
+                // x,y,z -> x,z,y
+                O = C<4>(x);
+            }
+
+            if (subgrp == "full" || subgrp == "Cs") {}
+            else if (subgrp == "C1")
+            {
+                group = &PointGroup::C1();
+                O = Identity();
+            }
+            else throw runtime_error(subgrp + "is not a valid subgroup of Cs");
         }
         else
         {
             /*
-             * Asymmetric rotors: C1, Cs, Ci, C2, C2v, C2h, D2, D2h
+             * C1, Ci
              */
-            bool c2x = isSymmetric(cartpos, C<2>(x));
-            bool c2y = isSymmetric(cartpos, C<2>(y));
-            bool c2z = isSymmetric(cartpos, C<2>(z));
-            bool sx = isSymmetric(cartpos, Reflection(x));
-            bool sy = isSymmetric(cartpos, Reflection(y));
-            bool sz = isSymmetric(cartpos, Reflection(z));
-            bool inv = isSymmetric(cartpos, Inversion());
+            if (inv)
+            {
+                group = &PointGroup::Ci();
 
-            if (c2x && c2y && c2z)
-            {
-                /*
-                 * D2, D2h
-                 */
-                if (inv)
-                {
-                    group = &PointGroup::D2h();
-                }
-                else
-                {
-                    group = &PointGroup::D2();
-                }
-                /*
-                 * No reorientation needed
-                 */
-            }
-            else if (c2x || c2y || c2z)
-            {
-                /*
-                 * C2, C2v, C2h
-                 */
-                if (inv)
-                {
-                    group = &PointGroup::C2h();
-                }
-                else if (sx || sy || sz)
-                {
-                    group = &PointGroup::C2v();
-                }
-                else
-                {
-                    group = &PointGroup::C2();
-                }
-                /*
-                 * Put C2 along z and make X > Y
-                 */
-                if (c2x)
-                {
-                    // x,y,z -> y,z,x
-                    O = C<3>(vec3(1,1,1));
-                }
-                if (c2y)
-                {
-                    // x,y,z -> x,z,y
-                    O = C<4>(x);
-                }
-            }
-            else if (sx || sy || sz)
-            {
-                /*
-                 * Cs
-                 */
-                group = &PointGroup::Cs();
-                /*
-                 * Put reflection plane orthogonal to z and make X > Y
-                 */
-                if (sx)
-                {
-                    // x,y,z -> y,z,x
-                    O = C<3>(vec3(1,1,1));
-                }
-                if (sy)
-                {
-                    // x,y,z -> x,z,y
-                    O = C<4>(x);
-                }
+                if (subgrp == "full" || subgrp == "Ci") {}
+                else if (subgrp == "C1") group = &PointGroup::C1();
+                else throw runtime_error(subgrp + "is not a valid subgroup of Ci");
             }
             else
             {
-                /*
-                 * C1, Ci
-                 */
-                if (inv)
-                {
-                    group = &PointGroup::Ci();
-                }
-                else
-                {
-                    group = &PointGroup::C1();
-                }
-                /*
-                 * No reorientation needed
-                 */
+                group = &PointGroup::C1();
+
+                if (subgrp == "full" || subgrp == "C1") {}
+                else throw runtime_error(subgrp + "is not a valid subgroup of C1");
             }
         }
-    }
-    else
-    {
-        group = &PointGroup::C1();
     }
 
     for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)

@@ -82,9 +82,11 @@ class Iterative : public task::Task
         {
             for (iter = 1;iter <= maxiter && !isConverged();iter++)
             {
-                time::tic();
+                time::Timer timer;
+                timer.start();
                 iterate();
-                double dt = time::todouble(time::toc());
+                timer.stop();
+                double dt = timer.seconds(arena);
 
                 int ndigit = (int)(ceil(-log10(convtol))+0.5);
 
@@ -97,7 +99,7 @@ class Iterative : public task::Task
 
             if (!isConverged())
             {
-                error(arena) << "Did not converge in " << maxiter << " iterations" << std::endl;
+                throw std::runtime_error(std::strprintf("Did not converge in %d iterations", maxiter));
             }
         }
 

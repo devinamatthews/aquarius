@@ -41,6 +41,15 @@
 namespace aquarius
 {
 
+namespace tensor
+{
+
+template <typename T> class CTFTensor;
+template <typename T> class SymmetryBlockedTensor;
+template <typename T> class SpinorbitalTensor;
+
+}
+
 template <typename T>
 struct MPI_TYPE_ {};
 
@@ -120,10 +129,10 @@ class Arena
 {
     protected:
         MPI::Intracomm comm;
-        //std::shared_ptr<tCTF_World<float> > ctfs;
+        //std::global_ptr<tCTF_World<float> > ctfs;
         std::global_ptr<tCTF_World<double> > ctfd;
-        //std::shared_ptr<tCTF_World<std::complex<float> > > ctfc;
-        //std::shared_ptr<tCTF_World<std::complex<double> > > ctfz;
+        //std::global_ptr<tCTF_World<std::complex<float> > > ctfc;
+        //std::global_ptr<tCTF_World<std::complex<double> > > ctfz;
 
     public:
         const int rank;
@@ -131,6 +140,8 @@ class Arena
 
         Arena(MPI::Intracomm& comm = MPI::COMM_WORLD)
         : comm(comm), rank(comm.Get_rank()), nproc(comm.Get_size()) {}
+
+        const MPI::Intracomm& getCommunicator() const { return comm; }
 
         template <typename T>
         tCTF_World<T>& ctf();

@@ -124,21 +124,10 @@ void CCD<U>::iterate()
      *
      * Intermediates
      */
-    PROFILE_SECTION(calc_FMI)
     FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
-    PROFILE_STOP
-
-    PROFILE_SECTION(calc_WIJKL)
     WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*T(2)["efij"];
-    PROFILE_STOP
-
-    PROFILE_SECTION(calc_FAE)
     FAE["ae"] -= 0.5*WMNEF["mnef"]*T(2)["afmn"];
-    PROFILE_STOP
-
-    PROFILE_SECTION(calc_WMBEJ)
     WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T(2)["afin"];
-    PROFILE_STOP
     /*
      *************************************************************************/
 
@@ -146,33 +135,14 @@ void CCD<U>::iterate()
      *
      * T(1)->T(2) and T(2)->T(2)
      */
-    PROFILE_SECTION(calc_WMNEF)
     Z(2)["abij"] = WMNEF["ijab"];
-    PROFILE_STOP
-
-    PROFILE_SECTION(calc_T2_IN_T2_FAE)
     Z(2)["abij"] += FAE["af"]*T(2)["fbij"];
-    PROFILE_STOP
-
-    PROFILE_SECTION(calc_T2_IN_T2_FMI)
     Z(2)["abij"] -= FMI["ni"]*T(2)["abnj"];
-    PROFILE_STOP
-
-    PROFILE_SECTION(calc_T2_IN_T2_ABCD)
     Z(2)["abij"] += 0.5*WABEF["abef"]*T(2)["efij"];
-    PROFILE_STOP
-
-    PROFILE_SECTION(calc_T2_IN_T2_IJKL)
     Z(2)["abij"] += 0.5*WMNIJ["mnij"]*T(2)["abmn"];
-    PROFILE_STOP
-
-    PROFILE_SECTION(calc_T2_IN_T2_RING)
     Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];
-    PROFILE_STOP
     /*
      *************************************************************************/
-
-    PROFILE_SECTION(calc_EN)
 
     Z.weight(D);
     T += Z;
@@ -182,8 +152,6 @@ void CCD<U>::iterate()
     conv = Z.norm(00);
 
     diis.extrapolate(T, Z);
-
-    PROFILE_STOP
 }
 
 INSTANTIATE_SPECIALIZATIONS(CCD);

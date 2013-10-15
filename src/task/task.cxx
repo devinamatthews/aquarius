@@ -549,20 +549,34 @@ void TaskDAG::execute(Arena& world)
         for (vector<Task*>::iterator t = to_execute.begin();t != to_execute.end();++t)
         {
             Logger::log(world) << "Starting task: " << (*t)->getName() << endl;
-            tic();
+            Timer timer;
 
+            bool success = true;
+            string error;
+
+            timer.start();
             try
             {
                 (*t)->run(*this, world);
             }
             catch (runtime_error& e)
             {
-                Logger::error(world) << e.what() << endl;
+                success = false;
+                error = e.what();
             }
+            timer.stop();
 
-            double dt = todouble(toc());
+            double dt = timer.seconds(world);
+            double gflops = timer.gflops(world);
             Logger::log(world) << "Finished task: " << (*t)->getName() <<
                        " in " << std::fixed << std::setprecision(3) << dt << " s" << endl;
+            Logger::log(world) << "Task: " << (*t)->getName() <<
+                       " achieved " << std::fixed << std::setprecision(3) << gflops << " Gflops/sec" << endl;
+
+            if (!success)
+            {
+                Logger::error(world) << error << endl;
+            }
 
             for (vector<Product>::iterator p = (*t)->getProducts().begin();p != (*t)->getProducts().end();++p)
             {

@@ -47,7 +47,8 @@ namespace tensor
 {
 
 template<class T>
-class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T>, public task::Resource
+class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T>,
+                          public task::Resource
 {
     INHERIT_FROM_INDEXABLE_COMPOSITE_TENSOR(SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T)
 
@@ -103,6 +104,13 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,S
         std::vector<int> nout, nin;
         int spin;
         std::vector<SpinCase> cases;
+        static std::map<const tCTF_World<T>*,std::map<const symmetry::PointGroup*,std::pair<int,SpinorbitalTensor<T>*> > > scalars;
+
+        void register_scalar();
+
+        void unregister_scalar();
+
+        SpinorbitalTensor<T>& scalar() const;
 };
 
 }

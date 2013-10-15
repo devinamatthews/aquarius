@@ -50,7 +50,15 @@ void STExcitationOperator<U,2>::transform(const OneElectronOperator<U>& X,
 {
     OneElectronOperator<U> W(const_cast<OneElectronOperator<U>&>(X),
                              OneElectronOperator<U>::AB|OneElectronOperator<U>::IJ);
+    transform(X, T, Z, W);
+}
 
+template <typename U>
+void STExcitationOperator<U,2>::transform(const OneElectronOperator<U>& X,
+                                          const ExcitationOperator<U,2>& T,
+                                                ExcitationOperator<U,2>& Z,
+                                                OneElectronOperator<U>& W)
+{
     SpinorbitalTensor<U>& FAI = W.getAI();
     SpinorbitalTensor<U>& FME = W.getIA();
     SpinorbitalTensor<U>& FAE = W.getAB();
@@ -83,6 +91,22 @@ void STExcitationOperator<U,2>::transform(const TwoElectronOperator<U>& X,
                                                                      TwoElectronOperator<U>::IJAK|
                                                                      TwoElectronOperator<U>::AIJK|
                                                                      TwoElectronOperator<U>::AIBJ);
+    transform(X, T, Z, W);
+}
+
+template <typename U>
+void STExcitationOperator<U,2>::transform(const TwoElectronOperator<U>& X,
+                                          const ExcitationOperator<U,2>& T,
+                                                ExcitationOperator<U,2>& Z,
+                                                TwoElectronOperator<U>& W)
+{
+    W.getAB() = X.getAB();
+    W.getIJ() = X.getIJ();
+    W.getIA() = X.getIA();
+    W.getIJKL() = X.getIJKL();
+    W.getIJAK() = X.getIJAK();
+    W.getAIJK() = X.getAIJK();
+    W.getAIBJ() = X.getAIBJ();
 
     SpinorbitalTensor<U>& FAI = W.getAI();
     SpinorbitalTensor<U>& FME = W.getIA();

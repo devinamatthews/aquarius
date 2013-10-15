@@ -47,18 +47,25 @@ double fm(double T, int m)
 
     double sum, delt, ap;
 
+    PROFILE_FLOPS(1);
     ap = m + 0.5;
 
-    if (T <= 0) return 0.5 / ap;
+    if (T <= 0)
+    {
+        PROFILE_FLOPS(DIV_FLOPS);
+        return 0.5 / ap;
+    }
 
     if (T > TMAX[m]) return fmasymptotic(T, m);
 
-    sum = 1.0 / ap / (2 * exp(T));
+    PROFILE_FLOPS(2+EXP_FLOPS+DIV_FLOPS);
+    sum = 1.0 / (2 * ap * exp(T));
     delt = sum;
     ap += 1.0;
 
     while (true)
     {
+        PROFILE_FLOPS(3+2*DIV_FLOPS);
         delt *= T / ap;
         ap += 1.0;
         if (fabs(delt) / sum < epsilon) break;
@@ -74,6 +81,8 @@ double fmtaylor(double T, int n)
     int i;
     int tidx;
     double tr, trmt;
+
+    PROFILE_FLOPS((TAYLOR_N+1)*(3+DIV_FLOPS));
 
     tidx = (int)round(T * 20.0);
     tr = (double)tidx / 20.0;
@@ -97,6 +106,8 @@ double fmasymptotic(double T, int m)
 
     double sum;
     int i;
+
+    PROFILE_FLOPS(EXP_FLOPS+SQRT_FLOPS+2*DIV_FLOPS+(m-1)*LOG_FLOPS+m+1);
 
     sum = -m * log(2 * T);
     for (i = 3;i < 2 * m;i += 2)
@@ -127,6 +138,8 @@ void fmrecursive(double T, int n, double* array)
     {
         array[i - 1] = (2 * T * array[i] + emt) / (2 * i - 1);
     }
+
+    PROFILE_FLOPS((5+DIV_FLOPS)*(n-1)+EXP_FLOPS);
 }
 
 void calcfmtable()

@@ -147,6 +147,9 @@ static int conv_idx(const vector<int>& cidx_A, string& iidx_A,
 }
 
 template<class T>
+map<const tCTF_World<T>*,map<const PointGroup*,pair<int,SpinorbitalTensor<T>*> > > SpinorbitalTensor<T>::scalars;
+
+template<class T>
 SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& t, const T val)
 : IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T >(0, 0),
   Resource(t.arena), group(t.group), spin(0)
@@ -154,6 +157,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& t, const T v
     cases.push_back(SpinCase());
     cases.back().construct(*this, vector<int>(), vector<int>());
     *cases.back().tensor = val;
+    register_scalar();
 }
 
 template<class T>
@@ -167,6 +171,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& other)
     {
         cases[i].tensor = tensors[i].tensor;
     }
+    register_scalar();
 }
 
 template<class T>
@@ -270,6 +275,8 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const Arena& arena,
             if (alphaout == 0) doneout = true;
         }
     }
+
+    register_scalar();
 }
 
 template<class T>
@@ -289,12 +296,14 @@ void SpinorbitalTensor<T>::SpinCase::construct(SpinorbitalTensor<T>& t,
     {
         for (int a = 0;a < alpha_out[s];a++)
         {
+            //len[i++] = vec(std::sum(t.spaces[s].nalpha))+vector<int>(t.group.getNumIrreps()-1, 0);
             len[i++] = t.spaces[s].nalpha;
         }
         if (i > 0) sym[i-1] = NS;
 
         for (int b = 0;b < t.nout[s]-alpha_out[s];b++)
         {
+            //len[i++] = vec(std::sum(t.spaces[s].nbeta))+vector<int>(t.group.getNumIrreps()-1, 0);
             len[i++] = t.spaces[s].nbeta;
         }
         if (i > 0) sym[i-1] = NS;
@@ -304,12 +313,14 @@ void SpinorbitalTensor<T>::SpinCase::construct(SpinorbitalTensor<T>& t,
     {
         for (int a = 0;a < alpha_in[s];a++)
         {
+            //len[i++] = vec(std::sum(t.spaces[s].nalpha))+vector<int>(t.group.getNumIrreps()-1, 0);
             len[i++] = t.spaces[s].nalpha;
         }
         if (i > 0) sym[i-1] = NS;
 
         for (int b = 0;b < t.nin[s]-alpha_in[s];b++)
         {
+            //len[i++] = vec(std::sum(t.spaces[s].nbeta))+vector<int>(t.group.getNumIrreps()-1, 0);
             len[i++] = t.spaces[s].nbeta;
         }
         if (i > 0) sym[i-1] = NS;
@@ -939,7 +950,7 @@ template<class T>
 T SpinorbitalTensor<T>::dot(bool conja, const SpinorbitalTensor<T>& A, const string& idx_A,
                             bool conjb,                                const string& idx_B) const
 {
-    SpinorbitalTensor<T> sodt(A, (T)0);
+    SpinorbitalTensor<T>& sodt = scalar();
     sodt.mult(1, conja,     A, idx_A,
                  conjb, *this, idx_B,
               0,                  "");
@@ -963,13 +974,74 @@ typename std::real_type<T>::type SpinorbitalTensor<T>::norm(int p) const
             factor *= binom( nin[s],  sc->alpha_in[s]);
         }
 
-        if      (p == 2) factor = sqrt(factor);
-        else if (p == 0) factor = 1;
+        typename std::real_type<T>::type subnrm = sc->tensor->norm(p);
 
-        nrm += factor*sc->tensor->norm(p);
+        if (p == 2)
+        {
+            nrm += factor*subnrm*subnrm;
+        }
+        else if (p == 0)
+        {
+            nrm = max(nrm,subnrm);
+        }
+        else if (p == 1)
+        {
+            nrm += factor*subnrm;
+        }
     }
 
+    if (p == 2) nrm = sqrt(nrm);
+
     return nrm;
+}
+
+
+template <typename T>
+void SpinorbitalTensor<T>::register_scalar()
+{
+    if (scalars.find(&arena.ctf<T>()) == scalars.end() ||
+        scalars[&arena.ctf<T>()].find(&group) == scalars[&arena.ctf<T>()].end())
+    {
+        /*
+         * If we are the first, make a new entry and put a new
+         * scalar in it. The entry in scalars must be made FIRST,
+         * since the new scalar will call this constructor too.
+         */
+        scalars[&arena.ctf<T>()][&group].first = -1;
+        scalars[&arena.ctf<T>()][&group].second = new SpinorbitalTensor<T>(*this, (T)0);
+    }
+
+    scalars[&arena.ctf<T>()][&group].first++;
+}
+
+template <typename T>
+void SpinorbitalTensor<T>::unregister_scalar()
+{
+    /*
+     * The last tensor (besides the scalar in scalars)
+     * will delete the entry, so if it does not exist
+     * then we must be that scalar and nothing needs to be done.
+     */
+    if (scalars.find(&arena.ctf<T>()) == scalars.end() ||
+        scalars[&arena.ctf<T>()].find(&group) == scalars[&arena.ctf<T>()].end()) return;
+
+    if (--scalars[&arena.ctf<T>()][&group].first == 0)
+    {
+        /*
+         * The entry must be deleted FIRST, so that the scalar
+         * knows to do nothing.
+         */
+        SpinorbitalTensor<T>* scalar = scalars[&arena.ctf<T>()][&group].second;
+        scalars[&arena.ctf<T>()].erase(&group);
+        if (scalars[&arena.ctf<T>()].empty()) scalars.erase(&arena.ctf<T>());
+        delete scalar;
+    }
+}
+
+template <typename T>
+SpinorbitalTensor<T>& SpinorbitalTensor<T>::scalar() const
+{
+    return *scalars[&arena.ctf<T>()][&group].second;
 }
 
 INSTANTIATE_SPECIALIZATIONS(SpinorbitalTensor);

@@ -38,6 +38,7 @@
 #include "util/math_ext.h"
 #include "util/lapack.h"
 #include "memory/memory.h"
+#include "time/c_time.h"
 
 #ifdef __cplusplus
 extern "C"
