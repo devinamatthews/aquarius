@@ -140,7 +140,7 @@ void DistTensor<T>::getLocalData(vector<tkv_pair<T> >& pairs) const
 {
     int64_t npair;
     tkv_pair<T> *data;
-    dt->get_local_data(&npair, &data);
+    dt->read_local(&npair, &data);
     pairs.assign(data, data+npair);
     if (npair > 0) ::free(data);
 }
@@ -148,37 +148,37 @@ void DistTensor<T>::getLocalData(vector<tkv_pair<T> >& pairs) const
 template <typename T>
 void DistTensor<T>::getRemoteData(vector<tkv_pair<T> >& pairs) const
 {
-    dt->get_remote_data(pairs.size(), pairs.data());
+    dt->read(pairs.size(), pairs.data());
 }
 
 template <typename T>
 void DistTensor<T>::getRemoteData() const
 {
-    dt->get_remote_data(0, NULL);
+    dt->read(0, NULL);
 }
 
 template <typename T>
 void DistTensor<T>::writeRemoteData(const vector<tkv_pair<T> >& pairs)
 {
-    dt->write_remote_data(pairs.size(), pairs.data());
+    dt->write(pairs.size(), pairs.data());
 }
 
 template <typename T>
 void DistTensor<T>::writeRemoteData()
 {
-    dt->write_remote_data(0, NULL);
+    dt->write(0, NULL);
 }
 
 template <typename T>
 void DistTensor<T>::writeRemoteData(double alpha, double beta, const vector<tkv_pair<T> >& pairs)
 {
-    dt->add_remote_data(pairs.size(), alpha, beta, pairs.data());
+    dt->write(pairs.size(), alpha, beta, pairs.data());
 }
 
 template <typename T>
 void DistTensor<T>::writeRemoteData(double alpha, double beta)
 {
-    dt->add_remote_data(0, alpha, beta, NULL);
+    dt->write(0, alpha, beta, NULL);
 }
 
 template <typename T>
@@ -214,7 +214,7 @@ void DistTensor<T>::getAllData(vector<T>& vals, int rank) const
         }
         while (next_packed_indices(ndim, len.data(), sym.data(), idx.data()));
 
-        dt->get_remote_data(pairs.size(), pairs.data());
+        dt->read(pairs.size(), pairs.data());
 
         sort(pairs.begin(), pairs.end());
         size_t npair = pairs.size();
@@ -227,7 +227,7 @@ void DistTensor<T>::getAllData(vector<T>& vals, int rank) const
     }
     else
     {
-        dt->get_remote_data(0, NULL);
+        dt->read(0, NULL);
     }
 }
 
