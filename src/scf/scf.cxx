@@ -158,10 +158,14 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
 
     vector<int> vrt_alpha(group.getNumIrreps());
     vector<int> vrt_beta(group.getNumIrreps());
+    vector<int> vrt0_alpha(group.getNumIrreps());
+    vector<int> vrt0_beta(group.getNumIrreps());
     for (int i = 0;i < group.getNumIrreps();i++)
     {
         vrt_alpha[i] = norb[i]-occ_alpha[i];
         vrt_beta[i] = norb[i]-occ_beta[i];
+        vrt0_alpha[i] = occ_alpha[i];
+        vrt0_beta[i] = occ_beta[i];
         occ_alpha[i] -= nfrozen_alpha[i];
         occ_beta[i] -= nfrozen_beta[i];
     }
@@ -175,10 +179,10 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
                                                            vec(norb,occ_beta))));
 
    	put("vrt", new MOSpace<T>(new SymmetryBlockedTensor<T>(gettmp<SymmetryBlockedTensor<T> >("Ca"),
-                                                           vec(zero,occ_alpha),
+                                                           vec(zero,vrt0_alpha),
                                                            vec(norb,vrt_alpha)),
    	                          new SymmetryBlockedTensor<T>(gettmp<SymmetryBlockedTensor<T> >("Cb"),
-                                                           vec(zero,occ_beta),
+                                                           vec(zero,vrt0_beta),
                                                            vec(norb,vrt_beta))));
 }
 
