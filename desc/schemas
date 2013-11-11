@@ -13,8 +13,8 @@ molecule
     subgroup?
         enum
         {
-            full,
-            C1, Cs, Ci, C2, C2v, C2h, D2, D2h,
+            C1, full,
+            Cs, Ci, C2, C2v, C2h, D2, D2h,
             C3, C4, C5, C6, C3v, C4v, C5v, C6v,
             C3h, C4h, C5h, C6h, D3, D4, D5, D6,
             D3h, D4h, D5h, D6h, S4, S6, Td, Oh, Ih
