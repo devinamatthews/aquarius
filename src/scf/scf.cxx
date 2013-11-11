@@ -154,6 +154,8 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
         nfrozen_beta[E_beta_occ[i].second]++;
     }
 
+    log(arena) << "Dropping MOs: " << nfrozen_alpha << ", " << nfrozen_beta << endl;
+
     vector<int> vrt_alpha(group.getNumIrreps());
     vector<int> vrt_beta(group.getNumIrreps());
     for (int i = 0;i < group.getNumIrreps();i++)
@@ -320,7 +322,7 @@ void UHF<T>::calcSMinusHalf()
             vector<T> s;
             vector<T> smhalf(norb[i]*norb[i]);
 
-            S(irreps).getAllData(s,0);
+            S.getAllData(irreps, s, 0);
             assert(s.size() == norb[i]*norb[i]);
 
             PROFILE_FLOPS(26*norb[i]*norb[i]*norb[i]);
@@ -342,12 +344,12 @@ void UHF<T>::calcSMinusHalf()
                 pairs[j].d = smhalf[j];
             }
 
-            Smhalf(irreps).writeRemoteData(pairs);
+            Smhalf.writeRemoteData(irreps, pairs);
         }
         else
         {
-            S(irreps).getAllData(0);
-            Smhalf(irreps).writeRemoteData();
+            S.getAllData(irreps, 0);
+            Smhalf.writeRemoteData(irreps);
         }
 
         #endif
@@ -496,11 +498,11 @@ void UHF<T>::diagonalizeFock()
             vector<T> fock, s;
             vector< tkv_pair<T> > pairs(norb[i]*norb[i]);
 
-            S(irreps).getAllData(s,0);
+            S.getAllData(irreps, s, 0);
             assert(s.size() == norb[i]*norb[i]);
             vector<T> tmp(s);
 
-            Fa(irreps).getAllData(fock,0);
+            Fa.getAllData(irreps, fock, 0);
             assert(fock.size() == norb[i]*norb[i]);
             PROFILE_FLOPS(9*norb[i]*norb[i]*norb[i]);
             info = hegv(AXBX, 'V', 'U', norb[i], fock.data(), norb[i], tmp.data(), norb[i], E_alpha[i].data());
@@ -527,9 +529,9 @@ void UHF<T>::diagonalizeFock()
                 pairs[j].d = fock[j];
             }
 
-            Ca(irreps).writeRemoteData(pairs);
+            Ca.writeRemoteData(irreps, pairs);
 
-            Fb(irreps).getAllData(fock,0);
+            Fb.getAllData(irreps, fock, 0);
             assert(fock.size() == norb[i]*norb[i]);
             PROFILE_FLOPS(9*norb[i]*norb[i]*norb[i]);
             info = hegv(AXBX, 'V', 'U', norb[i], fock.data(), norb[i], s.data(), norb[i], E_beta[i].data());
@@ -556,15 +558,15 @@ void UHF<T>::diagonalizeFock()
                 pairs[j].d = fock[j];
             }
 
-            Cb(irreps).writeRemoteData(pairs);
+            Cb.writeRemoteData(irreps, pairs);
         }
         else
         {
-            S(irreps).getAllData(0);
-            Fa(irreps).getAllData(0);
-            Fb(irreps).getAllData(0);
-            Ca(irreps).writeRemoteData();
-            Cb(irreps).writeRemoteData();
+            S.getAllData(irreps, 0);
+            Fa.getAllData(irreps, 0);
+            Fb.getAllData(irreps, 0);
+            Ca.writeRemoteData(irreps);
+            Cb.writeRemoteData(irreps);
         }
     }
 

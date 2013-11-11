@@ -206,12 +206,14 @@ static void filltable(double* table, int la, int lb, int lc, int ld,
 {
     int vmax = la+lb+lc+ld;
 
+    int64_t flops = 0;
+
     for (int d = 0;d <= ld;d++)
     {
         if (d < ld)
         {
-            PROFILE_FLOPS((vmax-d)*3);
-            if (d > 0) PROFILE_FLOPS((vmax-d)*5);
+            flops += (vmax-d)*3;
+            if (d > 0) flops += (vmax-d)*5;
             for (int v = 0;v < vmax-d;v++)
             {
                 table[v+dinc] = dfac*(table[v  ]) +
@@ -229,9 +231,9 @@ static void filltable(double* table, int la, int lb, int lc, int ld,
         {
             if (c < lc)
             {
-                PROFILE_FLOPS((vmax-c-d)*3);
-                if (c > 0) PROFILE_FLOPS((vmax-c-d)*5);
-                if (d > 0) PROFILE_FLOPS((vmax-c-d)*5);
+                flops += (vmax-c-d)*3;
+                if (c > 0) flops += (vmax-c-d)*5;
+                if (d > 0) flops += (vmax-c-d)*5;
                 for (int v = 0;v < vmax-c-d;v++)
                 {
                     table[v+cinc] = cfac*(table[v  ]) +
@@ -255,10 +257,10 @@ static void filltable(double* table, int la, int lb, int lc, int ld,
             {
                 if (b < lb)
                 {
-                    PROFILE_FLOPS((vmax-b-c-d)*3);
-                    if (b > 0) PROFILE_FLOPS((vmax-b-c-d)*5);
-                    if (c > 0) PROFILE_FLOPS((vmax-b-c-d)*3);
-                    if (d > 0) PROFILE_FLOPS((vmax-b-c-d)*3);
+                    flops += (vmax-b-c-d)*3;
+                    if (b > 0) flops += (vmax-b-c-d)*5;
+                    if (c > 0) flops += (vmax-b-c-d)*3;
+                    if (d > 0) flops += (vmax-b-c-d)*3;
                     for (int v = 0;v < vmax-b-c-d;v++)
                     {
                         table[v+binc] = bfac*(table[v  ]) +
@@ -286,11 +288,11 @@ static void filltable(double* table, int la, int lb, int lc, int ld,
                 {
                     if (a < la)
                     {
-                        PROFILE_FLOPS((vmax-a-b-c-d)*3);
-                        if (a > 0) PROFILE_FLOPS((vmax-a-b-c-d)*5);
-                        if (b > 0) PROFILE_FLOPS((vmax-a-b-c-d)*5);
-                        if (c > 0) PROFILE_FLOPS((vmax-a-b-c-d)*3);
-                        if (d > 0) PROFILE_FLOPS((vmax-a-b-c-d)*3);
+                        flops += (vmax-a-b-c-d)*3;
+                        if (a > 0) flops += (vmax-a-b-c-d)*5;
+                        if (b > 0) flops += (vmax-a-b-c-d)*5;
+                        if (c > 0) flops += (vmax-a-b-c-d)*3;
+                        if (d > 0) flops += (vmax-a-b-c-d)*3;
                         for (int v = 0;v < vmax-a-b-c-d;v++)
                         {
                             table[v+ainc] = afac*(table[v  ]) +
@@ -328,4 +330,6 @@ static void filltable(double* table, int la, int lb, int lc, int ld,
         }
         table += dinc-cinc*(lc+1);
     }
+
+    PROFILE_FLOPS(flops);
 }

@@ -72,37 +72,37 @@ class Denominator : public op::MOOperator
                     {
                         std::vector<tkv_pair<T> > pairs(nA);
                         for (int i = 0;i < nA;i++) pairs[i].k = i+i*nA;
-                        F.getAB()(std::vec(1,0),std::vec(1,0))(irreps).getRemoteData(pairs);
+                        F.getAB()(std::vec(1,0),std::vec(1,0)).getRemoteData(irreps, pairs);
                         for (int i = 0;i < nA;i++) dA[j][pairs[i].k/nA] = -pairs[i].d;
                     }
 
                     {
                         std::vector<tkv_pair<T> > pairs(na);
                         for (int i = 0;i < na;i++) pairs[i].k = i+i*na;
-                        F.getAB()(std::vec(0,0),std::vec(0,0))(irreps).getRemoteData(pairs);
+                        F.getAB()(std::vec(0,0),std::vec(0,0)).getRemoteData(irreps, pairs);
                         for (int i = 0;i < na;i++) da[j][pairs[i].k/na] = -pairs[i].d;
                     }
 
                     {
                         std::vector<tkv_pair<T> > pairs(nI);
                         for (int i = 0;i < nI;i++) pairs[i].k = i+i*nI;
-                        F.getIJ()(std::vec(0,1),std::vec(0,1))(irreps).getRemoteData(pairs);
+                        F.getIJ()(std::vec(0,1),std::vec(0,1)).getRemoteData(irreps, pairs);
                         for (int i = 0;i < nI;i++) dI[j][pairs[i].k/nI] = pairs[i].d;
                     }
 
                     {
                         std::vector<tkv_pair<T> > pairs(ni);
                         for (int i = 0;i < ni;i++) pairs[i].k = i+i*ni;
-                        F.getIJ()(std::vec(0,0),std::vec(0,0))(irreps).getRemoteData(pairs);
+                        F.getIJ()(std::vec(0,0),std::vec(0,0)).getRemoteData(irreps, pairs);
                         for (int i = 0;i < ni;i++) di[j][pairs[i].k/ni] = pairs[i].d;
                     }
                 }
                 else
                 {
-                    F.getAB()(std::vec(1,0),std::vec(1,0))(irreps).getRemoteData();
-                    F.getAB()(std::vec(0,0),std::vec(0,0))(irreps).getRemoteData();
-                    F.getIJ()(std::vec(0,1),std::vec(0,1))(irreps).getRemoteData();
-                    F.getIJ()(std::vec(0,0),std::vec(0,0))(irreps).getRemoteData();
+                    F.getAB()(std::vec(1,0),std::vec(1,0)).getRemoteData(irreps);
+                    F.getAB()(std::vec(0,0),std::vec(0,0)).getRemoteData(irreps);
+                    F.getIJ()(std::vec(0,1),std::vec(0,1)).getRemoteData(irreps);
+                    F.getIJ()(std::vec(0,0),std::vec(0,0)).getRemoteData(irreps);
                 }
 
                 arena.Bcast(dA[j], 0);

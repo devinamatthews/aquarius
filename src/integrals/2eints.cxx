@@ -26,7 +26,7 @@
 #include "internal.h"
 
 #define TMP_BUFSIZE 65536
-#define INTEGRAL_CUTOFF 1e-13
+#define INTEGRAL_CUTOFF 1e-14
 
 /**
  * Compute the index of a function in cartesian angular momentum.

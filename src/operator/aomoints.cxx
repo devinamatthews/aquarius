@@ -546,13 +546,9 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symt
 
     int nrtot = sum(nr);
 
-    //vector<kv_pair> pairs;
-    //CTFTensor<T>& tensor = symtensor(0);
-
     /*
      * (ab|rs) -> <ar|bs>
      */
-    double nrmall = 0;
     for (int irrs = 0;irrs < n;irrs++)
     {
         for (int irrr = 0;irrr < n;irrr++)
@@ -583,8 +579,6 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symt
                     if (swap == PQ || (assymij && irra > irrr)) std::swap(symirrs[0], symirrs[1]);
                     if (swap == RS || (assymkl && irrb > irrs)) std::swap(symirrs[2], symirrs[3]);
 
-                    CTFTensor<T>& tensor = symtensor(symirrs);
-
                     /*
                      * both halves are written for antisymmetrized tensors, but not the diagonal
                      */
@@ -594,7 +588,6 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symt
 
                     vararray<kv_pair> pairs(npair);
 
-                    double nrm = 0;
                     size_t pair = 0;
                     for (int s = 0;s < ns[irrs];s++)
                     {
@@ -637,7 +630,6 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symt
                                         std::swap(nk,nl);
                                     }
 
-                                    nrm += val*val;
                                     pairs[pair].k = ((((int64_t)l)*nk+k)*nj+j)*ni+i;
                                     pairs[pair].d = val;
 
@@ -648,23 +640,11 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symt
                     }
                     assert(pair == pairs.size());
 
-                    nrmall += nrm;
-                    //cout << symirrs << " " << sqrt(nrm) << endl;
-
-                    if (assymij && irra == irrr) assert(tensor.getSymmetry()[0] == AS);
-                    if (assymkl && irrb == irrs) assert(tensor.getSymmetry()[2] == AS);
-                    assert(tensor.getLengths()[0] == (swap == PQ || (assymij && irra > irrr) ? nr[irrr] : na[irra]));
-                    assert(tensor.getLengths()[1] == (swap == PQ || (assymij && irra > irrr) ? na[irra] : nr[irrr]));
-                    assert(tensor.getLengths()[2] == (swap == RS || (assymkl && irrb > irrs) ? ns[irrs] : nb[irrb]));
-                    assert(tensor.getLengths()[3] == (swap == RS || (assymkl && irrb > irrs) ? nb[irrb] : ns[irrs]));
-                    tensor.writeRemoteData(1, 1, pairs);
+                    symtensor.writeRemoteData(symirrs, 1, 1, pairs);
                 }
             }
         }
     }
-    //cout << "total: " << sqrt(nrmall) << endl;
-
-    //tensor.writeRemoteData(pairs);
 
     PROFILE_STOP
 }
@@ -796,13 +776,13 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     for (int i = 0;i < n;i++)
     {
         vector<int> irreps = vec(i,i);
-        cA_(irreps).getAllData(cA[i]);
+        cA_.getAllData(irreps, cA[i]);
         assert(cA[i].size() == N[i]*nA[i]);
-        ca_(irreps).getAllData(ca[i]);
+        ca_.getAllData(irreps, ca[i]);
         assert(ca[i].size() == N[i]*na[i]);
-        cI_(irreps).getAllData(cI[i]);
+        cI_.getAllData(irreps, cI[i]);
         assert(cI[i].size() == N[i]*nI[i]);
-        ci_(irreps).getAllData(ci[i]);
+        ci_.getAllData(irreps, ci[i]);
         assert(ci[i].size() == N[i]*ni[i]);
     }
 
@@ -1101,42 +1081,40 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     H.getIJAB()(vec(0,1),vec(1,0))["IjAb"] = H.getABIJ()(vec(1,0),vec(0,1))["AbIj"];
     H.getIJAB()(vec(0,0),vec(0,0))["ijab"] = H.getABIJ()(vec(0,0),vec(0,0))["abij"];
 
-    /*
-    cout << "ABCD: " << setprecision(15) << H.getABCD()(vec(2,0),vec(2,0)).norm(2) << endl;
+    //cout << "ABCD: " << setprecision(15) << H.getABCD()(vec(2,0),vec(2,0)).norm(2) << endl;
     cout << "AbCd: " << setprecision(15) << H.getABCD()(vec(1,0),vec(1,0)).norm(2) << endl;
-    cout << "abcd: " << setprecision(15) << H.getABCD()(vec(0,0),vec(0,0)).norm(2) << endl;
-    cout << "ABCI: " << setprecision(15) << H.getABCI()(vec(2,0),vec(1,1)).norm(2) << endl;
+    //cout << "abcd: " << setprecision(15) << H.getABCD()(vec(0,0),vec(0,0)).norm(2) << endl;
+    //cout << "ABCI: " << setprecision(15) << H.getABCI()(vec(2,0),vec(1,1)).norm(2) << endl;
     cout << "AbCi: " << setprecision(15) << H.getABCI()(vec(1,0),vec(1,0)).norm(2) << endl;
     cout << "AbcI: " << setprecision(15) << H.getABCI()(vec(1,0),vec(0,1)).norm(2) << endl;
-    cout << "abci: " << setprecision(15) << H.getABCI()(vec(0,0),vec(0,0)).norm(2) << endl;
-    cout << "AIBC: " << setprecision(15) << H.getAIBC()(vec(1,1),vec(2,0)).norm(2) << endl;
+    //cout << "abci: " << setprecision(15) << H.getABCI()(vec(0,0),vec(0,0)).norm(2) << endl;
+    //cout << "AIBC: " << setprecision(15) << H.getAIBC()(vec(1,1),vec(2,0)).norm(2) << endl;
     cout << "AiBc: " << setprecision(15) << H.getAIBC()(vec(1,0),vec(1,0)).norm(2) << endl;
     cout << "aIBc: " << setprecision(15) << H.getAIBC()(vec(0,1),vec(1,0)).norm(2) << endl;
-    cout << "aibc: " << setprecision(15) << H.getAIBC()(vec(0,0),vec(0,0)).norm(2) << endl;
-    cout << "ABIJ: " << setprecision(15) << H.getABIJ()(vec(2,0),vec(0,2)).norm(2) << endl;
+    //cout << "aibc: " << setprecision(15) << H.getAIBC()(vec(0,0),vec(0,0)).norm(2) << endl;
+    //cout << "ABIJ: " << setprecision(15) << H.getABIJ()(vec(2,0),vec(0,2)).norm(2) << endl;
     cout << "AbIj: " << setprecision(15) << H.getABIJ()(vec(1,0),vec(0,1)).norm(2) << endl;
-    cout << "abij: " << setprecision(15) << H.getABIJ()(vec(0,0),vec(0,0)).norm(2) << endl;
-    cout << "AIBJ: " << setprecision(15) << H.getAIBJ()(vec(1,1),vec(1,1)).norm(2) << endl;
+    //cout << "abij: " << setprecision(15) << H.getABIJ()(vec(0,0),vec(0,0)).norm(2) << endl;
+    //cout << "AIBJ: " << setprecision(15) << H.getAIBJ()(vec(1,1),vec(1,1)).norm(2) << endl;
     cout << "AiBj: " << setprecision(15) << H.getAIBJ()(vec(1,0),vec(1,0)).norm(2) << endl;
     cout << "aIbJ: " << setprecision(15) << H.getAIBJ()(vec(0,1),vec(0,1)).norm(2) << endl;
     cout << "AibJ: " << setprecision(15) << H.getAIBJ()(vec(1,0),vec(0,1)).norm(2) << endl;
     cout << "aIBj: " << setprecision(15) << H.getAIBJ()(vec(0,1),vec(1,0)).norm(2) << endl;
-    cout << "aibj: " << setprecision(15) << H.getAIBJ()(vec(0,0),vec(0,0)).norm(2) << endl;
-    cout << "IJAB: " << setprecision(15) << H.getIJAB()(vec(0,2),vec(2,0)).norm(2) << endl;
+    //cout << "aibj: " << setprecision(15) << H.getAIBJ()(vec(0,0),vec(0,0)).norm(2) << endl;
+    //cout << "IJAB: " << setprecision(15) << H.getIJAB()(vec(0,2),vec(2,0)).norm(2) << endl;
     cout << "IjAb: " << setprecision(15) << H.getIJAB()(vec(0,1),vec(1,0)).norm(2) << endl;
-    cout << "ijab: " << setprecision(15) << H.getIJAB()(vec(0,0),vec(0,0)).norm(2) << endl;
-    cout << "AIJK: " << setprecision(15) << H.getAIJK()(vec(1,1),vec(0,2)).norm(2) << endl;
+    //cout << "ijab: " << setprecision(15) << H.getIJAB()(vec(0,0),vec(0,0)).norm(2) << endl;
+    //cout << "AIJK: " << setprecision(15) << H.getAIJK()(vec(1,1),vec(0,2)).norm(2) << endl;
     cout << "AiJk: " << setprecision(15) << H.getAIJK()(vec(1,0),vec(0,1)).norm(2) << endl;
     cout << "aIJk: " << setprecision(15) << H.getAIJK()(vec(0,1),vec(0,1)).norm(2) << endl;
-    cout << "aijk: " << setprecision(15) << H.getAIJK()(vec(0,0),vec(0,0)).norm(2) << endl;
-    cout << "IJAK: " << setprecision(15) << H.getIJAK()(vec(0,2),vec(1,1)).norm(2) << endl;
+    //cout << "aijk: " << setprecision(15) << H.getAIJK()(vec(0,0),vec(0,0)).norm(2) << endl;
+    //cout << "IJAK: " << setprecision(15) << H.getIJAK()(vec(0,2),vec(1,1)).norm(2) << endl;
     cout << "IjAk: " << setprecision(15) << H.getIJAK()(vec(0,1),vec(1,0)).norm(2) << endl;
     cout << "IjaK: " << setprecision(15) << H.getIJAK()(vec(0,1),vec(0,1)).norm(2) << endl;
-    cout << "ijak: " << setprecision(15) << H.getIJAK()(vec(0,0),vec(0,0)).norm(2) << endl;
-    cout << "IJKL: " << setprecision(15) << H.getIJKL()(vec(0,2),vec(0,2)).norm(2) << endl;
+    //cout << "ijak: " << setprecision(15) << H.getIJAK()(vec(0,0),vec(0,0)).norm(2) << endl;
+    //cout << "IJKL: " << setprecision(15) << H.getIJKL()(vec(0,2),vec(0,2)).norm(2) << endl;
     cout << "IjKl: " << setprecision(15) << H.getIJKL()(vec(0,1),vec(0,1)).norm(2) << endl;
-    cout << "ijkl: " << setprecision(15) << H.getIJKL()(vec(0,0),vec(0,0)).norm(2) << endl;
-    */
+    //cout << "ijkl: " << setprecision(15) << H.getIJKL()(vec(0,0),vec(0,0)).norm(2) << endl;
 }
 
 INSTANTIATE_SPECIALIZATIONS(AOMOIntegrals);

@@ -60,6 +60,10 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
 
         void allocate(bool zero);
 
+        CTFTensor<T>& operator()(const std::vector<int>& irreps);
+
+        const CTFTensor<T>& operator()(const std::vector<int>& irreps) const;
+
     public:
         SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other);
 
@@ -83,11 +87,73 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
 
         const std::vector<int>& getSymmetry() const { return sym; }
 
-        CTFTensor<T>& operator()(const std::vector<int>& irreps);
-
-        const CTFTensor<T>& operator()(const std::vector<int>& irreps) const;
-
         bool exists(const std::vector<int>& irreps) const;
+
+        T* getRawData(const std::vector<int>& irreps, int64_t& size)
+        {
+            return (*this)(irreps).getRawData(size);
+        }
+
+        const T* getRawData(const std::vector<int>& irreps, int64_t& size) const
+        {
+            return (*this)(irreps).getRawData(size);
+        }
+
+        template <typename Container>
+        void getLocalData(const std::vector<int>& irreps, Container& pairs) const
+        {
+            (*this)(irreps).getLocalData(pairs);
+        }
+
+        template <typename Container>
+        void getRemoteData(const std::vector<int>& irreps, Container& pairs) const
+        {
+            (*this)(irreps).getRemoteData(pairs);
+        }
+
+        void getRemoteData(const std::vector<int>& irreps) const
+        {
+            (*this)(irreps).getRemoteData();
+        }
+
+        template <typename Container>
+        void writeRemoteData(const std::vector<int>& irreps, const Container& pairs)
+        {
+            (*this)(irreps).writeRemoteData(pairs);
+        }
+
+        void writeRemoteData(const std::vector<int>& irreps)
+        {
+            (*this)(irreps).writeRemoteData();
+        }
+
+        template <typename Container>
+        void writeRemoteData(const std::vector<int>& irreps, double alpha, double beta, const Container& pairs)
+        {
+            (*this)(irreps).writeRemoteData(alpha, beta, pairs);
+        }
+
+        void writeRemoteData(const std::vector<int>& irreps, double alpha, double beta)
+        {
+            (*this)(irreps).writeRemoteData(alpha, beta);
+        }
+
+        template <typename Container>
+        void getAllData(const std::vector<int>& irreps, Container& vals) const
+        {
+            (*this)(irreps).getAllData(vals);
+        }
+
+        template <typename Container>
+        void getAllData(const std::vector<int>& irreps, Container& vals, int rank) const
+        {
+            (*this)(irreps).getAllData(vals, rank);
+        }
+
+        void getAllData(const std::vector<int>& irreps, int rank) const
+        {
+            (*this)(irreps).getAllData(rank);
+        }
 
         void slice(T alpha, bool conja, const SymmetryBlockedTensor<T>& A,
                    const std::vector<std::vector<int> >& start_A, T beta);

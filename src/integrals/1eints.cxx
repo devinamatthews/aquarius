@@ -533,11 +533,11 @@ void OneElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
     for (int i = 0;i < n;i++)
     {
         vector<int> irreps(2,i);
-        (*ovi)(irreps).writeRemoteData(ovi_pairs[i]);
-        (*kei)(irreps).writeRemoteData(kei_pairs[i]);
-        (*nai)(irreps).writeRemoteData(nai_pairs[i]);
-        (*oeh)(irreps).writeRemoteData(kei_pairs[i]);
-        (*oeh)(irreps).writeRemoteData(1.0, 1.0, nai_pairs[i]);
+        (*ovi).writeRemoteData(irreps, ovi_pairs[i]);
+        (*kei).writeRemoteData(irreps, kei_pairs[i]);
+        (*nai).writeRemoteData(irreps, nai_pairs[i]);
+        (*oeh).writeRemoteData(irreps, kei_pairs[i]);
+        (*oeh).writeRemoteData(irreps, 1.0, 1.0, nai_pairs[i]);
     }
 
     put("S", ovi);

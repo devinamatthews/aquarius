@@ -168,7 +168,7 @@ const CTFTensor<T>& SymmetryBlockedTensor<T>::operator()(const vector<int>& irre
         stride *= n;
     }
 
-    assert(tensors[off].tensor != NULL);
+    assert(tensors[off] != NULL);
 
     return *tensors[off].tensor;
 }
@@ -188,7 +188,7 @@ bool SymmetryBlockedTensor<T>::exists(const vector<int>& irreps) const
         stride *= n;
     }
 
-    return tensors[off].tensor != NULL;
+    return tensors[off] != NULL;
 }
 
 template <class T>

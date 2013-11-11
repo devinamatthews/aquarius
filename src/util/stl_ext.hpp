@@ -2109,6 +2109,7 @@ template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, cons
     v.push_back(j);
     return v;
 }
+
 template<typename T> std::string str(const T& t)
 {
     std::ostringstream oss;
