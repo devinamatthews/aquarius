@@ -142,7 +142,7 @@ class CompositeTensor : public Tensor<Derived,T>
 
         virtual ~CompositeTensor()
         {
-            for (int i = 0;i < tensors.size();i++)
+            for (int i = tensors.size()-1;i >= 0;i--)
             {
                 if (tensors[i] != NULL && tensors[i].isAlloced)
                 {
