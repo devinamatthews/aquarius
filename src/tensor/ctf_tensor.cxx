@@ -251,7 +251,7 @@ void CTFTensor<T>::slice(T alpha, bool conja, const CTFTensor<T>& A, const vecto
         assert(end_B[i] <= this->len[i]);
     }
 
-    dt->sum_slice(start_B.data(), end_B.data(), beta, *A.dt, start_A.data(), end_A.data(), alpha);
+    dt->slice(start_B.data(), end_B.data(), beta, *A.dt, start_A.data(), end_A.data(), alpha);
 }
 
 
