@@ -216,7 +216,7 @@ inline mat3x3 Rotation(vec3 a, vec3 b)
     b.normalize();
     vec3 axis = a^b;
     double cost = a*b;
-    return cost+(b|a)-(a|b)+(1-cost)*(axis|axis)/(axis*axis+DBL_MIN);
+    return cost-(b|a)+(a|b)+(1-cost)*(axis|axis)/(axis*axis+DBL_MIN);
 }
 
 inline mat3x3 Reflection(vec3 axis)
