@@ -93,6 +93,8 @@ class vec3
 
         vec3 operator^(const vec3& other) const;
 
+        vec3 operator%(const vec3& other) const;
+
         vec3 operator-() const;
 
         double& operator[](int i);

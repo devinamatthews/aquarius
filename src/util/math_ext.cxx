@@ -256,6 +256,11 @@ vec3 vec3::operator^(const vec3& other) const
                 v[0]*other[1] - v[1]*other[0]);
 }
 
+vec3 vec3::operator%(const vec3& other) const
+{
+    return vec3(*this).orthogonalize(other);
+}
+
 vec3 vec3::operator-() const
 {
     vec3 r;
