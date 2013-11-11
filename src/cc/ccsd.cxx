@@ -85,10 +85,6 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
     conv = T.norm(00);
 
-    Logger::log(arena) << "MP2AA = " << setprecision(15) <<
-            0.25*real(scalar(H.getABIJ()(vec(2,0),vec(0,2))*T(2)(vec(2,0),vec(0,2)))) << endl;
-    Logger::log(arena) << "MP2AB = " << setprecision(15) <<
-                 real(scalar(H.getABIJ()(vec(1,0),vec(0,1))*T(2)(vec(1,0),vec(0,1)))) << endl;
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
     put("mp2", new Scalar(arena, energy));
 
