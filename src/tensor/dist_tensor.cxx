@@ -231,10 +231,50 @@ void DistTensor<T>::getAllData(vector<T>& vals, int rank) const
     }
 }
 
+
+template <bool conja, bool conjb, typename T>
+void div_func(T alpha, T a, T b, T& c){
+  if (conja) a=conj(a);
+  if (conjb) b=conj(b);
+  c += alpha*a/b;
+}
+
+/*template <typename T> void div_func<0,0,T>(T alpha, T a, T b, T& c);
+template <typename T> void div_func<1,0,T>(T alpha, T a, T b, T& c);
+template <typename T> void div_func<0,1,T>(T alpha, T a, T b, T& c);
+template <typename T> void div_func<1,1,T>(T alpha, T a, T b, T& c);*/
+
 template <typename T>
 void DistTensor<T>::div(T alpha, bool conja, const DistTensor<T>& A,
                                  bool conjb, const DistTensor<T>& B, T beta)
 {
+/*    int i;
+    tCTF_fctr<T> fctr;
+    if (conja){
+      if (conjb){
+        fctr.func_ptr = &div_func<true, true, T>;
+      } else {
+        fctr.func_ptr = &div_func<true, false, T>;
+      }
+    } else {
+      if (conjb) {
+        fctr.func_ptr = &div_func<false, true, T>;
+      } else {
+        fctr.func_ptr = &div_func<false, false, T>;
+      }
+    }
+
+    char * idx_map = (char*)malloc(sizeof(char)*(dt->ndim+1));
+    char s = 'a';
+    
+    for (i=0; i<dt->ndim; i++){
+        idx_map[i] = s;
+        s++;
+    }
+    idx_map[dt->ndim] = '\0';
+    
+    dt->contract(alpha, *A.dt, idx_map, *B.dt, idx_map, beta, idx_map, fctr);
+*/
     dt->align(*A.dt);
     dt->align(*B.dt);
     int64_t size, size_A, size_B;
@@ -347,7 +387,7 @@ typename real_type<T>::type DistTensor<T>::norm(int p) const
     }
     else if (p == 2)
     {
-        ans = sqrt(dt->reduce(CTF_OP_SQNRM2));
+        ans = dt->reduce(CTF_OP_NORM2);
     }
     return abs(ans);
 }
