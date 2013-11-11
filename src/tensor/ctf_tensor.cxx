@@ -254,12 +254,54 @@ void CTFTensor<T>::slice(T alpha, bool conja, const CTFTensor<T>& A, const vecto
     dt->sum_slice(start_B.data(), end_B.data(), beta, *A.dt, start_A.data(), end_A.data(), alpha);
 }
 
+
+template <bool conja, bool conjb, typename T>
+void div_func(T alpha, T a, T b, T& c){
+  if (conja) a=conj(a);
+  if (conjb) b=conj(b);
+  c += alpha*a/b;
+}
+
+/*template <typename T> void div_func<0,0,T>(T alpha, T a, T b, T& c);
+template <typename T> void div_func<1,0,T>(T alpha, T a, T b, T& c);
+template <typename T> void div_func<0,1,T>(T alpha, T a, T b, T& c);
+template <typename T> void div_func<1,1,T>(T alpha, T a, T b, T& c);*/
+
 template <typename T>
 void CTFTensor<T>::div(T alpha, bool conja, const CTFTensor<T>& A,
                                  bool conjb, const CTFTensor<T>& B, T beta)
 {
     const_cast<tCTF_Tensor<T>*>(A.dt)->align(*dt);
     const_cast<tCTF_Tensor<T>*>(B.dt)->align(*dt);
+
+/*    int i;
+    tCTF_fctr<T> fctr;
+    if (conja){
+      if (conjb){
+        fctr.func_ptr = &div_func<true, true, T>;
+      } else {
+        fctr.func_ptr = &div_func<true, false, T>;
+      }
+    } else {
+      if (conjb) {
+        fctr.func_ptr = &div_func<false, true, T>;
+      } else {
+        fctr.func_ptr = &div_func<false, false, T>;
+      }
+    }
+
+    char * idx_map = (char*)malloc(sizeof(char)*(dt->ndim+1));
+    char s = 'a';
+    
+    for (i=0; i<dt->ndim; i++){
+        idx_map[i] = s;
+        s++;
+    }
+    idx_map[dt->ndim] = '\0';
+    
+    dt->contract(alpha, *A.dt, idx_map, *B.dt, idx_map, beta, idx_map, fctr);
+*/
+
     int64_t size, size_A, size_B;
     T* raw_data = getRawData(size);
     const T* raw_data_A = A.getRawData(size_A);
