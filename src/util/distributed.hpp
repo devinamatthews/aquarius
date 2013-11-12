@@ -347,7 +347,7 @@ class Arena
         void Alltoall(const std::vector<T>& sendbuf, std::vector<T>& recvbuf) const
         {
             const MPI::Datatype& type = MPI_TYPE_<T>::value();
-            comm.Alltoall(sendbuf.data(), sendbuf.size(), type, recvbuf.data(), recvbuf.size(), type);
+            comm.Alltoall(sendbuf.data(), sendbuf.size()/nproc, type, recvbuf.data(), recvbuf.size()/nproc, type);
         }
 
         template <typename T>
@@ -359,7 +359,7 @@ class Arena
         template <typename T>
         void Alltoall(const std::vector<T>& sendbuf, std::vector<T>& recvbuf, const MPI::Datatype& type) const
         {
-            comm.Alltoall(sendbuf.data(), sendbuf.size(), type, recvbuf.data(), recvbuf.size(), type);
+            comm.Alltoall(sendbuf.data(), sendbuf.size()/nproc, type, recvbuf.data(), recvbuf.size()/nproc, type);
         }
 
         template <typename T>

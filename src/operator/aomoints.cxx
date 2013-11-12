@@ -385,9 +385,6 @@ AOMOIntegrals<T>::abrs_integrals::transform(Index index, const vector<int>& nc, 
 
     if (index == A)
     {
-        vector<size_t> offab(n*n);
-        vector<size_t> offcb(n*n);
-
         out.na = nc;
         out.nb = nb;
 
@@ -410,34 +407,40 @@ AOMOIntegrals<T>::abrs_integrals::transform(Index index, const vector<int>& nc, 
 
         PROFILE_SECTION(transform)
         long_int flops = 0;
-        #pragma omp parallel for schedule(static), reduction(+:flops)
-        for (size_t irs = 0;irs < rs.size();irs++)
+        #pragma omp parallel
         {
-            fill(offab.begin(), offab.end(), SIZE_MAX);
-            fill(offcb.begin(), offcb.end(), SIZE_MAX);
-                getNumAB(rs[irs], offab);
-            out.getNumAB(rs[irs], offcb);
+            vector<size_t> offab(n*n);
+            vector<size_t> offcb(n*n);
 
-            for (int irrb = 0;irrb < n;irrb++)
+            #pragma omp for schedule(static), reduction(+:flops)
+            for (size_t irs = 0;irs < rs.size();irs++)
             {
-                for (int irra = 0;irra < n;irra++)
-                {
-                    if (offab[irra+irrb*n] == SIZE_MAX || offcb[irra+irrb*n] == SIZE_MAX) continue;
-                    if (nc[irra] == 0 || nb[irrb] == 0 || na[irra] == 0) continue;
+                fill(offab.begin(), offab.end(), SIZE_MAX);
+                fill(offcb.begin(), offcb.end(), SIZE_MAX);
+                    getNumAB(rs[irs], offab);
+                out.getNumAB(rs[irs], offcb);
 
-                    assert(offabrs[irs]+offab[irra+irrb*n] >= 0);
-                    assert(offabrs[irs]+offab[irra+irrb*n] < ints.size());
-                    assert(offabrs[irs]+offab[irra+irrb*n]+na[irra]*nb[irrb] > 0);
-                    assert(offabrs[irs]+offab[irra+irrb*n]+na[irra]*nb[irrb] <= ints.size());
-                    assert(offcbrs[irs]+offcb[irra+irrb*n] >= 0);
-                    assert(offcbrs[irs]+offcb[irra+irrb*n] < out.ints.size());
-                    assert(offcbrs[irs]+offcb[irra+irrb*n]+nc[irra]*nb[irrb] > 0);
-                    assert(offcbrs[irs]+offcb[irra+irrb*n]+nc[irra]*nb[irrb] <= out.ints.size());
-                    gemm('T', 'N', nc[irra], nb[irrb], na[irra],
-                         1.0,                                  C[irra].data(), na[irra],
-                                  ints.data()+offabrs[irs]+offab[irra+irrb*n], na[irra],
-                         1.0, out.ints.data()+offcbrs[irs]+offcb[irra+irrb*n], nc[irra]);
-                    flops += 2*nc[irra]*nb[irrb]*na[irra]+nc[irra]*nb[irrb];
+                for (int irrb = 0;irrb < n;irrb++)
+                {
+                    for (int irra = 0;irra < n;irra++)
+                    {
+                        if (offab[irra+irrb*n] == SIZE_MAX || offcb[irra+irrb*n] == SIZE_MAX) continue;
+                        if (nc[irra] == 0 || nb[irrb] == 0 || na[irra] == 0) continue;
+
+                        assert(offabrs[irs]+offab[irra+irrb*n] >= 0);
+                        assert(offabrs[irs]+offab[irra+irrb*n] < ints.size());
+                        assert(offabrs[irs]+offab[irra+irrb*n]+na[irra]*nb[irrb] > 0);
+                        assert(offabrs[irs]+offab[irra+irrb*n]+na[irra]*nb[irrb] <= ints.size());
+                        assert(offcbrs[irs]+offcb[irra+irrb*n] >= 0);
+                        assert(offcbrs[irs]+offcb[irra+irrb*n] < out.ints.size());
+                        assert(offcbrs[irs]+offcb[irra+irrb*n]+nc[irra]*nb[irrb] > 0);
+                        assert(offcbrs[irs]+offcb[irra+irrb*n]+nc[irra]*nb[irrb] <= out.ints.size());
+                        gemm('T', 'N', nc[irra], nb[irrb], na[irra],
+                             1.0,                                  C[irra].data(), na[irra],
+                                      ints.data()+offabrs[irs]+offab[irra+irrb*n], na[irra],
+                             1.0, out.ints.data()+offcbrs[irs]+offcb[irra+irrb*n], nc[irra]);
+                        flops += 2*nc[irra]*nb[irrb]*na[irra]+nc[irra]*nb[irrb];
+                    }
                 }
             }
         }
@@ -446,9 +449,6 @@ AOMOIntegrals<T>::abrs_integrals::transform(Index index, const vector<int>& nc, 
     }
     else
     {
-        vector<size_t> offab(n*n);
-        vector<size_t> offac(n*n);
-
         out.na = na;
         out.nb = nc;
 
@@ -471,34 +471,40 @@ AOMOIntegrals<T>::abrs_integrals::transform(Index index, const vector<int>& nc, 
 
         PROFILE_SECTION(transform)
         long_int flops = 0;
-        #pragma omp parallel for schedule(static)
-        for (size_t irs = 0;irs < rs.size();irs++)
+        #pragma omp parallel
         {
-            fill(offab.begin(), offab.end(), SIZE_MAX);
-            fill(offac.begin(), offac.end(), SIZE_MAX);
-                getNumAB(rs[irs], offab);
-            out.getNumAB(rs[irs], offac);
+            vector<size_t> offab(n*n);
+            vector<size_t> offac(n*n);
 
-            for (int irrb = 0;irrb < n;irrb++)
+            #pragma omp for schedule(static)
+            for (size_t irs = 0;irs < rs.size();irs++)
             {
-                for (int irra = 0;irra < n;irra++)
-                {
-                    if (offab[irra+irrb*n] == SIZE_MAX || offac[irra+irrb*n] == SIZE_MAX) continue;
-                    if (nc[irrb] == 0 || nb[irrb] == 0 || na[irra] == 0) continue;
+                fill(offab.begin(), offab.end(), SIZE_MAX);
+                fill(offac.begin(), offac.end(), SIZE_MAX);
+                    getNumAB(rs[irs], offab);
+                out.getNumAB(rs[irs], offac);
 
-                    assert(offabrs[irs]+offab[irra+irrb*n] >= 0);
-                    assert(offabrs[irs]+offab[irra+irrb*n] < ints.size());
-                    assert(offabrs[irs]+offab[irra+irrb*n]+na[irra]*nb[irrb] > 0);
-                    assert(offabrs[irs]+offab[irra+irrb*n]+na[irra]*nb[irrb] <= ints.size());
-                    assert(offacrs[irs]+offac[irra+irrb*n] >= 0);
-                    assert(offacrs[irs]+offac[irra+irrb*n] < out.ints.size());
-                    assert(offacrs[irs]+offac[irra+irrb*n]+na[irra]*nc[irrb] > 0);
-                    assert(offacrs[irs]+offac[irra+irrb*n]+na[irra]*nc[irrb] <= out.ints.size());
-                    gemm('N', 'N', na[irra], nc[irrb], nb[irrb],
-                         1.0,     ints.data()+offabrs[irs]+offab[irra+irrb*n], na[irra],
-                                                               C[irrb].data(), nb[irrb],
-                         1.0, out.ints.data()+offacrs[irs]+offac[irra+irrb*n], na[irra]);
-                    flops += 2*nc[irra]*nb[irrb]*na[irra]+nc[irra]*na[irra];
+                for (int irrb = 0;irrb < n;irrb++)
+                {
+                    for (int irra = 0;irra < n;irra++)
+                    {
+                        if (offab[irra+irrb*n] == SIZE_MAX || offac[irra+irrb*n] == SIZE_MAX) continue;
+                        if (nc[irrb] == 0 || nb[irrb] == 0 || na[irra] == 0) continue;
+
+                        assert(offabrs[irs]+offab[irra+irrb*n] >= 0);
+                        assert(offabrs[irs]+offab[irra+irrb*n] < ints.size());
+                        assert(offabrs[irs]+offab[irra+irrb*n]+na[irra]*nb[irrb] > 0);
+                        assert(offabrs[irs]+offab[irra+irrb*n]+na[irra]*nb[irrb] <= ints.size());
+                        assert(offacrs[irs]+offac[irra+irrb*n] >= 0);
+                        assert(offacrs[irs]+offac[irra+irrb*n] < out.ints.size());
+                        assert(offacrs[irs]+offac[irra+irrb*n]+na[irra]*nc[irrb] > 0);
+                        assert(offacrs[irs]+offac[irra+irrb*n]+na[irra]*nc[irrb] <= out.ints.size());
+                        gemm('N', 'N', na[irra], nc[irrb], nb[irrb],
+                             1.0,     ints.data()+offabrs[irs]+offab[irra+irrb*n], na[irra],
+                                                                   C[irrb].data(), nb[irrb],
+                             1.0, out.ints.data()+offacrs[irs]+offac[irra+irrb*n], na[irra]);
+                        flops += 2*nc[irra]*nb[irrb]*na[irra]+nc[irra]*na[irra];
+                    }
                 }
             }
         }
@@ -538,13 +544,27 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symt
     vector<int> symirrs(4);
     Representation irrrs(group), irrbrs(group), irrabrs(group);
 
-    vector<size_t> offrs(rs.size(), 0);
-    for (size_t i = 1;i < rs.size();i++)
-    {
-        offrs[i] = offrs[i-1]+getNumAB(rs[i-1]);
-    }
-
     int nrtot = sum(nr);
+    int nstot = sum(ns);
+
+    vector<size_t> offrs(nrtot*nstot, SIZE_MAX);
+    {
+        size_t off = 0, i = 0, j = 0;
+        for (int s = 0;s < nstot;s++)
+        {
+            for (int r = 0;r < nrtot;r++)
+            {
+                if (rs[j].i == r && rs[j].j == s)
+                {
+                    offrs[i] = off;
+                    off += getNumAB(rs[j]);
+                    j++;
+                }
+                i++;
+            }
+        }
+        assert(j == rs.size());
+    }
 
     /*
      * (ab|rs) -> <ar|bs>
@@ -557,7 +577,7 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symt
 
             irrrs = group.getIrrep(irrr)*group.getIrrep(irrs);
             fill(offab.begin(), offab.end(), SIZE_MAX);
-            size_t nab = getNumAB(rs[startr[irrr]+starts[irrs]*nrtot], offab);
+            getNumAB(rs[startr[irrr]+starts[irrs]*nrtot], offab);
 
             for (int irrb = 0;irrb < n;irrb++)
             {
@@ -579,12 +599,32 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symt
                     if (swap == PQ || (assymij && irra > irrr)) std::swap(symirrs[0], symirrs[1]);
                     if (swap == RS || (assymkl && irrb > irrs)) std::swap(symirrs[2], symirrs[3]);
 
-                    /*
-                     * both halves are written for antisymmetrized tensors, but not the diagonal
-                     */
-                    size_t npair = na[irra]*(assymij && irra == irrr ? nr[irrr]-1 : nr[irrr])*
-                                   nb[irrb]*(assymkl && irrb == irrs ? ns[irrs]-1 : ns[irrs]);
-                    if (assymij && assymkl && irrb == irrs) npair /= 2;
+                    size_t npair = 0;
+                    for (int s = 0;s < ns[irrs];s++)
+                    {
+                        for (int r = 0;r < nr[irrr];r++)
+                        {
+                            if (offrs[(r+startr[irrr])+(s+starts[irrs])*nrtot] == SIZE_MAX) continue;
+
+                            for (int b = 0;b < nb[irrb];b++)
+                            {
+                                for (int a = 0;a < na[irra];a++)
+                                {
+                                    int i = a; int i0 = starta[irra];
+                                    int j = r; int j0 = startr[irrr];
+                                    int k = b; int k0 = startb[irrb];
+                                    int l = s; int l0 = starts[irrs];
+
+                                    if ((assymij && i+i0 == j+j0) ||
+                                        (assymkl && k+k0 == l+l0)) continue;
+
+                                    if (assymij && assymkl && k+k0 > l+l0) continue;
+
+                                    npair++;
+                                }
+                            }
+                        }
+                    }
 
                     vararray<kv_pair> pairs(npair);
 
@@ -593,10 +633,7 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symt
                     {
                         for (int r = 0;r < nr[irrr];r++)
                         {
-                            //printf("%d %d %d %d 0 %d 0 %d %d %ld %ld\n", irra, irrb, irrr, irrs, r, s,
-                            //       (r+startr[irrr])+(s+starts[irrs])*nrtot,
-                            //       (long)offrs[(r+startr[irrr])+(s+starts[irrs])*nrtot],
-                            //       (long)offab[irra+irrb*n]);
+                            if (offrs[(r+startr[irrr])+(s+starts[irrs])*nrtot] == SIZE_MAX) continue;
 
                             size_t idx = offrs[(r+startr[irrr])+(s+starts[irrs])*nrtot]+offab[irra+irrb*n]-1;
 
@@ -605,6 +642,7 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symt
                                 for (int a = 0;a < na[irra];a++)
                                 {
                                     idx++;
+                                    assert(idx < ints.size());
 
                                     T val = ints[idx];
 

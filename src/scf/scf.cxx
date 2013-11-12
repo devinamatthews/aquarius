@@ -568,8 +568,8 @@ void UHF<T>::diagonalizeFock()
         {
             S.getAllData(irreps, 0);
             Fa.getAllData(irreps, 0);
-            Fb.getAllData(irreps, 0);
             Ca.writeRemoteData(irreps);
+            Fb.getAllData(irreps, 0);
             Cb.writeRemoteData(irreps);
         }
     }

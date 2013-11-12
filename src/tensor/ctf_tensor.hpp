@@ -149,9 +149,16 @@ class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public task::Resourc
         template <typename Container>
         void getAllData(Container& vals) const
         {
-
-            getAllData(vals, 0);
-            int64_t npair = vals.size();
+            int64_t npair;
+            if (this->rank == 0)
+            {
+                getAllData(vals, 0);
+                npair = vals.size();
+            }
+            else
+            {
+                getAllData(0);
+            }
             this->arena.Bcast(&npair, 1, 0);
             if (this->rank != 0) vals.resize(npair);
             this->arena.Bcast(vals, 0);
