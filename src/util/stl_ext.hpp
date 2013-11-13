@@ -329,14 +329,10 @@ namespace std
     class myvector : public vector<T>
     {
         public:
-            using typename vector<T>::size_type;
-            using typename vector<T>::value_type;
-            using typename vector<T>::pointer;
-            using typename vector<T>::const_pointer;
-
             explicit myvector() : vector<T>() {}
 
-            explicit myvector(size_type n, const value_type& val = value_type())
+            explicit myvector(typename vector<T>::size_type n,
+			                  const typename vector<T>::value_type& val = typename vector<T>::value_type())
             : vector<T>(n, val) {}
 
             template <class InputIterator>
@@ -346,7 +342,7 @@ namespace std
             myvector (const myvector& x)
             : vector<T>(x) {}
 
-            pointer data()
+            typename vector<T>::pointer data()
             {
                 if (this->size() == 0)
                 {
@@ -358,7 +354,7 @@ namespace std
                 }
             }
 
-            const_pointer data() const
+            typename vector<T>::const_pointer data() const
             {
                 if (this->size() == 0)
                 {
