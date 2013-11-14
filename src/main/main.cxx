@@ -28,6 +28,8 @@
 #include "time/time.hpp"
 #include "task/task.hpp"
 
+#include <exception>
+#include "mpi.h"
 #include "omp.h"
 
 using namespace std;
@@ -65,25 +67,46 @@ int main(int argc, char **argv)
         printf("                                                                                \n");
         printf("================================================================================\n");
         printf("\n");
-        printf("Running on %d process%s with %d thread%s each\n\n",
+        printf("Running on %d process%s with %d thread%s%s\n\n",
                MPI::COMM_WORLD.Get_size(),
                (MPI::COMM_WORLD.Get_size() > 1 ? "es" : ""),
                omp_get_max_threads(),
-               (omp_get_max_threads() > 1 ? "s" : ""));
+               (omp_get_max_threads() > 1 ? "s" : ""),
+               (MPI::COMM_WORLD.Get_size() > 1 ? " each" : ""));
     }
 
+    int status = 0;
+
+    do
     {
         Arena world;
 
-        if (argc < 2) Logger::error(world) << "No input file specified." << endl;
-        TaskDAG dag(argv[1]);
-        dag.execute(world);
+        if (argc < 2)
+        {
+            Logger::error(world) << "No input file specified." << endl << endl;
+        }
+        else
+        {
+            try
+            {
+                TaskDAG dag(argv[1]);
+                dag.execute(world);
+            }
+            catch (const runtime_error& e)
+            {
+                Logger::error(world) << e.what() << endl << endl;
+                status = 1;
+            }
+        }
 
         Timer::printTimers(world);
     }
+    while (false);
 
 #ifdef ELEMENTAL
     elem::Finalize();
 #endif
     MPI::Finalize();
+
+    return status;
 }

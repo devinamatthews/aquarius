@@ -216,8 +216,8 @@ OneElectronIntegrals::OneElectronIntegrals(const Shell& a, const Shell& b, const
 
     for (int i = 0;i < dcrr.size();i++)
     {
-        eval(a.getL(), ca.getCenter(0),                            a.getNPrim(), a.getExponents(),
-             b.getL(), cb.getCenter(cb.getCenterAfterOp(dcrr[i])), b.getNPrim(), b.getExponents(),
+        eval(a.getL(), ca.getCenter(0),                            a.getNPrim(), a.getExponents().data(),
+             b.getL(), cb.getCenter(cb.getCenterAfterOp(dcrr[i])), b.getNPrim(), b.getExponents().data(),
              aobuf2);
 
         prim2contr2r(nfunccart, aobuf2, aobuf1);
@@ -328,7 +328,7 @@ void OneElectronIntegrals::cart2spher2r(size_t nother, double* buf1, double* buf
     if (b.isSpherical())
     {
         // [b,j]' x [xa,b]' = [j,xa]
-        gemm('T', 'T', m, n, k, 1.0, b.getCart2Spher(), k, buf1, n, 0.0, buf2, m);
+        gemm('T', 'T', m, n, k, 1.0, b.getCart2Spher().data(), k, buf1, n, 0.0, buf2, m);
     }
     else
     {
@@ -343,7 +343,7 @@ void OneElectronIntegrals::cart2spher2r(size_t nother, double* buf1, double* buf
     if (a.isSpherical())
     {
         // [a,i]' x [jx,a]' = [i,jx]
-        gemm('T', 'T', m, n, k, 1.0, a.getCart2Spher(), k, buf2, n, 0.0, buf1, m);
+        gemm('T', 'T', m, n, k, 1.0, a.getCart2Spher().data(), k, buf2, n, 0.0, buf1, m);
     }
     else
     {
@@ -365,7 +365,7 @@ void OneElectronIntegrals::cart2spher2l(size_t nother, double* buf1, double* buf
     if (a.isSpherical())
     {
         // [a,bx]' x [a,i]  = [bx,i]
-        gemm('T', 'N', m, n, k, 1.0, buf1, k, b.getCart2Spher(), k, 0.0, buf2, m);
+        gemm('T', 'N', m, n, k, 1.0, buf1, k, b.getCart2Spher().data(), k, 0.0, buf2, m);
     }
     else
     {
@@ -380,7 +380,7 @@ void OneElectronIntegrals::cart2spher2l(size_t nother, double* buf1, double* buf
     if (b.isSpherical())
     {
         // [b,xi]' x [b,j] = [xi,j]
-        gemm('T', 'N', m, n, k, 1.0, buf2, k, a.getCart2Spher(), k, 0.0, buf1, m);
+        gemm('T', 'N', m, n, k, 1.0, buf2, k, a.getCart2Spher().data(), k, 0.0, buf1, m);
     }
     else
     {
@@ -399,13 +399,13 @@ void OneElectronIntegrals::prim2contr2r(size_t nother, double* buf1, double* buf
     m = b.getNContr();
     n = a.getNPrim()*nother;
     k = b.getNPrim();
-    gemm('T', 'T', m, n, k, 1.0, b.getCoefficients(), k, buf1, n, 0.0, buf2, m);
+    gemm('T', 'T', m, n, k, 1.0, b.getCoefficients().data(), k, buf1, n, 0.0, buf2, m);
 
     // [a,i]' x [jx,a]' = [i,jx]
     m = a.getNContr();
     n = b.getNContr()*nother;
     k = a.getNPrim();
-    gemm('T', 'T', m, n, k, 1.0, a.getCoefficients(), k, buf2, n, 0.0, buf1, m);
+    gemm('T', 'T', m, n, k, 1.0, a.getCoefficients().data(), k, buf2, n, 0.0, buf1, m);
 
     copy(m*n, buf1, 1, buf2, 1);
 }
@@ -418,13 +418,13 @@ void OneElectronIntegrals::prim2contr2l(size_t nother, double* buf1, double* buf
     m = a.getNContr();
     n = b.getNPrim()*nother;
     k = a.getNPrim();
-    gemm('T', 'N', m, n, k, 1.0, buf1, k, b.getCoefficients(), k, 0.0, buf2, m);
+    gemm('T', 'N', m, n, k, 1.0, buf1, k, b.getCoefficients().data(), k, 0.0, buf2, m);
 
     // [b,xi]' x [b,j] = [xi,j]
     m = b.getNContr();
     n = a.getNContr()*nother;
     k = b.getNPrim();
-    gemm('T', 'N', m, n, k, 1.0, buf2, k, a.getCoefficients(), k, 0.0, buf1, m);
+    gemm('T', 'N', m, n, k, 1.0, buf2, k, a.getCoefficients().data(), k, 0.0, buf1, m);
 
     copy(m*n, buf1, 1, buf2, 1);
 }

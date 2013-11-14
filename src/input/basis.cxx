@@ -38,42 +38,6 @@ namespace aquarius
 namespace input
 {
 
-BasisSet::ShellBasis::ShellBasis()
-{
-    L = 0;
-    nprim = 0;
-    ncontr = 0;
-    exponents = NULL;
-    coefficients = NULL;
-}
-
-BasisSet::ShellBasis::ShellBasis(const ShellBasis& other)
-{
-    L = other.L;
-    nprim = other.nprim;
-    ncontr = other.ncontr;
-    exponents = new double[nprim];
-    coefficients = new double[nprim*ncontr];
-    copy(other.exponents, other.exponents+nprim, exponents);
-    copy(other.coefficients, other.coefficients+nprim*ncontr, coefficients);
-}
-
-BasisSet::ShellBasis::~ShellBasis()
-{
-    delete[] exponents;
-    delete[] coefficients;
-}
-
-BasisSet::ShellBasis& BasisSet::ShellBasis::operator=(ShellBasis other)
-{
-    swap(L, other.L);
-    swap(nprim, other.nprim);
-    swap(ncontr, other.ncontr);
-    swap(exponents, other.exponents);
-    swap(coefficients, other.coefficients);
-    return *this;
-}
-
 BasisSet::BasisSet(const std::string& file)
 {
     readBasisSet(file);
@@ -82,22 +46,16 @@ BasisSet::BasisSet(const std::string& file)
 void BasisSet::readBasisSet(const string& file)
 {
     ifstream ifs(file.c_str());
-    string line;
-    size_t sep;
-    int lineno;
-    int nshell;
-    int i, j, k;
-    istringstream iss;
-    vector<ShellBasis> sb;
-    ShellBasis* b;
 
     if (!ifs) throw BasisSetNotFoundError(file);
 
-    for (lineno = 1;getline(ifs, line);lineno++)
+    string line;
+    for (int lineno = 1;getline(ifs, line);lineno++)
     {
         // skip blank and comment lines
         if (line.find_first_not_of(" \t\n") == string::npos || line[0] == '!') continue;
 
+        size_t sep;
         // read element symbol (e.g. HE:NASA)
         if ((sep = line.find(':')) == string::npos)
             throw BasisSetFormatError(file, "':' not found", lineno);
@@ -105,91 +63,44 @@ void BasisSet::readBasisSet(const string& file)
             throw BasisSetFormatError(file, "':' in wrong place", lineno);
         Element e = Element::getElement(line.substr(0, sep).c_str());
 
-        sb.clear();
-
         // read comment line
         line = readLine(ifs, file, lineno);
 
         //read number of shells
-        nshell = readValue<int>(ifs, file, lineno);
+        int nshell = readValue<int>(ifs, file, lineno);
 
-        sb.resize(nshell);
+        vector<ShellBasis> sb(nshell);
 
         // read L for each shell
-        int *L = new int[nshell];
-        readValues<int>(ifs, file, lineno, nshell, L);
-        for (i = 0;i < nshell;i++) sb[i].L = L[i];
-        delete[] L;
+        vector<int> L = readValues<int>(ifs, file, lineno, nshell);
+        for (int i = 0;i < nshell;i++) sb[i].L = L[i];
 
         // read ncontr for each shell
-        int *ncontr = new int[nshell];
-        readValues<int>(ifs, file, lineno, nshell, ncontr);
-        for (i = 0;i < nshell;i++) sb[i].ncontr = ncontr[i];
-        delete[] ncontr;
+        vector<int> ncontr = readValues<int>(ifs, file, lineno, nshell);
+        for (int i = 0;i < nshell;i++) sb[i].ncontr = ncontr[i];
 
         // read nprim for each shell
-        int *nprim = new int[nshell];
-        readValues<int>(ifs, file, lineno, nshell, nprim);
-        for (i = 0;i < nshell;i++) sb[i].nprim = nprim[i];
-        delete[] nprim;
+        vector<int> nprim = readValues<int>(ifs, file, lineno, nshell);
+        for (int i = 0;i < nshell;i++) sb[i].nprim = nprim[i];
 
-        for (i = 0;i < nshell;i++)
+        for (int i = 0;i < nshell;i++)
         {
-            b = &sb[i];
-            b->exponents = new double[b->nprim];
-            b->coefficients = new double[b->nprim*b->ncontr];
-            double *coef = new double[b->nprim*b->ncontr];
+            ShellBasis& b = sb[i];
+            b.coefficients.resize(b.nprim*b.ncontr);
 
-            readValues<double>(ifs, file, lineno, b->nprim, b->exponents);
-            readValues<double>(ifs, file, lineno, b->nprim*b->ncontr, coef);
+            b.exponents = readValues<double>(ifs, file, lineno, b.nprim);
+            vector<double> coef = readValues<double>(ifs, file, lineno, b.nprim*b.ncontr);
 
-            for (j = 0;j < b->nprim;j++)
+            for (int j = 0;j < b.nprim;j++)
             {
-                for (k = 0;k < b->ncontr;k++)
+                for (int k = 0;k < b.ncontr;k++)
                 {
-                    b->coefficients[j + k*b->nprim] = coef[k + j*b->ncontr];
+                    b.coefficients[j + k*b.nprim] = coef[k + j*b.ncontr];
                 }
             }
-
-            delete[] coef;
         }
 
         atomBases[string(e.getName())] = sb;
-    }
-}
-
-template <typename T>
-T BasisSet::readValue(istream& is, const string& file, int& lineno)
-{
-    T x;
-    readValues<T>(is, file, lineno, 1, &x);
-    return x;
-}
-
-template <typename T>
-void BasisSet::readValues(istream& is, const string& file, int& lineno, int n, T* v)
-{
-    string line;
-    istringstream iss;
-    char c;
-
-    for (int j = 0;j < n;)
-    {
-        line = readLine(is, file, lineno);
-        iss.str(line); iss.clear();
-        for (;j < n;j++)
-        {
-            do
-            {
-                c = iss.peek();
-                if (c != ' ' && c != '\t') break;
-                iss.get();
-            } while (true);
-
-            if (iss.eof()) break;
-
-            if (!(iss >> v[j])) throw BasisSetFormatError(file, "parse error", lineno);
-        }
     }
 }
 

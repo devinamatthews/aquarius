@@ -162,10 +162,10 @@ TwoElectronIntegrals::TwoElectronIntegrals(const Shell& a, const Shell& b, const
                 int t = dcrt[k];
                 int st = group.getOpProduct(s,t);
 
-                eval(a.getL(), ca.getCenter(0),                       a.getNPrim(), a.getExponents(),
-                     b.getL(), cb.getCenter(cb.getCenterAfterOp(r)),  b.getNPrim(), b.getExponents(),
-                     c.getL(), cc.getCenter(cc.getCenterAfterOp(t)),  c.getNPrim(), c.getExponents(),
-                     d.getL(), cd.getCenter(cd.getCenterAfterOp(st)), d.getNPrim(), d.getExponents(),
+                eval(a.getL(), ca.getCenter(0),                       a.getNPrim(), a.getExponents().data(),
+                     b.getL(), cb.getCenter(cb.getCenterAfterOp(r)),  b.getNPrim(), b.getExponents().data(),
+                     c.getL(), cc.getCenter(cc.getCenterAfterOp(t)),  c.getNPrim(), c.getExponents().data(),
+                     d.getL(), cd.getCenter(cd.getCenterAfterOp(st)), d.getNPrim(), d.getExponents().data(),
                      aobuf2);
 
                 prim2contr4r(nfunccart, aobuf2, aobuf1);
@@ -341,7 +341,7 @@ void TwoElectronIntegrals::cart2spher4r(size_t nother, double* buf1, double* buf
     if (d.isSpherical())
     {
         // [d,l]' x [xabc,d]' = [l,xabc]
-        gemm('T', 'T', m, n, k, 1.0, d.getCart2Spher(), k, buf1, n, 0.0, buf2, m);
+        gemm('T', 'T', m, n, k, 1.0, d.getCart2Spher().data(), k, buf1, n, 0.0, buf2, m);
         PROFILE_FLOPS(2*m*n*k);
     }
     else
@@ -357,7 +357,7 @@ void TwoElectronIntegrals::cart2spher4r(size_t nother, double* buf1, double* buf
     if (c.isSpherical())
     {
         // [c,k]' x [lxab,c]' = [k,lxab]
-        gemm('T', 'T', m, n, k, 1.0, c.getCart2Spher(), k, buf2, n, 0.0, buf1, m);
+        gemm('T', 'T', m, n, k, 1.0, c.getCart2Spher().data(), k, buf2, n, 0.0, buf1, m);
         PROFILE_FLOPS(2*m*n*k);
     }
     else
@@ -373,7 +373,7 @@ void TwoElectronIntegrals::cart2spher4r(size_t nother, double* buf1, double* buf
     if (b.isSpherical())
     {
         // [b,j]' x [klxa,b]' = [j,klxa]
-        gemm('T', 'T', m, n, k, 1.0, b.getCart2Spher(), k, buf1, n, 0.0, buf2, m);
+        gemm('T', 'T', m, n, k, 1.0, b.getCart2Spher().data(), k, buf1, n, 0.0, buf2, m);
         PROFILE_FLOPS(2*m*n*k);
     }
     else
@@ -389,7 +389,7 @@ void TwoElectronIntegrals::cart2spher4r(size_t nother, double* buf1, double* buf
     if (a.isSpherical())
     {
         // [a,i]' x [jklx,a]' = [i,jklx]
-        gemm('T', 'T', m, n, k, 1.0, a.getCart2Spher(), k, buf2, n, 0.0, buf1, m);
+        gemm('T', 'T', m, n, k, 1.0, a.getCart2Spher().data(), k, buf2, n, 0.0, buf1, m);
         PROFILE_FLOPS(2*m*n*k);
     }
     else
@@ -412,7 +412,7 @@ void TwoElectronIntegrals::cart2spher4l(size_t nother, double* buf1, double* buf
     if (a.isSpherical())
     {
         // [a,bcdx]' x [a,i]' = [bcdx,i]
-        gemm('T', 'N', m, n, k, 1.0, buf1, k, d.getCart2Spher(), k, 0.0, buf2, m);
+        gemm('T', 'N', m, n, k, 1.0, buf1, k, d.getCart2Spher().data(), k, 0.0, buf2, m);
         PROFILE_FLOPS(2*m*n*k);
     }
     else
@@ -428,7 +428,7 @@ void TwoElectronIntegrals::cart2spher4l(size_t nother, double* buf1, double* buf
     if (b.isSpherical())
     {
         // [b,cdxi]' x [b,j]' = [cdxi,j]
-        gemm('T', 'N', m, n, k, 1.0, buf2, k, c.getCart2Spher(), k, 0.0, buf1, m);
+        gemm('T', 'N', m, n, k, 1.0, buf2, k, c.getCart2Spher().data(), k, 0.0, buf1, m);
         PROFILE_FLOPS(2*m*n*k);
     }
     else
@@ -444,7 +444,7 @@ void TwoElectronIntegrals::cart2spher4l(size_t nother, double* buf1, double* buf
     if (c.isSpherical())
     {
         // [c,dxij]' x [c,k]' = [dxij,k]
-        gemm('T', 'N', m, n, k, 1.0, buf1, k, b.getCart2Spher(), k, 0.0, buf2, m);
+        gemm('T', 'N', m, n, k, 1.0, buf1, k, b.getCart2Spher().data(), k, 0.0, buf2, m);
         PROFILE_FLOPS(2*m*n*k);
     }
     else
@@ -460,7 +460,7 @@ void TwoElectronIntegrals::cart2spher4l(size_t nother, double* buf1, double* buf
     if (d.isSpherical())
     {
         // [d,xijk]' x [d,l]' = [xijk,l]
-        gemm('T', 'N', m, n, k, 1.0, buf2, k, a.getCart2Spher(), k, 0.0, buf1, m);
+        gemm('T', 'N', m, n, k, 1.0, buf2, k, a.getCart2Spher().data(), k, 0.0, buf1, m);
         PROFILE_FLOPS(2*m*n*k);
     }
     else
@@ -480,28 +480,28 @@ void TwoElectronIntegrals::prim2contr4r(size_t nother, double* buf1, double* buf
     m = d.getNContr();
     n = a.getNPrim()*b.getNPrim()*c.getNPrim()*nother;
     k = d.getNPrim();
-    gemm('T', 'T', m, n, k, 1.0, d.getCoefficients(), k, buf1, n, 0.0, buf2, m);
+    gemm('T', 'T', m, n, k, 1.0, d.getCoefficients().data(), k, buf1, n, 0.0, buf2, m);
     PROFILE_FLOPS(2*m*n*k);
 
     // [c,k]' x [lxab,c]' = [k,lxab]
     m = c.getNContr();
     n = d.getNContr()*a.getNPrim()*b.getNPrim()*nother;
     k = c.getNPrim();
-    gemm('T', 'T', m, n, k, 1.0, c.getCoefficients(), k, buf2, n, 0.0, buf1, m);
+    gemm('T', 'T', m, n, k, 1.0, c.getCoefficients().data(), k, buf2, n, 0.0, buf1, m);
     PROFILE_FLOPS(2*m*n*k);
 
     // [b,j]' x [klxa,b]' = [j,klxa]
     m = b.getNContr();
     n = c.getNContr()*d.getNContr()*a.getNPrim()*nother;
     k = b.getNPrim();
-    gemm('T', 'T', m, n, k, 1.0, b.getCoefficients(), k, buf1, n, 0.0, buf2, m);
+    gemm('T', 'T', m, n, k, 1.0, b.getCoefficients().data(), k, buf1, n, 0.0, buf2, m);
     PROFILE_FLOPS(2*m*n*k);
 
     // [a,i]' x [jkl,xa]' = [i,jklx]
     m = a.getNContr();
     n = b.getNContr()*c.getNContr()*d.getNContr()*nother;
     k = a.getNPrim();
-    gemm('T', 'T', m, n, k, 1.0, a.getCoefficients(), k, buf2, n, 0.0, buf1, m);
+    gemm('T', 'T', m, n, k, 1.0, a.getCoefficients().data(), k, buf2, n, 0.0, buf1, m);
     PROFILE_FLOPS(2*m*n*k);
 
     copy(m*n, buf1, 1, buf2, 1);
@@ -515,28 +515,28 @@ void TwoElectronIntegrals::prim2contr4l(size_t nother, double* buf1, double* buf
     m = a.getNContr();
     n = b.getNPrim()*c.getNPrim()*d.getNPrim()*nother;
     k = a.getNPrim();
-    gemm('T', 'N', m, n, k, 1.0, buf1, k, a.getCoefficients(), k, 0.0, buf2, m);
+    gemm('T', 'N', m, n, k, 1.0, buf1, k, a.getCoefficients().data(), k, 0.0, buf2, m);
     PROFILE_FLOPS(2*m*n*k);
 
     // [b,cdxi]' x [b,j] = [cdxi,j]
     m = b.getNContr();
     n = a.getNContr()*c.getNPrim()*d.getNPrim()*nother;
     k = b.getNPrim();
-    gemm('T', 'N', m, n, k, 1.0, buf2, k, b.getCoefficients(), k, 0.0, buf1, m);
+    gemm('T', 'N', m, n, k, 1.0, buf2, k, b.getCoefficients().data(), k, 0.0, buf1, m);
     PROFILE_FLOPS(2*m*n*k);
 
     // [c,dxij]' x [c,k] = [dxij,k]
     m = c.getNContr();
     n = a.getNContr()*b.getNContr()*d.getNPrim()*nother;
     k = c.getNPrim();
-    gemm('T', 'N', m, n, k, 1.0, buf1, k, c.getCoefficients(), k, 0.0, buf2, m);
+    gemm('T', 'N', m, n, k, 1.0, buf1, k, c.getCoefficients().data(), k, 0.0, buf2, m);
     PROFILE_FLOPS(2*m*n*k);
 
     // [d,xijk]' x [d,l] = [xijk,l]
     m = d.getNContr();
     n = a.getNContr()*b.getNContr()*c.getNContr()*nother;
     k = d.getNPrim();
-    gemm('T', 'N', m, n, k, 1.0, buf2, k, d.getCoefficients(), k, 0.0, buf1, m);
+    gemm('T', 'N', m, n, k, 1.0, buf2, k, d.getCoefficients().data(), k, 0.0, buf1, m);
     PROFILE_FLOPS(2*m*n*k);
 
     copy(m*n, buf1, 1, buf2, 1);

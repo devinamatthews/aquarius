@@ -25,6 +25,7 @@
 #include "task.hpp"
 
 #include <set>
+#include <exception>
 
 using namespace std;
 using namespace aquarius;
@@ -132,12 +133,14 @@ std::ostream& Logger::error(const Arena& arena)
 {
     if (arena.rank == 0)
     {
-        sddstream << dateTime() << ": error: ";
-        return sddstream;
+        //sddstream << dateTime() << ": error: ";
+        //return sddstream;
+        std::cout << dateTime() << ": error: ";
+        return std::cout;
     }
     else
     {
-        pause();
+        //pause();
         return nullstream;
     }
 }
@@ -575,7 +578,8 @@ void TaskDAG::execute(Arena& world)
 
             if (!success)
             {
-                Logger::error(world) << error << endl;
+                while (t != to_execute.end()) delete *t++;
+                throw runtime_error(error);
             }
 
             for (vector<Product>::iterator p = (*t)->getProducts().begin();p != (*t)->getProducts().end();++p)
