@@ -65,15 +65,11 @@ class BasisSet
     private:
         struct ShellBasis
         {
-            double* exponents;
-            double* coefficients;
+            std::vector<double> exponents;
+            std::vector<double> coefficients;
             int nprim;
             int ncontr;
             int L;
-            ShellBasis();
-            ShellBasis(const ShellBasis& other);
-            ~ShellBasis();
-            ShellBasis& operator=(ShellBasis other);
         };
 
         std::map< std::string,std::vector<ShellBasis> > atomBases;
@@ -81,10 +77,64 @@ class BasisSet
         void readBasisSet(const std::string& file);
 
         template <typename T>
-        T readValue(std::istream& is, const std::string& file, int& lineno);
+        T readValue(std::istream& is, const std::string& file, int& lineno)
+        {
+            std::string line;
+            std::istringstream iss;
+            char c;
+            T v;
+
+            for (int j = 0;j < 1;)
+            {
+                line = readLine(is, file, lineno);
+                iss.str(line); iss.clear();
+                for (;j < 1;j++)
+                {
+                    do
+                    {
+                        c = iss.peek();
+                        if (c != ' ' && c != '\t') break;
+                        iss.get();
+                    } while (true);
+
+                    if (iss.eof()) break;
+
+                    if (!(iss >> v)) throw BasisSetFormatError(file, "parse error", lineno);
+                }
+            }
+
+            return v;
+        }
 
         template <typename T>
-        void readValues(std::istream& is, const std::string& file, int& lineno, int n, T* v);
+        std::vector<T> readValues(std::istream& is, const std::string& file, int& lineno, int n)
+        {
+            std::string line;
+            std::istringstream iss;
+            char c;
+            std::vector<T> v(n);
+
+            for (int j = 0;j < n;)
+            {
+                line = readLine(is, file, lineno);
+                iss.str(line); iss.clear();
+                for (;j < n;j++)
+                {
+                    do
+                    {
+                        c = iss.peek();
+                        if (c != ' ' && c != '\t') break;
+                        iss.get();
+                    } while (true);
+
+                    if (iss.eof()) break;
+
+                    if (!(iss >> v[j])) throw BasisSetFormatError(file, "parse error", lineno);
+                }
+            }
+
+            return v;
+        }
 
         std::string readLine(std::istream& is, const std::string& file, int& lineno);
 

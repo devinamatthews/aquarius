@@ -152,6 +152,18 @@ Config::~Config()
     detachNode(root);
 }
 
+string Config::fullName(node_t *node) const
+{
+    string name = node->data;
+
+    for (node = node->parent;node != NULL;node = node->parent)
+    {
+        name = node->data + "." + name;
+    }
+
+    return name;
+}
+
 Config Config::clone() const
 {
     node_t *node = cloneNode(root);
@@ -228,7 +240,7 @@ void Config::detachNode(node_t* node)
         detachNode(child);
     }
 
-    if (node->ref_count == 0)
+    if (node->ref_count <= 0)
     {
         /*
          * for each remaining child, make it an orphan
@@ -378,7 +390,7 @@ Config::node_t* Config::resolve(node_t* node, const string& path, const bool cre
     }
 }
 
-Config::node_t* Config::addNode(node_t* parent, string& data)
+Config::node_t* Config::addNode(node_t* parent, const string& data)
 {
     node_t* child = new node_t;
 
@@ -435,33 +447,60 @@ void Config::read(istream& is)
 
     while (t.next(token))
     {
-        if (token == "{")
+        for (string::size_type i = 0;i < token.size();)
         {
-            current.push_back(current.back());
-            token = token.substr(1);
-        }
-        else if (token == "}" || token == "},")
-        {
-            if (current.size() <= 2) throw FormatError("Too many }'s", t.getLine());
-            current.pop_back();
-            token = token.substr(1);
-        }
+            if (token[i] == '{')
+            {
+                current.push_back(current.back());
+                i++;
+            }
+            else if (token[i] == '}')
+            {
+                if (current.size() < 2) throw FormatError("Too many }'s", t.getLine());
+                current.pop_back();
+                i++;
+            }
+            else if (token[i] == ',')
+            {
+                current[current.size()-1] = current[current.size()-2];
+                i++;
+            }
+            else
+            {
+                string::size_type pos = token.find_first_of("{},", i);
+                string::size_type len = (pos == string::npos ? token.size() : pos)-i;
 
-        bool reset = token.size() > 0 && token[token.size()-1] == ',';
+                string node = token.substr(i, len);
 
-        if (reset)
-        {
-            token.resize(token.size()-1);
-        }
+                if (node == "include")
+                {
+                    if (i+len != token.size())
+                    {
+                        throw FormatError("\"include\" must be immediately followed by a filename", t.getLine());
+                    }
 
-        if (!token.empty())
-        {
-            current.back() = addNode(current.back(), token);
-        }
+                    t.next(token);
+                    pos = token.find_first_of("{},", i);
+                    len = (pos == string::npos ? token.size() : pos);
 
-        if (reset)
-        {
-            current[current.size()-1] = current[current.size()-2];
+                    if (pos == 0)
+                    {
+                        throw FormatError("\"include\" must be immediately followed by a filename", t.getLine());
+                    }
+
+                    Config leaf(token.substr(0, len));
+                    for (node_t *n = leaf.root->children;n != NULL;n = n->next)
+                    {
+                        addNode(current.back(), cloneNode(n));
+                    }
+                }
+                else
+                {
+                    current.back() = addNode(current.back(), node);
+                }
+
+                i += len;
+            }
         }
     }
 
@@ -486,8 +525,8 @@ void Config::write(ostream& os) const
 
 bool Config::matchesWithGlobs(const char* str, const char* pat) const
 {
-    char* s = (char*)str;
-    char* p = (char*)pat;
+    const char* s = str;
+    const char* p = pat;
 
     while (true)
     {
@@ -751,12 +790,20 @@ void Schema::apply(Config& config, const node_t* schema, node_t* root) const
                     break;
                 }
             }
-            if (!found) nwild++;
+            if (!found)
+            {
+                nwild++;
+
+                if (maxwild != -1 && nwild > maxwild)
+                {
+                    throw SchemaValidationError("The node " + r->data + " is not a valid child of " + fullName(root));
+                }
+            }
         }
 
-        if (nwild < minwild || (maxwild != -1 && nwild > maxwild))
+        if (nwild < minwild)
         {
-            throw SchemaValidationError("too few or too many wildcard nodes: " + root->data);
+            throw SchemaValidationError("The are too few wildcard nodes on " + fullName(root));
         }
     }
     else //primitive

@@ -280,6 +280,12 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const Arena& arena,
 }
 
 template<class T>
+SpinorbitalTensor<T>::~SpinorbitalTensor()
+{
+    unregister_scalar();
+}
+
+template<class T>
 void SpinorbitalTensor<T>::SpinCase::construct(SpinorbitalTensor<T>& t,
                                                const vector<int>& alpha_out,
                                                const vector<int>& alpha_in)

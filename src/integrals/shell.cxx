@@ -45,55 +45,12 @@ using namespace aquarius::integrals;
 using namespace aquarius::input;
 using namespace aquarius::symmetry;
 
-Shell::Shell(const Shell& other)
-: center(other.center), L(other.L), nprim(other.nprim), ncontr(other.ncontr), nfunc(other.nfunc),
-  ndegen(other.ndegen), nfunc_per_irrep(other.nfunc_per_irrep), spherical(other.spherical),
-  keep_contaminants(other.keep_contaminants), func_irrep(other.func_irrep),
-  irrep_pos(other.irrep_pos), irreps(other.irreps), parity(other.parity), cart2spher(NULL)
-{
-    exponents = SAFE_MALLOC(double, nprim);
-    coefficients = SAFE_MALLOC(double, nprim*ncontr);
-
-    copy(other.exponents, other.exponents+nprim, exponents);
-    copy(other.coefficients, other.coefficients+nprim*ncontr, coefficients);
-
-    if (spherical)
-    {
-        cart2spher = SAFE_MALLOC(double, nfunc*(L+1)*(L+2)/2);
-        copy(other.cart2spher, other.cart2spher+nfunc*(L+1)*(L+2)/2, cart2spher);
-    }
-}
-
-Shell::Shell(const Shell& other, bool spherical, bool keep_contaminants)
-: center(other.center), L(other.L), nprim(other.nprim), ncontr(other.ncontr), nfunc(other.nfunc),
-  ndegen(other.ndegen), nfunc_per_irrep(other.nfunc_per_irrep), spherical(spherical),
-  keep_contaminants(keep_contaminants), func_irrep(other.func_irrep),
-  irrep_pos(other.irrep_pos), irreps(other.irreps), parity(other.parity), cart2spher(NULL)
-{
-    exponents = SAFE_MALLOC(double, nprim);
-    coefficients = SAFE_MALLOC(double, nprim*ncontr);
-
-    copy(other.exponents, other.exponents+nprim, exponents);
-    copy(other.coefficients, other.coefficients+nprim*ncontr, coefficients);
-
-    if (spherical)
-    {
-        cart2spher = SAFE_MALLOC(double, nfunc*(L+1)*(L+2)/2);
-        copy(other.cart2spher, other.cart2spher+nfunc*(L+1)*(L+2)/2, cart2spher);
-    }
-}
-
 Shell::Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bool keep_contaminants,
-             const double* exponents, const double* coefficients)
+             const vector<double>& exponents, const vector<double>& coefficients)
 : center(pos), L(L), nprim(nprim), ncontr(ncontr), nfunc(spherical && !keep_contaminants ? 2*L+1 : (L+1)*(L+2)/2),
-  ndegen(pos.getCenters().size()), spherical(spherical), keep_contaminants(keep_contaminants), cart2spher(NULL)
+  ndegen(pos.getCenters().size()), spherical(spherical), keep_contaminants(keep_contaminants),
+  exponents(exponents), coefficients(coefficients)
 {
-    this->exponents = SAFE_MALLOC(double, nprim);
-    this->coefficients = SAFE_MALLOC(double, nprim*ncontr);
-
-    copy(exponents, exponents+nprim, this->exponents);
-    copy(coefficients, coefficients+nprim*ncontr, this->coefficients);
-
     const PointGroup& group = pos.getPointGroup();
     int nirrep = group.getNumIrreps();
     int order = group.getOrder();
@@ -217,7 +174,7 @@ Shell::Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bo
      */
     if (spherical)
     {
-        cart2spher = SAFE_MALLOC(double, nfunc*(L+1)*(L+2)/2);
+        cart2spher.resize(nfunc*(L+1)*(L+2)/2);
         int k = 0;
         for (int l = L;l >= (keep_contaminants ? 0 : L);l -= 2)
         {
@@ -236,13 +193,6 @@ Shell::Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bo
         }
         assert(k == nfunc*(L+1)*(L+2)/2);
     }
-}
-
-Shell::~Shell()
-{
-    FREE(exponents);
-    FREE(coefficients);
-    if (cart2spher != NULL) FREE(cart2spher);
 }
 
 vector<vector<int> > Shell::setupIndices(const Context& ctx, const Molecule& m)

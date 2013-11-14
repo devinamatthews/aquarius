@@ -114,6 +114,8 @@ class Config
 
         Config(node_t* node);
 
+        std::string fullName(node_t *node) const;
+
         node_t* cloneNode(node_t* node) const;
 
         void attachNode(node_t* node);
@@ -128,7 +130,7 @@ class Config
 
         std::string readEntry(std::istream& is, std::string& line, int& lineno);
 
-        node_t* addNode(node_t* parent, std::string& data);
+        node_t* addNode(node_t* parent, const std::string& data);
 
         void addNode(node_t* parent, node_t* child);
 

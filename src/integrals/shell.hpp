@@ -54,27 +54,6 @@ class Shell
 {
     friend class Context;
 
-    friend void swap(Shell& a, Shell& b)
-    {
-        using std::swap;
-        swap(a.center, b.center);
-        swap(a.L, b.L);
-        swap(a.nprim, b.nprim);
-        swap(a.ncontr, b.ncontr);
-        swap(a.nfunc, b.nfunc);
-        swap(a.ndegen, b.ndegen);
-        swap(a.nfunc_per_irrep, b.nfunc_per_irrep);
-        swap(a.spherical, b.spherical);
-        swap(a.keep_contaminants, b.keep_contaminants);
-        swap(a.func_irrep, b.func_irrep);
-        swap(a.irrep_pos, b.irrep_pos);
-        swap(a.irreps, b.irreps);
-        swap(a.exponents, b.exponents);
-        swap(a.coefficients, b.coefficients);
-        swap(a.parity, b.parity);
-        swap(a.cart2spher, b.cart2spher);
-    }
-
     protected:
         Center center;
         int L;
@@ -88,22 +67,14 @@ class Shell
         std::vector<std::vector<int> > func_irrep;
         std::vector<std::vector<int> > irrep_pos;
         std::vector<std::vector<int> > irreps;
-        double* exponents;
-        double* coefficients;
+        std::vector<double> exponents;
+        std::vector<double> coefficients;
         std::vector<std::vector<int> > parity;
-        double *cart2spher;
+        std::vector<double> cart2spher;
 
     public:
-        Shell(const Shell& other);
-
-        Shell(const Shell& other, bool spherical, bool keep_contaminants);
-
         Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bool keep_contaminants,
-              const double* exponents, const double* coefficients);
-
-        ~Shell();
-
-        Shell& operator=(Shell other) { swap(*this, other); return *this; }
+              const std::vector<double>& exponents, const std::vector<double>& coefficients);
 
         static std::vector<std::vector<int> > setupIndices(const Context& ctx, const input::Molecule& m);
 
@@ -135,13 +106,13 @@ class Shell
 
         const std::vector<int>& getIrrepsOfFunc(int func) const { return irreps[func]; }
 
-        const double* getExponents() const { return exponents; }
+        const std::vector<double>& getExponents() const { return exponents; }
 
-        const double* getCoefficients() const { return coefficients; }
+        const std::vector<double>& getCoefficients() const { return coefficients; }
 
         int getParity(int func, int op) const { return parity[func][op]; }
 
-        const double* getCart2Spher() const { return cart2spher; }
+        const std::vector<double>& getCart2Spher() const { return cart2spher; }
 
     protected:
         static double cartcoef(int l, int m, int lx, int ly, int lz);
