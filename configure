@@ -379,11 +379,7 @@ elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
 	CXXFLAGS='-qsmp=omp -D__STDC_LIMIT_MACROS -Drestrict='
 	DEPS='-M -MF $(DEPDIR)/$(notdir $*).Po'
 	DEFS='-DBGQ -D_POSIX_C_SOURCE=200112L'
-<<<<<<< HEAD
-	WARN=' '
-=======
 	WARN=''
->>>>>>> c65e0bbc3c78278dfa7355c813d1c28143066b72
 	OPT='-g -O3 -qarch=qp -qtune=qp -qsimd=auto -qhot=level=1 -qprefetch -qunroll=yes -qreport'
 	
 else
