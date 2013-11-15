@@ -554,7 +554,7 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symt
         {
             for (int r = 0;r < nrtot;r++)
             {
-                if (rs[j].i == r && rs[j].j == s)
+                if (j < rs.size() && rs[j].i == r && rs[j].j == s)
                 {
                     offrs[i] = off;
                     off += getNumAB(rs[j]);
