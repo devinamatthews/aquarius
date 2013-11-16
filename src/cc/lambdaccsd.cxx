@@ -52,9 +52,9 @@ void LambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    put("L", new DeexcitationOperator<U,2>(arena, occ, vrt));
+    put("L", new DeexcitationOperator<U,2>("L", arena, occ, vrt));
     puttmp("D", new Denominator<U>(H));
-    puttmp("Z", new DeexcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("Z", new DeexcitationOperator<U,2>("Z", arena, occ, vrt));
 
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
     DeexcitationOperator<U,2>& L = get<DeexcitationOperator<U,2> >("L");
@@ -67,7 +67,7 @@ void LambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
     L.weight(D);
 
     {
-        SpinorbitalTensor<U> mTau(T(2));
+        SpinorbitalTensor<U> mTau("mTau", T(2));
         mTau["abij"] -= 0.5*T(1)["ai"]*T(1)["bj"];
         Ecc = scalar(T(1)["ai"]*H.getIA()["ia"]) + 0.25*scalar(mTau["abij"]*H.getIJAB()["ijab"]);
     }

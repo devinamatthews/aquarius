@@ -42,7 +42,7 @@ class Multipole : public MOOperator<T>, public tensor::CompositeTensor<Multipole
         int Lmin, Lmax;
 
     public:
-        Multipole(const scf::UHF<T>& uhf, int Lmin, int Lmax=-1);
+        Multipole(const std::string& name, const scf::UHF<T>& uhf, int Lmin, int Lmax=-1);
 
         const OneElectronOperator<T>& operator()(int L, int xyz) const;
 

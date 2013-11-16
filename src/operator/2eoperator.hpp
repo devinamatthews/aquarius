@@ -60,15 +60,19 @@ class TwoElectronOperator : public OneElectronOperatorBase<T,TwoElectronOperator
             ABCD = 0x1000
         };
 
-        TwoElectronOperator(const Arena& arena, const Space& occ, const Space& vrt);
+        TwoElectronOperator(const std::string& name, const Arena& arena, const Space& occ, const Space& vrt);
 
-        TwoElectronOperator(OneElectronOperator<T>& other, int copy);
+        TwoElectronOperator(const std::string& name, OneElectronOperator<T>& other, int copy);
 
         TwoElectronOperator(const OneElectronOperator<T>& other);
 
-        TwoElectronOperator(TwoElectronOperator<T>& other, int copy);
+        TwoElectronOperator(const std::string& name, const OneElectronOperator<T>& other);
+
+        TwoElectronOperator(const std::string& name, TwoElectronOperator<T>& other, int copy);
 
         TwoElectronOperator(const TwoElectronOperator<T>& other);
+
+        TwoElectronOperator(const std::string& name, const TwoElectronOperator<T>& other);
 
         T dot(bool conja, const TwoElectronOperator<T>& A, bool conjb) const;
 

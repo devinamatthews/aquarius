@@ -53,10 +53,10 @@ void PerturbedLambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    put("LA", new DeexcitationOperator<U,2>(arena, occ, vrt));
-    puttmp("D", new DeexcitationOperator<U,2>(arena, occ, vrt));
-    puttmp("N", new DeexcitationOperator<U,2>(arena, occ, vrt));
-    puttmp("Z", new DeexcitationOperator<U,2>(arena, occ, vrt));
+    put("LA", new DeexcitationOperator<U,2>("L^A", arena, occ, vrt));
+    puttmp("D", new DeexcitationOperator<U,2>("D", arena, occ, vrt));
+    puttmp("N", new DeexcitationOperator<U,2>("N", arena, occ, vrt));
+    puttmp("Z", new DeexcitationOperator<U,2>("Z", arena, occ, vrt));
 
     double omega = get<Scalar>("omega");
 

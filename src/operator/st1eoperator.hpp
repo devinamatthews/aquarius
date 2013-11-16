@@ -44,7 +44,7 @@ template <typename U>
 class STOneElectronOperator<U,2> : public OneElectronOperator<U>
 {
     public:
-        STOneElectronOperator(const OneElectronOperator<U>& X, const ExcitationOperator<U,2>& T);
+        STOneElectronOperator(const std::string& name, const OneElectronOperator<U>& X, const ExcitationOperator<U,2>& T);
 };
 
 }

@@ -52,9 +52,9 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    put("R", new ExcitationOperator<U,2>(arena, occ, vrt));
-    puttmp("D", new ExcitationOperator<U,2>(arena, occ, vrt));
-    puttmp("Z", new ExcitationOperator<U,2>(arena, occ, vrt));
+    put("R", new ExcitationOperator<U,2>("R", arena, occ, vrt));
+    puttmp("D", new ExcitationOperator<U,2>("D", arena, occ, vrt));
+    puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
 
     ExcitationOperator<U,2>& R = get<ExcitationOperator<U,2> >("R");
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");

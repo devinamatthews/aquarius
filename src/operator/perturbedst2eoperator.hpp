@@ -52,10 +52,10 @@ class PerturbedSTTwoElectronOperator<U,2> : public STTwoElectronOperator<U,2>
                         const ExcitationOperator<U,2>& TA);
 
     public:
-        PerturbedSTTwoElectronOperator(const STTwoElectronOperator<U,2>& X, const OneElectronOperator<U>& XA,
+        PerturbedSTTwoElectronOperator(const std::string& name, const STTwoElectronOperator<U,2>& X, const OneElectronOperator<U>& XA,
                                        const ExcitationOperator<U,2>& T, const ExcitationOperator<U,2>& TA);
 
-        PerturbedSTTwoElectronOperator(const STTwoElectronOperator<U,2>& X, const TwoElectronOperator<U>& XA,
+        PerturbedSTTwoElectronOperator(const std::string& name, const STTwoElectronOperator<U,2>& X, const TwoElectronOperator<U>& XA,
                                        const ExcitationOperator<U,2>& T, const ExcitationOperator<U,2>& TA);
 
         void contract(const ExcitationOperator<U,2>& R, ExcitationOperator<U,2>& Z, bool connected=true) const;

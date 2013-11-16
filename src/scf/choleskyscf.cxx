@@ -61,12 +61,12 @@ void CholeskyUHF<T>::run(TaskDAG& dag, const Arena& arena)
     vector<vector<int> > sizenOr = vec(norb,vec(nalpha),vec(chol.getRank()));
     vector<vector<int> > sizenor = vec(norb,vec(nbeta),vec(chol.getRank()));
 
-    this->puttmp("J", new SymmetryBlockedTensor<T>(arena, group, 1, sizer, shapeN, false));
-    this->puttmp("JD", new SymmetryBlockedTensor<T>(arena, group, 1, sizer, shapeN, false));
-    this->puttmp("La_occ", new SymmetryBlockedTensor<T>(arena, group, 3, sizenOr, shapeNNN, false));
-    this->puttmp("Lb_occ", new SymmetryBlockedTensor<T>(arena, group, 3, sizenor, shapeNNN, false));
-    this->puttmp("LDa_occ", new SymmetryBlockedTensor<T>(arena, group, 3, sizenOr, shapeNNN, false));
-    this->puttmp("LDb_occ", new SymmetryBlockedTensor<T>(arena, group, 3, sizenor, shapeNNN, false));
+    this->puttmp("J", new SymmetryBlockedTensor<T>("J", arena, group, 1, sizer, shapeN, false));
+    this->puttmp("JD", new SymmetryBlockedTensor<T>("JD", arena, group, 1, sizer, shapeN, false));
+    this->puttmp("La_occ", new SymmetryBlockedTensor<T>("LpI", arena, group, 3, sizenOr, shapeNNN, false));
+    this->puttmp("Lb_occ", new SymmetryBlockedTensor<T>("Lpi", arena, group, 3, sizenor, shapeNNN, false));
+    this->puttmp("LDa_occ", new SymmetryBlockedTensor<T>("LDpI", arena, group, 3, sizenOr, shapeNNN, false));
+    this->puttmp("LDb_occ", new SymmetryBlockedTensor<T>("LDpi", arena, group, 3, sizenor, shapeNNN, false));
 
     UHF<T>::run(dag, arena);
 }
@@ -88,9 +88,9 @@ void CholeskyUHF<T>::buildFock()
     SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
     SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
 
-    SymmetryBlockedTensor<T> Ca_occ(this->template gettmp<SymmetryBlockedTensor<T> >("Ca"),
+    SymmetryBlockedTensor<T> Ca_occ("CI", this->template gettmp<SymmetryBlockedTensor<T> >("Ca"),
                                     vec(vec(0),vec(0)), vec(norb,vec(nalpha)));
-    SymmetryBlockedTensor<T> Cb_occ(this->template gettmp<SymmetryBlockedTensor<T> >("Cb"),
+    SymmetryBlockedTensor<T> Cb_occ("Ci", this->template gettmp<SymmetryBlockedTensor<T> >("Cb"),
                                     vec(vec(0),vec(0)), vec(norb,vec(nbeta)));
 
     SymmetryBlockedTensor<T>& J = this->template gettmp<SymmetryBlockedTensor<T> >("J");

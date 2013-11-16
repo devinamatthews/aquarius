@@ -50,10 +50,10 @@ class ExcitationOperator
         const int spin;
 
     public:
-        ExcitationOperator(const Arena& arena, const Space& occ, const Space& vrt, int spin=0)
+        ExcitationOperator(const std::string& name, const Arena& arena, const Space& occ, const Space& vrt, int spin=0)
         : MOOperator(arena, occ, vrt),
           tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
-           tensor::SpinorbitalTensor<T>, T >(std::max(np,nh)+1),
+           tensor::SpinorbitalTensor<T>, T >(name, std::max(np,nh)+1),
           spin(spin)
         {
             for (int ex = 0;ex <= std::min(np,nh);ex++)
@@ -61,8 +61,9 @@ class ExcitationOperator
                 int nv = ex+(np > nh ? np-nh : 0);
                 int no = ex+(nh > np ? nh-np : 0);
 
+                tensors[ex+std::abs(np-nh)].isAlloced = true;
                 tensors[ex+std::abs(np-nh)].tensor =
-                    new tensor::SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt,occ), std::vec(nv,0), std::vec(0,no), spin);
+                    new tensor::SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt,occ), std::vec(nv,0), std::vec(0,no), spin);
             }
         }
 

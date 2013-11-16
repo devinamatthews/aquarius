@@ -78,17 +78,19 @@ class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public task::Resourc
         CTFTensor<T>& scalar() const;
 
     public:
-        CTFTensor(const Arena& arena, T scalar = (T)0);
+        CTFTensor(const std::string& name, const Arena& arena, T scalar = (T)0);
 
-        CTFTensor(const CTFTensor<T>& A, T scalar);
+        CTFTensor(const std::string& name, const CTFTensor<T>& A, T scalar);
 
         CTFTensor(const CTFTensor<T>& A, bool copy=true, bool zero=false);
 
-        CTFTensor(CTFTensor<T>* A);
+        CTFTensor(const std::string& name, const CTFTensor<T>& A, bool copy=true, bool zero=false);
 
-        CTFTensor(const CTFTensor<T>& A, const std::vector<int>& start_A, const std::vector<int>& len_A);
+        CTFTensor(const std::string& name, CTFTensor<T>* A);
 
-        CTFTensor(const Arena& arena, int ndim, const std::vector<int>& len, const std::vector<int>& sym,
+        CTFTensor(const std::string& name, const CTFTensor<T>& A, const std::vector<int>& start_A, const std::vector<int>& len_A);
+
+        CTFTensor(const std::string& name, const Arena& arena, int ndim, const std::vector<int>& len, const std::vector<int>& sym,
                    bool zero=true);
 
         ~CTFTensor();
@@ -239,6 +241,8 @@ class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public task::Resourc
         void mult(T alpha, bool conja, const CTFTensor<T>& A, const std::string& idx_A,
                            bool conjb, const CTFTensor<T>& B, const std::string& idx_B,
                   T  beta,                                     const std::string& idx_C);
+
+        void sum(T alpha, T beta);
 
         void sum(T alpha, bool conja, const CTFTensor<T>& A, const std::string& idx_A,
                  T  beta,                                     const std::string& idx_B);

@@ -67,6 +67,7 @@ class InvalidStartError;
         using aquarius::tensor::Tensor< Derived,T >::operator/=; \
         using aquarius::tensor::Tensor< Derived,T >::operator*; \
         using aquarius::tensor::Tensor< Derived,T >::operator/; \
+        using aquarius::tensor::Tensor< Derived,T >::name; \
         Derived & operator=(const Derived & other) \
         { \
             sum((T)1, false, other, (T)0); \
@@ -79,15 +80,11 @@ class Tensor
 {
     public:
         typedef T dtype;
-        std::string name;
-
-        Tensor() {}
+        const std::string name;
         
         Tensor(const std::string& name) : name(name) {}
 
         virtual ~Tensor() {}
-        
-        const std::string& getName() const { return name; }
 
         Derived& getDerived() { return static_cast<Derived&>(*this); }
 

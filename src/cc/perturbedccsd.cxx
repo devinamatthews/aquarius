@@ -53,10 +53,10 @@ void PerturbedCCSD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    put("TA", new ExcitationOperator<U,2>(arena, occ, vrt));
-    puttmp("D", new ExcitationOperator<U,2>(arena, occ, vrt));
-    puttmp("X", new ExcitationOperator<U,2>(arena, occ, vrt));
-    puttmp("Z", new ExcitationOperator<U,2>(arena, occ, vrt));
+    put("TA", new ExcitationOperator<U,2>("T^A", arena, occ, vrt));
+    puttmp("D", new ExcitationOperator<U,2>("D", arena, occ, vrt));
+    puttmp("X", new ExcitationOperator<U,2>("X", arena, occ, vrt));
+    puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
 
     double omega = get<Scalar>("omega");
 

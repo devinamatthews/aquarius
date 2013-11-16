@@ -29,6 +29,7 @@
 #include <cassert>
 #include <string>
 #include <algorithm>
+#include <map>
 
 #include "ctf.hpp"
 #include "../src/dist_tensor/sym_indices.hxx"
@@ -54,6 +55,9 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
         const symmetry::PointGroup& group;
         std::vector< std::vector<int> > len;
         std::vector<int> sym;
+        std::vector<double> factor;
+        std::vector<std::vector<int> > reorder;
+        static std::map<const tCTF_World<T>*,std::map<const symmetry::PointGroup*,std::pair<int,SymmetryBlockedTensor<T>*> > > scalars;
 
         static std::vector<int> getStrides(const std::string& indices, const int ndim,
                                            const int len, const std::string& idx_A);
@@ -64,22 +68,32 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
 
         const CTFTensor<T>& operator()(const std::vector<int>& irreps) const;
 
+        void register_scalar();
+
+        void unregister_scalar();
+
+        SymmetryBlockedTensor<T>& scalar() const;
+
     public:
         SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other);
 
         SymmetryBlockedTensor(SymmetryBlockedTensor<T>* other);
 
-        SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other, T scalar);
+        SymmetryBlockedTensor(const std::string& name, const SymmetryBlockedTensor<T>& other);
 
-        SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& A,
+        SymmetryBlockedTensor(const std::string& name, SymmetryBlockedTensor<T>* other);
+
+        SymmetryBlockedTensor(const std::string& name, const SymmetryBlockedTensor<T>& other, T scalar);
+
+        SymmetryBlockedTensor(const std::string& name, const SymmetryBlockedTensor<T>& A,
                               const std::vector<std::vector<int> >& start_A,
                               const std::vector<std::vector<int> >& len_A);
 
-        SymmetryBlockedTensor(const Arena& arena, const symmetry::PointGroup& group,
+        SymmetryBlockedTensor(const std::string& name, const Arena& arena, const symmetry::PointGroup& group,
                               int ndim, const std::vector<std::vector<int> >& len,
                               const std::vector<int>& sym, bool zero=true);
 
-        virtual ~SymmetryBlockedTensor() {}
+        ~SymmetryBlockedTensor();
 
         const symmetry::PointGroup& getGroup() const { return group; }
 

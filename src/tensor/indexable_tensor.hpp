@@ -202,8 +202,8 @@ class IndexableTensor : public IndexableTensorBase<Derived,T>, public Tensor<Der
         using IndexableTensorBase<Derived,T>::sum;
         using IndexableTensorBase<Derived,T>::implicit;
 
-        IndexableTensor(const int ndim = 0)
-        : IndexableTensorBase<Derived,T>(ndim) {}
+        IndexableTensor(const std::string& name, const int ndim = 0)
+        : IndexableTensorBase<Derived,T>(ndim), Tensor<Derived,T>(name) {}
 
         virtual ~IndexableTensor() {}
 
@@ -237,7 +237,7 @@ class IndexableTensor : public IndexableTensorBase<Derived,T>, public Tensor<Der
          *********************************************************************/
         void sum(const T alpha, const T beta)
         {
-            Derived tensor(getDerived(), alpha);
+            Derived tensor("alpha", getDerived(), alpha);
             beta*(*this)[implicit()] = tensor[""];
         }
 

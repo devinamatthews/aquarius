@@ -150,8 +150,8 @@ template<class T>
 map<const tCTF_World<T>*,map<const PointGroup*,pair<int,SpinorbitalTensor<T>*> > > SpinorbitalTensor<T>::scalars;
 
 template<class T>
-SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& t, const T val)
-: IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T >(0, 0),
+SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const SpinorbitalTensor<T>& t, const T val)
+: IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T >(name, 0, 0),
   Resource(t.arena), group(t.group), spin(0)
 {
     cases.push_back(SpinCase());
@@ -175,12 +175,26 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& other)
 }
 
 template<class T>
-SpinorbitalTensor<T>::SpinorbitalTensor(const Arena& arena,
+SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const SpinorbitalTensor<T>& other)
+: IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T >(name, other),
+  Resource(other.arena), group(other.group), spaces(other.spaces),
+  nout(other.nout), nin(other.nin), spin(other.spin), cases(other.cases)
+{
+    assert(tensors.size() == cases.size());
+    for (int i = 0;i < tensors.size();i++)
+    {
+        cases[i].tensor = tensors[i].tensor;
+    }
+    register_scalar();
+}
+
+template<class T>
+SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const Arena& arena,
                                         const PointGroup& group,
                                         const vector<Space>& spaces,
                                         const vector<int>& nout,
                                         const vector<int>& nin, int spin)
-: IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T>(std::sum(nout)+std::sum(nin), 0),
+: IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T>(name, std::sum(nout)+std::sum(nin), 0),
   Resource(arena), group(group), spaces(spaces), nout(nout), nin(nin), spin(spin)
 {
     int nspaces = spaces.size();
@@ -332,7 +346,7 @@ void SpinorbitalTensor<T>::SpinCase::construct(SpinorbitalTensor<T>& t,
         if (i > 0) sym[i-1] = NS;
     }
 
-    tensor = new SymmetryBlockedTensor<T>(t.arena, t.group, t.ndim, len, sym, true);
+    tensor = new SymmetryBlockedTensor<T>(t.name, t.arena, t.group, t.ndim, len, sym, true);
     t.addTensor(tensor);
 }
 
@@ -669,14 +683,32 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
             const SymmetryBlockedTensor<T>& tensor_A = A(alpha_out_A, alpha_in_A);
             const SymmetryBlockedTensor<T>& tensor_B = B(alpha_out_B, alpha_in_B);
 
-            //cout << alpha << " " << beta[sc] << " " << *t << endl;
-            //cout <<    tensor_A.getSymmetry() << " " << alpha_out_A << " " << alpha_in_A << endl;
-            //cout <<    tensor_B.getSymmetry() << " " << alpha_out_B << " " << alpha_in_B << endl;
-            //cout << scC.tensor->getSymmetry() << endl;
+            /*
+            cout << alpha << " " << beta[sc] << " " << *t << endl;
+            cout <<    tensor_A.getSymmetry() << " " <<   alpha_out_A << " " <<   alpha_in_A << endl;
+            cout <<    tensor_B.getSymmetry() << " " <<   alpha_out_B << " " <<   alpha_in_B << endl;
+            cout << scC.tensor->getSymmetry() << " " << scC.alpha_out << " " << scC.alpha_in << endl;
+            cout << idx_A__ << " " << idx_B__ << " " << idx_C__ << endl;
+
+            T before;
+            if (this->ndim == 0)
+            {
+                int64_t n;
+                before = (*scC.tensor)(0).getRawData(n)[0];
+            }
+            */
 
             scC.tensor->mult(alpha*diagFactor, conja, tensor_A, idx_A__,
                                                conjb, tensor_B, idx_B__,
                                      beta[sc],                  idx_C__);
+
+            /*
+            if (this->ndim == 0)
+            {
+                int64_t n;
+                cout << "? " << (*scC.tensor)(0).getRawData(n)[0]-before << endl;
+            }
+            */
 
             beta[sc] = 1.0;
         }
@@ -1014,7 +1046,7 @@ void SpinorbitalTensor<T>::register_scalar()
          * since the new scalar will call this constructor too.
          */
         scalars[&arena.ctf<T>()][&group].first = -1;
-        scalars[&arena.ctf<T>()][&group].second = new SpinorbitalTensor<T>(*this, (T)0);
+        scalars[&arena.ctf<T>()][&group].second = new SpinorbitalTensor<T>("scalar", *this, (T)0);
     }
 
     scalars[&arena.ctf<T>()][&group].first++;

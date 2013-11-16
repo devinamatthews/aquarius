@@ -30,56 +30,69 @@ using namespace aquarius::op;
 using namespace aquarius::tensor;
 
 template <typename T>
-TwoElectronOperator<T>::TwoElectronOperator(const Arena& arena, const Space& occ, const Space& vrt)
-: OneElectronOperatorBase<T,TwoElectronOperator<T> >(arena, occ, vrt),
-  ijkl(this->addTensor(new SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(0,2), std::vec(0,2)))),
-  aijk(this->addTensor(new SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(1,1), std::vec(0,2)))),
-  ijak(this->addTensor(new SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(0,2), std::vec(1,1)))),
-  abij(this->addTensor(new SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(2,0), std::vec(0,2)))),
-  ijab(this->addTensor(new SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(0,2), std::vec(2,0)))),
-  aibj(this->addTensor(new SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(1,1), std::vec(1,1)))),
-  aibc(this->addTensor(new SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(1,1), std::vec(2,0)))),
-  abci(this->addTensor(new SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(2,0), std::vec(1,1)))),
-  abcd(this->addTensor(new SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(2,0), std::vec(2,0)))) {}
+TwoElectronOperator<T>::TwoElectronOperator(const string& name, const Arena& arena, const Space& occ, const Space& vrt)
+: OneElectronOperatorBase<T,TwoElectronOperator<T> >(name, arena, occ, vrt),
+  ijkl(this->addTensor(new SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(0,2), std::vec(0,2)))),
+  aijk(this->addTensor(new SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(1,1), std::vec(0,2)))),
+  ijak(this->addTensor(new SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(0,2), std::vec(1,1)))),
+  abij(this->addTensor(new SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(2,0), std::vec(0,2)))),
+  ijab(this->addTensor(new SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(0,2), std::vec(2,0)))),
+  aibj(this->addTensor(new SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(1,1), std::vec(1,1)))),
+  aibc(this->addTensor(new SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(1,1), std::vec(2,0)))),
+  abci(this->addTensor(new SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(2,0), std::vec(1,1)))),
+  abcd(this->addTensor(new SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(2,0), std::vec(2,0)))) {}
 
 template <typename T>
-TwoElectronOperator<T>::TwoElectronOperator(OneElectronOperator<T>& other, int copy)
-: OneElectronOperatorBase<T,TwoElectronOperator<T> >(other, copy),
-  ijkl(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(0,2)))),
-  aijk(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(0,2)))),
-  ijak(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(1,1)))),
-  abij(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(0,2)))),
-  ijab(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(2,0)))),
-  aibj(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(1,1)))),
-  aibc(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(2,0)))),
-  abci(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(1,1)))),
-  abcd(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(2,0)))) {}
+TwoElectronOperator<T>::TwoElectronOperator(const string& name, OneElectronOperator<T>& other, int copy)
+: OneElectronOperatorBase<T,TwoElectronOperator<T> >(name, other, copy),
+  ijkl(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(0,2)))),
+  aijk(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(0,2)))),
+  ijak(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(1,1)))),
+  abij(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(0,2)))),
+  ijab(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(2,0)))),
+  aibj(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(1,1)))),
+  aibc(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(2,0)))),
+  abci(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(1,1)))),
+  abcd(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(2,0)))) {}
 
 template <typename T>
 TwoElectronOperator<T>::TwoElectronOperator(const OneElectronOperator<T>& other)
 : OneElectronOperatorBase<T,TwoElectronOperator<T> >(other),
-  ijkl(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(0,2)))),
-  aijk(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(0,2)))),
-  ijak(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(1,1)))),
-  abij(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(0,2)))),
-  ijab(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(2,0)))),
-  aibj(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(1,1)))),
-  aibc(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(2,0)))),
-  abci(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(1,1)))),
-  abcd(this->addTensor(new SpinorbitalTensor<T>(other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(2,0)))) {}
+  ijkl(this->addTensor(new SpinorbitalTensor<T>(other.name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(0,2)))),
+  aijk(this->addTensor(new SpinorbitalTensor<T>(other.name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(0,2)))),
+  ijak(this->addTensor(new SpinorbitalTensor<T>(other.name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(1,1)))),
+  abij(this->addTensor(new SpinorbitalTensor<T>(other.name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(0,2)))),
+  ijab(this->addTensor(new SpinorbitalTensor<T>(other.name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(2,0)))),
+  aibj(this->addTensor(new SpinorbitalTensor<T>(other.name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(1,1)))),
+  aibc(this->addTensor(new SpinorbitalTensor<T>(other.name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(2,0)))),
+  abci(this->addTensor(new SpinorbitalTensor<T>(other.name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(1,1)))),
+  abcd(this->addTensor(new SpinorbitalTensor<T>(other.name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(2,0)))) {}
 
 template <typename T>
-TwoElectronOperator<T>::TwoElectronOperator(TwoElectronOperator<T>& other, int copy)
-: OneElectronOperatorBase<T,TwoElectronOperator<T> >(other, copy),
-  ijkl(copy&IJKL ? this->addTensor(new SpinorbitalTensor<T>(other.getIJKL())) : this->addTensor(other.getIJKL())),
-  aijk(copy&AIJK ? this->addTensor(new SpinorbitalTensor<T>(other.getAIJK())) : this->addTensor(other.getAIJK())),
-  ijak(copy&IJAK ? this->addTensor(new SpinorbitalTensor<T>(other.getIJAK())) : this->addTensor(other.getIJAK())),
-  abij(copy&ABIJ ? this->addTensor(new SpinorbitalTensor<T>(other.getABIJ())) : this->addTensor(other.getABIJ())),
-  ijab(copy&IJAB ? this->addTensor(new SpinorbitalTensor<T>(other.getIJAB())) : this->addTensor(other.getIJAB())),
-  aibj(copy&AIBJ ? this->addTensor(new SpinorbitalTensor<T>(other.getAIBJ())) : this->addTensor(other.getAIBJ())),
-  aibc(copy&AIBC ? this->addTensor(new SpinorbitalTensor<T>(other.getAIBC())) : this->addTensor(other.getAIBC())),
-  abci(copy&ABCI ? this->addTensor(new SpinorbitalTensor<T>(other.getABCI())) : this->addTensor(other.getABCI())),
-  abcd(copy&ABCD ? this->addTensor(new SpinorbitalTensor<T>(other.getABCD())) : this->addTensor(other.getABCD())) {}
+TwoElectronOperator<T>::TwoElectronOperator(const string& name, const OneElectronOperator<T>& other)
+: OneElectronOperatorBase<T,TwoElectronOperator<T> >(name, other),
+  ijkl(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(0,2)))),
+  aijk(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(0,2)))),
+  ijak(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(1,1)))),
+  abij(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(0,2)))),
+  ijab(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(0,2), std::vec(2,0)))),
+  aibj(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(1,1)))),
+  aibc(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(1,1), std::vec(2,0)))),
+  abci(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(1,1)))),
+  abcd(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, std::vec(other.vrt, other.occ), std::vec(2,0), std::vec(2,0)))) {}
+
+template <typename T>
+TwoElectronOperator<T>::TwoElectronOperator(const string& name, TwoElectronOperator<T>& other, int copy)
+: OneElectronOperatorBase<T,TwoElectronOperator<T> >(name, other, copy),
+  ijkl(copy&IJKL ? this->addTensor(new SpinorbitalTensor<T>(name, other.getIJKL())) : this->addTensor(other.getIJKL())),
+  aijk(copy&AIJK ? this->addTensor(new SpinorbitalTensor<T>(name, other.getAIJK())) : this->addTensor(other.getAIJK())),
+  ijak(copy&IJAK ? this->addTensor(new SpinorbitalTensor<T>(name, other.getIJAK())) : this->addTensor(other.getIJAK())),
+  abij(copy&ABIJ ? this->addTensor(new SpinorbitalTensor<T>(name, other.getABIJ())) : this->addTensor(other.getABIJ())),
+  ijab(copy&IJAB ? this->addTensor(new SpinorbitalTensor<T>(name, other.getIJAB())) : this->addTensor(other.getIJAB())),
+  aibj(copy&AIBJ ? this->addTensor(new SpinorbitalTensor<T>(name, other.getAIBJ())) : this->addTensor(other.getAIBJ())),
+  aibc(copy&AIBC ? this->addTensor(new SpinorbitalTensor<T>(name, other.getAIBC())) : this->addTensor(other.getAIBC())),
+  abci(copy&ABCI ? this->addTensor(new SpinorbitalTensor<T>(name, other.getABCI())) : this->addTensor(other.getABCI())),
+  abcd(copy&ABCD ? this->addTensor(new SpinorbitalTensor<T>(name, other.getABCD())) : this->addTensor(other.getABCD())) {}
 
 template <typename T>
 TwoElectronOperator<T>::TwoElectronOperator(const TwoElectronOperator<T>& other)
@@ -93,6 +106,19 @@ TwoElectronOperator<T>::TwoElectronOperator(const TwoElectronOperator<T>& other)
   aibc(this->addTensor(new SpinorbitalTensor<T>(other.getAIBC()))),
   abci(this->addTensor(new SpinorbitalTensor<T>(other.getABCI()))),
   abcd(this->addTensor(new SpinorbitalTensor<T>(other.getABCD()))) {}
+
+template <typename T>
+TwoElectronOperator<T>::TwoElectronOperator(const string& name, const TwoElectronOperator<T>& other)
+: OneElectronOperatorBase<T,TwoElectronOperator<T> >(name, other),
+  ijkl(this->addTensor(new SpinorbitalTensor<T>(name, other.getIJKL()))),
+  aijk(this->addTensor(new SpinorbitalTensor<T>(name, other.getAIJK()))),
+  ijak(this->addTensor(new SpinorbitalTensor<T>(name, other.getIJAK()))),
+  abij(this->addTensor(new SpinorbitalTensor<T>(name, other.getABIJ()))),
+  ijab(this->addTensor(new SpinorbitalTensor<T>(name, other.getIJAB()))),
+  aibj(this->addTensor(new SpinorbitalTensor<T>(name, other.getAIBJ()))),
+  aibc(this->addTensor(new SpinorbitalTensor<T>(name, other.getAIBC()))),
+  abci(this->addTensor(new SpinorbitalTensor<T>(name, other.getABCI()))),
+  abcd(this->addTensor(new SpinorbitalTensor<T>(name, other.getABCD()))) {}
 
 template <typename T>
 T TwoElectronOperator<T>::dot(bool conja, const TwoElectronOperator<T>& A, bool conjb) const

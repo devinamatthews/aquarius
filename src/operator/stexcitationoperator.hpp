@@ -45,9 +45,9 @@ template <typename U>
 class STExcitationOperator<U,2> : public ExcitationOperator<U,2>
 {
     public:
-        STExcitationOperator(const OneElectronOperator<U>& X, const ExcitationOperator<U,2>& T);
+        STExcitationOperator(const std::string& name, const OneElectronOperator<U>& X, const ExcitationOperator<U,2>& T);
 
-        STExcitationOperator(const TwoElectronOperator<U>& X, const ExcitationOperator<U,2>& T);
+        STExcitationOperator(const std::string& name, const TwoElectronOperator<U>& X, const ExcitationOperator<U,2>& T);
 
         static void transform(const OneElectronOperator<U>& X, const ExcitationOperator<U,2>& T,
                               ExcitationOperator<U,2>& Z);
@@ -59,7 +59,7 @@ class STExcitationOperator<U,2> : public ExcitationOperator<U,2>
                               ExcitationOperator<U,2>& Z);
 
         static void transform(const TwoElectronOperator<U>& X, const ExcitationOperator<U,2>& T,
-                              ExcitationOperator<U,2>& Z, TwoElectronOperator<U>& W);
+                              tensor::SpinorbitalTensor<U>& Tau, ExcitationOperator<U,2>& Z, TwoElectronOperator<U>& W);
 };
 
 }

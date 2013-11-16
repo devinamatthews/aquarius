@@ -55,9 +55,9 @@ void CCSDT<U>::run(task::TaskDAG& dag, const Arena& arena)
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    put("T", new ExcitationOperator<U,3>(arena, occ, vrt));
+    put("T", new ExcitationOperator<U,3>("T", arena, occ, vrt));
     puttmp("D", new Denominator<U>(H));
-    puttmp("Z", new ExcitationOperator<U,3>(arena, occ, vrt));
+    puttmp("Z", new ExcitationOperator<U,3>("Z", arena, occ, vrt));
 
     ExcitationOperator<U,3>& T = get<ExcitationOperator<U,3> >("T");
     Denominator<U>& D = gettmp<Denominator<U> >("D");
@@ -71,7 +71,7 @@ void CCSDT<U>::run(task::TaskDAG& dag, const Arena& arena)
 
     T.weight(D);
 
-    SpinorbitalTensor<U> Tau(T(2));
+    SpinorbitalTensor<U> Tau("Tau", T(2));
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
     energy = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
@@ -112,7 +112,7 @@ void CCSDT<U>::iterate()
     Denominator<U>& D = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,3>& Z = gettmp<ExcitationOperator<U,3> >("Z");
 
-    TwoElectronOperator<U> W(H, TwoElectronOperator<U>::AB|
+    TwoElectronOperator<U> W("W", H, TwoElectronOperator<U>::AB|
                                 TwoElectronOperator<U>::IJ|
                                 TwoElectronOperator<U>::IA|
                                 TwoElectronOperator<U>::AIBC|
@@ -137,7 +137,7 @@ void CCSDT<U>::iterate()
     SpinorbitalTensor<U>& WAMIJ = W.getAIJK();
     SpinorbitalTensor<U>& WAMEI = W.getAIBJ();
 
-    SpinorbitalTensor<U> Tau(T(2));
+    SpinorbitalTensor<U> Tau("Tau", T(2));
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
     /**************************************************************************

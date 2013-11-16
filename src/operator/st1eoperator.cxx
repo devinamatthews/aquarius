@@ -30,9 +30,9 @@ using namespace aquarius::op;
 using namespace aquarius::tensor;
 
 template <typename U>
-STOneElectronOperator<U,2>::STOneElectronOperator(const OneElectronOperator<U>& X,
+STOneElectronOperator<U,2>::STOneElectronOperator(const std::string& name, const OneElectronOperator<U>& X,
                                                   const ExcitationOperator<U,2>& T)
-: OneElectronOperator<U>(X)
+: OneElectronOperator<U>(name, X)
 {
     this->ij["mi"] += this->ia["me"]*T(1)["ei"];
 

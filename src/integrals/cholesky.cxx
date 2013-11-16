@@ -60,8 +60,8 @@ template <typename T>
 void CholeskyIntegrals<T>::test()
 {
     const PointGroup& group = molecule.getGroup();
-    SymmetryBlockedTensor<T> LD(this->arena, group, 3, vec(vec(nfunc),vec(nfunc),vec(rank)), vec(SY,NS,NS), false);
-    SymmetryBlockedTensor<T> ints(this->arena, group, 4, vec(vec(nfunc),vec(nfunc),vec(nfunc),vec(nfunc)), vec(NS,NS,NS,NS), false);
+    SymmetryBlockedTensor<T> LD("LD", this->arena, group, 3, vec(vec(nfunc),vec(nfunc),vec(rank)), vec(SY,NS,NS), false);
+    SymmetryBlockedTensor<T> ints("V", this->arena, group, 4, vec(vec(nfunc),vec(nfunc),vec(nfunc),vec(nfunc)), vec(NS,NS,NS,NS), false);
 
     LD["pqJ"] = (*L)["pqJ"]*(*D)["J"];
     ints["pqrs"] = (*L)["pqJ"]*LD["rsJ"];
@@ -84,7 +84,7 @@ void CholeskyIntegrals<T>::test()
                     int nk = shells[k].getNFunc()*shells[k].getNContr();
                     int nl = shells[l].getNFunc()*shells[l].getNContr();
 
-                    DenseTensor<T> local_ints(4, vec(ni,nj,nk,nl));
+                    DenseTensor<T> local_ints("tmp", 4, vec(ni,nj,nk,nl));
 
                     vector<tkv_pair<T> > pairs(ni*nj*nk*nl);
 
@@ -275,8 +275,8 @@ void CholeskyIntegrals<T>::decompose()
 
     const PointGroup& group = molecule.getGroup();
 
-    this->D = new SymmetryBlockedTensor<T>(this->arena, group, 1, vec(vec(nvec)), vec(NS), false);
-    this->L = new SymmetryBlockedTensor<T>(this->arena, group, 3, vec(vec(nfunc),vec(nfunc),vec(nvec)), vec(SY,NS,NS), false);
+    this->D = new SymmetryBlockedTensor<T>("D", this->arena, group, 1, vec(vec(nvec)), vec(NS), false);
+    this->L = new SymmetryBlockedTensor<T>("L", this->arena, group, 3, vec(vec(nfunc),vec(nfunc),vec(nvec)), vec(SY,NS,NS), false);
 
     if (rank == 0)
     {
@@ -702,7 +702,7 @@ void CholeskyIntegrals<T>::updateBlock(int old_rank, int block_size_i, T* L_i_, 
 template <typename T>
 T CholeskyIntegrals<T>::testBlock(const DenseTensor<T>& block, const Shell& a, const Shell& b, const Shell& c, const Shell& d)
 {
-    DenseTensor<T> packed(4, block.getLengths(), false);
+    DenseTensor<T> packed("tmp", 4, block.getLengths(), false);
     const T* ints = packed.getData();
 
     packed = block;

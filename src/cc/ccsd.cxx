@@ -55,10 +55,11 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    put("T", new ExcitationOperator<U,2>(arena, occ, vrt));
-    puttmp("Z", new ExcitationOperator<U,2>(arena, occ, vrt));
+    put("T", new ExcitationOperator<U,2>("T", arena, occ, vrt));
+    puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
+    puttmp("Tau", new SpinorbitalTensor<U>("Tau", H.getABIJ()));
     puttmp("D", new Denominator<U>(H));
-    puttmp("W", new TwoElectronOperator<U>(const_cast<TwoElectronOperator<U>&>(H),
+    puttmp("W", new TwoElectronOperator<U>("W", const_cast<TwoElectronOperator<U>&>(H),
                                            TwoElectronOperator<U>::AB|
                                            TwoElectronOperator<U>::IJ|
                                            TwoElectronOperator<U>::IA|
@@ -70,6 +71,7 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
     Denominator<U>& D = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+    SpinorbitalTensor<U>& Tau = gettmp<SpinorbitalTensor<U> >("Tau");
 
     Z(0) = (U)0.0;
     T(0) = (U)0.0;
@@ -78,7 +80,17 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
     T.weight(D);
 
-    SpinorbitalTensor<U> Tau(T(2));
+    //cout << setprecision(15) << real(scalar(T(1)(0)*T(1)(0))) << " " << pow(T(1)(0).norm(2),2) << endl;
+    //cout << setprecision(15) << real(scalar(T(1)(1)*T(1)(1))) << " " << pow(T(1)(1).norm(2),2) << endl;
+    //cout << setprecision(15) << real(scalar(T(2)(0)*T(2)(0))) << " " << pow(T(2)(0).norm(2),2) << endl;
+    //cout << setprecision(15) << real(scalar(T(2)(1)*T(2)(1))) << " " << pow(T(2)(1).norm(2),2) << endl;
+    //cout << setprecision(15) << real(scalar(T(2)(2)*T(2)(2))) << " " << pow(T(2)(2).norm(2),2) << endl;
+    //cout << setprecision(15) << real(scalar(T(1)*T(1))) << " " << pow(T(1).norm(2),2) << endl;
+    //cout << setprecision(15) << real(scalar(T(2)*T(2))) << " " << pow(T(2).norm(2),2) << endl;
+
+    //exit(1);
+
+    Tau = T(2);
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
     energy = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
@@ -106,7 +118,7 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
     if (isUsed("Hbar"))
     {
-        put("Hbar", new STTwoElectronOperator<U,2>(H, T, true));
+        put("Hbar", new STTwoElectronOperator<U,2>("Hbar", H, T, true));
     }
 }
 
@@ -119,13 +131,14 @@ void CCSD<U>::iterate()
     Denominator<U>& D = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
     TwoElectronOperator<U>& W = gettmp<TwoElectronOperator<U> >("W");
+    SpinorbitalTensor<U>& Tau = gettmp<SpinorbitalTensor<U> >("Tau");
 
-    STExcitationOperator<U,2>::transform(H, T, Z, W);
+    STExcitationOperator<U,2>::transform(H, T, Tau, Z, W);
 
     Z.weight(D);
     T += Z;
 
-    SpinorbitalTensor<U> Tau(T(2));
+    Tau = T(2);
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
     energy = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));

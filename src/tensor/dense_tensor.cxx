@@ -28,8 +28,8 @@ using namespace std;
 using namespace aquarius::tensor;
 
 template <typename T>
-DenseTensor<T>::DenseTensor(T val)
-: LocalTensor<DenseTensor<T>,T>(val) {}
+DenseTensor<T>::DenseTensor(const string& name, T val)
+: LocalTensor<DenseTensor<T>,T>(name, val) {}
 
 /*
 DenseTensor(const PackedTensor& A)
@@ -68,32 +68,36 @@ DenseTensor(const PackedTensor& A, const CopyType type)
 */
 
 template <typename T>
-DenseTensor<T>::DenseTensor(const DenseTensor<T>& A, T val)
-: LocalTensor< DenseTensor<T>,T >(val) {}
+DenseTensor<T>::DenseTensor(const string& name, const DenseTensor<T>& A, T val)
+: LocalTensor< DenseTensor<T>,T >(name, val) {}
 
 template <typename T>
 DenseTensor<T>::DenseTensor(const DenseTensor<T>& A)
 : LocalTensor< DenseTensor<T>,T >(A) {}
 
 template <typename T>
-DenseTensor<T>::DenseTensor(DenseTensor<T>& A, typename LocalTensor<DenseTensor<T>,T>::CopyType type)
-: LocalTensor< DenseTensor<T>,T >(A, type) {}
+DenseTensor<T>::DenseTensor(const string& name, const DenseTensor<T>& A)
+: LocalTensor< DenseTensor<T>,T >(name, A) {}
 
 template <typename T>
-DenseTensor<T>::DenseTensor(int ndim, const vector<int>& len, T* data, bool zero)
-: LocalTensor< DenseTensor<T>,T >(ndim, len, vector<int>(), getSize(ndim, len, vector<int>()), data, zero) {}
+DenseTensor<T>::DenseTensor(const string& name, DenseTensor<T>& A, typename LocalTensor<DenseTensor<T>,T>::CopyType type)
+: LocalTensor< DenseTensor<T>,T >(name, A, type) {}
 
 template <typename T>
-DenseTensor<T>::DenseTensor(int ndim, const vector<int>& len, bool zero)
-: LocalTensor< DenseTensor<T>,T >(ndim, len, vector<int>(), getSize(ndim, len, vector<int>()), zero) {}
+DenseTensor<T>::DenseTensor(const string& name, int ndim, const vector<int>& len, T* data, bool zero)
+: LocalTensor< DenseTensor<T>,T >(name, ndim, len, vector<int>(), getSize(ndim, len, vector<int>()), data, zero) {}
 
 template <typename T>
-DenseTensor<T>::DenseTensor(int ndim, const vector<int>& len, const vector<int>& ld, T* data, bool zero)
-: LocalTensor< DenseTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld), data, zero) {}
+DenseTensor<T>::DenseTensor(const string& name, int ndim, const vector<int>& len, bool zero)
+: LocalTensor< DenseTensor<T>,T >(name, ndim, len, vector<int>(), getSize(ndim, len, vector<int>()), zero) {}
 
 template <typename T>
-DenseTensor<T>::DenseTensor(int ndim, const vector<int>& len, const vector<int>& ld, bool zero)
-: LocalTensor< DenseTensor<T>,T >(ndim, len, ld, getSize(ndim, len, ld), zero) {}
+DenseTensor<T>::DenseTensor(const string& name, int ndim, const vector<int>& len, const vector<int>& ld, T* data, bool zero)
+: LocalTensor< DenseTensor<T>,T >(name, ndim, len, ld, getSize(ndim, len, ld), data, zero) {}
+
+template <typename T>
+DenseTensor<T>::DenseTensor(const string& name, int ndim, const vector<int>& len, const vector<int>& ld, bool zero)
+: LocalTensor< DenseTensor<T>,T >(name, ndim, len, ld, getSize(ndim, len, ld), zero) {}
 
 template <typename T>
 uint64_t DenseTensor<T>::getSize(int ndim, const vector<int>& len, const vector<int>& ld)
@@ -233,7 +237,6 @@ void unpack(const PackedTensor& A)
     CHECK_RETURN_VALUE(
     tensor_unpack(A.data, data, A.ndim, A.len, A.sym_));
 }
-*/
 
 template <typename T>
 DenseTensor<T> DenseTensor<T>::slice(const vector<int>& start, const vector<int>& len)
@@ -253,5 +256,6 @@ DenseTensor<T> DenseTensor<T>::slice(const vector<int>& start, const vector<int>
 
     return DenseTensor<T>(ndimB, lenB, ldB, B);
 }
+*/
 
 INSTANTIATE_SPECIALIZATIONS(DenseTensor);

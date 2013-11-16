@@ -34,7 +34,7 @@ void PerturbedSTTwoElectronOperator<U,2>::initialize(const STTwoElectronOperator
                                                      const ExcitationOperator<U,2>& T,
                                                      const ExcitationOperator<U,2>& TA)
 {
-    OneElectronOperator<U> I(this->arena, this->occ, this->vrt);
+    OneElectronOperator<U> I("I", this->arena, this->occ, this->vrt);
 
     SpinorbitalTensor<U>& IMI = I.getIJ();
     SpinorbitalTensor<U>& IAE = I.getAB();
@@ -99,21 +99,21 @@ void PerturbedSTTwoElectronOperator<U,2>::initialize(const STTwoElectronOperator
 }
 
 template <typename U>
-PerturbedSTTwoElectronOperator<U,2>::PerturbedSTTwoElectronOperator(const STTwoElectronOperator<U,2>& X,
+PerturbedSTTwoElectronOperator<U,2>::PerturbedSTTwoElectronOperator(const std::string& name, const STTwoElectronOperator<U,2>& X,
                                                                     const OneElectronOperator<U>& XA,
                                                                     const ExcitationOperator<U,2>& T,
                                                                     const ExcitationOperator<U,2>& TA)
-: STTwoElectronOperator<U,2>(XA, T), X(X), TA(TA)
+: STTwoElectronOperator<U,2>(name, XA, T), X(X), TA(TA)
 {
     initialize(X, T, TA);
 }
 
 template <typename U>
-PerturbedSTTwoElectronOperator<U,2>::PerturbedSTTwoElectronOperator(const STTwoElectronOperator<U,2>& X,
+PerturbedSTTwoElectronOperator<U,2>::PerturbedSTTwoElectronOperator(const std::string& name, const STTwoElectronOperator<U,2>& X,
                                                                     const TwoElectronOperator<U>& XA,
                                                                     const ExcitationOperator<U,2>& T,
                                                                     const ExcitationOperator<U,2>& TA)
-: STTwoElectronOperator<U,2>(XA, T), X(X), TA(TA)
+: STTwoElectronOperator<U,2>(name, XA, T), X(X), TA(TA)
 {
     initialize(X, T, TA);
 }
@@ -125,7 +125,7 @@ void PerturbedSTTwoElectronOperator<U,2>::contract(const ExcitationOperator<U,2>
 {
     STTwoElectronOperator<U,2>::contract(R, Z, connected);
 
-    OneElectronOperator<U> I(this->arena, this->occ, this->vrt);
+    OneElectronOperator<U> I("I", this->arena, this->occ, this->vrt);
 
     SpinorbitalTensor<U>& IMI = I.getIJ();
     SpinorbitalTensor<U>& IAE = I.getAB();
@@ -144,7 +144,7 @@ void PerturbedSTTwoElectronOperator<U,2>::contract(const DeexcitationOperator<U,
 {
     STTwoElectronOperator<U,2>::contract(L, Z, connected);
 
-    OneElectronOperator<U> I(this->arena, this->occ, this->vrt);
+    OneElectronOperator<U> I("I", this->arena, this->occ, this->vrt);
 
     SpinorbitalTensor<U>& IMN = I.getIJ();
     SpinorbitalTensor<U>& IEF = I.getAB();

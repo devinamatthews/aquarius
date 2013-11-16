@@ -30,17 +30,17 @@ using namespace aquarius::op;
 using namespace aquarius::tensor;
 
 template <typename U>
-OneElectronDensity<U>::OneElectronDensity(const MOSpace<U>& occ, const MOSpace<U>& vrt,
+OneElectronDensity<U>::OneElectronDensity(const std::string& name, const MOSpace<U>& occ, const MOSpace<U>& vrt,
                                           const SymmetryBlockedTensor<U>& Da,
                                           const SymmetryBlockedTensor<U>& Db)
-: OneElectronOperator<U>(occ, vrt, Da, Db) {}
+: OneElectronOperator<U>(name, occ, vrt, Da, Db) {}
 
 /*
  * Form the unrelaxed CCSD density
  */
 template <typename U>
-OneElectronDensity<U>::OneElectronDensity(const ExcitationOperator<U,2>& T)
-: OneElectronOperator<U>(T.arena, T.occ, T.vrt)
+OneElectronDensity<U>::OneElectronDensity(const std::string& name, const ExcitationOperator<U,2>& T)
+: OneElectronOperator<U>(name, T.arena, T.occ, T.vrt)
 {
     this->ai["ai"] = T(1)["ai"];
 }
@@ -49,12 +49,12 @@ OneElectronDensity<U>::OneElectronDensity(const ExcitationOperator<U,2>& T)
  * Form the partial perturbed CCSD Density
  */
 template <typename U>
-OneElectronDensity<U>::OneElectronDensity(const DeexcitationOperator<U,2>& L,
+OneElectronDensity<U>::OneElectronDensity(const std::string& name, const DeexcitationOperator<U,2>& L,
                                           const ExcitationOperator<U,2>& T,
                                           const ExcitationOperator<U,2>& TA)
-: OneElectronOperator<U>(T.arena, T.occ, T.vrt)
+: OneElectronOperator<U>(name, T.arena, T.occ, T.vrt)
 {
-    OneElectronOperator<U> I(this->arena, this->occ, this->vrt);
+    OneElectronOperator<U> I("I", this->arena, this->occ, this->vrt);
 
     SpinorbitalTensor<U>& IIJ = I.getIJ();
     SpinorbitalTensor<U>& IAB = I.getAB();
@@ -80,9 +80,9 @@ OneElectronDensity<U>::OneElectronDensity(const DeexcitationOperator<U,2>& L,
  * Form the relaxed CCSD density
  */
 template <typename U>
-OneElectronDensity<U>::OneElectronDensity(const DeexcitationOperator<U,2>& L,
+OneElectronDensity<U>::OneElectronDensity(const std::string& name, const DeexcitationOperator<U,2>& L,
                                           const ExcitationOperator<U,2>& T)
-: OneElectronOperator<U>(T.arena, T.occ, T.vrt)
+: OneElectronOperator<U>(name, T.arena, T.occ, T.vrt)
 {
     this->ia["ia"] += L(1)["ia"];
 
@@ -103,13 +103,13 @@ OneElectronDensity<U>::OneElectronDensity(const DeexcitationOperator<U,2>& L,
  * Form the relaxed perturbed CCSD Density
  */
 template <typename U>
-OneElectronDensity<U>::OneElectronDensity(const DeexcitationOperator<U,2>& L,
+OneElectronDensity<U>::OneElectronDensity(const std::string& name, const DeexcitationOperator<U,2>& L,
                                           const DeexcitationOperator<U,2>& LA,
                                           const ExcitationOperator<U,2>& T,
                                           const ExcitationOperator<U,2>& TA)
-: OneElectronOperator<U>(T.arena, T.occ, T.vrt)
+: OneElectronOperator<U>(name, T.arena, T.occ, T.vrt)
 {
-    OneElectronOperator<U> I(this->arena, this->occ, this->vrt);
+    OneElectronOperator<U> I("I", this->arena, this->occ, this->vrt);
 
     SpinorbitalTensor<U>& IIJ = I.getIJ();
     SpinorbitalTensor<U>& IAB = I.getAB();

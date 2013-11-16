@@ -780,7 +780,7 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     const SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
     const SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
 
-    this->put("H", new TwoElectronOperator<T>(OneElectronOperator<T>(occ, vrt, Fa, Fb)));
+    this->put("H", new TwoElectronOperator<T>("V", OneElectronOperator<T>("f", occ, vrt, Fa, Fb)));
     //this->put("H", new TwoElectronOperator<T>(arena, occ, vrt));
     TwoElectronOperator<T>& H = this->template get<TwoElectronOperator<T> >("H");
 
@@ -803,8 +803,8 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     vector<int> nA_ = vec(sum(nA))+vector<int>(n-1,0);
     vector<int> na_ = vec(sum(na))+vector<int>(n-1,0);
 
-    SymmetryBlockedTensor<T> ABIJ__(arena, ints.group, 4, vec(nA,nA,nI,nI), vec(NS,NS,NS,NS), false);
-    SymmetryBlockedTensor<T> abij__(arena, ints.group, 4, vec(na,na,ni,ni), vec(NS,NS,NS,NS), false);
+    SymmetryBlockedTensor<T> ABIJ__("<AB|IJ>", arena, ints.group, 4, vec(nA,nA,nI,nI), vec(NS,NS,NS,NS), false);
+    SymmetryBlockedTensor<T> abij__("<ab|ij>", arena, ints.group, 4, vec(na,na,ni,ni), vec(NS,NS,NS,NS), false);
 
     vector<vector<T> > cA(n), ca(n), cI(n), ci(n);
 

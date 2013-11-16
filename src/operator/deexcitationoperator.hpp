@@ -49,10 +49,10 @@ class DeexcitationOperator
         const int spin;
 
     public:
-        DeexcitationOperator(const Arena& arena, const Space& occ, const Space& vrt, int spin=0, int symmetry=AS)
+        DeexcitationOperator(const std::string& name, const Arena& arena, const Space& occ, const Space& vrt, int spin=0, int symmetry=AS)
         : MOOperator(arena, occ, vrt),
           tensor::CompositeTensor< DeexcitationOperator<T,np,nh>,
-           tensor::SpinorbitalTensor<T>, T >(std::max(np,nh)+1),
+           tensor::SpinorbitalTensor<T>, T >(name, std::max(np,nh)+1),
           spin(spin)
         {
             for (int ex = 0;ex <= std::min(np,nh);ex++)
@@ -60,8 +60,9 @@ class DeexcitationOperator
                 int nv = ex+(np > nh ? np-nh : 0);
                 int no = ex+(nh > np ? nh-np : 0);
 
+                tensors[ex+std::abs(np-nh)].isAlloced = true;
                 tensors[ex+std::abs(np-nh)].tensor =
-                    new tensor::SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt,occ), std::vec(0,nv), std::vec(no,0), spin);
+                    new tensor::SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt,occ), std::vec(0,nv), std::vec(no,0), spin);
             }
         }
 

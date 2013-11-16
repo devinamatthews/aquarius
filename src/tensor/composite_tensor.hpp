@@ -103,9 +103,9 @@ class CompositeTensor : public Tensor<Derived,T>
         {
             Base* tensor;
             bool isAlloced;
-            TensorRef() : tensor(NULL), isAlloced(true) {}
-            TensorRef(Base* tensor_, bool isAlloced=true)
-            : tensor(tensor_), isAlloced(isAlloced) {}
+            int ref;
+            TensorRef(Base* tensor_=NULL, bool isAlloced=false, int ref=-1)
+            : tensor(tensor_), isAlloced(isAlloced), ref(ref) {}
             bool operator==(const Base* other) const { return tensor == other; }
             bool operator!=(const Base* other) const { return tensor != other; }
         };
@@ -124,27 +124,60 @@ class CompositeTensor : public Tensor<Derived,T>
             return new_tensor;
         }
 
+        Base& addTensor(int ref)
+        {
+            assert(ref >= -1 && ref < tensors.size());
+            tensors.push_back(TensorRef(tensors[ref].tensor, false, ref));
+            return *tensors[ref].tensor;
+        }
+
     public:
         CompositeTensor(const CompositeTensor<Derived,Base,T>& other)
-        : tensors(other.tensors)
+        : Tensor<Derived,T>(other.name), tensors(other.tensors)
         {
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL)
+                if (tensors[i] != NULL && tensors[i].ref == -1)
                 {
-                    tensors[i] = TensorRef(new Base(*tensors[i].tensor));
+                    tensors[i].tensor = new Base(*tensors[i].tensor);
+                }
+            }
+            for (int i = 0;i < tensors.size();i++)
+            {
+                if (tensors[i].ref != -1)
+                {
+                    tensors[i].tensor = tensors[tensors[i].ref].tensor;
                 }
             }
         }
 
-        CompositeTensor(int ntensors = 0)
-        : tensors(ntensors) {}
+        CompositeTensor(const std::string& name, const CompositeTensor<Derived,Base,T>& other)
+        : Tensor<Derived,T>(name), tensors(other.tensors)
+        {
+            for (int i = 0;i < tensors.size();i++)
+            {
+                if (tensors[i] != NULL && tensors[i].ref == -1)
+                {
+                    tensors[i].tensor = new Base(name, *tensors[i].tensor);
+                }
+            }
+            for (int i = 0;i < tensors.size();i++)
+            {
+                if (tensors[i].ref != -1)
+                {
+                    tensors[i].tensor = tensors[tensors[i].ref].tensor;
+                }
+            }
+        }
+
+        CompositeTensor(const std::string& name, int ntensors = 0)
+        : Tensor<Derived,T>(name), tensors(ntensors) {}
 
         virtual ~CompositeTensor()
         {
             for (int i = tensors.size()-1;i >= 0;i--)
             {
-                if (tensors[i] != NULL && tensors[i].isAlloced)
+                if (tensors[i].isAlloced)
                 {
                     delete tensors[i].tensor;
                 }
@@ -186,7 +219,7 @@ class CompositeTensor : public Tensor<Derived,T>
         {
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL)
+                if (tensors[i] != NULL && tensors[i].ref == -1)
                 {
                     *tensors[i].tensor *= alpha;
                 }
@@ -203,7 +236,7 @@ class CompositeTensor : public Tensor<Derived,T>
 
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL && A.exists(i) && B.exists(i))
+                if (tensors[i] != NULL && tensors[i].ref == -1 && A.exists(i) && B.exists(i))
                 {
                     beta*(*tensors[i].tensor) += alpha*A(i)*B(i);
                 }
@@ -220,7 +253,7 @@ class CompositeTensor : public Tensor<Derived,T>
 
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL && A.exists(i) && B.exists(i))
+                if (tensors[i] != NULL && tensors[i].ref == -1 && A.exists(i) && B.exists(i))
                 {
                     beta*(*tensors[i].tensor) += alpha*A(i)/B(i);
                 }
@@ -231,7 +264,7 @@ class CompositeTensor : public Tensor<Derived,T>
         {
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL)
+                if (tensors[i] != NULL && tensors[i].ref == -1)
                 {
                     beta*(*tensors[i].tensor) += alpha;
                 }
@@ -246,7 +279,7 @@ class CompositeTensor : public Tensor<Derived,T>
 
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL && A.exists(i))
+                if (tensors[i] != NULL && tensors[i].ref == -1 && A.exists(i))
                 {
                     beta*(*tensors[i].tensor) += alpha*A(i);
                 }
@@ -261,7 +294,7 @@ class CompositeTensor : public Tensor<Derived,T>
 
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL && A.exists(i))
+                if (tensors[i] != NULL && tensors[i].ref == -1 && A.exists(i))
                 {
                     beta*(*tensors[i].tensor) += alpha/A(i);
                 }
@@ -278,7 +311,7 @@ class CompositeTensor : public Tensor<Derived,T>
 
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL && A.exists(i))
+                if (tensors[i] != NULL && tensors[i].ref == -1 && A.exists(i))
                 {
                     s += tensors[i].tensor->dot(conja, A(i), conjb);
                 }
@@ -309,8 +342,15 @@ class IndexableCompositeTensor : public IndexableTensorBase<Derived,T>, public C
         using IndexableTensorBase<Derived,T>::implicit;
 
     public:
-        IndexableCompositeTensor(int ndim=0, int ntensors=0)
-        : IndexableTensorBase<Derived,T>(ndim), CompositeTensor<Derived,Base,T>(ntensors) {}
+        IndexableCompositeTensor(const Derived& other)
+        : IndexableTensorBase<Derived,T>(other), CompositeTensor<Derived,Base,T>(other) {}
+
+        IndexableCompositeTensor(const std::string& name, const Derived& other)
+        : IndexableTensorBase<Derived,T>(other), CompositeTensor<Derived,Base,T>(name, other) {}
+
+        IndexableCompositeTensor(const std::string& name, int ndim=0, int ntensors=0)
+
+        : IndexableTensorBase<Derived,T>(ndim), CompositeTensor<Derived,Base,T>(name, ntensors) {}
 
         virtual ~IndexableCompositeTensor() {}
 
@@ -332,10 +372,11 @@ class IndexableCompositeTensor : public IndexableTensorBase<Derived,T>, public C
                   beta,             implicit());
         }
 
+        virtual Derived& scalar() const = 0;
+
         void sum(const T alpha, const T beta)
         {
-            Derived tensor(static_cast<const Derived&>(*this), alpha);
-            beta*(*this)[this->implicit()] = tensor[""];
+            CompositeTensor<Derived,Base,T>::sum(alpha, beta);
         }
 
         void sum(const T alpha, bool conja, const Derived& A, const T beta)

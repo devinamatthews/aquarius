@@ -55,9 +55,9 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    put("T", new ExcitationOperator<U,2>(arena, occ, vrt));
+    put("T", new ExcitationOperator<U,2>("T", arena, occ, vrt));
     puttmp("D", new Denominator<U>(H));
-    puttmp("Z", new ExcitationOperator<U,2>(arena, occ, vrt));
+    puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
 
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
     Denominator<U>& D = gettmp<Denominator<U> >("D");
@@ -95,7 +95,7 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
 
     if (isUsed("Hbar"))
     {
-        put("Hbar", new STTwoElectronOperator<U,2>(H, T, true));
+        put("Hbar", new STTwoElectronOperator<U,2>("Hbar", H, T, true));
     }
 }
 
@@ -108,7 +108,7 @@ void CCD<U>::iterate()
     Denominator<U>& D = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
 
-    TwoElectronOperator<U> H(H_, TwoElectronOperator<U>::AB|
+    TwoElectronOperator<U> H("W", H_, TwoElectronOperator<U>::AB|
                                  TwoElectronOperator<U>::IJ|
                                  TwoElectronOperator<U>::IJKL|
                                  TwoElectronOperator<U>::AIBJ);

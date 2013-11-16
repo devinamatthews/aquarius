@@ -33,9 +33,9 @@ using namespace aquarius::scf;
 using namespace aquarius::input;
 
 template <typename T>
-Multipole<T>::Multipole(const UHF<T>& uhf, int Lmin_, int Lmax_)
+Multipole<T>::Multipole(const std::string& name, const UHF<T>& uhf, int Lmin_, int Lmax_)
 : MOOperator<T>(uhf), CompositeTensor<Multipole<T>,
-  OneElectronOperator<T>,T>(Lmax_ == -1 ? (Lmin_+1)*(Lmin_+2)/2 :
+  OneElectronOperator<T>,T>(name, Lmax_ == -1 ? (Lmin_+1)*(Lmin_+2)/2 :
           (Lmax_+1)*(Lmax_+2)*(Lmax_+3)/6-Lmin_*(Lmin_+1)*(Lmin_+2)/6),
   Lmin(Lmin_), Lmax(Lmax_ == -1 ? Lmin_ : Lmax_)
 {
@@ -72,7 +72,7 @@ Multipole<T>::Multipole(const UHF<T>& uhf, int Lmin_, int Lmax_)
         {
             ao = (T)0;
             //ao.writeRemoteData(pairs[xyz]);
-            this->tensors[xyztot++].tensor = new OneElectronOperator<T>(uhf, ao);
+            this->tensors[xyztot++].tensor = new OneElectronOperator<T>(name, uhf, ao);
         }
     }
 }

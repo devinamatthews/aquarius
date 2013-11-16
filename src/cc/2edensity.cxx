@@ -30,10 +30,10 @@ using namespace aquarius::cc;
 using namespace aquarius::tensor;
 
 template <typename U>
-TwoElectronDensity<U>::TwoElectronDensity(const MOSpace<U>& occ, const MOSpace<U>& vrt,
+TwoElectronDensity<U>::TwoElectronDensity(const std::string& name, const MOSpace<U>& occ, const MOSpace<U>& vrt,
                                           const SymmetryBlockedTensor<U>& Da,
                                           const SymmetryBlockedTensor<U>& Db)
-: TwoElectronOperator<U>(OneElectronDensity<U>(occ, vrt, Da, Db))
+: TwoElectronOperator<U>(name, OneElectronDensity<U>(name, occ, vrt, Da, Db))
 {
     this->abcd["abcd"]  =     this->ab["ab"]*this->ab["cd"];
     this->abcd["abcd"] += 0.5*this->ab["ac"]*this->ab["bd"];
@@ -62,8 +62,8 @@ TwoElectronDensity<U>::TwoElectronDensity(const MOSpace<U>& occ, const MOSpace<U
  * Form the unrelaxed CCSD Density
  */
 template <typename U>
-TwoElectronDensity<U>::TwoElectronDensity(const ExcitationOperator<U,2>& T)
-: TwoElectronOperator<U>(OneElectronDensity<U>(T))
+TwoElectronDensity<U>::TwoElectronDensity(const std::string& name, const ExcitationOperator<U,2>& T)
+: TwoElectronOperator<U>(name, OneElectronDensity<U>(name, T))
 {
     this->abij["abij"]  = T(2)["abij"];
     this->abij["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
@@ -73,12 +73,12 @@ TwoElectronDensity<U>::TwoElectronDensity(const ExcitationOperator<U,2>& T)
  * Form the mixed perturbed CCSD Density
  */
 template <typename U>
-TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
+TwoElectronDensity<U>::TwoElectronDensity(const std::string& name, const DeexcitationOperator<U,2>& L,
                                           const ExcitationOperator<U,2>& T,
                                           const ExcitationOperator<U,2>& TA)
-: TwoElectronOperator<U>(OneElectronDensity<U>(L, T, TA))
+: TwoElectronOperator<U>(name, OneElectronDensity<U>(name, L, T, TA))
 {
-    TwoElectronOperator<U> I(this->arena, this->occ, this->vrt);
+    TwoElectronOperator<U> I("I", this->arena, this->occ, this->vrt);
 
     SpinorbitalTensor<U>& IIJ = I.getIJ();
     SpinorbitalTensor<U>& IAB = I.getAB();
@@ -145,11 +145,11 @@ TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
  * Form the relaxed CCSD Density
  */
 template <typename U>
-TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
+TwoElectronDensity<U>::TwoElectronDensity(const std::string& name, const DeexcitationOperator<U,2>& L,
                                           const ExcitationOperator<U,2>& T)
-: TwoElectronOperator<U>(OneElectronDensity<U>(L, T))
+: TwoElectronOperator<U>(name, OneElectronDensity<U>(name, L, T))
 {
-    SpinorbitalTensor<U> aitmp(this->ai);
+    SpinorbitalTensor<U> aitmp("I", this->ai);
 
     SpinorbitalTensor<U> Tau(T(2));
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
@@ -193,11 +193,11 @@ TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
  * Form the relaxed perturbed CCSD Density
  */
 template <typename U>
-TwoElectronDensity<U>::TwoElectronDensity(const DeexcitationOperator<U,2>& L,
+TwoElectronDensity<U>::TwoElectronDensity(const std::string& name, const DeexcitationOperator<U,2>& L,
                                           const DeexcitationOperator<U,2>& LA,
                                           const ExcitationOperator<U,2>& T,
                                           const ExcitationOperator<U,2>& TA)
-: TwoElectronOperator<U>(OneElectronDensity<U>(L, LA, T, TA))
+: TwoElectronOperator<U>(name, OneElectronDensity<U>(name, L, LA, T, TA))
 {
     //TODO
     assert(0);

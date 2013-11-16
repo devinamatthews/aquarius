@@ -35,8 +35,8 @@ map<const tCTF_World<T>*,pair<int,CTFTensor<T>*> > CTFTensor<T>::scalars;
  * Create a scalar (0-dimensional tensor)
  */
 template <typename T>
-CTFTensor<T>::CTFTensor(const Arena& arena, T scalar)
-: IndexableTensor< CTFTensor<T>,T >(), Resource(arena), len(0), sym(0)
+CTFTensor<T>::CTFTensor(const string& name, const Arena& arena, T scalar)
+: IndexableTensor< CTFTensor<T>,T >(name), Resource(arena), len(0), sym(0)
 {
     allocate();
     *dt = scalar;
@@ -47,8 +47,8 @@ CTFTensor<T>::CTFTensor(const Arena& arena, T scalar)
  * Create a scalar (0-dimensional tensor) on the same arena as A
  */
 template <typename T>
-CTFTensor<T>::CTFTensor(const CTFTensor<T>& A, T scalar)
-: IndexableTensor< CTFTensor<T>,T >(), Resource(A.arena),
+CTFTensor<T>::CTFTensor(const string& name, const CTFTensor<T>& A, T scalar)
+: IndexableTensor< CTFTensor<T>,T >(name), Resource(A.arena),
   len(0), sym(0)
 {
     allocate();
@@ -61,7 +61,29 @@ CTFTensor<T>::CTFTensor(const CTFTensor<T>& A, T scalar)
  */
 template <typename T>
 CTFTensor<T>::CTFTensor(const CTFTensor<T>& A, bool copy, bool zero)
-: IndexableTensor< CTFTensor<T>,T >(A.ndim), Resource(A.arena),
+: IndexableTensor< CTFTensor<T>,T >(A.name, A.ndim), Resource(A.arena),
+  len(A.len), sym(A.sym)
+{
+    allocate();
+
+    if (copy)
+    {
+        *this = A;
+    }
+    else if (zero)
+    {
+        *dt = (T)0;
+    }
+
+    register_scalar();
+}
+
+/*
+ * Create a tensor of the same size and shape as A, optionally copying or zeroing the data
+ */
+template <typename T>
+CTFTensor<T>::CTFTensor(const string& name, const CTFTensor<T>& A, bool copy, bool zero)
+: IndexableTensor< CTFTensor<T>,T >(name, A.ndim), Resource(A.arena),
   len(A.len), sym(A.sym)
 {
     allocate();
@@ -79,8 +101,8 @@ CTFTensor<T>::CTFTensor(const CTFTensor<T>& A, bool copy, bool zero)
 }
 
 template <typename T>
-CTFTensor<T>::CTFTensor(CTFTensor<T>* A)
-: IndexableTensor< CTFTensor<T>,T >(A->ndim), Resource(A->arena),
+CTFTensor<T>::CTFTensor(const string& name, CTFTensor<T>* A)
+: IndexableTensor< CTFTensor<T>,T >(name, A->ndim), Resource(A->arena),
   len(A->len), sym(A->sym)
 {
     dt = A->dt;
@@ -89,8 +111,8 @@ CTFTensor<T>::CTFTensor(CTFTensor<T>* A)
 }
 
 template <typename T>
-CTFTensor<T>::CTFTensor(const CTFTensor<T>& A, const vector<int>& start_A, const vector<int>& len_A)
-: IndexableTensor< CTFTensor<T>,T >(A.ndim), Resource(A.arena),
+CTFTensor<T>::CTFTensor(const string& name, const CTFTensor<T>& A, const vector<int>& start_A, const vector<int>& len_A)
+: IndexableTensor< CTFTensor<T>,T >(name, A.ndim), Resource(A.arena),
   len(len_A), sym(A.sym)
 {
     allocate();
@@ -102,9 +124,9 @@ CTFTensor<T>::CTFTensor(const CTFTensor<T>& A, const vector<int>& start_A, const
  * Create a tensor of the specified size and shape, optionally zeroing the data
  */
 template <typename T>
-CTFTensor<T>::CTFTensor(const Arena& arena, int ndim, const vector<int>& len, const vector<int>& sym,
+CTFTensor<T>::CTFTensor(const string& name, const Arena& arena, int ndim, const vector<int>& len, const vector<int>& sym,
                           bool zero)
-: IndexableTensor< CTFTensor<T>,T >(ndim), Resource(arena),
+: IndexableTensor< CTFTensor<T>,T >(name, ndim), Resource(arena),
   len(len), sym(sym)
 {
     assert(len.size() == ndim);
@@ -130,7 +152,7 @@ CTFTensor<T>::~CTFTensor()
 template <typename T>
 void CTFTensor<T>::allocate()
 {
-    dt = new tCTF_Tensor<T>(ndim, len.data(), sym.data(), arena.ctf<T>(), "FIXME", 1);
+    dt = new tCTF_Tensor<T>(ndim, len.data(), sym.data(), arena.ctf<T>(), this->name.c_str(), 1);
 }
 
 template <typename T>
@@ -150,7 +172,7 @@ void CTFTensor<T>::register_scalar()
          * since the new scalar will call this constructor too.
          */
         scalars[&arena.ctf<T>()].first = -1;
-        scalars[&arena.ctf<T>()].second = new CTFTensor<T>(arena);
+        scalars[&arena.ctf<T>()].second = new CTFTensor<T>("scalar", arena);
     }
 
     scalars[&arena.ctf<T>()].first++;
@@ -425,6 +447,15 @@ void CTFTensor<T>::mult(T alpha, bool conja, const CTFTensor<T>& A, const string
     dt->contract(alpha, *A.dt, idx_A.c_str(),
                         *B.dt, idx_B.c_str(),
                   beta,        idx_C.c_str());
+}
+
+template <typename T>
+void CTFTensor<T>::sum(T alpha, T beta)
+{
+    CTFTensor<T>& s = scalar();
+    if (arena.rank == 0) s.writeRemoteData(vector<tkv_pair<T> >(1, tkv_pair<T>(0, alpha)));
+    else s.writeRemoteData();
+    beta*(*this) += s;
 }
 
 template <typename T>

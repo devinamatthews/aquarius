@@ -50,7 +50,7 @@ void CholeskyMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     const SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
     const SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
 
-    this->put("H", new TwoElectronOperator<T>(OneElectronOperator<T>(occ, vrt, Fa, Fb)));
+    this->put("H", new TwoElectronOperator<T>("V", OneElectronOperator<T>("f", occ, vrt, Fa, Fb)));
     TwoElectronOperator<T>& H = this->template get<TwoElectronOperator<T> >("H");
 
     const CholeskyIntegrals<T>& chol = this->template get<CholeskyIntegrals<T> >("cholesky");
@@ -80,12 +80,12 @@ void CholeskyMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
 
     vector<int> shapeNNN = vec(NS, NS, NS);
 
-    SymmetryBlockedTensor<T> LIJ(arena, group, 3, sizeIIR, shapeNNN, false);
-    SymmetryBlockedTensor<T> Lij(arena, group, 3, sizeiiR, shapeNNN, false);
-    SymmetryBlockedTensor<T> LAB(arena, group, 3, sizeAAR, shapeNNN, false);
-    SymmetryBlockedTensor<T> Lab(arena, group, 3, sizeaaR, shapeNNN, false);
-    SymmetryBlockedTensor<T> LAI(arena, group, 3, sizeAIR, shapeNNN, false);
-    SymmetryBlockedTensor<T> Lai(arena, group, 3, sizeaiR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LIJ("LIJ", arena, group, 3, sizeIIR, shapeNNN, false);
+    SymmetryBlockedTensor<T> Lij("Lij", arena, group, 3, sizeiiR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LAB("LAB", arena, group, 3, sizeAAR, shapeNNN, false);
+    SymmetryBlockedTensor<T> Lab("Lab", arena, group, 3, sizeaaR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LAI("LAI", arena, group, 3, sizeAIR, shapeNNN, false);
+    SymmetryBlockedTensor<T> Lai("Lai", arena, group, 3, sizeaiR, shapeNNN, false);
 
     {
         vector<vector<int> > sizeNIR = vec(N, nI, vec(R));
@@ -93,10 +93,10 @@ void CholeskyMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
         vector<vector<int> > sizeNAR = vec(N, nA, vec(R));
         vector<vector<int> > sizeNaR = vec(N, na, vec(R));
 
-        SymmetryBlockedTensor<T> LpI(arena, group, 3, sizeNIR, shapeNNN, false);
-        SymmetryBlockedTensor<T> Lpi(arena, group, 3, sizeNiR, shapeNNN, false);
-        SymmetryBlockedTensor<T> LpA(arena, group, 3, sizeNAR, shapeNNN, false);
-        SymmetryBlockedTensor<T> Lpa(arena, group, 3, sizeNaR, shapeNNN, false);
+        SymmetryBlockedTensor<T> LpI("LpI", arena, group, 3, sizeNIR, shapeNNN, false);
+        SymmetryBlockedTensor<T> Lpi("Lpi", arena, group, 3, sizeNiR, shapeNNN, false);
+        SymmetryBlockedTensor<T> LpA("LpA", arena, group, 3, sizeNAR, shapeNNN, false);
+        SymmetryBlockedTensor<T> Lpa("Lpa", arena, group, 3, sizeNaR, shapeNNN, false);
 
         LpI["pIR"] = Lpq["pqR"]*cI["qI"];
         Lpi["piR"] = Lpq["pqR"]*ci["qi"];
@@ -111,12 +111,12 @@ void CholeskyMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
         Lab["abR"] = Lpa["pbR"]*ca["pa"];
     }
 
-    SymmetryBlockedTensor<T> LDIJ(arena, group, 3, sizeIIR, shapeNNN, false);
-    SymmetryBlockedTensor<T> LDij(arena, group, 3, sizeiiR, shapeNNN, false);
-    SymmetryBlockedTensor<T> LDAB(arena, group, 3, sizeAAR, shapeNNN, false);
-    SymmetryBlockedTensor<T> LDab(arena, group, 3, sizeaaR, shapeNNN, false);
-    SymmetryBlockedTensor<T> LDAI(arena, group, 3, sizeAIR, shapeNNN, false);
-    SymmetryBlockedTensor<T> LDai(arena, group, 3, sizeaiR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LDIJ("LDIJ", arena, group, 3, sizeIIR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LDij("LDij", arena, group, 3, sizeiiR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LDAB("LDAB", arena, group, 3, sizeAAR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LDab("LDab", arena, group, 3, sizeaaR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LDAI("LDAI", arena, group, 3, sizeAIR, shapeNNN, false);
+    SymmetryBlockedTensor<T> LDai("LDai", arena, group, 3, sizeaiR, shapeNNN, false);
 
     LDIJ["IJR"] = D["R"]*LIJ["IJR"];
     LDij["ijR"] = D["R"]*Lij["ijR"];

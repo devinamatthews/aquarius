@@ -113,8 +113,8 @@ class LocalTensor : public IndexableTensor<Derived,T>
     public:
         enum CopyType {CLONE, REFERENCE, REPLACE};
 
-        LocalTensor(const T val = (T)0)
-        : IndexableTensor<Derived,T>(0), len(0), ld(0), size(1)
+        LocalTensor(const std::string& name, const T val = (T)0)
+        : IndexableTensor<Derived,T>(name, 0), len(0), ld(0), size(1)
         {
             data = SAFE_MALLOC(T, 1);
             isAlloced = true;
@@ -123,15 +123,23 @@ class LocalTensor : public IndexableTensor<Derived,T>
         }
 
         LocalTensor(const Derived& A)
-        : IndexableTensor<Derived,T>(A.ndim), len(A.len), ld(A.ld), size(A.size)
+        : IndexableTensor<Derived,T>(A.name, A.ndim), len(A.len), ld(A.ld), size(A.size)
         {
             data = SAFE_MALLOC(T, size);
             std::copy(A.data, A.data+size, data);
             isAlloced = true;
         }
 
-        LocalTensor(Derived& A, const CopyType type=CLONE)
-        : IndexableTensor<Derived,T>(A.ndim), len(A.len), ld(A.ld), size(A.size)
+        LocalTensor(const std::string& name, const Derived& A)
+        : IndexableTensor<Derived,T>(name, A.ndim), len(A.len), ld(A.ld), size(A.size)
+        {
+            data = SAFE_MALLOC(T, size);
+            std::copy(A.data, A.data+size, data);
+            isAlloced = true;
+        }
+
+        LocalTensor(const std::string& name, Derived& A, const CopyType type=CLONE)
+        : IndexableTensor<Derived,T>(name, A.ndim), len(A.len), ld(A.ld), size(A.size)
         {
             switch (type)
             {
@@ -152,8 +160,8 @@ class LocalTensor : public IndexableTensor<Derived,T>
             }
         }
 
-        LocalTensor(const int ndim, const std::vector<int>& len, const std::vector<int>& ld_, uint64_t size, T* data, bool zero=false)
-        : IndexableTensor<Derived,T>(ndim), len(len), ld(ld_), size(size)
+        LocalTensor(const std::string& name, const int ndim, const std::vector<int>& len, const std::vector<int>& ld_, uint64_t size, T* data, bool zero=false)
+        : IndexableTensor<Derived,T>(name, ndim), len(len), ld(ld_), size(size)
         {
             assert(len.size() == ndim);
 
@@ -176,8 +184,8 @@ class LocalTensor : public IndexableTensor<Derived,T>
             if (zero) std::fill(data, data+size, (T)0);
         }
 
-        LocalTensor(int ndim, const std::vector<int>& len, const std::vector<int>& ld_, uint64_t size, bool zero=true)
-        : IndexableTensor<Derived,T>(ndim), len(len), ld(ld_), size(size)
+        LocalTensor(const std::string& name, int ndim, const std::vector<int>& len, const std::vector<int>& ld_, uint64_t size, bool zero=true)
+        : IndexableTensor<Derived,T>(name, ndim), len(len), ld(ld_), size(size)
         {
             assert(len.size() == ndim);
 
@@ -305,7 +313,7 @@ class LocalTensor : public IndexableTensor<Derived,T>
         T dot(bool conja, const Derived& A, const std::string& idx_A,
               bool conjb,                   const std::string& idx_B) const
         {
-            Derived dt;
+            Derived dt("scalar");
             dt.mult(1, conja,            A, idx_A,
                        conjb, getDerived(), idx_B,
                     0,                         "");

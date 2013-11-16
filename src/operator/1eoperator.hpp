@@ -59,21 +59,21 @@ class OneElectronOperatorBase : public MOOperator,
             ALL  = 0xFFFF
         };
 
-        OneElectronOperatorBase(const Arena& arena, const Space& occ, const Space& vrt)
-        : MOOperator(arena, occ, vrt),
-          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(1,0), std::vec(1,0)))),
-          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(0,1), std::vec(0,1)))),
-          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(1,0), std::vec(0,1)))),
-          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(arena, occ.group, std::vec(vrt, occ), std::vec(0,1), std::vec(1,0)))) {}
+        OneElectronOperatorBase(const std::string& name, const Arena& arena, const Space& occ, const Space& vrt)
+        : MOOperator(arena, occ, vrt), tensor::CompositeTensor<Derived,tensor::SpinorbitalTensor<T>,T>(name),
+          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(1,0), std::vec(1,0)))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(0,1), std::vec(0,1)))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(1,0), std::vec(0,1)))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(0,1), std::vec(1,0)))) {}
 
-        OneElectronOperatorBase(const MOSpace<T>& occ, const MOSpace<T>& vrt,
+        OneElectronOperatorBase(const std::string& name, const MOSpace<T>& occ, const MOSpace<T>& vrt,
                                 const tensor::SymmetryBlockedTensor<T>& aoa,
                                 const tensor::SymmetryBlockedTensor<T>& aob)
-        : MOOperator(occ.arena, occ, vrt),
-          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(1,0), std::vec(1,0)))),
-          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(0,1), std::vec(0,1)))),
-          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(1,0), std::vec(0,1)))),
-          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(0,1), std::vec(1,0))))
+        : MOOperator(occ.arena, occ, vrt), tensor::CompositeTensor<Derived,tensor::SpinorbitalTensor<T>,T>(name),
+          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(name, occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(1,0), std::vec(1,0)))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(name, occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(0,1), std::vec(0,1)))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(name, occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(1,0), std::vec(0,1)))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(name, occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(0,1), std::vec(1,0))))
         {
             const tensor::SymmetryBlockedTensor<T>& cA = vrt.Calpha;
             const tensor::SymmetryBlockedTensor<T>& ca = vrt.Cbeta;
@@ -99,10 +99,10 @@ class OneElectronOperatorBase : public MOOperator,
 
             std::vector<int> shapeNN = std::vec(NS, NS);
 
-            tensor::SymmetryBlockedTensor<T> Aq(this->arena, occ.group, 2, sizeAN, shapeNN, false);
-            tensor::SymmetryBlockedTensor<T> aq(this->arena, occ.group, 2, sizeaN, shapeNN, false);
-            tensor::SymmetryBlockedTensor<T> Iq(this->arena, occ.group, 2, sizeIN, shapeNN, false);
-            tensor::SymmetryBlockedTensor<T> iq(this->arena, occ.group, 2, sizeiN, shapeNN, false);
+            tensor::SymmetryBlockedTensor<T> Aq("Aq", this->arena, occ.group, 2, sizeAN, shapeNN, false);
+            tensor::SymmetryBlockedTensor<T> aq("aq", this->arena, occ.group, 2, sizeaN, shapeNN, false);
+            tensor::SymmetryBlockedTensor<T> Iq("Iq", this->arena, occ.group, 2, sizeIN, shapeNN, false);
+            tensor::SymmetryBlockedTensor<T> iq("iq", this->arena, occ.group, 2, sizeiN, shapeNN, false);
 
             Aq["Aq"] = cA["pA"]*aoa["pq"];
             aq["aq"] = ca["pa"]*aob["pq"];
@@ -123,27 +123,42 @@ class OneElectronOperatorBase : public MOOperator,
         }
 
         template <typename otherDerived>
-        OneElectronOperatorBase(OneElectronOperatorBase<T,otherDerived>& other, int copy)
-        : MOOperator(other),
-          ab(copy&AB ? this->addTensor(new tensor::SpinorbitalTensor<T>(other.getAB())) : this->addTensor(other.getAB())),
-          ij(copy&IJ ? this->addTensor(new tensor::SpinorbitalTensor<T>(other.getIJ())) : this->addTensor(other.getIJ())),
-          ai(copy&AI ? this->addTensor(new tensor::SpinorbitalTensor<T>(other.getAI())) : this->addTensor(other.getAI())),
-          ia(copy&IA ? this->addTensor(new tensor::SpinorbitalTensor<T>(other.getIA())) : this->addTensor(other.getIA())) {}
+        OneElectronOperatorBase(const std::string& name, OneElectronOperatorBase<T,otherDerived>& other, int copy)
+        : MOOperator(other), tensor::CompositeTensor<Derived,tensor::SpinorbitalTensor<T>,T>(name),
+          ab(copy&AB ? this->addTensor(new tensor::SpinorbitalTensor<T>(name, other.getAB())) : this->addTensor(other.getAB())),
+          ij(copy&IJ ? this->addTensor(new tensor::SpinorbitalTensor<T>(name, other.getIJ())) : this->addTensor(other.getIJ())),
+          ai(copy&AI ? this->addTensor(new tensor::SpinorbitalTensor<T>(name, other.getAI())) : this->addTensor(other.getAI())),
+          ia(copy&IA ? this->addTensor(new tensor::SpinorbitalTensor<T>(name, other.getIA())) : this->addTensor(other.getIA())) {}
 
         template <typename otherDerived>
         OneElectronOperatorBase(const OneElectronOperatorBase<T,otherDerived>& other)
-        : MOOperator(other),
+        : MOOperator(other), tensor::CompositeTensor<Derived,tensor::SpinorbitalTensor<T>,T>(other.name),
           ab(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getAB()))),
           ij(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getIJ()))),
           ai(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getAI()))),
           ia(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getIA()))) {}
 
+        template <typename otherDerived>
+        OneElectronOperatorBase(const std::string& name, const OneElectronOperatorBase<T,otherDerived>& other)
+        : MOOperator(other), tensor::CompositeTensor<Derived,tensor::SpinorbitalTensor<T>,T>(name),
+          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(name, other.getAB()))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(name, other.getIJ()))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(name, other.getAI()))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(name, other.getIA()))) {}
+
         OneElectronOperatorBase(const OneElectronOperatorBase<T,Derived>& other)
-        : MOOperator(other),
+        : MOOperator(other), tensor::CompositeTensor<Derived,tensor::SpinorbitalTensor<T>,T>(other.name),
           ab(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getAB()))),
           ij(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getIJ()))),
           ai(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getAI()))),
           ia(this->addTensor(new tensor::SpinorbitalTensor<T>(other.getIA()))) {}
+
+        OneElectronOperatorBase(const std::string& name, const OneElectronOperatorBase<T,Derived>& other)
+        : MOOperator(other), tensor::CompositeTensor<Derived,tensor::SpinorbitalTensor<T>,T>(name),
+          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(name, other.getAB()))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(name, other.getIJ()))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(name, other.getAI()))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(name, other.getIA()))) {}
 
         tensor::SpinorbitalTensor<T>& getAB() { return ab; }
         tensor::SpinorbitalTensor<T>& getIJ() { return ij; }
@@ -160,24 +175,31 @@ template <typename T>
 class OneElectronOperator : public OneElectronOperatorBase<T,OneElectronOperator<T> >
 {
     public:
-        OneElectronOperator(const Arena& arena, const Space& occ, const Space& vrt)
-        : OneElectronOperatorBase<T,OneElectronOperator<T> >(arena, occ, vrt) {}
+        OneElectronOperator(const std::string& name, const Arena& arena, const Space& occ, const Space& vrt)
+        : OneElectronOperatorBase<T,OneElectronOperator<T> >(name, arena, occ, vrt) {}
 
-        OneElectronOperator(const MOSpace<T>& occ, const MOSpace<T>& vrt,
+        OneElectronOperator(const std::string& name, const MOSpace<T>& occ, const MOSpace<T>& vrt,
                             const tensor::SymmetryBlockedTensor<T>& aoa,
                             const tensor::SymmetryBlockedTensor<T>& aob)
-        : OneElectronOperatorBase<T,OneElectronOperator<T> >(occ, vrt, aoa, aob) {}
+        : OneElectronOperatorBase<T,OneElectronOperator<T> >(name, occ, vrt, aoa, aob) {}
 
         template <typename Derived>
-        OneElectronOperator(OneElectronOperatorBase<T,Derived>& other, int copy)
-        : OneElectronOperatorBase<T,OneElectronOperator<T> >(other, copy) {}
+        OneElectronOperator(const std::string& name, OneElectronOperatorBase<T,Derived>& other, int copy)
+        : OneElectronOperatorBase<T,OneElectronOperator<T> >(name, other, copy) {}
 
         template <typename Derived>
         OneElectronOperator(const OneElectronOperatorBase<T,Derived>& other)
         : OneElectronOperatorBase<T,OneElectronOperator<T> >(other) {}
 
+        template <typename Derived>
+        OneElectronOperator(const std::string& name, const OneElectronOperatorBase<T,Derived>& other)
+        : OneElectronOperatorBase<T,OneElectronOperator<T> >(name, other) {}
+
         OneElectronOperator(const OneElectronOperator<T>& other)
         : OneElectronOperatorBase<T,OneElectronOperator<T> >(other) {}
+
+        OneElectronOperator(const std::string& name, const OneElectronOperator<T>& other)
+        : OneElectronOperatorBase<T,OneElectronOperator<T> >(name, other) {}
 };
 
 }

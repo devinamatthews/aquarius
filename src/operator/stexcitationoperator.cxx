@@ -30,15 +30,15 @@ using namespace aquarius::op;
 using namespace aquarius::tensor;
 
 template <typename U>
-STExcitationOperator<U,2>::STExcitationOperator(const OneElectronOperator<U>& X, const ExcitationOperator<U,2>& T)
-: ExcitationOperator<U,2>(X.arena, X.occ, X.vrt)
+STExcitationOperator<U,2>::STExcitationOperator(const std::string& name, const OneElectronOperator<U>& X, const ExcitationOperator<U,2>& T)
+: ExcitationOperator<U,2>(name, X.arena, X.occ, X.vrt)
 {
     transform(X, T, *this);
 }
 
 template <typename U>
-STExcitationOperator<U,2>::STExcitationOperator(const TwoElectronOperator<U>& X, const ExcitationOperator<U,2>& T)
-: ExcitationOperator<U,2>(X.arena, X.occ, X.vrt)
+STExcitationOperator<U,2>::STExcitationOperator(const std::string& name, const TwoElectronOperator<U>& X, const ExcitationOperator<U,2>& T)
+: ExcitationOperator<U,2>(name, X.arena, X.occ, X.vrt)
 {
     transform(X, T, *this);
 }
@@ -48,7 +48,7 @@ void STExcitationOperator<U,2>::transform(const OneElectronOperator<U>& X,
                                           const ExcitationOperator<U,2>& T,
                                                 ExcitationOperator<U,2>& Z)
 {
-    OneElectronOperator<U> W(const_cast<OneElectronOperator<U>&>(X),
+    OneElectronOperator<U> W("W", const_cast<OneElectronOperator<U>&>(X),
                              OneElectronOperator<U>::AB|OneElectronOperator<U>::IJ);
     transform(X, T, Z, W);
 }
@@ -84,19 +84,21 @@ void STExcitationOperator<U,2>::transform(const TwoElectronOperator<U>& X,
                                           const ExcitationOperator<U,2>& T,
                                                 ExcitationOperator<U,2>& Z)
 {
-    TwoElectronOperator<U> W(const_cast<TwoElectronOperator<U>&>(X), TwoElectronOperator<U>::AB|
+    TwoElectronOperator<U> W("W", const_cast<TwoElectronOperator<U>&>(X), TwoElectronOperator<U>::AB|
                                                                      TwoElectronOperator<U>::IJ|
                                                                      TwoElectronOperator<U>::IA|
                                                                      TwoElectronOperator<U>::IJKL|
                                                                      TwoElectronOperator<U>::IJAK|
                                                                      TwoElectronOperator<U>::AIJK|
                                                                      TwoElectronOperator<U>::AIBJ);
-    transform(X, T, Z, W);
+    SpinorbitalTensor<U> Tau("Tau", T(2));
+    transform(X, T, Tau, Z, W);
 }
 
 template <typename U>
 void STExcitationOperator<U,2>::transform(const TwoElectronOperator<U>& X,
                                           const ExcitationOperator<U,2>& T,
+                                                SpinorbitalTensor<U>& Tau,
                                                 ExcitationOperator<U,2>& Z,
                                                 TwoElectronOperator<U>& W)
 {
@@ -122,7 +124,7 @@ void STExcitationOperator<U,2>::transform(const TwoElectronOperator<U>& X,
     SpinorbitalTensor<U>& WAMIJ = W.getAIJK();
     SpinorbitalTensor<U>& WAMEI = W.getAIBJ();
 
-    SpinorbitalTensor<U> Tau(T(2));
+    Tau = T(2);
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
     Z(0) = (U)0.0;

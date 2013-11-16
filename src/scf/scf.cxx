@@ -73,17 +73,17 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
     vector<int> shapeNN = vec(NS,NS);
     vector<vector<int> > sizenn = vec(norb,norb);
 
-    put("Fa", new SymmetryBlockedTensor<T>(arena, group, 2, sizenn, shapeNN, false));
-    put("Fb", new SymmetryBlockedTensor<T>(arena, group, 2, sizenn, shapeNN, false));
-    put("Da", new SymmetryBlockedTensor<T>(arena, group, 2, sizenn, shapeNN, true));
-    put("Db", new SymmetryBlockedTensor<T>(arena, group, 2, sizenn, shapeNN, true));
+    put("Fa", new SymmetryBlockedTensor<T>("Fa", arena, group, 2, sizenn, shapeNN, false));
+    put("Fb", new SymmetryBlockedTensor<T>("Fb", arena, group, 2, sizenn, shapeNN, false));
+    put("Da", new SymmetryBlockedTensor<T>("Da", arena, group, 2, sizenn, shapeNN, true));
+    put("Db", new SymmetryBlockedTensor<T>("Db", arena, group, 2, sizenn, shapeNN, true));
 
-    puttmp("dF", new SymmetryBlockedTensor<T>(arena, group, 2, sizenn, shapeNN, false));
-    puttmp("Ca", new SymmetryBlockedTensor<T>(arena, group, 2, sizenn, shapeNN, false));
-    puttmp("Cb", new SymmetryBlockedTensor<T>(arena, group, 2, sizenn, shapeNN, false));
-    puttmp("dDa", new SymmetryBlockedTensor<T>(arena, group, 2, sizenn, shapeNN, false));
-    puttmp("dDb", new SymmetryBlockedTensor<T>(arena, group, 2, sizenn, shapeNN, false));
-    puttmp("S^-1/2", new SymmetryBlockedTensor<T>(arena, group, 2, sizenn, shapeNN, false));
+    puttmp("dF", new SymmetryBlockedTensor<T>("dF", arena, group, 2, sizenn, shapeNN, false));
+    puttmp("Ca", new SymmetryBlockedTensor<T>("Ca", arena, group, 2, sizenn, shapeNN, false));
+    puttmp("Cb", new SymmetryBlockedTensor<T>("Cb", arena, group, 2, sizenn, shapeNN, false));
+    puttmp("dDa", new SymmetryBlockedTensor<T>("dDa", arena, group, 2, sizenn, shapeNN, false));
+    puttmp("dDb", new SymmetryBlockedTensor<T>("dDb", arena, group, 2, sizenn, shapeNN, false));
+    puttmp("S^-1/2", new SymmetryBlockedTensor<T>("S^-1/2", arena, group, 2, sizenn, shapeNN, false));
 
     occ_alpha.resize(group.getNumIrreps());
     occ_beta.resize(group.getNumIrreps());
@@ -171,17 +171,17 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
     }
 
     vector<int> zero(norb.size(), 0);
-    put("occ", new MOSpace<T>(new SymmetryBlockedTensor<T>(gettmp<SymmetryBlockedTensor<T> >("Ca"),
+    put("occ", new MOSpace<T>(new SymmetryBlockedTensor<T>("CI", gettmp<SymmetryBlockedTensor<T> >("Ca"),
                                                            vec(zero,nfrozen_alpha),
                                                            vec(norb,occ_alpha)),
-                              new SymmetryBlockedTensor<T>(gettmp<SymmetryBlockedTensor<T> >("Cb"),
+                              new SymmetryBlockedTensor<T>("Ci", gettmp<SymmetryBlockedTensor<T> >("Cb"),
                                                            vec(zero,nfrozen_beta),
                                                            vec(norb,occ_beta))));
 
-   	put("vrt", new MOSpace<T>(new SymmetryBlockedTensor<T>(gettmp<SymmetryBlockedTensor<T> >("Ca"),
+   	put("vrt", new MOSpace<T>(new SymmetryBlockedTensor<T>("CA", gettmp<SymmetryBlockedTensor<T> >("Ca"),
                                                            vec(zero,vrt0_alpha),
                                                            vec(norb,vrt_alpha)),
-   	                          new SymmetryBlockedTensor<T>(gettmp<SymmetryBlockedTensor<T> >("Cb"),
+   	                          new SymmetryBlockedTensor<T>("Ca", gettmp<SymmetryBlockedTensor<T> >("Cb"),
                                                            vec(zero,vrt0_beta),
                                                            vec(norb,vrt_beta))));
 }
@@ -228,13 +228,13 @@ void UHF<T>::calcS2()
     SymmetryBlockedTensor<T>& S = get<SymmetryBlockedTensor<T> >("S");
 
     vector<int> zero(norb.size(), 0);
-    SymmetryBlockedTensor<T> Ca_occ(gettmp<SymmetryBlockedTensor<T> >("Ca"),
+    SymmetryBlockedTensor<T> Ca_occ("CI", gettmp<SymmetryBlockedTensor<T> >("Ca"),
                                     vec(zero,zero), vec(norb,occ_alpha));
-    SymmetryBlockedTensor<T> Cb_occ(gettmp<SymmetryBlockedTensor<T> >("Cb"),
+    SymmetryBlockedTensor<T> Cb_occ("Ci", gettmp<SymmetryBlockedTensor<T> >("Cb"),
                                     vec(zero,zero), vec(norb,occ_beta));
 
-    SymmetryBlockedTensor<T> Delta(S.arena, group, 2, vec(vec(nalpha),vec(nbeta)), vec(NS,NS), false);
-    SymmetryBlockedTensor<T> tmp(S.arena, group, 2, vec(vec(nalpha),norb), vec(NS,NS), false);
+    SymmetryBlockedTensor<T> Delta("Delta", S.arena, group, 2, vec(vec(nalpha),vec(nbeta)), vec(NS,NS), false);
+    SymmetryBlockedTensor<T> tmp("tmp", S.arena, group, 2, vec(vec(nalpha),norb), vec(NS,NS), false);
 
     int ndiff = abs(nalpha-nbeta);
     int nmin = min(nalpha, nbeta);
@@ -647,9 +647,9 @@ void UHF<T>::calcDensity()
     SymmetryBlockedTensor<T>& Db = get<SymmetryBlockedTensor<T> >("Db");
 
     vector<int> zero(norb.size(), 0);
-    SymmetryBlockedTensor<T> Ca_occ(gettmp<SymmetryBlockedTensor<T> >("Ca"),
+    SymmetryBlockedTensor<T> Ca_occ("CI", gettmp<SymmetryBlockedTensor<T> >("Ca"),
                                     vec(zero,zero), vec(norb,occ_alpha));
-    SymmetryBlockedTensor<T> Cb_occ(gettmp<SymmetryBlockedTensor<T> >("Cb"),
+    SymmetryBlockedTensor<T> Cb_occ("Ci", gettmp<SymmetryBlockedTensor<T> >("Cb"),
                                     vec(zero,zero), vec(norb,occ_beta));
 
     /*
@@ -718,8 +718,8 @@ void UHF<T>::DIISExtrap()
      *     = [F,D] = 0 at convergence.
      */
     {
-        SymmetryBlockedTensor<T> tmp1(Fa);
-        SymmetryBlockedTensor<T> tmp2(Fa);
+        SymmetryBlockedTensor<T> tmp1("tmp", Fa);
+        SymmetryBlockedTensor<T> tmp2("tmp", Fa);
 
         tmp1["ab"]  =     Fa["ac"]*    Da["cb"];
         tmp2["ab"]  =   tmp1["ac"]*     S["cb"];

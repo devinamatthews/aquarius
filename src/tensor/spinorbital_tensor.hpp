@@ -53,11 +53,13 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,S
     INHERIT_FROM_INDEXABLE_COMPOSITE_TENSOR(SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T)
 
     public:
-        SpinorbitalTensor(const SpinorbitalTensor<T>& t, const T val);
+        SpinorbitalTensor(const std::string& name, const SpinorbitalTensor<T>& t, const T val);
 
         SpinorbitalTensor(const SpinorbitalTensor<T>& other);
 
-        SpinorbitalTensor(const Arena& arena,
+        SpinorbitalTensor(const std::string& name, const SpinorbitalTensor<T>& other);
+
+        SpinorbitalTensor(const std::string& name, const Arena& arena,
                           const symmetry::PointGroup& group,
                           const std::vector<op::Space>& spaces,
                           const std::vector<int>& nout,
