@@ -27,6 +27,7 @@
 
 #include <iostream>
 #include <complex>
+#include <fstream>
 
 #include "mpi.h"
 #include "omp.h"
@@ -1463,6 +1464,13 @@ class Distributed
         const int nproc;
 
         Distributed(const Arena& arena) : arena(arena), rank(arena.rank), nproc(arena.nproc) {}
+
+        static std::ostream& debug()
+        {
+            static std::fstream fs(std::strprintf("debug.%d", MPI::COMM_WORLD.Get_rank()).c_str(),
+                                   std::fstream::out|std::fstream::trunc);
+            return fs;
+        }
 };
 
 }

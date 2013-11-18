@@ -22,6 +22,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
+#include <fstream>
+
 #include "symblocked_tensor.hpp"
 
 using namespace std;
@@ -89,6 +91,7 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, const Symmet
 : IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(name, A.ndim, 0), Resource(A.arena),
   group(A.group), len(len_A), sym(A.sym)
 {
+        debug() << "b: " << len << endl;
     allocate(false);
     slice((T)1, false, A, start_A, (T)0);
     register_scalar();
@@ -103,6 +106,8 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, const Arena&
 {
     assert(sym.size() == ndim);
     assert(len.size() == ndim);
+
+    debug() << "a: " << len << endl;
     allocate(zero);
     register_scalar();
 }
@@ -134,6 +139,8 @@ void SymmetryBlockedTensor<T>::allocate(bool zero)
     factor.resize(ntensors, 1.0);
     reorder.resize(ntensors);
 
+    debug() << len << endl;
+
     int t = 0;
     vector<int> idx(ndim, 0);
     vector<Representation> prod(ndim+1, group.totallySymmetricIrrep());
@@ -159,6 +166,7 @@ void SymmetryBlockedTensor<T>::allocate(bool zero)
             assert(t < ntensors);
             if (ok)
             {
+                debug() << t << " " << sublen << endl;
                 tensors[t].tensor = new CTFTensor<T>(this->name, this->arena, ndim, sublen, subsym, zero);
                 tensors[t].isAlloced = true;
             }

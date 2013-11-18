@@ -511,6 +511,7 @@ void UHF<T>::diagonalizeFock()
             PROFILE_FLOPS(9*norb[i]*norb[i]*norb[i]);
             info = hegv(AXBX, 'V', 'U', norb[i], fock.data(), norb[i], tmp.data(), norb[i], E_alpha[i].data());
             assert(info == 0);
+            S.arena.Bcast(E_alpha[i], 0);
 
             for (int j = 0;j < norb[i];j++)
             {
@@ -540,6 +541,7 @@ void UHF<T>::diagonalizeFock()
             PROFILE_FLOPS(9*norb[i]*norb[i]*norb[i]);
             info = hegv(AXBX, 'V', 'U', norb[i], fock.data(), norb[i], s.data(), norb[i], E_beta[i].data());
             assert(info == 0);
+            S.arena.Bcast(E_beta[i], 0);
 
             for (int j = 0;j < norb[i];j++)
             {
@@ -568,8 +570,10 @@ void UHF<T>::diagonalizeFock()
         {
             S.getAllData(irreps, 0);
             Fa.getAllData(irreps, 0);
+            S.arena.Bcast(E_alpha[i], 0);
             Ca.writeRemoteData(irreps);
             Fb.getAllData(irreps, 0);
+            S.arena.Bcast(E_beta[i], 0);
             Cb.writeRemoteData(irreps);
         }
     }
@@ -603,6 +607,10 @@ void UHF<T>::diagonalizeFock()
     {
         occ_beta[E_beta_sorted[i].second]++;
     }
+    Distributed::debug() << nalpha << " " << nbeta << endl;
+    Distributed::debug() << E_alpha << endl;
+    Distributed::debug() << E_beta << endl;
+    Distributed::debug() << occ_alpha << " " << occ_beta << endl;
 
     log(S.arena) << "Iteration " << iter << " occupation = " << occ_alpha << ", " << occ_beta << endl;
 }
@@ -647,6 +655,7 @@ void UHF<T>::calcDensity()
     SymmetryBlockedTensor<T>& Db = get<SymmetryBlockedTensor<T> >("Db");
 
     vector<int> zero(norb.size(), 0);
+    Distributed::debug() << occ_alpha << " " << occ_beta << endl;
     SymmetryBlockedTensor<T> Ca_occ("CI", gettmp<SymmetryBlockedTensor<T> >("Ca"),
                                     vec(zero,zero), vec(norb,occ_alpha));
     SymmetryBlockedTensor<T> Cb_occ("Ci", gettmp<SymmetryBlockedTensor<T> >("Cb"),

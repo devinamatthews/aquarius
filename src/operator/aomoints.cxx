@@ -577,7 +577,7 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symt
 
             irrrs = group.getIrrep(irrr)*group.getIrrep(irrs);
             fill(offab.begin(), offab.end(), SIZE_MAX);
-            getNumAB(rs[startr[irrr]+starts[irrs]*nrtot], offab);
+            getNumAB(idx2_t(startr[irrr],starts[irrs]), offab);
 
             for (int irrb = 0;irrb < n;irrb++)
             {
