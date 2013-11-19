@@ -1674,7 +1674,6 @@ def print_scf(file):
     file.write('\tconvergence 1e-9,\n')
     file.write('\tfrozen_core on,\n')
     file.write('\tmax_iterations 100,\n')
-    file.write('\tdamping 0,\n')
     file.write('\tdiis\n\t{\n')
     file.write('\t\torder 6,\n')
     file.write('\t\tstart 8\n\t}\n},\n')
