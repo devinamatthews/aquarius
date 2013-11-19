@@ -77,6 +77,8 @@ ccd
 		enum { MAXE, RMSE, MAE },
 	diis?
 	{
+        damping?
+            double 0.0,
 		start?
 			int 1,
 		order?
@@ -95,6 +97,8 @@ ccsd
         enum { MAXE, RMSE, MAE },
     diis?
     {
+        damping?
+            double 0.0,
         start?
             int 1,
         order?
@@ -113,6 +117,8 @@ ccsdt
         enum { MAXE, RMSE, MAE },
     diis?
     {
+        damping?
+            double 0.0,
         start?
             int 1,
         order?
@@ -131,6 +137,8 @@ lambdaccsd
 		enum { MAXE, RMSE, MAE },
 	diis?
 	{
+        damping?
+            double 0.0,
 		start?
 			int 1,
 		order?
