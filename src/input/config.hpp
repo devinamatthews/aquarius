@@ -195,7 +195,7 @@ class Config
         template<typename T>
         std::vector< std::pair<std::string,T> > find(const std::string& pattern) const;
 
-        void read(std::istream& is);
+        void read(const std::string& cwd, std::istream& is);
 
         void read(const std::string& file);
 

@@ -425,11 +425,21 @@ void Config::addNode(node_t* parent, node_t* child)
 
 void Config::read(const string& file)
 {
+    string cwd;
+    if (file.find('/') == string::npos)
+    {
+        cwd = ".";
+    }
+    else
+    {
+        cwd = file.substr(0, file.rfind('/'));
+    }
+
     ifstream ifs(file.c_str());
-    read(ifs);
+    read(cwd, ifs);
 }
 
-void Config::read(istream& is)
+void Config::read(const string& cwd, istream& is)
 {
     detachNode(root);
     root = new node_t;
@@ -488,7 +498,10 @@ void Config::read(istream& is)
                         throw FormatError("\"include\" must be immediately followed by a filename", t.getLine());
                     }
 
-                    Config leaf(token.substr(0, len));
+                    string fname = token.substr(0, len);
+                    if (fname[0] != '/') fname = cwd+'/'+fname;
+
+                    Config leaf(fname);
                     for (node_t *n = leaf.root->children;n != NULL;n = n->next)
                     {
                         addNode(current.back(), cloneNode(n));
