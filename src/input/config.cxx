@@ -131,7 +131,7 @@ Config::Config(istream& is)
 {
     root = new node_t;
     root->children = NULL;
-    read(is);
+    read(".", is);
 }
 
 Config::Config(const string& file)
