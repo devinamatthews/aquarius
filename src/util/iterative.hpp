@@ -82,11 +82,9 @@ class Iterative : public task::Task
         {
             for (iter = 1;iter <= maxiter && !isConverged();iter++)
             {
-                time::Timer timer;
-                timer.start();
+                double t = MPI_Wtime();
                 iterate();
-                timer.stop();
-                double dt = timer.seconds(arena);
+                double dt = t - MPI_Wtime();
 
                 int ndigit = (int)(ceil(-log10(convtol))+0.5);
 
