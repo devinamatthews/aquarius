@@ -84,7 +84,7 @@ class Iterative : public task::Task
             {
                 double t = MPI_Wtime();
                 iterate();
-                double dt = t - MPI_Wtime();
+                double dt = MPI_Wtime()-t;
 
                 int ndigit = (int)(ceil(-log10(convtol))+0.5);
 
