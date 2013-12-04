@@ -59,8 +59,20 @@ namespace time
 
 static std::vector<Interval> *tics[128];
 
+#ifdef AQ_USE_MPI_WTIME
+#include "mpi.h"
 Interval Interval::time()
 {
+    return Interval(MPI_Wtime(), 0);
+}
+Interval Interval::cputime()
+{
+    return Interval(MPI_Wtime(), 0);
+}
+#else
+Interval Interval::time()
+{
+    #
     #ifdef __MACH__
     static double conv = -1.0;
     if (conv < 0)
@@ -96,6 +108,7 @@ Interval Interval::cputime()
     return Interval((double)ts.tv_sec+(double)ts.tv_nsec/1e9, 0);
     #endif
 }
+#endif
 
 bool Interval::operator<(const Interval& other) const
 {
