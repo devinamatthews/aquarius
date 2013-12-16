@@ -37,9 +37,7 @@ using namespace aquarius::symmetry;
 
 template <typename T>
 UHF<T>::UHF(const std::string& type, const std::string& name, const Config& config)
-: Iterative(type, name, config),
-	frozen_core(config.get<bool>("frozen_core")),
-  damping(config.get<T>("damping")),
+: Iterative(type, name, config), frozen_core(config.get<bool>("frozen_core")),
   diis(config.get("diis"), 2)
 {
     vector<Requirement> reqs;
@@ -607,10 +605,6 @@ void UHF<T>::diagonalizeFock()
     {
         occ_beta[E_beta_sorted[i].second]++;
     }
-    Distributed::debug() << nalpha << " " << nbeta << endl;
-    Distributed::debug() << E_alpha << endl;
-    Distributed::debug() << E_beta << endl;
-    Distributed::debug() << occ_alpha << " " << occ_beta << endl;
 
     log(S.arena) << "Iteration " << iter << " occupation = " << occ_alpha << ", " << occ_beta << endl;
 }
@@ -655,7 +649,6 @@ void UHF<T>::calcDensity()
     SymmetryBlockedTensor<T>& Db = get<SymmetryBlockedTensor<T> >("Db");
 
     vector<int> zero(norb.size(), 0);
-    Distributed::debug() << occ_alpha << " " << occ_beta << endl;
     SymmetryBlockedTensor<T> Ca_occ("CI", gettmp<SymmetryBlockedTensor<T> >("Ca"),
                                     vec(zero,zero), vec(norb,occ_alpha));
     SymmetryBlockedTensor<T> Cb_occ("Ci", gettmp<SymmetryBlockedTensor<T> >("Cb"),
@@ -666,27 +659,10 @@ void UHF<T>::calcDensity()
      */
     dDa["ab"]  = Da["ab"];
     dDb["ab"]  = Db["ab"];
-     Da = 0;
-     Db = 0;
-     Da["ab"] += Ca_occ["ai"]*Ca_occ["bi"];
-     Db["ab"] += Cb_occ["ai"]*Cb_occ["bi"];
+     Da["ab"]  = Ca_occ["ai"]*Ca_occ["bi"];
+     Db["ab"]  = Cb_occ["ai"]*Cb_occ["bi"];
     dDa["ab"] -= Da["ab"];
     dDb["ab"] -= Db["ab"];
-
-    for (int i = 0;i < molecule.getGroup().getNumIrreps();i++)
-    {
-        //cout << "D " << (i+1) << endl;
-        //vector<T> vals;
-        //Da(vec(i,i)).getAllData(vals);
-        //scal(vals.size(), 2, vals.data(), 1);
-        //printmatrix(norb[i], norb[i], vals.data(), 6, 3, 108);
-    }
-
-    if (damping > 0.0)
-    {
-        Da["ab"] += damping*dDa["ab"];
-        Db["ab"] += damping*dDb["ab"];
-    }
 }
 
 template <typename T>

@@ -50,6 +50,7 @@ class DIIS
         std::vector< std::vector<U*> > old_dx;
         std::vector<dtype> c, e;
         int nextrap, start, nx, ndx;
+        double damping;
 
     public:
         DIIS(const input::Config& config, const int nx = 1, const int ndx = 1)
@@ -57,6 +58,7 @@ class DIIS
         {
             nextrap = config.get<int>("order");
             start = config.get<int>("start");
+            damping = config.get<double>("damping");
 
             e.resize((nextrap+1)*(nextrap+1));
             c.resize(nextrap+1);
@@ -204,7 +206,20 @@ class DIIS
             printf("\n");
             */
 
-            if (nextrap_real == 1 || --start > 1) return;
+            if (nextrap_real == 1) return;
+
+            if (--start > 1)
+            {
+                if (damping > 0.0)
+                {
+                    for (int i = 0;i < nx;i++)
+                    {
+                        (damping-1)*(*old_x[0][i]) += damping*(*old_x[1][i]);
+                    }
+                }
+
+                return;
+            }
 
             {
                 int info;
