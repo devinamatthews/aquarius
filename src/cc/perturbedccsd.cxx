@@ -83,7 +83,7 @@ void PerturbedCCSD<U>::run(TaskDAG& dag, const Arena& arena)
 }
 
 template <typename U>
-void PerturbedCCSD<U>::iterate()
+void PerturbedCCSD<U>::iterate(const Arena& arena)
 {
     const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
 

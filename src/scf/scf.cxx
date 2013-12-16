@@ -185,7 +185,7 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
 }
 
 template <typename T>
-void UHF<T>::iterate()
+void UHF<T>::iterate(const Arena& arena)
 {
     buildFock();
     DIISExtrap();

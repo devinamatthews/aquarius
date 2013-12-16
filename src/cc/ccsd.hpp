@@ -53,7 +53,7 @@ class CCSD : public Iterative
 
         void run(task::TaskDAG& dag, const Arena& arena);
 
-        void iterate();
+        void iterate(const Arena& arena);
 
         /*
         static double getProjectedS2(const op::MOSpace<U>& occ, const op::MOSpace<U>& vrt,

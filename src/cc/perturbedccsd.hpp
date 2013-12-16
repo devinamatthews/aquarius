@@ -58,7 +58,7 @@ class PerturbedCCSD : public Iterative
 
         void run(task::TaskDAG& dag, const Arena& arena);
 
-        void iterate();
+        void iterate(const Arena& arena);
 };
 
 }

@@ -104,7 +104,7 @@ void CCSDT<U>::run(task::TaskDAG& dag, const Arena& arena)
 }
 
 template <typename U>
-void CCSDT<U>::iterate()
+void CCSDT<U>::iterate(const Arena& arena)
 {
     TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
 

@@ -49,7 +49,7 @@ class Iterative : public task::Task
         int iter;
         int maxiter;
 
-        virtual void iterate() = 0;
+        virtual void iterate(const Arena& arena) = 0;
 
     public:
         Iterative(const std::string& type, const std::string& name, const input::Config& config)
@@ -84,7 +84,7 @@ class Iterative : public task::Task
             {
                 time::Timer timer;
                 timer.start();
-                iterate();
+                iterate(arena);
                 timer.stop();
                 double dt = timer.seconds(arena);
 

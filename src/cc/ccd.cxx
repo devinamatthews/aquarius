@@ -100,7 +100,7 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
 }
 
 template <typename U>
-void CCD<U>::iterate()
+void CCD<U>::iterate(const Arena& arena)
 {
     TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
 
@@ -120,11 +120,17 @@ void CCD<U>::iterate()
     SpinorbitalTensor<U>& WMNIJ = H.getIJKL();
     SpinorbitalTensor<U>& WAMEI = H.getAIBJ();
 
+    tCTF_World<double> * dw = &(tCTF_World<double>&)arena.ctf<U>();
+    tCTF_Schedule<double> sched(dw);
+    sched.set_max_partitions(1);
+    Z(2)["abij"] = WMNEF["ijab"];
     /**************************************************************************
      *
      * Intermediates
      */
     FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
+
+
     WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*T(2)["efij"];
     FAE["ae"] -= 0.5*WMNEF["mnef"]*T(2)["afmn"];
     WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T(2)["afin"];
@@ -135,9 +141,10 @@ void CCD<U>::iterate()
      *
      * T(1)->T(2) and T(2)->T(2)
      */
-    Z(2)["abij"] = WMNEF["ijab"];
     Z(2)["abij"] += FAE["af"]*T(2)["fbij"];
+    sched.record();
     Z(2)["abij"] -= FMI["ni"]*T(2)["abnj"];
+    tCTF_ScheduleTimer schedule_time = sched.execute();
     Z(2)["abij"] += 0.5*WABEF["abef"]*T(2)["efij"];
     Z(2)["abij"] += 0.5*WMNIJ["mnij"]*T(2)["abmn"];
     Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];
