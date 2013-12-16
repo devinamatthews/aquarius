@@ -138,6 +138,8 @@ void CCSDT<U>::iterate(const Arena& arena)
     SpinorbitalTensor<U>& WAMEI = W.getAIBJ();
 
     SpinorbitalTensor<U> Tau("Tau", T(2));
+    tCTF_World<double> * dw = &(tCTF_World<double>&)arena.ctf<U>();
+    tCTF_Schedule<double> sched(dw);
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
     /**************************************************************************
@@ -249,6 +251,7 @@ void CCSDT<U>::iterate(const Arena& arena)
     Z(3)["abcijk"] -= WAMEI["amei"]*T(3)["ebcmjk"];
     /*
      **************************************************************************/
+    tCTF_ScheduleTimer schedule_time = sched.execute();
 
     Z.weight(D);
     T += Z;

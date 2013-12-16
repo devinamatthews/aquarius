@@ -122,12 +122,12 @@ void CCD<U>::iterate(const Arena& arena)
 
     tCTF_World<double> * dw = &(tCTF_World<double>&)arena.ctf<U>();
     tCTF_Schedule<double> sched(dw);
-    sched.set_max_partitions(1);
-    Z(2)["abij"] = WMNEF["ijab"];
+//    sched.set_max_partitions(1);
     /**************************************************************************
      *
      * Intermediates
      */
+    sched.record();
     FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
 
 
@@ -141,15 +141,15 @@ void CCD<U>::iterate(const Arena& arena)
      *
      * T(1)->T(2) and T(2)->T(2)
      */
+    Z(2)["abij"] = WMNEF["ijab"];
     Z(2)["abij"] += FAE["af"]*T(2)["fbij"];
-    sched.record();
     Z(2)["abij"] -= FMI["ni"]*T(2)["abnj"];
-    tCTF_ScheduleTimer schedule_time = sched.execute();
     Z(2)["abij"] += 0.5*WABEF["abef"]*T(2)["efij"];
     Z(2)["abij"] += 0.5*WMNIJ["mnij"]*T(2)["abmn"];
     Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];
     /*
      *************************************************************************/
+    tCTF_ScheduleTimer schedule_time = sched.execute();
 
     Z.weight(D);
     T += Z;
