@@ -444,13 +444,11 @@ void CTFTensor<T>::mult(T alpha, bool conja, const CTFTensor<T>& A, const string
                                   bool conjb, const CTFTensor<T>& B, const string& idx_B,
                          T  beta,                                     const string& idx_C)
 {
-    if (beta != 1.0)
-      (*this->dt)[idx_C.c_str()] += (beta-1.0)*(*this->dt)[idx_C.c_str()];
-    (*this->dt)[idx_C.c_str()] += alpha*(*A.dt)[idx_A.c_str()]*(*B.dt)[idx_B.c_str()];
+    (*this->dt)[idx_C.c_str()]*beta += alpha*(*A.dt)[idx_A.c_str()]*(*B.dt)[idx_B.c_str()];
 /*    dt->contract(alpha, *A.dt, idx_A.c_str(),
                         *B.dt, idx_B.c_str(),
-                  beta,        idx_C.c_str());
-*/}
+                  beta,        idx_C.c_str());*/
+}
 
 template <typename T>
 void CTFTensor<T>::sum(T alpha, T beta)
@@ -465,11 +463,7 @@ template <typename T>
 void CTFTensor<T>::sum(T alpha, bool conja, const CTFTensor<T>& A, const string& idx_A,
                         T  beta,                                     const string& idx_B)
 {
-    if (beta != 1.0)
-      (*this->dt)[idx_B.c_str()] += (beta-1.0)*(*this->dt)[idx_B.c_str()];
-    (*this->dt)[idx_B.c_str()] += alpha*(*A.dt)[idx_A.c_str()];
-    /*dt->sum(alpha, *A.dt, idx_A.c_str(),
-             beta,        idx_B.c_str());*/
+    (*this->dt)[idx_B.c_str()]*beta += alpha*(*A.dt)[idx_A.c_str()];
 }
 
 template <typename T>

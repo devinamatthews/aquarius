@@ -120,14 +120,11 @@ void CCD<U>::iterate(const Arena& arena)
     SpinorbitalTensor<U>& WMNIJ = H.getIJKL();
     SpinorbitalTensor<U>& WAMEI = H.getAIBJ();
 
-    tCTF_World<double> * dw = &(tCTF_World<double>&)arena.ctf<U>();
-    tCTF_Schedule<double> sched(dw);
 //    sched.set_max_partitions(1);
     /**************************************************************************
      *
      * Intermediates
      */
-    sched.record();
     FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
 
 
@@ -149,7 +146,6 @@ void CCD<U>::iterate(const Arena& arena)
     Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];
     /*
      *************************************************************************/
-    tCTF_ScheduleTimer schedule_time = sched.execute();
 
     Z.weight(D);
     T += Z;
