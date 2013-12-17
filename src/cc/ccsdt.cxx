@@ -140,6 +140,10 @@ void CCSDT<U>::iterate(const Arena& arena)
     SpinorbitalTensor<U> Tau("Tau", T(2));
     tCTF_World<double> * dw = &(tCTF_World<double>&)arena.ctf<U>();
     tCTF_Schedule<double> sched(dw);
+    double timer = MPI_Wtime();
+
+    sched.set_max_partitions(1);
+    sched.record();
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
     /**************************************************************************
@@ -252,6 +256,15 @@ void CCSDT<U>::iterate(const Arena& arena)
     /*
      **************************************************************************/
     tCTF_ScheduleTimer schedule_time = sched.execute();
+    if (arena.rank == 0) {
+      printf("Schedule comm down: %lf\n", schedule_time.comm_down_time);
+      printf("Schedule execute: %lf\n", schedule_time.exec_time);
+      printf("Schedule comm up: %lf\n", schedule_time.comm_up_time);
+      printf("Schedule total: %lf\n", schedule_time.total_time);
+      printf("All execute: %lf\n",
+              MPI_Wtime()-timer);
+    }
+
 
     Z.weight(D);
     T += Z;
