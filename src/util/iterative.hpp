@@ -99,7 +99,7 @@ class Iterative : public task::Task
 
             if (!isConverged())
             {
-                throw std::runtime_error(std::strprintf("Did not converge in %d iterations", maxiter));
+                log(arena) << "Did not converge in " << maxiter << " iterations" << std::endl;
             }
         }
 
