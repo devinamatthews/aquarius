@@ -184,9 +184,9 @@ def print_w6cage(file):
 #Hexamer_book *** C1
 #-------------------
 def print_w6book(file):
-        file.write('\tatom {O,        .12690919     1.55143405,      .88294964 },\n')
-        file.write('\tatom {H,        .97284357     1.51744599,      .37215837 },\n')
-        file.write('\tatom {H,        .28507553     2.15693315,     1.61278908 },\n')
+        file.write('\tatom {O,        .12690919,     1.55143405,      .88294964 },\n')
+        file.write('\tatom {H,        .97284357,     1.51744599,      .37215837 },\n')
+        file.write('\tatom {H,        .28507553,     2.15693315,     1.61278908 },\n')
         file.write('\tatom {O,       2.40793689,     1.19494170,     -.47593962 },\n')
         file.write('\tatom {H,       2.47425116,      .21052194     -.50791280 },\n')
         file.write('\tatom {H,       2.52608509,     1.48774408,    -1.38342225 },\n')
@@ -231,7 +231,7 @@ def print_w6prism(file):
 #---------------------
 def print_w6cyclic(file):
         file.write('\tatom {O,        .00023538,     2.69029255,      .14950471 },\n')
-        file.write('\tatom {O,      -2.32998012,    -1.34494169,      .1495044 },1\n')
+        file.write('\tatom {O,      -2.32998012,    -1.34494169,      .14950441 },\n')
         file.write('\tatom {O,       2.32998012,     1.34494169,     -.14950441 },\n')
         file.write('\tatom {O,      -2.32974435,     1.34535112,     -.14950375 },\n')
         file.write('\tatom {O,       -.00023538,    -2.69029255,     -.14950471 },\n')
