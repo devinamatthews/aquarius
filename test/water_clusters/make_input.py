@@ -1664,7 +1664,7 @@ def print_geom(file,cluster):
   elif cluster == "w64":
     print_w64(file)
   elif cluster[0] == "w":
-    n = int(cluster[1:])-1
+    n = int(cluster[1:])
     for i in range(0,n):
       print_w1(file,1.0*i)
 
