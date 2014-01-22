@@ -90,10 +90,11 @@ def print_rubrene(file):
 #------------
 #Monomer *** C2v
 #------------
-def print_w1(file):
-        file.write('\tatom {O,      0.00000000,     0.00000000,     0.11726921 },\n')
-        file.write('\tatom {H,      0.75698224,     0.00000000,    -0.46907685 },\n')
-        file.write('\tatom {H,     -0.75698224,     0.00000000,    -0.46907685 },\n')
+def print_w1(file,ycor):
+        file.write('\tatom {O,      0.00000000,     '+str(ycor)+',     0.11726921 },\n')
+        file.write('\tatom {H,      0.75698224,     '+str(ycor)+',    -0.46907685 },\n')
+        file.write('\tatom {H,     -0.75698224,     '+str(ycor)+',    -0.46907685 },\n')
+
 
 #------------
 #Dimer *** Cs
@@ -184,9 +185,9 @@ def print_w6cage(file):
 #Hexamer_book *** C1
 #-------------------
 def print_w6book(file):
-        file.write('\tatom {O,        .12690919     1.55143405,      .88294964 },\n')
-        file.write('\tatom {H,        .97284357     1.51744599,      .37215837 },\n')
-        file.write('\tatom {H,        .28507553     2.15693315,     1.61278908 },\n')
+        file.write('\tatom {O,        .12690919,     1.55143405,      .88294964 },\n')
+        file.write('\tatom {H,        .97284357,     1.51744599,      .37215837 },\n')
+        file.write('\tatom {H,        .28507553,     2.15693315,     1.61278908 },\n')
         file.write('\tatom {O,       2.40793689,     1.19494170,     -.47593962 },\n')
         file.write('\tatom {H,       2.47425116,      .21052194     -.50791280 },\n')
         file.write('\tatom {H,       2.52608509,     1.48774408,    -1.38342225 },\n')
@@ -231,7 +232,7 @@ def print_w6prism(file):
 #---------------------
 def print_w6cyclic(file):
         file.write('\tatom {O,        .00023538,     2.69029255,      .14950471 },\n')
-        file.write('\tatom {O,      -2.32998012,    -1.34494169,      .1495044 },1\n')
+        file.write('\tatom {O,      -2.32998012,    -1.34494169,      .14950441 },\n')
         file.write('\tatom {O,       2.32998012,     1.34494169,     -.14950441 },\n')
         file.write('\tatom {O,      -2.32974435,     1.34535112,     -.14950375 },\n')
         file.write('\tatom {O,       -.00023538,    -2.69029255,     -.14950471 },\n')
@@ -1595,73 +1596,77 @@ def print_geom(file,cluster):
   if cluster == "rubrene":
     print_rubrene(file)
   if cluster == "w1":
-    print_w1(file)
-  if cluster == "w2":
+    print_w1(file,0.0)
+  elif cluster == "w2":
     print_w2(file)
-  if cluster == "w3":
+  elif cluster == "w3":
     print_w3(file)
-  if cluster == "w4":
+  elif cluster == "w4":
     print_w4(file)
-  if cluster == "w5":
+  elif cluster == "w5":
     print_w5(file)
-  if cluster == "w6cage":
+  elif cluster == "w6cage":
     print_w6cage(file)
-  if cluster == "w6book":
+  elif cluster == "w6book":
     print_w6book(file)
-  if cluster == "w6prism":
+  elif cluster == "w6prism":
     print_w6prism(file)
-  if cluster == "w6cyclic":
+  elif cluster == "w6cyclic":
     print_w6cyclic(file)
-  if cluster == "w7":
+  elif cluster == "w7":
     print_w7(file)
-  if cluster == "w8s4":
+  elif cluster == "w8s4":
     print_w8s4(file)
-  if cluster == "w8d2d":
+  elif cluster == "w8d2d":
     print_w8d2d(file)
-  if cluster == "w9":
+  elif cluster == "w9":
     print_w9(file)
-  if cluster == "w10":
+  elif cluster == "w10":
     print_w10(file)
-  if cluster == "w11i434":
+  elif cluster == "w11i434":
     print_w11i434(file)
-  if cluster == "w11i4412":
+  elif cluster == "w11i4412":
     print_w11i4412(file)
-  if cluster == "w11i443":
+  elif cluster == "w11i443":
     print_w11i443(file)
-  if cluster == "w11i515":
+  elif cluster == "w11i515":
     print_w11i515(file)
-  if cluster == "w11i551":
+  elif cluster == "w11i551":
     print_w11i551(file)
-  if cluster == "w12":
+  elif cluster == "w12":
     print_w12(file)
-  if cluster == "w13":
+  elif cluster == "w13":
     print_w13(file)
-  if cluster == "w14":
+  elif cluster == "w14":
     print_w14(file)
-  if cluster == "w15":
+  elif cluster == "w15":
     print_w15(file)
-  if cluster == "w16":
+  elif cluster == "w16":
     print_w16(file)
-  if cluster == "w17int":
+  elif cluster == "w17int":
     print_w17int(file)
-  if cluster == "w17surf":
+  elif cluster == "w17surf":
     print_w17surf(file)
-  if cluster == "w18":
+  elif cluster == "w18":
     print_w18(file)
-  if cluster == "w19":
+  elif cluster == "w19":
     print_w19(file)
-  if cluster == "w20dode":
+  elif cluster == "w20dode":
     print_w20dode(file)
-  if cluster == "w20fused":
+  elif cluster == "w20fused":
     print_w20fused(file)
-  if cluster == "w20face":
+  elif cluster == "w20face":
     print_w20face(file)
-  if cluster == "w20edge":
+  elif cluster == "w20edge":
     print_w20edge(file)
-  if cluster == "w21":
+  elif cluster == "w21":
     print_w21(file)
-  if cluster == "w64":
+  elif cluster == "w64":
     print_w64(file)
+  elif cluster[0] == "w":
+    n = int(cluster[1:])
+    for i in range(0,n):
+      print_w1(file,1.0*i)
 
 def print_basis(file,basis):
     file.write('\tbasis\n')

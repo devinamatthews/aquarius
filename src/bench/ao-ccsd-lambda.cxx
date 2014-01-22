@@ -81,7 +81,7 @@ int main(int argc, char **argv)
         PRINT("\nUHF-SCF\n\n");
         PRINT("It.            SCF Energy     Residual Walltime\n");
         tic();
-        for (i = 0;scf.iterate();i++)
+        for (i = 0;scf.iterate(world)();i++)
         {
             dt = todouble(toc());
             PRINT("%3d % 21.15f %12.6e %8.3f\n", i+1, scf.getEnergy(), scf.getConvergence(), dt);
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
         PRINT("It.   Correlation Energy     Residual Walltime\n");
         tic();
         tic();
-        for (i = 0;ccsd.iterate();i++)
+        for (i = 0;ccsd.iterate(world)();i++)
         {
             dt = todouble(toc());
             PRINT("%3d % 20.15f %12.6e %8.3f\n", i+1, ccsd.getEnergy(), ccsd.getConvergence(), dt);
@@ -179,7 +179,7 @@ int main(int argc, char **argv)
         PRINT("It.   Correlation Energy     Residual Walltime\n");
         tic();
         tic();
-        for (i = 0;lambda.iterate();i++)
+        for (i = 0;lambda.iterate(world)();i++)
         {
             dt = todouble(toc());
             PRINT("%3d % 20.15f %12.6e %8.3f\n", i+1, lambda.getEnergy(), lambda.getConvergence(), dt);

@@ -49,7 +49,7 @@ class Iterative : public task::Task
         int iter;
         int maxiter;
 
-        virtual void iterate() = 0;
+        virtual void iterate(const Arena& arena) = 0;
 
     public:
         Iterative(const std::string& type, const std::string& name, const input::Config& config)
@@ -82,9 +82,11 @@ class Iterative : public task::Task
         {
             for (iter = 1;iter <= maxiter && !isConverged();iter++)
             {
-                double t = MPI_Wtime();
-                iterate();
-                double dt = MPI_Wtime()-t;
+                time::Timer timer;
+                timer.start();
+                iterate(arena);
+                timer.stop();
+                double dt = timer.seconds(arena);
 
                 int ndigit = (int)(ceil(-log10(convtol))+0.5);
 
@@ -97,7 +99,7 @@ class Iterative : public task::Task
 
             if (!isConverged())
             {
-                throw std::runtime_error(std::strprintf("Did not converge in %d iterations", maxiter));
+                log(arena) << "Did not converge in " << maxiter << " iterations" << std::endl;
             }
         }
 

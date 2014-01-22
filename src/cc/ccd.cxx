@@ -100,7 +100,7 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
 }
 
 template <typename U>
-void CCD<U>::iterate()
+void CCD<U>::iterate(const Arena& arena)
 {
     TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
 
@@ -120,11 +120,14 @@ void CCD<U>::iterate()
     SpinorbitalTensor<U>& WMNIJ = H.getIJKL();
     SpinorbitalTensor<U>& WAMEI = H.getAIBJ();
 
+//    sched.set_max_partitions(1);
     /**************************************************************************
      *
      * Intermediates
      */
     FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
+
+
     WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*T(2)["efij"];
     FAE["ae"] -= 0.5*WMNEF["mnef"]*T(2)["afmn"];
     WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T(2)["afin"];

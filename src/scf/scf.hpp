@@ -61,7 +61,7 @@ class UHF : public Iterative
     public:
         UHF(const std::string& type, const std::string& name, const input::Config& config);
 
-        void iterate();
+        void iterate(const Arena& arena);
 
         void run(task::TaskDAG& dag, const Arena& arena);
 

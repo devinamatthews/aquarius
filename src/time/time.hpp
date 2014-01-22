@@ -157,7 +157,7 @@ class Timer : public Interval
             #ifdef _OPENMP
             if (!omp_in_parallel())
             {
-                *this += toc()*omp_get_max_threads();
+                *this += toc();//*omp_get_max_threads();
                 count++;
                 flops += ctfflops.count();
             }

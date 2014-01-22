@@ -123,7 +123,7 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
 }
 
 template <typename U>
-void CCSD<U>::iterate()
+void CCSD<U>::iterate(const Arena& arena)
 {
     const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
 

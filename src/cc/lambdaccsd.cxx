@@ -79,7 +79,7 @@ void LambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
 }
 
 template <typename U>
-void LambdaCCSD<U>::iterate()
+void LambdaCCSD<U>::iterate(const Arena& arena)
 {
     const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
 
