@@ -108,10 +108,10 @@ EOF
 
 function realcompiler
 {
-    if $CC -V > /dev/null 2>&1; then
-        version=`$CC -V 2>&1 | tr '\n' ' '`
-    elif $CC --version > /dev/null 2>&1; then
+    if $CC --version > /dev/null 2>&1; then
         version=`$CC --version 2>&1 | tr '\n' ' '`
+    elif $CC -V > /dev/null 2>&1; then
+        version=`$CC -V 2>&1 | tr '\n' ' '`
     else
         echo 'Could not determine underlying C/C++ compilers.'
         echo
