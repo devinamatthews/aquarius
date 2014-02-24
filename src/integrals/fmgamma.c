@@ -50,7 +50,9 @@ double fm(double T, int m)
     PROFILE_FLOPS(1);
     ap = m + 0.5;
 
-    if (T <= 0)
+    /* Jeff: logical comparison with FP is problematic. */
+    assert( !(T<0.0) );
+    if (T < 1.e-13)
     {
         PROFILE_FLOPS(DIV_FLOPS);
         return 0.5 / ap;
