@@ -462,7 +462,7 @@ if [ "x$ctfdir" = "x" ]; then
             ctfdir=$ctfdp
         elif (command -v git >/dev/null 2>&1); then
 			echo -e "Downloading CTF from external Git repository...\n"
-			if ! git clone git://repo.eecs.berkeley.edu/users/solomon/ctf $ctfdir; then
+			if ! git clone https://github.com/solomonik/ctf $ctfdir; then
 				echo -e "Could not download CTF repository.\n"
 				exit 1
 			fi
