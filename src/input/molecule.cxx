@@ -377,9 +377,11 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
         /*
          * Atom: K (treat as Ih)
          */
-        group = &PointGroup::Ih();
+        //group = &PointGroup::Ih();
+        group = &PointGroup::D2h();
 
-        if (subgrp == "full" || subgrp == "Ih") {}
+        //if (subgrp == "full" || subgrp == "Ih") {}
+        if (subgrp == "full" || subgrp == "D2h") {}
         else if (subgrp == "D2h") group = &PointGroup::D2h();
         else if (subgrp == "C2v") group = &PointGroup::C2v();
         else if (subgrp == "C2h") group = &PointGroup::C2h();
@@ -401,8 +403,10 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
          */
         if (isSymmetric(cartpos, Inversion()))
         {
-            group = &PointGroup::D6h();
+            //group = &PointGroup::D6h();
+            group = &PointGroup::D2h();
 
+            //if (subgrp == "full" || subgrp == "D6h") {}
             if (subgrp == "full" || subgrp == "D2h") {}
             else if (subgrp == "C2v") group = &PointGroup::C2v();
             else if (subgrp == "C2h") group = &PointGroup::C2h();
@@ -415,8 +419,10 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
         }
         else
         {
-            group = &PointGroup::C6v();
+            //group = &PointGroup::C6v();
+            group = &PointGroup::C2v();
 
+            //if (subgrp == "full" || subgrp == "C6v") {}
             if (subgrp == "full" || subgrp == "C2v") {}
             else if (subgrp == "C2") group = &PointGroup::C2();
             else if (subgrp == "Cs")
@@ -477,6 +483,7 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
                 for (int atom2 = 0;atom2 < cartpos.size();atom2++)
                 {
                     axisv = unit(cartpos[atom1].pos+cartpos[atom2].pos);
+                    if (norm(axisv%axis) < 1e-8) continue;
                     if ((c2prime = isSymmetric(cartpos, C<2>(axisv)))) break;
                 }
 
@@ -491,6 +498,7 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
                     for (int atom2 = 0;atom2 < cartpos.size();atom2++)
                     {
                         axisv = unit(cartpos[atom1].pos+cartpos[atom2].pos);
+                        if (norm(axisv%axis) < 1e-8) continue;
                         if ((sigmav = isSymmetric(cartpos, Reflection(axisv^axis)))) break;
                     }
                 }
@@ -638,6 +646,12 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
                         case 6: group = &PointGroup::D6(); break;
                     }
 
+                    if (subgrp == "full")
+                    {
+                        subgrp = "C2";
+                        if (order == 2) subgrp = "C2v";
+                    }
+
                     if (subgrp == "full" || subgrp == group->getName()) {}
                     else if (group == &PointGroup::D3d() && subgrp == "S6") group = &PointGroup::S6();
                     else if (group == &PointGroup::D2d() && subgrp == "S4") group = &PointGroup::S4();
@@ -657,7 +671,7 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
                          * Put the top axis on z and sigma_d axis
                          * on y
                          */
-                        O = (axis == x ? C<4>(y) : Identity())*Rotation(axisd, y);
+                        O = Rotation(axisd, y)*(axis == x ? C<4>(y) : Identity());
 
                         group = &PointGroup::C2v();
                     }
@@ -716,6 +730,13 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
                         case 6: group = &PointGroup::C6(); break;
                     }
 
+                    if (subgrp == "full")
+                    {
+                        subgrp = "C2";
+                        if (order == 3) subgrp = "Ci";
+                        if (order == 5) subgrp = "C1";
+                    }
+
                     if (subgrp == "full" || subgrp == group->getName()) {}
                     else if ((group == &PointGroup::S6() ||
                               group == &PointGroup::C6()) && subgrp == "C3") group = &PointGroup::C3();
@@ -748,6 +769,13 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
                         case 4: group = &PointGroup::D4h(); break;
                         case 5: group = &PointGroup::D5h(); break;
                         case 6: group = &PointGroup::D6h(); break;
+                    }
+
+                    if (subgrp == "full")
+                    {
+                        subgrp = "D2h";
+                        if (order == 3) subgrp = "C2v";
+                        if (order == 5) subgrp = "C2";
                     }
 
                     if (subgrp == "full" || subgrp == group->getName()) {}
@@ -840,13 +868,17 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
                         case 6: group = &PointGroup::D6(); break;
                     }
 
+                    if (subgrp == "full")
+                    {
+                        subgrp = "D2";
+                        if (order == 3) subgrp = "C2";
+                        if (order == 5) subgrp = "C2";
+                    }
+
                     if (subgrp == "full" || subgrp == group->getName()) {}
-                    else if ( group == &PointGroup::D6()  && subgrp ==  "D6") group = &PointGroup::D6();
-                    else if ( group == &PointGroup::D5()  && subgrp ==  "D5") group = &PointGroup::D5();
-                    else if ( group == &PointGroup::D4()  && subgrp ==  "D4") group = &PointGroup::D4();
+                    else if ( group == &PointGroup::D6()  && subgrp ==  "D3") group = &PointGroup::D3();
                     else if ((group == &PointGroup::D6() ||
-                              group == &PointGroup::D3()) && subgrp ==  "D3") group = &PointGroup::D3();
-                    else if (                                subgrp ==  "D2")
+                              group == &PointGroup::D4()) && subgrp ==  "D2")
                     {
                         /*
                          * Put the sigma_v axis on z and top axis
@@ -893,6 +925,13 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
                     case 6: group = &PointGroup::C6h(); break;
                 }
 
+                if (subgrp == "full")
+                {
+                    subgrp = "C2h";
+                    if (order == 3) subgrp = "Cs";
+                    if (order == 5) subgrp = "Cs";
+                }
+
                 if (subgrp == "full" || subgrp == group->getName()) {}
                 else if ( group == &PointGroup::C6h()  && subgrp == "C3h") group = &PointGroup::C3h();
                 else if ((group == &PointGroup::C6h() ||
@@ -936,6 +975,13 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
                     case 6: group = &PointGroup::C6v(); break;
                 }
 
+                if (subgrp == "full")
+                {
+                    subgrp = "C2v";
+                    if (order == 3) subgrp = "Cs";
+                    if (order == 5) subgrp = "Cs";
+                }
+
                 if (subgrp == "full" || subgrp == group->getName()) {}
                 else if ( group == &PointGroup::C6v()  && subgrp == "C3v") group = &PointGroup::C3v();
                 else if ((group == &PointGroup::C6v() ||
@@ -967,6 +1013,13 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
                     case 4: group = &PointGroup::C4(); break;
                     case 5: group = &PointGroup::C5(); break;
                     case 6: group = &PointGroup::C6(); break;
+                }
+
+                if (subgrp == "full")
+                {
+                    subgrp = "C2";
+                    if (order == 3) subgrp = "C1";
+                    if (order == 5) subgrp = "C1";
                 }
 
                 if (subgrp == "full" || subgrp == group->getName()) {}

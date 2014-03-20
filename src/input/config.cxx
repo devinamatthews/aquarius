@@ -472,6 +472,7 @@ void Config::read(const string& cwd, istream& is)
             }
             else if (token[i] == ',')
             {
+                assert(current.size() >= 2);
                 current[current.size()-1] = current[current.size()-2];
                 i++;
             }
