@@ -190,6 +190,8 @@ void SymmetryBlockedTensor<T>::allocate(bool zero)
         if (ndim == 0) done = true;
     }
 
+    vector<int> norder(reorder[0]);
+
     t = 0;
     idx.assign(ndim, 0);
     prod.assign(ndim+1, group.totallySymmetricIrrep());
@@ -203,8 +205,11 @@ void SymmetryBlockedTensor<T>::allocate(bool zero)
                 int j; for (j = i;j < ndim && sym[j] != NS;j++); j++;
                 cosort(   idxreal.begin()+i,    idxreal.begin()+j,
                        reorder[t].begin()+i, reorder[t].begin()+j);
-                if (sym[i] == AS) factor[t] *= relativeSign(idxreal.begin()+i, idxreal.begin()+j,
-                                                                idx.begin()+i,     idx.begin()+j);
+                if (sym[i] == AS)
+                {
+                    factor[t] *= relativeSign(    norder.begin()+i,     norder.begin()+j,
+                                              reorder[t].begin()+i, reorder[t].begin()+j);
+                }
                 i = j;
             }
 
@@ -214,7 +219,7 @@ void SymmetryBlockedTensor<T>::allocate(bool zero)
                 int j; for (j = 0;j < ndim && reorder[t][j] != i;j++);
                 invorder[i] = j;
             }
-            swap(invorder, reorder[t]);
+            //swap(invorder, reorder[t]);
 
             int treal = 0;
             int stride = 1;
@@ -439,6 +444,12 @@ void SymmetryBlockedTensor<T>::mult(T alpha, bool conja, const SymmetryBlockedTe
                               B.ndim, idx_B_, B.sym.data(),
                                 ndim, idx_C_,   sym.data());
 
+    if (ndim == 6)
+    {
+        //cout << idx_A_ << " " << A.sym << endl;
+        //cout << idx_B_ << " " << B.sym << endl;
+        //cout << idx_C_ << " " <<   sym << endl;
+    }
 
     vector<int> stride_idx_A = getStrides(idx_A_, A.ndim, n, idx_A_);
     vector<int> stride_idx_B = getStrides(idx_B_, B.ndim, n, idx_B_);
@@ -525,18 +536,20 @@ void SymmetryBlockedTensor<T>::mult(T alpha, bool conja, const SymmetryBlockedTe
             bool in_C = false, aligned_in_C = true;
             for (int i_in_C = 0;;i_in_C++)
             {
-                for (;i_in_C < ndim && idx_A_[i] != idx_C_[i_in_C];i_in_C++);
+                for (;i_in_C < ndim && idx_B_[i] != idx_C_[i_in_C];i_in_C++);
                 if (i_in_C == ndim) break;
 
                 in_C = true;
 
-                if (A.sym[i] == NS || A.sym[i] != sym[i_in_C] ||
-                    idx_A_[i+1] != idx_C_[i_in_C+1])
+                if (B.sym[i] == NS || B.sym[i] != sym[i_in_C] ||
+                    idx_B_[i+1] != idx_C_[i_in_C+1])
                 {
                     aligned_in_C = false;
                     break;
                 }
             }
+
+            //cout << idx_B_[i] << " " << in_C << " " << aligned_in_C << endl;
 
             if (!(in_C && !aligned_in_C) &&
                 B.sym[i] != NS) syms[m-1] = AS;
@@ -562,9 +575,13 @@ void SymmetryBlockedTensor<T>::mult(T alpha, bool conja, const SymmetryBlockedTe
         }
     }
     inds.resize(m);
+    syms.resize(m);
     stride_A.resize(m);
     stride_B.resize(m);
     stride_C.resize(m);
+
+    //if (ndim == 6) cout << syms << endl;
+    //if (ndim == 6) cout << inds << endl;
 
     vector<T> beta_(tensors.size(), beta);
 
@@ -574,6 +591,7 @@ void SymmetryBlockedTensor<T>::mult(T alpha, bool conja, const SymmetryBlockedTe
     vector<int> idx(m, 0);
     for (bool done = false;!done;)
     {
+
         if ((A.tensors[off_A] != NULL   && B.tensors[off_B] != NULL   && tensors[off_C] != NULL  ) &&
             (A.tensors[off_A].isAlloced || B.tensors[off_B].isAlloced || tensors[off_C].isAlloced))
         {
@@ -586,11 +604,21 @@ void SymmetryBlockedTensor<T>::mult(T alpha, bool conja, const SymmetryBlockedTe
             for (int i = 0;i < B.ndim;i++) idx_B__[i] = idx_B_[B.reorder[off_B][i]];
             for (int i = 0;i <   ndim;i++) idx_C__[i] = idx_C_[  reorder[off_C][i]];
 
-            int off_C_ = (tensors[off_C].isAlloced ? off_C : tensors[off_C].ref);
+            if (ndim == 6)
+            {
+                //cout << idx << endl;
+                //cout << A.tensors[off_A].isAlloced << " " << A.reorder[off_A] << " " << A.factor[off_A] << endl;
+                //cout << B.tensors[off_B].isAlloced << " " << B.reorder[off_B] << " " << B.factor[off_B] << endl;
+                //cout <<   tensors[off_C].isAlloced << " " <<   reorder[off_C] << " " <<   factor[off_C] << endl;
+            }
+
+            int off_A_ = (A.tensors[off_A].isAlloced ? off_A : A.tensors[off_A].ref);
+            int off_B_ = (B.tensors[off_B].isAlloced ? off_B : B.tensors[off_B].ref);
+            int off_C_ = (  tensors[off_C].isAlloced ? off_C :   tensors[off_C].ref);
             assert(off_C_ >= 0 && off_C_ < tensors.size());
-            tensors[off_C].tensor->mult(alpha*f1*f3/f2, conja, *A.tensors[off_A].tensor, idx_A__,
-                                                        conjb, *B.tensors[off_B].tensor, idx_B__,
-                                         beta_[off_C_],                                  idx_C__);
+            tensors[off_C_].tensor->mult(alpha*f1*f3/f2, conja, *A.tensors[off_A_].tensor, idx_A__,
+                                                         conjb, *B.tensors[off_B_].tensor, idx_B__,
+                                         beta_[off_C_],                                    idx_C__);
 
             beta_[off_C_] = 1.0;
         }

@@ -250,6 +250,11 @@ void CCSDT<U>::iterate(const Arena& arena)
     /*
      **************************************************************************/
 
+    //cout << Z(3)(vec(0,0),vec(0,0)).norm(00) << endl;
+    //cout << Z(3)(vec(1,0),vec(0,1)).norm(00) << endl;
+    //cout << Z(3)(vec(2,0),vec(0,2)).norm(00) << endl;
+    //cout << Z(3)(vec(3,0),vec(0,3)).norm(00) << endl;
+
     Z.weight(D);
     T += Z;
 
