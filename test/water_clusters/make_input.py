@@ -8,7 +8,8 @@ if ( len(sys.argv) != 4 ):
         print "                  w9 w10 w11i434 w11i4412 w11i443 w11i515 w11i551 w12 w13 w14"
         print "                  w15 w16 w17int w17surf w18 w19 w20dode w20fused w20face w20edge"
         print "                  rubrene"
-        print "<basis> can be 6-31G 6-311G cc-pvdz cc-pvtz cc-pvqz aug-cc-pvdz aug-cc-pvtz aug-cc-pvqz etc."
+        print "<basis> can be 6-31G 6-311G cc-pVDZ cc-pVTZ cc-pVQZ aug-cc-pVDZ aug-cc-pVTZ aug-cc-pVQZ etc."
+        print "Note that <basis> is case sensitive and must correspond to a file in AQUARIUS/basis."
         print "<method> can be ccd, ccsd, or ccsdt"
         sys.exit()
 
