@@ -370,7 +370,7 @@ elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
              -L$IBM_MAIN_DIR/xlf/bg/14.1/bglib64/ \
              -L$IBM_MAIN_DIR/xlsmp/bg/3.1/bglib64/ \
              -L$IBM_MAIN_DIR/xlmass/bg/7.3/bglib64/"
-	CPPFLAGS=
+	CPPFLAGS='-DAQ_USE_MPI_WTIME'
 	INCLUDES="-I$BGQ_ESSL/include"
 	AR='ar -crs'
 	CC=mpixlc_r
