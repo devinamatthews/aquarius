@@ -201,7 +201,7 @@ TwoElectronDensity<U>::TwoElectronDensity(const std::string& name, const Deexcit
 {
     //TODO
     assert(0);
-    return static_cast<U>(0);
+    return;
 }
 
 template <typename U>
