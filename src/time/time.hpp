@@ -30,6 +30,10 @@
 #include <ctime>
 #include <vector>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "util/stl_ext.hpp"
 #include "util/distributed.hpp"
 

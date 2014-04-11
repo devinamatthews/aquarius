@@ -364,13 +364,13 @@ elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
     fi
 	
 	host=bgq
-	blaslibs="-L/soft/libraries/alcf/current/xl/LAPACK/lib/ -llapack -lgfortran -lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r -lm"
+	blaslibs="-L/soft/libraries/alcf/current/xl/LAPACK/lib/ -llapack -lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r"
 	BGQ_ESSL='/soft/libraries/essl/current/'
 	LDFLAGS="-L$BGQ_ESSL/lib64 \
              -L$IBM_MAIN_DIR/xlf/bg/14.1/bglib64/ \
              -L$IBM_MAIN_DIR/xlsmp/bg/3.1/bglib64/ \
              -L$IBM_MAIN_DIR/xlmass/bg/7.3/bglib64/"
-	CPPFLAGS=
+	CPPFLAGS='-DAQ_USE_MPI_WTIME'
 	INCLUDES="-I$BGQ_ESSL/include"
 	AR='ar -crs'
 	CC=mpixlc_r
