@@ -97,7 +97,10 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
 
     calcSMinusHalf();
 
+    CTF_Timer_epoch ep(name.c_str());
+    ep.begin();
     Iterative::run(dag, arena);
+    ep.end();
 
     if (isUsed("S2") || isUsed("multiplicity"))
     {

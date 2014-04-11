@@ -774,6 +774,8 @@ T absmax(const vararray<T>& c)
 template <typename T>
 void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
 {
+    CTF_Timer_epoch ep("AOMOIntegrals");
+    ep.begin();
     const MOSpace<T>& occ = this->template get<MOSpace<T> >("occ");
     const MOSpace<T>& vrt = this->template get<MOSpace<T> >("vrt");
 
@@ -1153,6 +1155,7 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     //this->log(arena) << "IJKL: " << setprecision(15) << H.getIJKL()(vec(0,2),vec(0,2)).norm(2) << endl;
     //this->log(arena) << "IjKl: " << setprecision(15) << H.getIJKL()(vec(0,1),vec(0,1)).norm(2) << endl;
     //this->log(arena) << "ijkl: " << setprecision(15) << H.getIJKL()(vec(0,0),vec(0,0)).norm(2) << endl;
+    ep.end();
 }
 
 INSTANTIATE_SPECIALIZATIONS(AOMOIntegrals);
