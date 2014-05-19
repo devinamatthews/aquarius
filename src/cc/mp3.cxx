@@ -72,6 +72,7 @@ void MP3<U>::run(TaskDAG& dag, const Arena& arena)
     T.weight(D);
 
     energy = 0.25*real(scalar(H.getABIJ()*T(2)));
+    double mp2energy = energy;
 
     conv = T.norm(00);
 
@@ -105,6 +106,7 @@ void MP3<U>::run(TaskDAG& dag, const Arena& arena)
     energy = 0.25*real(scalar(H.getABIJ()*T(2)));
 
     Logger::log(arena) << "MP3 energy = " << setprecision(15) << energy << endl;
+    Logger::log(arena) << "MP3 correlation energy = " << setprecision(15) << energy - mp2energy << endl;
     put("mp3", new Scalar(arena, energy));
 
     put("energy", new Scalar(arena, energy));
