@@ -115,7 +115,7 @@ void LCCD<U>::iterate(const Arena& arena)
 
     SpinorbitalTensor<U>& FBC = H.getAB();
     SpinorbitalTensor<U>& FKJ = H.getIJ();
-    SpinorbitalTensor<U>& WABIJ = H.getABIJ();
+    SpinorbitalTensor<U>& WIJAB = H.getIJAB();
     SpinorbitalTensor<U>& WABCD = H.getABCD();
     SpinorbitalTensor<U>& WKLIJ = H.getIJKL();
     SpinorbitalTensor<U>& WBKCJ = H.getAIBJ();
@@ -123,14 +123,12 @@ void LCCD<U>::iterate(const Arena& arena)
 //    sched.set_max_partitions(1);
     /**************************************************************************
      *
-     * Intermediates
+     * Intermediates, now aligned with Shavitt and Bartlett, 9.126
      */
-    // FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
-
-
-    // WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*T(2)["efij"];
-    // FAE["ae"] -= 0.5*WMNEF["mnef"]*T(2)["afmn"];
-    // WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T(2)["afin"];
+    //FKJ["kj"] += 0.5*WIJAB["klcd"]*T(2)["dclj"]; /* 9, through 3 */
+    //WKLIJ["klij"] += 0.5*WIJAB["klcd"]*T(2)["cdij"]; /* 7, through 5 */
+    //FBC["bc"] -= 0.5*WIJAB["klcd"]*T(2)["dblk"]; /* 10, through 2 */
+    //WBKCJ["bkcj"] -= 0.5*WIJAB["klcd"]*T(2)["bdjl"]; /* 8, through 6, Minus sign cancels that in 6*/
     /*
      *************************************************************************/
 
@@ -138,12 +136,12 @@ void LCCD<U>::iterate(const Arena& arena)
      *
      * T(1)->T(2) and T(2)->T(2), now aligned with Shavitt and Bartlett 9.126
      */
-    Z(2)["abij"] = WABIJ["abij"];
-    Z(2)["abij"] += FBC["bc"]*T(2)["acij"];
-    Z(2)["abij"] -= FKJ["kj"]*T(2)["abik"];
-    Z(2)["abij"] += 0.5*WABCD["abcd"]*T(2)["cdij"];
-    Z(2)["abij"] += 0.5*WKLIJ["klij"]*T(2)["abkl"];
-    Z(2)["abij"] -= WBKCJ["bkcj"]*T(2)["acik"]; /* minus sign because getAIBJ instead of getIABJ */
+    Z(2)["abij"] = WIJAB["ijab"]; /* 1, ijab instead of abij because getIJAB instead of getABIJ. Makes intermeds 7, 8 nicer. */
+    Z(2)["abij"] += FBC["bc"]*T(2)["acij"]; /* 2 */
+    Z(2)["abij"] -= FKJ["kj"]*T(2)["abik"]; /* 3 */
+    Z(2)["abij"] += 0.5*WABCD["abcd"]*T(2)["cdij"]; /* 4 */
+    Z(2)["abij"] += 0.5*WKLIJ["klij"]*T(2)["abkl"]; /* 5 */
+    Z(2)["abij"] -= WBKCJ["bkcj"]*T(2)["acik"]; /* 6, minus sign because getAIBJ instead of getIABJ, which necessitates -bkcj instead of +kbcj */
     /*
      *************************************************************************/
 
