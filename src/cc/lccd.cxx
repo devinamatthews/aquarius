@@ -113,12 +113,12 @@ void LCCD<U>::iterate(const Arena& arena)
                                  TwoElectronOperator<U>::IJKL|
                                  TwoElectronOperator<U>::AIBJ);
 
-    SpinorbitalTensor<U>& FAE = H.getAB();
-    SpinorbitalTensor<U>& FMI = H.getIJ();
-    SpinorbitalTensor<U>& WMNEF = H.getIJAB();
-    SpinorbitalTensor<U>& WABEF = H.getABCD();
-    SpinorbitalTensor<U>& WMNIJ = H.getIJKL();
-    SpinorbitalTensor<U>& WAMEI = H.getAIBJ();
+    SpinorbitalTensor<U>& FBC = H.getAB();
+    SpinorbitalTensor<U>& FKJ = H.getIJ();
+    SpinorbitalTensor<U>& WABIJ = H.getABIJ();
+    SpinorbitalTensor<U>& WABCD = H.getABCD();
+    SpinorbitalTensor<U>& WKLIJ = H.getIJKL();
+    SpinorbitalTensor<U>& WBKCJ = H.getAIBJ();
 
 //    sched.set_max_partitions(1);
     /**************************************************************************
@@ -136,14 +136,14 @@ void LCCD<U>::iterate(const Arena& arena)
 
     /**************************************************************************
      *
-     * T(1)->T(2) and T(2)->T(2)
+     * T(1)->T(2) and T(2)->T(2), now aligned with Shavitt and Bartlett 9.126
      */
-    Z(2)["abij"] = WMNEF["ijab"];
-    Z(2)["abij"] += FAE["af"]*T(2)["fbij"];
-    Z(2)["abij"] -= FMI["ni"]*T(2)["abnj"];
-    Z(2)["abij"] += 0.5*WABEF["abef"]*T(2)["efij"];
-    Z(2)["abij"] += 0.5*WMNIJ["mnij"]*T(2)["abmn"];
-    Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];
+    Z(2)["abij"] = WABIJ["abij"];
+    Z(2)["abij"] += FBC["bc"]*T(2)["acij"];
+    Z(2)["abij"] -= FKJ["kj"]*T(2)["abik"];
+    Z(2)["abij"] += 0.5*WABCD["abcd"]*T(2)["cdij"];
+    Z(2)["abij"] += 0.5*WKLIJ["klij"]*T(2)["abkl"];
+    Z(2)["abij"] -= WBKCJ["bkcj"]*T(2)["acik"]; /* minus sign because getAIBJ instead of getIABJ */
     /*
      *************************************************************************/
 
