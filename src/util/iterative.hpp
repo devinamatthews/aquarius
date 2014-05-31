@@ -110,6 +110,25 @@ class Iterative : public task::Task
         bool isConverged() const { return conv < convtol; }
 };
 
+class NonIterative : public task::Task
+{
+    protected:
+        double energy;
+
+    public:
+        NonIterative(const std::string& type, const std::string& name, const input::Config& config)
+        : Task(type, name),
+          energy(0)
+        { }
+
+        virtual ~NonIterative() { }
+
+        void run(task::TaskDAG& dag, const Arena& arena) { }
+
+        double getEnergy() const { return energy; }
+
+};
+
 }
 
 #endif

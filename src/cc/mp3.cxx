@@ -129,6 +129,7 @@ void MP3<U>::run(TaskDAG& dag, const Arena& arena)
     }
 }
 
+#if 0
 template <typename U>
 void MP3<U>::iterate(const Arena& arena)
 {
@@ -186,6 +187,7 @@ void MP3<U>::iterate(const Arena& arena)
 
     diis.extrapolate(T, Z);
 }
+#endif
 
 INSTANTIATE_SPECIALIZATIONS(MP3);
 REGISTER_TASK(MP3<double>,"mp3");
