@@ -43,17 +43,14 @@ namespace cc
 {
 
 template <typename U>
-class MP3 : public Iterative
+class MP3 : public NonIterative
 {
     protected:
-        convergence::DIIS< op::ExcitationOperator<U,2> > diis;
 
     public:
         MP3(const std::string& name, const input::Config& config);
 
         void run(task::TaskDAG& dag, const Arena& arena);
-
-        void iterate(const Arena& arena);
 };
 
 }

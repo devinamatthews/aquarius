@@ -43,17 +43,14 @@ namespace cc
 {
 
 template <typename U>
-class MP4DQ : public Iterative
+class MP4DQ : public NonIterative
 {
     protected:
-        convergence::DIIS< op::ExcitationOperator<U,2> > diis;
 
     public:
         MP4DQ(const std::string& name, const input::Config& config);
 
         void run(task::TaskDAG& dag, const Arena& arena);
-
-        void iterate(const Arena& arena);
 };
 
 }

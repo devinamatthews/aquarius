@@ -34,14 +34,13 @@ using namespace aquarius::task;
 
 template <typename U>
 MP3<U>::MP3(const string& name, const Config& config)
-: Iterative("mp3", name, config), diis(config.get("diis"))
+: NonIterative("mp3", name, config)
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("moints", "H"));
     addProduct(Product("double", "mp2", reqs));
     addProduct(Product("double", "mp3", reqs));
     addProduct(Product("double", "energy", reqs));
-    addProduct(Product("double", "convergence", reqs));
     addProduct(Product("double", "S2", reqs));
     addProduct(Product("double", "multiplicity", reqs));
     addProduct(Product("mp3.T", "T", reqs));
@@ -74,7 +73,6 @@ void MP3<U>::run(TaskDAG& dag, const Arena& arena)
     energy = 0.25*real(scalar(H.getABIJ()*T(2)));
     double mp2energy = energy;
 
-    conv = T.norm(00);
 
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
     put("mp2", new Scalar(arena, energy));
@@ -110,7 +108,6 @@ void MP3<U>::run(TaskDAG& dag, const Arena& arena)
     put("mp3", new Scalar(arena, energy));
 
     put("energy", new Scalar(arena, energy));
-    put("convergence", new Scalar(arena, conv));
 
     /*
     if (isUsed("S2") || isUsed("multiplicity"))

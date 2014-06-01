@@ -34,7 +34,7 @@ using namespace aquarius::task;
 
 template <typename U>
 MP4DQ<U>::MP4DQ(const string& name, const Config& config)
-: Iterative("mp4dq", name, config), diis(config.get("diis"))
+: NonIterative("mp4dq", name, config)
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("moints", "H"));
@@ -43,7 +43,6 @@ MP4DQ<U>::MP4DQ(const string& name, const Config& config)
     addProduct(Product("double", "mp4d", reqs));
     addProduct(Product("double", "mp4q", reqs));
     addProduct(Product("double", "energy", reqs));
-    addProduct(Product("double", "convergence", reqs));
     addProduct(Product("double", "S2", reqs));
     addProduct(Product("double", "multiplicity", reqs));
     addProduct(Product("mp4dq.T", "T", reqs));
@@ -76,7 +75,6 @@ void MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
     energy = 0.25*real(scalar(H.getABIJ()*T(2)));
     double mp2energy = energy;
 
-    conv = T.norm(00);
 
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
     put("mp2", new Scalar(arena, energy));
@@ -181,7 +179,6 @@ void MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
     */
 
     put("energy", new Scalar(arena, energy));
-    put("convergence", new Scalar(arena, conv));
 
     if (isUsed("Hbar"))
     {
@@ -189,6 +186,7 @@ void MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
     }
 }
 
+#if 0
 template <typename U>
 void MP4DQ<U>::iterate(const Arena& arena)
 {
@@ -246,6 +244,7 @@ void MP4DQ<U>::iterate(const Arena& arena)
 
     diis.extrapolate(T, Z);
 }
+#endif
 
 INSTANTIATE_SPECIALIZATIONS(MP4DQ);
 REGISTER_TASK(MP4DQ<double>,"mp4dq");
