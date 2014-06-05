@@ -60,6 +60,9 @@ class STExcitationOperator<U,2> : public ExcitationOperator<U,2>
 
         static void transform(const TwoElectronOperator<U>& X, const ExcitationOperator<U,2>& T,
                               tensor::SpinorbitalTensor<U>& Tau, ExcitationOperator<U,2>& Z, TwoElectronOperator<U>& W);
+
+        static void mytransform(const TwoElectronOperator<U>& X, const ExcitationOperator<U,2>& T,
+                              tensor::SpinorbitalTensor<U>& Tau, ExcitationOperator<U,2>& Z, TwoElectronOperator<U>& W);
 };
 
 }

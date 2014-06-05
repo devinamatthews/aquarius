@@ -136,7 +136,7 @@ void CCSD<U>::iterate(const Arena& arena)
     TwoElectronOperator<U>& W = gettmp<TwoElectronOperator<U> >("W");
     SpinorbitalTensor<U>& Tau = gettmp<SpinorbitalTensor<U> >("Tau");
 
-    STExcitationOperator<U,2>::transform(H, T, Tau, Z, W);
+    STExcitationOperator<U,2>::mytransform(H, T, Tau, Z, W);
 
     Z.weight(D);
     T += Z;
