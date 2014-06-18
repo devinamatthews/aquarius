@@ -173,6 +173,26 @@ lambdaccsd
             bool false
     }
 },
+eomeeccsd
+{
+    convergence?
+    double 1e-9,
+    max_iterations?
+    int 150,
+    conv_type?
+    enum { MAXE, RMSE, MAE },
+    davidson?
+    {
+	damping?
+            double 0.0,
+	start?
+            int 1,
+	order?
+            int 5,
+	jacobi?
+            bool false
+    }
+},
 cholesky
 {
     delta?

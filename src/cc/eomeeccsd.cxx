@@ -76,6 +76,30 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     //D(2)["abij"] += H.getIJAB()["ijae"]*T(2)["aeij"];
 
     //TODO: guess
+
+    SpinorbitalTensor<U>& R1 = R(1);
+    std::myvector<int> vec1 (1,1);
+    vec1.push_back (0);
+    std::myvector<int> vec2 (1,0);
+    vec2.push_back (1);
+    std::myvector<int> vec3 (2,0);
+
+    cout << "vec1" << endl;
+    cout << vec1 << endl;
+    cout << "vec2" << endl;
+    cout << vec2 << endl;
+    cout << "vec3" << endl;
+    cout << vec3 << endl;
+    cout << "\n" << endl;
+
+    SymmetryBlockedTensor<U>& R11 = R1(vec1,vec2);
+    CTFTensor<U>& R11CTF = R11(vec3);
+    R11CTF.writeRemoteData(vector<tkv_pair<U> >(2, tkv_pair<U>(20, 0)));
+
+    Iterative::run(dag, arena);
+
+    put("energy", new Scalar(arena, energy));
+    put("convergence", new Scalar(arena, conv));
 }
 
 template <typename U>

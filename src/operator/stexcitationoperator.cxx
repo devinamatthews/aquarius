@@ -172,7 +172,7 @@ void STExcitationOperator<U,2>::transform(const TwoElectronOperator<U>& X,
 }
 
 template <typename U>
-void STExcitationOperator<U,2>::mytransform(const TwoElectronOperator<U>& X,
+void STExcitationOperator<U,2>::samtransform(const TwoElectronOperator<U>& X,
                                           const ExcitationOperator<U,2>& T,
                                                 SpinorbitalTensor<U>& Tau,
                                                 ExcitationOperator<U,2>& Z,
@@ -229,7 +229,7 @@ void STExcitationOperator<U,2>::mytransform(const TwoElectronOperator<U>& X,
     FBC["bc"] -= FKC["kc"]*T(1)["bk"]; // CCSD 4 through CCD 2
     FBC["bc"] += WAKCD["bkcd"]*T(1)["dk"]; // CCSD 9 through CCD 2
 
-    WAKIJ["akij"] += 0.5*WAKCD["akcd"]*Tau["cdij"]; // CCSD 7, 19, through CCCD 2. Sign on my 19 seems wrong. 
+    WAKIJ["akij"] += 0.5*WAKCD["akcd"]*Tau["cdij"]; // CCSD 7, 19, through CCSD 2. Sign on my 19 seems wrong. 
     WAKIJ["akij"] -= WBKCJ["akci"]*T(1)["cj"]; // CCSD 13 through CCSD 2
 
     WBKCJ["bkcj"] -= 0.5*WIJAB["klcd"]*T(2)["bdjl"]; // CCD 8, through CCD 6
