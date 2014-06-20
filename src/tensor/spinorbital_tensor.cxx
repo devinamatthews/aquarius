@@ -363,11 +363,6 @@ const SymmetryBlockedTensor<T>& SpinorbitalTensor<T>::operator()(const vector<in
 {
     for (typename vector<SpinCase>::const_iterator sc = cases.begin();sc != cases.end();++sc)
     {
-        cout << sc->alpha_out << endl;
-        cout << alpha_out << endl;
-        cout << sc->alpha_in << endl;
-        cout << alpha_in << endl;
-        cout << "\n" << endl;
         if (sc->alpha_out == alpha_out &&
             sc->alpha_in  == alpha_in) return *(sc->tensor);
     }

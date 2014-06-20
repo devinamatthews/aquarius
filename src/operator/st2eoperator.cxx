@@ -143,9 +143,9 @@ void STTwoElectronOperator<U,2>::contract(const ExcitationOperator<U,2>& R,
 
     IMI["mi"]  = this->ijak["nmei"]*R(1)["en"];
     IMI["mi"] += 0.5*this->ijab["mnef"]*R(2)["efin"];
-
     IAE["ae"]  = this->aibc["amef"]*R(1)["fm"];
-    IMI["ae"] -= 0.5*this->ijab["mnef"]*R(2)["afmn"];
+    IAE["ae"] -= 0.5*this->ijab["mnef"]*R(2)["afmn"];
+    
 
     Z(1)["ai"] += this->ab["ae"]*R(1)["ei"];
     Z(1)["ai"] -= this->ij["mi"]*R(1)["am"];
@@ -153,6 +153,8 @@ void STTwoElectronOperator<U,2>::contract(const ExcitationOperator<U,2>& R,
     Z(1)["ai"] += this->ia["me"]*R(2)["aeim"];
     Z(1)["ai"] += 0.5*this->aibc["amef"]*R(2)["efim"];
     Z(1)["ai"] -= 0.5*this->ijak["mnei"]*R(2)["eamn"];
+
+    
 
     Z(2)["abij"] += this->ab["ae"]*R(2)["ebij"];
     Z(2)["abij"] -= this->ij["mi"]*R(2)["abmj"];
