@@ -98,6 +98,7 @@ class Davidson
             assert(c.size() == nvec);
             assert(hc.size() == nvec);
 
+
             for (int i = 0;i < nvec;i++) assert(c[i] != NULL);
             for (int i = 0;i < nvec;i++) assert(hc[i] != NULL);
 
@@ -117,6 +118,7 @@ class Davidson
              * just use the copy ctor and subclasses do not have to
              * worry about allocation/deallocation
              */
+
             if (old_c[nextrap_real][0] == NULL)
             {
                 for (int i = 0;i < nvec;i++)
@@ -147,14 +149,21 @@ class Davidson
              * Get the new off-diagonal subspace matrix elements for all
              * previous vectors.
              */
+
             for (int i = 0;i < nextrap_real;i++)
             {
                 e[i+nextrap_real*nextrap] = 0;
                 e[nextrap_real+i*nextrap] = 0;
-                for (int j = 0;j < nvec;i++)
+                //for (int j = 0;j < nvec;i++)
+                for (int j = 0;j < nvec;j++)
                 {
+                    std::cout << "top" << std::endl;
+                    std::cout << "old_c " << old_c[i][j] << std::endl;
+                    std::cout << "hc " << hc[j] << std::endl;
                     e[i+nextrap_real*nextrap] += scalar(conj(*old_c[i][j])*(*hc[j]));
+                    std::cout << "middle" << std::endl;
                     e[nextrap_real+i*nextrap] += scalar(conj(*c[j])*(*old_hc[i][j]));
+                    std::cout << "bot" << std::endl;
                 }
             }
 
@@ -170,6 +179,8 @@ class Davidson
             }
             printf("\n");
             */
+
+            std::cout << "Check 2" << std::endl;
 
             int info;
             std::vector<dtype> tmp(nextrap*nextrap);
@@ -206,6 +217,8 @@ class Davidson
                     bestev = i;
                 }
             }
+
+            std::cout << "Check 9" << std::endl;
 
             if (std::abs(std::imag(l[bestev])) > 1e-10)
                 throw std::runtime_error("davidson: complex eigenvalue");

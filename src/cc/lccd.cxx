@@ -22,7 +22,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#include "ccd.hpp"
+#include "lccd.hpp"
 
 using namespace std;
 using namespace aquarius::op;
@@ -33,8 +33,8 @@ using namespace aquarius::time;
 using namespace aquarius::task;
 
 template <typename U>
-CCD<U>::CCD(const string& name, const Config& config)
-: Iterative("ccd", name, config), diis(config.get("diis"))
+LCCD<U>::LCCD(const string& name, const Config& config)
+: Iterative("lccd", name, config), diis(config.get("diis"))
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("moints", "H"));
@@ -43,12 +43,12 @@ CCD<U>::CCD(const string& name, const Config& config)
     addProduct(Product("double", "convergence", reqs));
     addProduct(Product("double", "S2", reqs));
     addProduct(Product("double", "multiplicity", reqs));
-    addProduct(Product("ccd.T", "T", reqs));
-    addProduct(Product("ccd.Hbar", "Hbar", reqs));
+    addProduct(Product("lccd.T", "T", reqs));
+    addProduct(Product("lccd.Hbar", "Hbar", reqs));
 }
 
 template <typename U>
-void CCD<U>::run(TaskDAG& dag, const Arena& arena)
+void LCCD<U>::run(TaskDAG& dag, const Arena& arena)
 {
     const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
 
@@ -100,7 +100,7 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
 }
 
 template <typename U>
-void CCD<U>::iterate(const Arena& arena)
+void LCCD<U>::iterate(const Arena& arena)
 {
     TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
 
@@ -125,10 +125,10 @@ void CCD<U>::iterate(const Arena& arena)
      *
      * Intermediates, now aligned with Shavitt and Bartlett, 9.126
      */
-    FKJ["kj"] += 0.5*WIJAB["klcd"]*T(2)["dclj"]; /* 9, through 3 */
-    WKLIJ["klij"] += 0.5*WIJAB["klcd"]*T(2)["cdij"]; /* 7, through 5 */
-    FBC["bc"] -= 0.5*WIJAB["klcd"]*T(2)["dblk"]; /* 10, through 2 */
-    WBKCJ["bkcj"] -= 0.5*WIJAB["klcd"]*T(2)["bdjl"]; /* 8, through 6, Minus sign cancels that in 6*/
+    //FKJ["kj"] += 0.5*WIJAB["klcd"]*T(2)["dclj"]; /* 9, through 3 */
+    //WKLIJ["klij"] += 0.5*WIJAB["klcd"]*T(2)["cdij"]; /* 7, through 5 */
+    //FBC["bc"] -= 0.5*WIJAB["klcd"]*T(2)["dblk"]; /* 10, through 2 */
+    //WBKCJ["bkcj"] -= 0.5*WIJAB["klcd"]*T(2)["bdjl"]; /* 8, through 6, Minus sign cancels that in 6*/
     /*
      *************************************************************************/
 
@@ -155,5 +155,5 @@ void CCD<U>::iterate(const Arena& arena)
     diis.extrapolate(T, Z);
 }
 
-INSTANTIATE_SPECIALIZATIONS(CCD);
-REGISTER_TASK(CCD<double>,"ccd");
+INSTANTIATE_SPECIALIZATIONS(LCCD);
+REGISTER_TASK(LCCD<double>,"lccd");

@@ -76,6 +76,16 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     //D(2)["abij"] += H.getIJAB()["ijae"]*T(2)["aeij"];
 
     //TODO: guess
+
+    SpinorbitalTensor<U>& R1 = R(1);
+    SymmetryBlockedTensor<U>& R11 = R1(vec(1,0),vec(0,1));
+    CTFTensor<U>& R11CTF = R11(vec(0,0));
+    R11CTF.writeRemoteData(vec(tkv_pair<U>(1,1)));
+
+    Iterative::run(dag, arena);
+
+    put("energy", new Scalar(arena, energy));
+    put("convergence", new Scalar(arena, conv));
 }
 
 template <typename U>

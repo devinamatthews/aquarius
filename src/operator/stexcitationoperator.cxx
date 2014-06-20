@@ -171,4 +171,79 @@ void STExcitationOperator<U,2>::transform(const TwoElectronOperator<U>& X,
     Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];
 }
 
+template <typename U>
+void STExcitationOperator<U,2>::samtransform(const TwoElectronOperator<U>& X,
+                                          const ExcitationOperator<U,2>& T,
+                                                SpinorbitalTensor<U>& Tau,
+                                                ExcitationOperator<U,2>& Z,
+                                                TwoElectronOperator<U>& W)
+{
+    W.getAB() = X.getAB();
+    W.getIJ() = X.getIJ();
+    W.getIA() = X.getIA();
+    W.getIJKL() = X.getIJKL();
+    W.getIJAK() = X.getIJAK();
+    W.getAIJK() = X.getAIJK();
+    W.getAIBJ() = X.getAIBJ();
+
+    SpinorbitalTensor<U>& FBC = W.getAB();
+    SpinorbitalTensor<U>& FKJ = W.getIJ();
+    SpinorbitalTensor<U>& WIJAB = W.getIJAB();
+    SpinorbitalTensor<U>& WABCD = W.getABCD();
+    SpinorbitalTensor<U>& WKLIJ = W.getIJKL();
+    SpinorbitalTensor<U>& WBKCJ = W.getAIBJ();
+    SpinorbitalTensor<U>& FAI = W.getAI();
+    SpinorbitalTensor<U>& FKC = W.getIA();    
+    SpinorbitalTensor<U>& WABIJ = W.getABIJ();
+    SpinorbitalTensor<U>& WAKCD = W.getAIBC();
+    SpinorbitalTensor<U>& WABCJ = W.getABCI();
+    SpinorbitalTensor<U>& WKLCI = W.getIJAK();
+    SpinorbitalTensor<U>& WAKIJ = W.getAIJK();
+    
+
+    Tau = T(2);
+    Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
+
+    Z(0) = (U)0.0;
+
+    FKC["kc"] += WIJAB["klcd"]*T(1)["dl"]; // CCS 14, through CCS 11 and CCS 6. CCS 10 through CCS 2. CCSD 17, through CCS 11 and CCD 3. CCSD 18 through CCSD 4 and CCD 2
+
+    FKJ["kj"] += 0.5*WIJAB["klcd"]*T(2)["dclj"]; // CCD 9, through CCD 3 and CCS 9 through CCS 6
+    FKJ["kj"] += FKC["kc"]*T(1)["cj"]; // CCS 11, through CCS 6. CCSD 3, through CCD 3
+    FKJ["kj"] -= WKLCI["klcj"]*T(1)["cl"]; // CCS 13, through CCS 6. CCSD 10, through CCD 3. Sign change because <kl||ic> = -<kl||ci>
+
+    WKLIJ["klij"] += 0.5*WIJAB["klcd"]*Tau["cdij"]; // CCD 7, CCSD 14, 15, 21 through CCD 5. 
+    WKLIJ["klij"] += WKLCI["klcj"]*T(1)["ci"]; // CCSD 8, 20 through CCD 5
+
+    WKLCI["klci"] += WIJAB["klcd"]*T(1)["di"]; // CCS 8, through CCS 4 and CCSD 16 through CCSD 6 and CCD 6.
+
+    Z(1)["ai"]  = FAI["ai"]; // CCS 1
+    Z(1)["ai"] -= T(1)["ck"]*WBKCJ["akci"]; // CCS 7
+    Z(1)["ai"] += 0.5*WAKCD["akcd"]*Tau["cdik"]; // CCS 3, 12. Factor of 0.5 doesn't make sense for 12. Makes even less sense considering the 0.5 factor in the T(1)*T(1) part of Tau.
+    Z(1)["ai"] += 0.5*WKLCI["klci"]*T(2)["ackl"]; // CCS 4. Sign change because <kl||ic> = -<kl||ci>
+    Z(1)["ai"] += T(2)["acik"]*FKC["kc"]; // CCS 2
+    Z(1)["ai"] += T(1)["ci"]*FBC["ac"]; // CCS 5
+    Z(1)["ai"] -= T(1)["ak"]*FKJ["ki"]; // CCS 6
+
+    FBC["bc"] -= 0.5*WIJAB["klcd"]*T(2)["dblk"]; // CCD 10, through CCD 2
+    FBC["bc"] -= FKC["kc"]*T(1)["bk"]; // CCSD 4 through CCD 2
+    FBC["bc"] += WAKCD["bkcd"]*T(1)["dk"]; // CCSD 9 through CCD 2
+
+    WAKIJ["akij"] += 0.5*WAKCD["akcd"]*Tau["cdij"]; // CCSD 7, 19, through CCSD 2. Sign on my 19 seems wrong. 
+    WAKIJ["akij"] -= WBKCJ["akci"]*T(1)["cj"]; // CCSD 13 through CCSD 2
+
+    WBKCJ["bkcj"] -= 0.5*WIJAB["klcd"]*T(2)["bdjl"]; // CCD 8, through CCD 6
+    WBKCJ["bkcj"] += WAKCD["bkcd"]*T(1)["dj"]; // CCSD 5, through CCD 6
+    WBKCJ["bkcj"] += WKLCI["klcj"]*T(1)["bl"]; // CCSD 6, through CCD 6
+
+    Z(2)["abij"]  = WABIJ["abij"]; // CCD 1
+    Z(2)["abij"] += FBC["bc"]*T(2)["acij"]; // CCD 2
+    Z(2)["abij"] -= FKJ["kj"]*T(2)["abik"]; // CCD 3
+    Z(2)["abij"] += WABCJ["abcj"]*T(1)["ci"]; // CCSD 1
+    Z(2)["abij"] -= WAKIJ["akij"]*T(1)["bk"]; // CCSD 2
+    Z(2)["abij"] += 0.5*WABCD["abcd"]*Tau["cdij"]; // CCD 4, CCSD 11
+    Z(2)["abij"] += 0.5*WKLIJ["klij"]*Tau["abkl"]; // CCD 5, CCSD 12
+    Z(2)["abij"] -= WBKCJ["bkcj"]*T(2)["acik"]; // CCD 6
+}
+
 INSTANTIATE_SPECIALIZATIONS_2(STExcitationOperator,2);

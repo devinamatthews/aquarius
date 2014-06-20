@@ -22,7 +22,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#include "ccd.hpp"
+#include "mp3.hpp"
 
 using namespace std;
 using namespace aquarius::op;
@@ -33,22 +33,22 @@ using namespace aquarius::time;
 using namespace aquarius::task;
 
 template <typename U>
-CCD<U>::CCD(const string& name, const Config& config)
-: Iterative("ccd", name, config), diis(config.get("diis"))
+MP3<U>::MP3(const string& name, const Config& config)
+: NonIterative("mp3", name, config)
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("moints", "H"));
     addProduct(Product("double", "mp2", reqs));
+    addProduct(Product("double", "mp3", reqs));
     addProduct(Product("double", "energy", reqs));
-    addProduct(Product("double", "convergence", reqs));
     addProduct(Product("double", "S2", reqs));
     addProduct(Product("double", "multiplicity", reqs));
-    addProduct(Product("ccd.T", "T", reqs));
-    addProduct(Product("ccd.Hbar", "Hbar", reqs));
+    addProduct(Product("mp3.T", "T", reqs));
+    addProduct(Product("mp3.Hbar", "Hbar", reqs));
 }
 
 template <typename U>
-void CCD<U>::run(TaskDAG& dag, const Arena& arena)
+void MP3<U>::run(TaskDAG& dag, const Arena& arena)
 {
     const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
 
@@ -71,16 +71,43 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
     T.weight(D);
 
     energy = 0.25*real(scalar(H.getABIJ()*T(2)));
+    double mp2energy = energy;
 
-    conv = T.norm(00);
 
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
     put("mp2", new Scalar(arena, energy));
 
-    Iterative::run(dag, arena);
+    TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
+
+    TwoElectronOperator<U> Hnew("W", H_, TwoElectronOperator<U>::AB|
+                                 TwoElectronOperator<U>::IJ|
+                                 TwoElectronOperator<U>::IJKL|
+                                 TwoElectronOperator<U>::AIBJ);
+
+    SpinorbitalTensor<U>& FAE = Hnew.getAB();
+    SpinorbitalTensor<U>& FMI = Hnew.getIJ();
+    SpinorbitalTensor<U>& WMNEF = Hnew.getIJAB();
+    SpinorbitalTensor<U>& WABEF = Hnew.getABCD();
+    SpinorbitalTensor<U>& WMNIJ = Hnew.getIJKL();
+    SpinorbitalTensor<U>& WAMEI = Hnew.getAIBJ();
+
+    Z(2)["abij"] = WMNEF["ijab"];
+    Z(2)["abij"] += FAE["af"]*T(2)["fbij"];
+    Z(2)["abij"] -= FMI["ni"]*T(2)["abnj"];
+    Z(2)["abij"] += 0.5*WABEF["abef"]*T(2)["efij"];
+    Z(2)["abij"] += 0.5*WMNIJ["mnij"]*T(2)["abmn"];
+    Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];
+
+    Z.weight(D);
+    T += Z;
+
+    energy = 0.25*real(scalar(H.getABIJ()*T(2)));
+
+    Logger::log(arena) << "MP3 energy = " << setprecision(15) << energy << endl;
+    Logger::log(arena) << "MP3 correlation energy = " << setprecision(15) << energy - mp2energy << endl;
+    put("mp3", new Scalar(arena, energy));
 
     put("energy", new Scalar(arena, energy));
-    put("convergence", new Scalar(arena, conv));
 
     /*
     if (isUsed("S2") || isUsed("multiplicity"))
@@ -99,8 +126,9 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
     }
 }
 
+#if 0
 template <typename U>
-void CCD<U>::iterate(const Arena& arena)
+void MP3<U>::iterate(const Arena& arena)
 {
     TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
 
@@ -113,35 +141,37 @@ void CCD<U>::iterate(const Arena& arena)
                                  TwoElectronOperator<U>::IJKL|
                                  TwoElectronOperator<U>::AIBJ);
 
-    SpinorbitalTensor<U>& FBC = H.getAB();
-    SpinorbitalTensor<U>& FKJ = H.getIJ();
-    SpinorbitalTensor<U>& WIJAB = H.getIJAB();
-    SpinorbitalTensor<U>& WABCD = H.getABCD();
-    SpinorbitalTensor<U>& WKLIJ = H.getIJKL();
-    SpinorbitalTensor<U>& WBKCJ = H.getAIBJ();
+    SpinorbitalTensor<U>& FAE = H.getAB();
+    SpinorbitalTensor<U>& FMI = H.getIJ();
+    SpinorbitalTensor<U>& WMNEF = H.getIJAB();
+    SpinorbitalTensor<U>& WABEF = H.getABCD();
+    SpinorbitalTensor<U>& WMNIJ = H.getIJKL();
+    SpinorbitalTensor<U>& WAMEI = H.getAIBJ();
 
 //    sched.set_max_partitions(1);
     /**************************************************************************
      *
-     * Intermediates, now aligned with Shavitt and Bartlett, 9.126
+     * Intermediates
      */
-    FKJ["kj"] += 0.5*WIJAB["klcd"]*T(2)["dclj"]; /* 9, through 3 */
-    WKLIJ["klij"] += 0.5*WIJAB["klcd"]*T(2)["cdij"]; /* 7, through 5 */
-    FBC["bc"] -= 0.5*WIJAB["klcd"]*T(2)["dblk"]; /* 10, through 2 */
-    WBKCJ["bkcj"] -= 0.5*WIJAB["klcd"]*T(2)["bdjl"]; /* 8, through 6, Minus sign cancels that in 6*/
+    // FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
+
+
+    // WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*T(2)["efij"];
+    // FAE["ae"] -= 0.5*WMNEF["mnef"]*T(2)["afmn"];
+    // WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T(2)["afin"];
     /*
      *************************************************************************/
 
     /**************************************************************************
      *
-     * T(1)->T(2) and T(2)->T(2), now aligned with Shavitt and Bartlett 9.126
+     * T(1)->T(2) and T(2)->T(2)
      */
-    Z(2)["abij"] = WIJAB["ijab"]; /* 1, ijab instead of abij because getIJAB instead of getABIJ. Makes intermeds 7, 8 nicer. */
-    Z(2)["abij"] += FBC["bc"]*T(2)["acij"]; /* 2 */
-    Z(2)["abij"] -= FKJ["kj"]*T(2)["abik"]; /* 3 */
-    Z(2)["abij"] += 0.5*WABCD["abcd"]*T(2)["cdij"]; /* 4 */
-    Z(2)["abij"] += 0.5*WKLIJ["klij"]*T(2)["abkl"]; /* 5 */
-    Z(2)["abij"] -= WBKCJ["bkcj"]*T(2)["acik"]; /* 6, minus sign because getAIBJ instead of getIABJ, which necessitates -bkcj instead of +kbcj */
+    Z(2)["abij"] = WMNEF["ijab"];
+    Z(2)["abij"] += FAE["af"]*T(2)["fbij"];
+    Z(2)["abij"] -= FMI["ni"]*T(2)["abnj"];
+    Z(2)["abij"] += 0.5*WABEF["abef"]*T(2)["efij"];
+    Z(2)["abij"] += 0.5*WMNIJ["mnij"]*T(2)["abmn"];
+    Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];
     /*
      *************************************************************************/
 
@@ -154,6 +184,7 @@ void CCD<U>::iterate(const Arena& arena)
 
     diis.extrapolate(T, Z);
 }
+#endif
 
-INSTANTIATE_SPECIALIZATIONS(CCD);
-REGISTER_TASK(CCD<double>,"ccd");
+INSTANTIATE_SPECIALIZATIONS(MP3);
+REGISTER_TASK(MP3<double>,"mp3");
