@@ -98,7 +98,6 @@ class Davidson
             assert(c.size() == nvec);
             assert(hc.size() == nvec);
 
-
             for (int i = 0;i < nvec;i++) assert(c[i] != NULL);
             for (int i = 0;i < nvec;i++) assert(hc[i] != NULL);
 
@@ -110,8 +109,6 @@ class Davidson
                 //TODO: compact
                 assert(0);
             }
-
-            nextrap_real++;
 
             /*
              * Lazily allocate elements of old_c etc. so that we can
@@ -157,15 +154,17 @@ class Davidson
                 //for (int j = 0;j < nvec;i++)
                 for (int j = 0;j < nvec;j++)
                 {
-                    std::cout << "top" << std::endl;
-                    std::cout << "old_c " << old_c[i][j] << std::endl;
-                    std::cout << "hc " << hc[j] << std::endl;
+                    //std::cout << "top" << std::endl;
+                    ////std::cout << "old_c " << old_c[i][j] << std::endl;
+                    //std::cout << "hc " << hc[j] << std::endl;
                     e[i+nextrap_real*nextrap] += scalar(conj(*old_c[i][j])*(*hc[j]));
-                    std::cout << "middle" << std::endl;
+                    //std::cout << "middle" << std::endl;
                     e[nextrap_real+i*nextrap] += scalar(conj(*c[j])*(*old_hc[i][j]));
-                    std::cout << "bot" << std::endl;
+                    //std::cout << "bot" << std::endl;
                 }
             }
+
+            nextrap_real++;
 
             /*
             for (int i = 0;i < nextrap_real;i++)
@@ -174,13 +173,12 @@ class Davidson
                 {
                     printf("%+11e ", e[i+j*nextrap]);
                 }
-
-                printf(": %+11e\n", c[i]);
+                printf("\n");
             }
             printf("\n");
             */
 
-            std::cout << "Check 2" << std::endl;
+            //std::cout << "Check 2" << std::endl;
 
             int info;
             std::vector<dtype> tmp(nextrap*nextrap);
@@ -218,7 +216,7 @@ class Davidson
                 }
             }
 
-            std::cout << "Check 9" << std::endl;
+            //std::cout << "Check 9" << std::endl;
 
             if (std::abs(std::imag(l[bestev])) > 1e-10)
                 throw std::runtime_error("davidson: complex eigenvalue");

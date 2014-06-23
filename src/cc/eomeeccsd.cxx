@@ -80,7 +80,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     SpinorbitalTensor<U>& R1 = R(1);
     SymmetryBlockedTensor<U>& R11 = R1(vec(1,0),vec(0,1));
     CTFTensor<U>& R11CTF = R11(vec(0,0));
-    R11CTF.writeRemoteData(vec(tkv_pair<U>(1,1)));
+    R11CTF.writeRemoteData(vec(tkv_pair<U>(76,1)));
 
     Iterative::run(dag, arena);
 
@@ -98,6 +98,9 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
 
     H.contract(R, Z);
+
+    //cout << "norm of R: " << R.norm(2) << endl;
+    //cout << "norm of Z: " << Z.norm(2) << endl;
 
     energy = davidson.extrapolate(R, Z, D);
 
