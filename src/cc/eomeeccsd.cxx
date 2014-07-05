@@ -116,7 +116,8 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
             }
             // do Hbar*R product into Z
             ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
-            H.contractsam(R, Z);
+            Z(0) = 0; Z(1) = 0; Z(2) = 0;
+            H.contract(R, Z);
             for (int nex2 = 1;nex2 <= 2;nex2++)
             {
                 SpinorbitalTensor<U>& Zso = Z(nex2);
