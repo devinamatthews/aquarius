@@ -23,6 +23,7 @@
  * SUCH DAMAGE. */
 
 #include "eomeeccsd.hpp"
+#include "util/lapack.h"
 
 using namespace std;
 using namespace aquarius;
@@ -77,15 +78,75 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
     //TODO: guess
 
-    SpinorbitalTensor<U>& R1 = R(1);
-    SymmetryBlockedTensor<U>& R11 = R1(vec(1,0),vec(0,1));
-    CTFTensor<U>& R11CTF = R11(vec(0,0));
-    R11CTF.writeRemoteData(vec(tkv_pair<U>(1,1)));
+    //SpinorbitalTensor<U>& R1 = R(1);
+    //SymmetryBlockedTensor<U>& R11 = R1(vec(1,0),vec(0,1));
+    //CTFTensor<U>& R11CTF = R11(vec(0,0));
+    //R11CTF.writeRemoteData(vec(tkv_pair<U>(76,1)));
+    //Iterative::run(dag, arena);
+    //put("energy", new Scalar(arena, energy));
+    //put("convergence", new Scalar(arena, conv));
 
-    Iterative::run(dag, arena);
+    vector<vector<U> > cols;
 
-    put("energy", new Scalar(arena, energy));
-    put("convergence", new Scalar(arena, conv));
+    for (int nex = 1;nex <= 2;nex++)
+    {  
+        SpinorbitalTensor<U>& Rso = R(nex);
+        SymmetryBlockedTensor<U>& Rsb = Rso(vec(1,0),vec(0,1));
+        CTFTensor<U>& Rctf = Rsb(vector<int>(nex*2,0));
+        int max_key;
+        if (nex == 1)
+        {
+            max_key = 10;
+        }
+        else
+        {
+            max_key = 100;
+        }
+        for (int key = 0;key < max_key;key++)
+        {
+            cols.push_back(vector<U>());
+            if (arena.rank == 0)
+            {
+                //cout << "key = " << key << endl;
+                Rctf.writeRemoteData(vec(tkv_pair<U>(key,1.0)));
+            }
+            else
+            {
+                Rctf.writeRemoteData();
+            }
+            // do Hbar*R product into Z
+            ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+            H.contractsam(R, Z);
+            for (int nex2 = 1;nex2 <= 2;nex2++)
+            {
+                SpinorbitalTensor<U>& Zso = Z(nex2);
+                SymmetryBlockedTensor<U>& Zsb = Zso(vec(1,0),vec(0,1));
+                CTFTensor<U>& Zctf = Zsb(vector<int>(nex2*2,0));
+                vector<U> data;
+                Zctf.getAllData(data);
+                cols.back().insert(cols.back().end(), data.begin(), data.end());
+            }
+        }
+    }
+    cout << "cols.size() = " << cols.size() << endl;
+    cout << "cols[0].size() = " << cols[0].size() << endl;
+
+    vector<U> matrix;
+    for (int i=0;i<cols.size();i++)
+    {
+        matrix.insert(matrix.end(),cols[i].begin(),cols[i].end());
+    }
+
+    //cout << "matrix.size() = " << matrix.size() << endl;
+
+    int mysize = cols.size();
+    vector<complex<double> > w(mysize);
+    vector<U> vl(mysize);
+    vector<U> vr(mysize);
+    geev('N','N',mysize,matrix.data(),mysize,w.data(),vl.data(),mysize,vr.data(),mysize);
+    
+    cout << "w.size() = " << w.size() << endl;
+    cout << w << endl;
 }
 
 template <typename U>

@@ -54,6 +54,8 @@ class STTwoElectronOperator<U,2> : public TwoElectronOperator<U>
 
         void contract(const ExcitationOperator<U,2>& R, ExcitationOperator<U,2>& Z, bool connected=true) const;
 
+        void contractsam(const ExcitationOperator<U,2>& R, ExcitationOperator<U,2>& Z, bool connected=true) const;
+
         void contract(const DeexcitationOperator<U,2>& L, DeexcitationOperator<U,2>& Z, bool connected=false) const;
 };
 

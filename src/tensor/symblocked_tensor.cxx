@@ -267,6 +267,9 @@ CTFTensor<T>& SymmetryBlockedTensor<T>::operator()(const vector<int>& irreps)
 template <class T>
 const CTFTensor<T>& SymmetryBlockedTensor<T>::operator()(const vector<int>& irreps) const
 {
+    //cout << "irreps = " << irreps << endl;
+    //cout << "irreps.size() = " << irreps.size() << endl;
+    //cout << "this->ndim = " << this->ndim << endl;
     assert(irreps.size() == this->ndim);
 
     int n = group.getNumIrreps();

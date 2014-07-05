@@ -133,6 +133,50 @@ STTwoElectronOperator<U,2>::STTwoElectronOperator(const std::string& name, const
 
 template <typename U>
 void STTwoElectronOperator<U,2>::contract(const ExcitationOperator<U,2>& R,
+                                               ExcitationOperator<U,2>& Z,
+                                         bool connected) const
+{
+   OneElectronOperator<U> I("I", this->arena, this->occ, this->vrt);
+
+   SpinorbitalTensor<U>& IMI = I.getIJ();
+   SpinorbitalTensor<U>& IAE = I.getAB();
+
+   IMI["mi"]  = this->ijak["nmei"]*R(1)["en"];
+   IMI["mi"] += 0.5*this->ijab["mnef"]*R(2)["efin"];
+   IAE["ae"]  = this->aibc["amef"]*R(1)["fm"];
+   IAE["ae"] -= 0.5*this->ijab["mnef"]*R(2)["afmn"];
+   
+
+   Z(1)["ai"] += this->ab["ae"]*R(1)["ei"];
+   Z(1)["ai"] -= this->ij["mi"]*R(1)["am"];
+   Z(1)["ai"] -= this->aibj["amei"]*R(1)["em"];
+   Z(1)["ai"] += this->ia["me"]*R(2)["aeim"];
+   Z(1)["ai"] += 0.5*this->aibc["amef"]*R(2)["efim"];
+   Z(1)["ai"] -= 0.5*this->ijak["mnei"]*R(2)["eamn"];
+
+   
+
+   Z(2)["abij"] += this->ab["ae"]*R(2)["ebij"];
+   Z(2)["abij"] -= this->ij["mi"]*R(2)["abmj"];
+   Z(2)["abij"] += IAE["ae"]*T(2)["ebij"];
+   Z(2)["abij"] -= IMI["mi"]*T(2)["abmj"];
+   Z(2)["abij"] += this->abci["abej"]*R(1)["ei"];
+   Z(2)["abij"] -= this->aijk["amij"]*R(1)["bm"];
+   Z(2)["abij"] += 0.5*this->abcd["abef"]*R(2)["efij"];
+   Z(2)["abij"] += 0.5*this->ijkl["mnij"]*R(2)["abmn"];
+   Z(2)["abij"] -= this->aibj["amei"]*R(2)["ebmj"];
+
+   if (!connected)
+   {
+       Z(1) += this->ai*R(0);
+       Z(2) += this->abij*R(0);
+
+       Z(2)["abij"] += this->ai["ai"]*R(1)["bj"];
+   }
+}
+
+template <typename U>
+void STTwoElectronOperator<U,2>::contractsam(const ExcitationOperator<U,2>& R,
                                                 ExcitationOperator<U,2>& Z,
                                           bool connected) const
 {
@@ -141,30 +185,61 @@ void STTwoElectronOperator<U,2>::contract(const ExcitationOperator<U,2>& R,
     SpinorbitalTensor<U>& IMI = I.getIJ();
     SpinorbitalTensor<U>& IAE = I.getAB();
 
+
+    // Z(1)["ai"] += this->ab["ae"]*R(1)["ei"];
+    // Z(1)["ai"] -= this->ij["mi"]*R(1)["am"];
+    // Z(1)["ai"] -= this->aibj["amei"]*R(1)["em"];
+    // Z(1)["ai"] += this->ia["me"]*R(2)["aeim"];
+    // Z(1)["ai"] += 0.5*this->aibc["amef"]*R(2)["efim"];
+    // Z(1)["ai"] -= 0.5*this->ijak["mnei"]*R(2)["eamn"]; // Orig
+    Z(1)["ai"] += this->ab["ad"]*R(1)["di"];
+    Z(1)["ai"] -= this->ij["li"]*R(1)["al"];
+    Z(1)["ai"] -= this->aibj["aldi"]*R(1)["dl"];
+    Z(1)["ai"] += this->ia["ld"]*R(2)["adil"];
+    Z(1)["ai"] += 0.5*this->aibc["alde"]*R(2)["deil"];
+    Z(1)["ai"] += 0.5*this->ijak["lmdi"]*R(2)["adlm"]; // No Change. 
+
+
+
+    // Z(2)["abij"] += this->ab["ae"]*R(2)["ebij"];
+    // Z(2)["abij"] -= this->ij["mi"]*R(2)["abmj"]; // Orig
+    Z(2)["abij"] += this->ab["bd"]*R(2)["adij"];
+    Z(2)["abij"] -= this->ij["lj"]*R(2)["abil"]; // No Change. 
+
+
+    //Z(2)["abij"] += this->abci["abej"]*R(1)["ei"];
+    //Z(2)["abij"] -= this->aijk["amij"]*R(1)["bm"]; // Orig
+    Z(2)["abij"] += this->abci["abdj"]*R(1)["di"];
+    Z(2)["abij"] += this->aijk["blij"]*R(1)["al"]; // No Change
+
+    // Z(2)["abij"] += 0.5*this->abcd["abef"]*R(2)["efij"];
+    // Z(2)["abij"] += 0.5*this->ijkl["mnij"]*R(2)["abmn"]; // Orig
+    Z(2)["abij"] += 0.5*this->abcd["abde"]*R(2)["deij"];
+    Z(2)["abij"] += 0.5*this->ijkl["lmij"]*R(2)["ablm"]; // No Change
+
+    //Z(2)["abij"] -= this->aibj["amei"]*R(2)["ebmj"]; // Orig
+    Z(2)["abij"] -= 2.0*this->aibj["bldj"]*R(2)["adil"]; // No Change
+    // With both of these ^^^^ turned on accidentally, I got a lot more real evals. 2.0* same thing.
+
+    TwoElectronOperator<U> V("H", this->arena, this->occ, this->vrt);
+    SpinorbitalTensor<U>& VIJAB = V.getIJAB();
+    SpinorbitalTensor<U>& VIJAK = V.getIJAK();
+
     IMI["mi"]  = this->ijak["nmei"]*R(1)["en"];
     IMI["mi"] += 0.5*this->ijab["mnef"]*R(2)["efin"];
     IAE["ae"]  = this->aibc["amef"]*R(1)["fm"];
-    IAE["ae"] -= 0.5*this->ijab["mnef"]*R(2)["afmn"];
+    IAE["ae"] -= 0.5*this->ijab["mnef"]*R(2)["afmn"]; // Orig
+
+    //IMI["mi"]  = -VIJAK["mldi"]*R(1)["dl"];
+    //IMI["mi"] += 0.5*VIJAB["mlde"]*R(2)["deil"];
+    ////IAE["ae"]  = this->aibc["amef"]*R(1)["fm"];
+    //IAE["ae"]  = -0.5*VIJAB["mlde"]*R(2)["adlm"];
+
+
+    Z(2)["abij"] -= IMI["mi"]*T(2)["abmj"]; // Orig
+    Z(2)["abij"] += IAE["ae"]*T(2)["ebij"]; // Orig
     
 
-    Z(1)["ai"] += this->ab["ae"]*R(1)["ei"];
-    Z(1)["ai"] -= this->ij["mi"]*R(1)["am"];
-    Z(1)["ai"] -= this->aibj["amei"]*R(1)["em"];
-    Z(1)["ai"] += this->ia["me"]*R(2)["aeim"];
-    Z(1)["ai"] += 0.5*this->aibc["amef"]*R(2)["efim"];
-    Z(1)["ai"] -= 0.5*this->ijak["mnei"]*R(2)["eamn"];
-
-    
-
-    Z(2)["abij"] += this->ab["ae"]*R(2)["ebij"];
-    Z(2)["abij"] -= this->ij["mi"]*R(2)["abmj"];
-    Z(2)["abij"] += IAE["ae"]*T(2)["ebij"];
-    Z(2)["abij"] -= IMI["mi"]*T(2)["abmj"];
-    Z(2)["abij"] += this->abci["abej"]*R(1)["ei"];
-    Z(2)["abij"] -= this->aijk["amij"]*R(1)["bm"];
-    Z(2)["abij"] += 0.5*this->abcd["abef"]*R(2)["efij"];
-    Z(2)["abij"] += 0.5*this->ijkl["mnij"]*R(2)["abmn"];
-    Z(2)["abij"] -= this->aibj["amei"]*R(2)["ebmj"];
 
     if (!connected)
     {
