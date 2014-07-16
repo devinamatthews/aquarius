@@ -220,9 +220,18 @@ void STTwoElectronOperator<U,2>::contractsam(const ExcitationOperator<U,2>& R,
     // Z(1)["ai"] += this->ia["me"]*R(2)["aeim"];
     // Z(1)["ai"] += 0.5*this->aibc["amef"]*R(2)["efim"];
     // Z(1)["ai"] -= 0.5*this->ijak["mnei"]*R(2)["eamn"]; // Orig
-    Z(1)["ai"] += this->ab["ad"]*R(1)["di"];
-    Z(1)["ai"] -= this->ij["li"]*R(1)["al"];
+    //cout << "before" << endl;
+    // Z(1)["ai"] += this->ab["ad"]*R(1)["di"]; // GOOD
+    // Z(1)["ai"] -= this->ij["li"]*R(1)["al"]; // GOOD
+    //this->ij(vec(0,1),vec(0,1))(vec(0,0)).print(stdout);
+    //cout << "after" << endl;
+    // cout << "before" << endl;
+    // //Z(1)["ai"] -= this->aibj["alid"]*R(1)["dl"];
+    cout << "before" << endl;
+    R(1)(vec(1,0),vec(0,1))(vec(0,0)).print(stdout);
     Z(1)["ai"] -= this->aibj["aldi"]*R(1)["dl"];
+    cout << "after" << endl;
+    // cout << "after" << endl;
     // Z(1)["ai"] += this->ia["ld"]*R(2)["adil"];
     // Z(1)["ai"] += 0.5*this->aibc["alde"]*R(2)["deil"];
     // Z(1)["ai"] += 0.5*this->ijak["lmdi"]*R(2)["adlm"]; // No Change. 

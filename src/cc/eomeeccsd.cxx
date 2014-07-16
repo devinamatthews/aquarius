@@ -115,10 +115,15 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
             {
                 Rctf.writeRemoteData();
             }
+
+            R(1)(vec(0,0),vec(0,0))(vec(0,0)) = R(1)(vec(1,0),vec(0,1))(vec(0,0));
+            R(2)(vec(0,0),vec(0,0))(vec(0,0,0,0)) = 0.5*R(2)(vec(1,0),vec(0,1))(vec(0,0,0,0));
+            R(2)(vec(2,0),vec(0,2))(vec(0,0,0,0)) = 0.5*R(2)(vec(1,0),vec(0,1))(vec(0,0,0,0));
+
             // do Hbar*R product into Z
             ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
             Z(0) = 0; Z(1) = 0; Z(2) = 0;
-            H.contractsam(R, Z);
+            H.contract(R, Z);
             for (int nex2 = 1;nex2 <= 2;nex2++)
             {
                 SpinorbitalTensor<U>& Zso = Z(nex2);
@@ -139,7 +144,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     vector<U> matrix;
     for (int i=0;i<cols.size();i++)
     {
-        cout << cols[0][i] << endl;
+        //cout << setprecision(9) << cols[0][i] << endl;
         //cout << i << endl;
         //cout << cols[i] << endl;
         // if (i > 0)
@@ -161,7 +166,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     geev('N','N',mysize,matrix.data(),mysize,w.data(),vl.data(),mysize,vr.data(),mysize);
     
     cout << "w.size() = " << w.size() << endl;
-    cout << w << endl;
+    cout << setprecision(9) << w << endl;
 
 
 }

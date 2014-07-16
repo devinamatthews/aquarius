@@ -64,9 +64,6 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
 
         void allocate(bool zero);
 
-
-        const CTFTensor<T>& operator()(const std::vector<int>& irreps) const;
-
         void register_scalar();
 
         void unregister_scalar();
@@ -75,6 +72,8 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
 
     public:
         CTFTensor<T>& operator()(const std::vector<int>& irreps);
+
+        const CTFTensor<T>& operator()(const std::vector<int>& irreps) const;
         
         SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other);
 
