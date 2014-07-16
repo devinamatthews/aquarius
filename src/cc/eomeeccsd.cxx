@@ -105,6 +105,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
         for (int key = 0;key < max_key;key++)
         {
             cols.push_back(vector<U>());
+            R(0) = 0; R(1) = 0; R(2) = 0;
             if (arena.rank == 0)
             {
                 //cout << "key = " << key << endl;
@@ -117,15 +118,18 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
             // do Hbar*R product into Z
             ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
             Z(0) = 0; Z(1) = 0; Z(2) = 0;
-            H.contract(R, Z);
+            H.contractsam(R, Z);
             for (int nex2 = 1;nex2 <= 2;nex2++)
             {
                 SpinorbitalTensor<U>& Zso = Z(nex2);
                 SymmetryBlockedTensor<U>& Zsb = Zso(vec(1,0),vec(0,1));
                 CTFTensor<U>& Zctf = Zsb(vector<int>(nex2*2,0));
                 vector<U> data;
+                // cout << "first " << data << endl;
                 Zctf.getAllData(data);
+                // cout << "second " << data << endl;
                 cols.back().insert(cols.back().end(), data.begin(), data.end());
+                data.assign(data.size(),0.0);
             }
         }
     }
@@ -135,6 +139,16 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     vector<U> matrix;
     for (int i=0;i<cols.size();i++)
     {
+        cout << cols[0][i] << endl;
+        //cout << i << endl;
+        //cout << cols[i] << endl;
+        // if (i > 0)
+        // {
+        //     for (int jj=0;jj<cols.size();jj++)
+        //     {
+        //         cout << cols[i][jj] - cols[i-1][jj] << endl;
+        //     }
+        // }
         matrix.insert(matrix.end(),cols[i].begin(),cols[i].end());
     }
 
@@ -148,6 +162,8 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     
     cout << "w.size() = " << w.size() << endl;
     cout << w << endl;
+
+
 }
 
 template <typename U>

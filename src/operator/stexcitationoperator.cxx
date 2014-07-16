@@ -207,14 +207,14 @@ void STExcitationOperator<U,2>::samtransform(const TwoElectronOperator<U>& X,
     Z(0) = (U)0.0;
 
     FKC["kc"] += WIJAB["klcd"]*T(1)["dl"]; // CCS 14, through CCS 11 and CCS 6. CCS 10 through CCS 2. CCSD 17, through CCS 11 and CCD 3. CCSD 18 through CCSD 4 and CCD 2
-
+    
     FKJ["kj"] += 0.5*WIJAB["klcd"]*T(2)["dclj"]; // CCD 9, through CCD 3 and CCS 9 through CCS 6
     FKJ["kj"] += FKC["kc"]*T(1)["cj"]; // CCS 11, through CCS 6. CCSD 3, through CCD 3
     FKJ["kj"] -= WKLCI["klcj"]*T(1)["cl"]; // CCS 13, through CCS 6. CCSD 10, through CCD 3. Sign change because <kl||ic> = -<kl||ci>
-
+    
     WKLIJ["klij"] += 0.5*WIJAB["klcd"]*Tau["cdij"]; // CCD 7, CCSD 14, 15, 21 through CCD 5. 
     WKLIJ["klij"] += WKLCI["klcj"]*T(1)["ci"]; // CCSD 8, 20 through CCD 5
-
+    
     WKLCI["klci"] += WIJAB["klcd"]*T(1)["di"]; // CCS 8, through CCS 4 and CCSD 16 through CCSD 6 and CCD 6.
 
     Z(1)["ai"]  = FAI["ai"]; // CCS 1
@@ -228,10 +228,10 @@ void STExcitationOperator<U,2>::samtransform(const TwoElectronOperator<U>& X,
     FBC["bc"] -= 0.5*WIJAB["klcd"]*T(2)["dblk"]; // CCD 10, through CCD 2
     FBC["bc"] -= FKC["kc"]*T(1)["bk"]; // CCSD 4 through CCD 2
     FBC["bc"] += WAKCD["bkcd"]*T(1)["dk"]; // CCSD 9 through CCD 2
-
+    
     WAKIJ["akij"] += 0.5*WAKCD["akcd"]*Tau["cdij"]; // CCSD 7, 19, through CCSD 2. Sign on my 19 seems wrong. 
     WAKIJ["akij"] -= WBKCJ["akci"]*T(1)["cj"]; // CCSD 13 through CCSD 2
-
+    
     WBKCJ["bkcj"] -= 0.5*WIJAB["klcd"]*T(2)["bdjl"]; // CCD 8, through CCD 6
     WBKCJ["bkcj"] += WAKCD["bkcd"]*T(1)["dj"]; // CCSD 5, through CCD 6
     WBKCJ["bkcj"] += WKLCI["klcj"]*T(1)["bl"]; // CCSD 6, through CCD 6
