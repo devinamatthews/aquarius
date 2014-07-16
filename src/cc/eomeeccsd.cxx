@@ -182,6 +182,9 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
 
     H.contract(R, Z);
 
+    //cout << "norm of R: " << R.norm(2) << endl;
+    //cout << "norm of Z: " << Z.norm(2) << endl;
+
     energy = davidson.extrapolate(R, Z, D);
 
     conv = Z.norm(00);
