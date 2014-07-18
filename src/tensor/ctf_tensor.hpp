@@ -230,7 +230,7 @@ class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public task::Resourc
 
         void invert(T alpha, bool conja, const CTFTensor<T>& A, T beta);
 
-        void weight(const std::vector<const std::vector<T>*>& d);
+        void weight(const std::vector<const std::vector<T>*>& d, double shift = 0);
 
         void print(FILE* fp, double cutoff = -1.0) const;
 

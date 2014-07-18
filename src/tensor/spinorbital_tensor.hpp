@@ -85,7 +85,8 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,S
         void scale(const T alpha, const std::string& idx_A);
 
         void weight(const std::vector<const std::vector<std::vector<T> >*>& da,
-                    const std::vector<const std::vector<std::vector<T> >*>& db);
+                    const std::vector<const std::vector<std::vector<T> >*>& db,
+                    double shift = 0);
 
         T dot(bool conja, const SpinorbitalTensor<T>& A, const std::string& idx_A,
               bool conjb,                                const std::string& idx_B) const;

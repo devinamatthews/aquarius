@@ -67,7 +67,7 @@ class ExcitationOperator
             }
         }
 
-        void weight(const Denominator<T>& d)
+        void weight(const Denominator<T>& d, double shift = 0)
         {
             std::vector<const std::vector<std::vector<T> >*> da = vec(&d.getDA(), &d.getDI());
             std::vector<const std::vector<std::vector<T> >*> db = vec(&d.getDa(), &d.getDi());
@@ -75,7 +75,7 @@ class ExcitationOperator
             for (int ex = 0;ex <= std::min(np,nh);ex++)
             {
                 if (ex== 0 && np == nh) continue;
-                tensors[ex+std::abs(np-nh)].tensor->weight(da, db);
+                tensors[ex+std::abs(np-nh)].tensor->weight(da, db, shift);
             }
         }
 

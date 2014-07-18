@@ -844,7 +844,8 @@ T SymmetryBlockedTensor<T>::dot(bool conja, const SymmetryBlockedTensor<T>& A, c
 }
 
 template <class T>
-void SymmetryBlockedTensor<T>::weight(const vector<const vector<vector<T> >*>& d)
+void SymmetryBlockedTensor<T>::weight(const vector<const vector<vector<T> >*>& d,
+                                      double shift)
 {
     int n = group.getNumIrreps();
 
@@ -859,7 +860,7 @@ void SymmetryBlockedTensor<T>::weight(const vector<const vector<vector<T> >*>& d
         if (tensors[off_A] != NULL && tensors[off_A].isAlloced)
         {
             for (int i = 0;i < this->ndim;i++) dsub[i] = &((*d[i])[iA[i]]);
-            tensors[off_A].tensor->weight(dsub);
+            tensors[off_A].tensor->weight(dsub, shift);
         }
 
         for (int i = 0;i < this->ndim;i++)

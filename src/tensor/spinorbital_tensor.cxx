@@ -950,7 +950,7 @@ void SpinorbitalTensor<T>::scale(const T alpha, const string& idx_A)
     {
         for (int j = i+1;j < idx_A.size();j++)
         {
-            assert(idx_A[i] == idx_A[j]);
+            //assert(idx_A[i] == idx_A[j]);
         }
     }
 
@@ -962,7 +962,8 @@ void SpinorbitalTensor<T>::scale(const T alpha, const string& idx_A)
 
 template<class T>
 void SpinorbitalTensor<T>::weight(const vector<const vector<vector<T> >*>& da,
-                                  const vector<const vector<vector<T> >*>& db)
+                                  const vector<const vector<vector<T> >*>& db,
+                                  double shift)
 {
     vector<const vector<vector<T> >*> d(this->ndim);
 
@@ -980,7 +981,7 @@ void SpinorbitalTensor<T>::weight(const vector<const vector<vector<T> >*>& da,
             for (int b = 0;b < nin[s]-sc->alpha_in[s];b++,i++) d[i] = db[s];
         }
 
-        sc->tensor->weight(d);
+        sc->tensor->weight(d, shift);
     }
 }
 

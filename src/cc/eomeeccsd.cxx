@@ -54,42 +54,37 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& vrt = H.vrt;
 
     put("R", new ExcitationOperator<U,2>("R", arena, occ, vrt));
-    puttmp("D", new ExcitationOperator<U,2>("D", arena, occ, vrt));
+    puttmp("D", new Denominator<U>(H));
     puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
 
     ExcitationOperator<U,2>& R = get<ExcitationOperator<U,2> >("R");
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
-    ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
-
-    D(0) = (U)1.0;
-    D(1)["ai"]  = H.getIJ()["ii"];
-    D(1)["ai"] -= H.getAB()["aa"];
-    //D(1)["ai"] -= H.getAIBJ()["aiai"];
-    D(2)["abij"]  = H.getIJ()["ii"];
-    D(2)["abij"] += H.getIJ()["jj"];
-    D(2)["abij"] -= H.getAB()["aa"];
-    D(2)["abij"] -= H.getAB()["bb"];
-    //D(2)["abij"] -= H.getAIBJ()["aiai"];
-    //D(2)["abij"] -= H.getAIBJ()["bjbj"];
-    //D(2)["abij"] += H.getABCD()["abab"];
-    //D(2)["abij"] += H.getIJKL()["ijij"];
-    //D(2)["abij"] -= H.getIJAB()["imab"]*T(2)["abim"];
-    //D(2)["abij"] += H.getIJAB()["ijae"]*T(2)["aeij"];
 
     //TODO: guess
 
-    //SpinorbitalTensor<U>& R1 = R(1);
-    //SymmetryBlockedTensor<U>& R11 = R1(vec(1,0),vec(0,1));
-    //CTFTensor<U>& R11CTF = R11(vec(0,0));
-    //R11CTF.writeRemoteData(vec(tkv_pair<U>(76,1)));
-    //Iterative::run(dag, arena);
-    //put("energy", new Scalar(arena, energy));
-    //put("convergence", new Scalar(arena, conv));
+    R(0) = 0;R(1) = 0;R(2) = 0;
 
+    cout << occ.nalpha[0] << ' ' << vrt.nalpha[0] << ' ' << (occ.nalpha[0]-1)*vrt.nalpha[0] << endl;
+
+    if (R(1).arena.rank == 0)
+        R(1)(vec(1,0),vec(0,1))(vec(0,0)).writeRemoteData(vec(kv_pair((occ.nalpha[0]-1)*vrt.nalpha[0],1/sqrt(2))));
+    else
+        R(1)(vec(1,0),vec(0,1))(vec(0,0)).writeRemoteData();
+
+    if (R(1).arena.rank == 0)
+        R(1)(vec(0,0),vec(0,0))(vec(0,0)).writeRemoteData(vec(kv_pair((occ.nalpha[0]-1)*vrt.nalpha[0],1/sqrt(2))));
+    else
+        R(1)(vec(0,0),vec(0,0))(vec(0,0)).writeRemoteData();
+
+    Iterative::run(dag, arena);
+    put("energy", new Scalar(arena, energy));
+    put("convergence", new Scalar(arena, conv));
+
+    /*
     vector<vector<U> > cols;
 
     for (int nex = 1;nex <= 2;nex++)
-    {  
+    {
         SpinorbitalTensor<U>& Rso = R(nex);
         SymmetryBlockedTensor<U>& Rsb = Rso(vec(1,0),vec(0,1));
         CTFTensor<U>& Rctf = Rsb(vector<int>(nex*2,0));
@@ -164,10 +159,10 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     vector<U> vl(mysize);
     vector<U> vr(mysize);
     geev('N','N',mysize,matrix.data(),mysize,w.data(),vl.data(),mysize,vr.data(),mysize);
-    
+
     cout << "w.size() = " << w.size() << endl;
     cout << setprecision(9) << w << endl;
-
+*/
 
 }
 
@@ -177,13 +172,11 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
 
     ExcitationOperator<U,2>& R = get<ExcitationOperator<U,2> >("R");
-    ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
+    Denominator<U>& D = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
 
+    Z = 0;
     H.contract(R, Z);
-
-    //cout << "norm of R: " << R.norm(2) << endl;
-    //cout << "norm of Z: " << Z.norm(2) << endl;
 
     energy = davidson.extrapolate(R, Z, D);
 

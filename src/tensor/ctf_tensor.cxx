@@ -314,13 +314,13 @@ void CTFTensor<T>::div(T alpha, bool conja, const CTFTensor<T>& A,
 
     char * idx_map = (char*)malloc(sizeof(char)*(dt->ndim+1));
     char s = 'a';
-    
+
     for (i=0; i<dt->ndim; i++){
         idx_map[i] = s;
         s++;
     }
     idx_map[dt->ndim] = '\0';
-    
+
     dt->contract(alpha, *A.dt, idx_map, *B.dt, idx_map, beta, idx_map, fctr);
 */
 
@@ -487,7 +487,7 @@ T CTFTensor<T>::dot(bool conja, const CTFTensor<T>& A, const string& idx_A,
 }
 
 template <typename T>
-void CTFTensor<T>::weight(const vector<const vector<T>*>& d)
+void CTFTensor<T>::weight(const vector<const vector<T>*>& d, double shift)
 {
     if (this->ndim == 0) return;
 
@@ -509,7 +509,7 @@ void CTFTensor<T>::weight(const vector<const vector<T>*>& d)
             den += (*d[j])[o];
         }
 
-        pairs[i].d /= den;
+        pairs[i].d /= (den+shift);
     }
 
     writeRemoteData(pairs);

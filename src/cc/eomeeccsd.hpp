@@ -30,6 +30,7 @@
 #include "operator/2eoperator.hpp"
 #include "operator/st2eoperator.hpp"
 #include "operator/excitationoperator.hpp"
+#include "operator/denominator.hpp"
 
 #include "ccsd.hpp"
 

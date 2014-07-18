@@ -74,7 +74,7 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
         CTFTensor<T>& operator()(const std::vector<int>& irreps);
 
         const CTFTensor<T>& operator()(const std::vector<int>& irreps) const;
-        
+
         SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other);
 
         SymmetryBlockedTensor(SymmetryBlockedTensor<T>* other);
@@ -192,7 +192,8 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
         virtual T dot(bool conja, const SymmetryBlockedTensor<T>& A, const std::string& idx_A,
                       bool conjb,                                    const std::string& idx_B) const;
 
-        void weight(const std::vector<const std::vector<std::vector<T> >*>& d);
+        void weight(const std::vector<const std::vector<std::vector<T> >*>& d,
+                    double shift = 0);
 
         typename std::real_type<T>::type norm(int p) const;
 };

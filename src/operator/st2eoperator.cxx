@@ -145,7 +145,6 @@ void STTwoElectronOperator<U,2>::contract(const ExcitationOperator<U,2>& R,
    IMI["mi"] += 0.5*this->ijab["mnef"]*R(2)["efin"];
    IAE["ae"]  = this->aibc["amef"]*R(1)["fm"];
    IAE["ae"] -= 0.5*this->ijab["mnef"]*R(2)["afmn"];
-   
 
    Z(1)["ai"] += this->ab["ae"]*R(1)["ei"];
    Z(1)["ai"] -= this->ij["mi"]*R(1)["am"];
@@ -153,8 +152,6 @@ void STTwoElectronOperator<U,2>::contract(const ExcitationOperator<U,2>& R,
    Z(1)["ai"] += this->ia["me"]*R(2)["aeim"];
    Z(1)["ai"] += 0.5*this->aibc["amef"]*R(2)["efim"];
    Z(1)["ai"] -= 0.5*this->ijak["mnei"]*R(2)["eamn"];
-
-   
 
    Z(2)["abij"] += this->ab["ae"]*R(2)["ebij"];
    Z(2)["abij"] -= this->ij["mi"]*R(2)["abmj"];
@@ -195,9 +192,9 @@ void STTwoElectronOperator<U,2>::contractsam(const ExcitationOperator<U,2>& R,
     //cout << "AbIj " << this->abij(vec(1,0),vec(0,1)).norm(2) << endl;
     //cout << "AiBj " << this->aibj(vec(1,0),vec(1,0)).norm(2) << endl;
     //cout << "AibJ " << this->aibj(vec(1,0),vec(0,1)).norm(2) << endl;
-    //cout << "IjAb " << this->ijab(vec(0,1),vec(1,0)).norm(2) << endl; 
-    //cout << "IjAk " << this->ijak(vec(0,1),vec(1,0)).norm(2) << endl; 
-    //cout << "AiJk " << this->aijk(vec(1,0),vec(0,1)).norm(2) << endl; 
+    //cout << "IjAb " << this->ijab(vec(0,1),vec(1,0)).norm(2) << endl;
+    //cout << "IjAk " << this->ijak(vec(0,1),vec(1,0)).norm(2) << endl;
+    //cout << "AiJk " << this->aijk(vec(1,0),vec(0,1)).norm(2) << endl;
     //cout << "IjKl " << this->ijkl(vec(0,1),vec(0,1)).norm(2) << endl;
     //cout << "done" << endl;
 
@@ -234,27 +231,27 @@ void STTwoElectronOperator<U,2>::contractsam(const ExcitationOperator<U,2>& R,
     // cout << "after" << endl;
     // Z(1)["ai"] += this->ia["ld"]*R(2)["adil"];
     // Z(1)["ai"] += 0.5*this->aibc["alde"]*R(2)["deil"];
-    // Z(1)["ai"] += 0.5*this->ijak["lmdi"]*R(2)["adlm"]; // No Change. 
+    // Z(1)["ai"] += 0.5*this->ijak["lmdi"]*R(2)["adlm"]; // No Change.
     // Z(1)["ai"] += this->ab["ac"]*R(1)["ci"];
     // Z(1)["ai"] -= this->ij["ki"]*R(1)["ak"];
     // Z(1)["ai"] -= this->aibj["akci"]*R(1)["ck"];
     //Z(1)["ai"] += this->ia["kc"]*R(2)["acik"];
     //Z(1)["ai"] += 0.5*this->aibc["akcd"]*R(2)["cdik"];
-    //Z(1)["ai"] += 0.5*this->ijak["klci"]*R(2)["ackl"]; // No Change. 
+    //Z(1)["ai"] += 0.5*this->ijak["klci"]*R(2)["ackl"]; // No Change.
 
 
 
     // Z(2)["abij"] += this->ab["ae"]*R(2)["ebij"];
     // Z(2)["abij"] -= this->ij["mi"]*R(2)["abmj"]; // Orig
     // Z(2)["abij"] += this->ab["bd"]*R(2)["adij"];
-    // Z(2)["abij"] -= this->ij["lj"]*R(2)["abil"]; // No Change. 
+    // Z(2)["abij"] -= this->ij["lj"]*R(2)["abil"]; // No Change.
 
     // Z(2)["abij"] += IAE["ae"]*T(2)["ebij"];
     // Z(2)["abij"] -= IMI["mi"]*T(2)["abmj"]; // Orig
     // Z(2)["abij"] += IMI["mi"]*T(2)["abmj"];
     // Z(2)["abij"] -= IAE["ae"]*T(2)["ebij"]; // Not exactly the same, but very close.
-     
-    
+
+
 
 
     // Z(2)["abij"] += this->abci["abej"]*R(1)["ei"];
@@ -271,8 +268,8 @@ void STTwoElectronOperator<U,2>::contractsam(const ExcitationOperator<U,2>& R,
     // Z(2)["abij"] -= this->aibj["bldj"]*R(2)["adil"]; // No Change
 
 
-    
-    
+
+
 
 
     // if (!connected)

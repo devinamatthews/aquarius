@@ -30,6 +30,7 @@
 #include "util/lapack.h"
 #include "util/util.h"
 #include "task/task.hpp"
+#include "operator/denominator.hpp"
 
 #include <vector>
 #include <cassert>
@@ -57,8 +58,8 @@ class Davidson
         enum {GUESS_OVERLAP, LOWEST_ENERGY, CLOSEST_ENERGY};
 
     public:
-        Davidson(const input::Config& config, const int nvec=1)
-        : nvec(nvec), mode(GUESS_OVERLAP), lock(false)
+        Davidson(const input::Config& config, int nvec=1)
+        : nvec(nvec), mode(LOWEST_ENERGY), lock(false), target(0)
         {
             nextrap = config.get<int>("order");
 
@@ -88,18 +89,27 @@ class Davidson
             }
         }
 
-        double extrapolate(T& c, T& hc, T& D)
+        double extrapolate(T& c, T& hc, const op::Denominator<typename T::dtype>& D)
         {
-            return extrapolate(std::vector<T*>(1, &c), std::vector<T*>(1, &hc), std::vector<T*>(1, &D));
+            return extrapolate(std::vector<T*>(1, &c), std::vector<T*>(1, &hc), D);
         }
 
-        double extrapolate(const std::vector<T*>& c, const std::vector<T*>& hc, const std::vector<T*>& D)
+        double extrapolate(const std::vector<T*>& c, const std::vector<T*>& hc, const op::Denominator<typename T::dtype>& D)
         {
+            using namespace std;
+
             assert(c.size() == nvec);
             assert(hc.size() == nvec);
 
-            for (int i = 0;i < nvec;i++) assert(c[i] != NULL);
-            for (int i = 0;i < nvec;i++) assert(hc[i] != NULL);
+            for (int i = 0;i < nvec;i++)
+            {
+                assert(c[i] != NULL);
+                assert(hc[i] != NULL);
+
+                double norm = sqrt(std::abs(scalar(conj(*c[i])*(*c[i]))));
+                *c[i] /= norm;
+                *hc[i] /= norm;
+            }
 
             int nextrap_real;
             for (nextrap_real = 0;nextrap_real < nextrap && old_c[nextrap_real][0] != NULL;nextrap_real++);
@@ -190,7 +200,7 @@ class Davidson
                         NULL, 1, vr.data(), nextrap);
             if (info != 0) throw std::runtime_error(std::strprintf("davidson: Info in geev: %d", info));
 
-            int bestev = 0;
+            int bestev = -1;
             double mincrit = DBL_MAX;
             for (int i = 0;i < nextrap_real;i++)
             {
@@ -202,19 +212,21 @@ class Davidson
                         crit = 1-std::abs(vr[i*nextrap_real]);
                         break;
                     case LOWEST_ENERGY:
-                        crit = std::abs(std::real(l[i])-std::real(l[0]));
+                        crit = std::real(l[i]);
                         break;
                     case CLOSEST_ENERGY:
                         crit = std::abs(std::real(l[i])-target);
                         break;
                 }
 
-                if (crit < mincrit)
+                if (crit < mincrit && std::abs(std::imag(l[bestev])) < 1e-9)
                 {
                     mincrit = crit;
                     bestev = i;
                 }
             }
+
+            assert(bestev != -1);
 
             //std::cout << "Check 9" << std::endl;
 
@@ -223,20 +235,27 @@ class Davidson
 
             for (int j = 0;j < nvec;j++)
             {
-                *hc[j] = (*old_c[0][j])*vr[0+bestev*nextrap_real];
-                *c[j] = (*old_hc[0][j])*vr[0+bestev*nextrap_real];
+                *hc[j] = (*old_c[0][j])*vr[0+bestev*nextrap];
+                *c[j] = (*old_hc[0][j])*vr[0+bestev*nextrap];
 
                 for (int i = 1;i < nextrap_real;i++)
                 {
-                    *hc[j] += (*old_c[i][j])*vr[i+bestev*nextrap_real];
-                    *c[j] += (*old_hc[i][j])*vr[i+bestev*nextrap_real];
+                    *hc[j] += (*old_c[i][j])*vr[i+bestev*nextrap];
+                    *c[j] += (*old_hc[i][j])*vr[i+bestev*nextrap];
                 }
 
                 *c[j] -= std::real(l[bestev])*(*hc[j]);
+                *hc[j] = *c[j];
+                c[j]->weight(D, std::real(l[bestev]));
 
-                *D[j] -= std::real(l[bestev]);
-                *c[j] /= *D[j];
-                *D[j] += std::real(l[bestev]);
+                for (int i = 0;i < nextrap_real;i++)
+                {
+                    double olap = scalar(conj(*c[j])*(*old_c[i][j]));
+                    *c[j] -= (*old_c[i][j])*olap;
+                }
+
+                double norm = sqrt(std::abs(scalar(conj(*c[j])*(*c[j]))));
+                *c[j] /= norm;
             }
 
             return std::real(l[bestev]);
