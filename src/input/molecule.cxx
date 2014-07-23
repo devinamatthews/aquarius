@@ -49,9 +49,10 @@ struct AtomSpec
     string symbol;
     string basisSet;
     string truncation;
+    double charge_from_input;
     AtomSpec() {}
-    AtomSpec(const string& symbol, const string& basisSet, const string& truncation)
-    : symbol(symbol), basisSet(basisSet), truncation(truncation) {}
+    AtomSpec(const string& symbol, const string& basisSet, const string& truncation, const double& charge_from_input)
+    : symbol(symbol), basisSet(basisSet), truncation(truncation), charge_from_input(charge_from_input) {}
 };
 
 struct AtomZmatSpec : AtomSpec
@@ -65,8 +66,8 @@ struct AtomCartSpec : AtomSpec
 {
     vec3 pos;
     AtomCartSpec() {}
-    AtomCartSpec(const string& symbol, const string& basisSet, const string& truncation, const vec3& pos)
-    : AtomSpec(symbol, basisSet, truncation), pos(pos) {}
+    AtomCartSpec(const string& symbol, const string& basisSet, const string& truncation, const double& charge_from_input, const vec3& pos)
+    : AtomSpec(symbol, basisSet, truncation, charge_from_input), pos(pos) {}
 };
 
 template<>
@@ -165,6 +166,10 @@ class Config::Extractor<AtomCartSpec>
             if (str == "") throw BadValueError(path(node));
             s.pos[2] = Parser<double>::parse(str);
 
+            str = nextSpec(c);
+            if (str == "") throw BadValueError(path(node));
+            s.charge_from_input = Parser<double>::parse(str);
+
             return s;
         }
 };
@@ -202,13 +207,10 @@ Molecule::Molecule(const Arena& arena, const Config& config)
         printf("\nMolecular Geometry:\n\n");
         for (vector<Atom>::iterator it = atoms.begin();it != atoms.end();++it)
         {
-            if (it->getCenter().getElement().getSymbol() != "X")
-            {
-                for (vector<vec3>::const_iterator pos = it->getCenter().getCenters().begin();
-                     pos != it->getCenter().getCenters().end();++pos)
-                    printf("%3s % 20.15f % 20.15f % 20.15f\n", it->getCenter().getElement().getSymbol().c_str(),
-                            (*pos)[0], (*pos)[1], (*pos)[2]);
-            }
+            for (vector<vec3>::const_iterator pos = it->getCenter().getCenters().begin();
+                 pos != it->getCenter().getCenters().end();++pos)
+                printf("%3s % 20.15f % 20.15f % 20.15f\n", it->getCenter().getElement().getSymbol().c_str(),
+                        (*pos)[0], (*pos)[1], (*pos)[2]);
         }
         cout << endl;
     }
@@ -266,7 +268,7 @@ void Molecule::initGeometry(const Config& config, vector<AtomCartSpec>& cartpos)
                 pos[2] = a.distance;
             }
 
-            cartpos.push_back(AtomCartSpec(a.symbol, a.basisSet, a.truncation, pos));
+            cartpos.push_back(AtomCartSpec(a.symbol, a.basisSet, a.truncation, a.charge_from_input, pos));
         }
     }
     else
@@ -304,6 +306,14 @@ void Molecule::initGeometry(const Config& config, vector<AtomCartSpec>& cartpos)
         {
             Element ea = Element::getElement(a->symbol.c_str());
             Element eb = Element::getElement(b->symbol.c_str());
+            if (a->charge_from_input != 0.0)
+            {
+                ea.setCharge(a->charge_from_input);
+            }
+            if (b->charge_from_input != 0.0)
+            {
+                eb.setCharge(b->charge_from_input);
+            }
             nucrep += ea.getCharge()*eb.getCharge()/norm(a->pos-b->pos);
         }
     }
@@ -1298,7 +1308,12 @@ void Molecule::initBasis(const Config& config, const vector<AtomCartSpec>& cartp
 
     for (vector<AtomCartSpec>::const_iterator it = cartpos.begin();it != cartpos.end();++it)
     {
-        Atom a(Center(*group, it->pos, Element::getElement(it->symbol)));
+        Element myelem = Element::getElement(it->symbol);
+        if (it->charge_from_input != 0.0)
+        {
+            myelem.setCharge(it->charge_from_input);
+        }
+        Atom a(Center(*group, it->pos, myelem));
         if (it->basisSet != "")
         {
             BasisSet(TOPDIR "/basis/" + it->basisSet).apply(a, spherical, contaminants);
