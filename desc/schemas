@@ -175,6 +175,8 @@ lambdaccsd
 },
 eomeeccsd
 {
+    nroot?
+    int 0,
     convergence?
     double 1e-9,
     max_iterations?

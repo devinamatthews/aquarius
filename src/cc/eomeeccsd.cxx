@@ -35,7 +35,7 @@ using namespace aquarius::task;
 
 template <typename U>
 EOMEECCSD<U>::EOMEECCSD(const std::string& name, const Config& config)
-: Iterative("eomeeccsd", name, config), davidson(config.get("davidson"))
+: Iterative("eomeeccsd", name, config), nroot(config.get<int>("nroot")), davidson(config.get("davidson"))
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("ccsd.T", "T"));
@@ -62,23 +62,165 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
     //TODO: guess
 
-    R(0) = 0;R(1) = 0;R(2) = 0;
+    // R(0) = 0;R(1) = 0;R(2) = 0;
 
-    cout << occ.nalpha[0] << ' ' << vrt.nalpha[0] << ' ' << (occ.nalpha[0]-1)*vrt.nalpha[0] << endl;
+    // cout << occ.nalpha[0] << ' ' << vrt.nalpha[0] << ' ' << (occ.nalpha[0]-1)*vrt.nalpha[0] << endl;
 
-    if (R(1).arena.rank == 0)
-        R(1)(vec(1,0),vec(0,1))(vec(0,0)).writeRemoteData(vec(kv_pair((occ.nalpha[0]-1)*vrt.nalpha[0],1/sqrt(2))));
-    else
-        R(1)(vec(1,0),vec(0,1))(vec(0,0)).writeRemoteData();
+    // if (R(1).arena.rank == 0)
+    //     R(1)(vec(1,0),vec(0,1))(vec(0,0)).writeRemoteData(vec(kv_pair((occ.nalpha[0]-1)*vrt.nalpha[0],1/sqrt(2))));
+    // else
+    //     R(1)(vec(1,0),vec(0,1))(vec(0,0)).writeRemoteData();
 
-    if (R(1).arena.rank == 0)
-        R(1)(vec(0,0),vec(0,0))(vec(0,0)).writeRemoteData(vec(kv_pair((occ.nalpha[0]-1)*vrt.nalpha[0],1/sqrt(2))));
-    else
-        R(1)(vec(0,0),vec(0,0))(vec(0,0)).writeRemoteData();
+    // if (R(1).arena.rank == 0)
+    //     R(1)(vec(0,0),vec(0,0))(vec(0,0)).writeRemoteData(vec(kv_pair((occ.nalpha[0]-1)*vrt.nalpha[0],1/sqrt(2))));
+    // else
+    //     R(1)(vec(0,0),vec(0,0))(vec(0,0)).writeRemoteData();
+
+    // Iterative::run(dag, arena);
+    // put("energy", new Scalar(arena, energy));
+    // put("convergence", new Scalar(arena, conv));
+
+
+    TwoElectronOperator<U>& W = get<TwoElectronOperator<U> >("Hbar");
+    SpinorbitalTensor<U> Hguess("Hguess", W.getAIBJ());
+    Hguess = 0;
+
+    // SymmetryBlockedTensor<U> Hguess_sb1 = Hguess(vec(1,0),vec(0,1));
+    // CTFTensor<U> Hguess_ctf1 = Hguess_sb1(vec(0,0,0,0));
+    // vector<U> data1;
+    // Hguess_ctf1.getAllData(data1);
+    // cout << data1 << endl;
+
+    // cout << "occ: " << occ.nalpha[0] << endl;
+    // cout << "vrt: " << vrt.nalpha[0] << endl;
+
+
+    SpinorbitalTensor<U>& FAB = W.getAB();
+    SpinorbitalTensor<U>& FIJ = W.getIJ();
+    SpinorbitalTensor<U>& WAIBJ = W.getAIBJ();
+    //SpinorbitalTensor<U>& HguessAIBJ = Hguess.getAIBJ();
+
+    Hguess["aiaj"] += FIJ["ij"];
+    Hguess["aibi"] -= FAB["ab"];
+    Hguess["aibj"] += WAIBJ["aibj"];
+
+    // SpinorbitalTensor<U> SIJ = W.getIJ(); 
+    // SIJ=0; 
+    // cout << "2norm of SIJ: " << SIJ.norm(2) << endl;
+    // Hguess["aiaj"] += FIJ["ij"]; 
+    // SIJ["ij"] += Hguess["aibj"];
+    // SIJ["ij"] -= 2*FIJ["ij"]; // where n is the dimension of a, b
+    // cout << "2norm of FIJ: " << FIJ.norm(2) << endl;
+    // cout << "2norm of Hguess: " << Hguess.norm(2) << endl;
+    // cout << "2norm of SIJ: " << SIJ.norm(2) << endl;
+
+    // SymmetryBlockedTensor<U> Hguess_sb = Hguess(vec(1,0),vec(1,0));
+    // CTFTensor<U> Hguess_ctf = Hguess_sb(vec(0,0,0,0));
+    // vector<U> data;
+    // Hguess_ctf.getAllData(data);
+    vector<U> data1;
+    // vector<U> data2;
+    // vector<U> data3;
+    // vector<U> data4;
+    Hguess(vec(1,0),vec(1,0))(vec(0,0,0,0)).getAllData(data1);
+    // Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0)).getAllData(data2);
+    // Hguess(vec(0,0),vec(0,0))(vec(0,0,0,0)).getAllData(data3);
+    // Hguess(vec(0,0),vec(0,0))(vec(0,0)).getAllData(data4);
+
+    // cout << data1.size() << endl;
+    // cout << data1 << endl;
+    // cout << data2.size() << endl;
+    // cout << data2 << endl;
+    // cout << data3.size() << endl;
+    // cout << data3 << endl;
+    // cout << data4.size() << endl;
+    // cout << data4 << endl;
+
+    int mysize = occ.nalpha[0] * vrt.nalpha[0];
+    // cout << "mysize = " << mysize << endl;
+    vector<complex<double> > w(mysize);
+    vector<U> vl(mysize*mysize);
+    vector<U> vr(mysize*mysize);
+    geev('N','V',mysize,data1.data(),mysize,w.data(),vl.data(),mysize,vr.data(),mysize);
+
+    // for (int ii = 0; ii<10; ii++)
+    // {
+    //     cout << w[ii] << endl;
+    //     cout << vr[ii*10] << " " << vr[ii*10 + 1] << " " << vr[ii*10 + 2] << " " << vr[ii*10 + 3] << " " << vr[ii*10 + 4] << " " << vr[ii*10 + 5] << " " << vr[ii*10 + 6] << " " << vr[ii*10 + 7] << " " << vr[ii*10 + 8] << " " << vr[ii*10 + 9] << " " << endl;
+    // }
+    // cout << "vr = " << vr << endl;
+    // cout << setprecision(9) << w << endl;
+
+    vector<int> evalorder(mysize);
+    complex<double> lowesteval = w[0]*0.0 + 100000000.0;
+    int lowestindex = mysize+1;
+    for (int ii = 0; ii<mysize; ii++)
+    {
+        // cout << abs(w[ii]) << endl;
+        // cout << abs(lowesteval) << endl;
+        if (abs(w[ii]) < abs(lowesteval))
+        {
+            lowestindex = ii;
+            lowesteval = w[ii];
+        }
+    }
+    evalorder[0] = lowestindex;
+
+    // cout << "li = " << lowestindex << endl;
+    // cout << "le = " << lowesteval << endl;
+
+    for (int jj = 0; jj<mysize-1; jj++)
+    {
+        lowestindex = mysize+1;
+        lowesteval = w[0]*0.0 + 100000000.0;
+
+        for (int ii = 0; ii<mysize; ii++)
+        {
+            // cout << abs(w[ii]) << endl;
+            // cout << abs(lowesteval) << endl;
+            if (abs(w[ii]) < abs(lowesteval) and abs(w[ii]) > abs(w[evalorder[jj]]))
+            {
+                lowestindex = ii;
+                lowesteval = w[ii];
+            }
+        }
+
+        evalorder[jj+1] = lowestindex;
+        // cout << "li = " << lowestindex << endl;
+        // cout << "le = " << lowesteval << endl;
+    }
+
+    // int myroot = nroot;
+    // cout << myroot << endl;
+    vector<double> myval(mysize);
+    double totval;
+    double thisval;
+    for (int ii=0; ii<mysize; ii++)
+    {
+        myval[ii] = vr[evalorder[nroot]*mysize+ii];
+        totval += myval[ii];
+    }
+    // cout << "totval = " << totval << endl;
+
+    for (int ii=0; ii<mysize; ii++)
+    {
+        thisval = myval[ii]/totval;
+        // thisval = myval[ii];
+        if (R(1).arena.rank == 0)
+            R(1)(vec(1,0),vec(0,1))(vec(0,0)).writeRemoteData(vec(kv_pair(ii,thisval/sqrt(2))));
+        else
+            R(1)(vec(1,0),vec(0,1))(vec(0,0)).writeRemoteData();
+
+        if (R(1).arena.rank == 0)
+            R(1)(vec(0,0),vec(0,0))(vec(0,0)).writeRemoteData(vec(kv_pair(ii,thisval/sqrt(2))));
+        else
+            R(1)(vec(0,0),vec(0,0))(vec(0,0)).writeRemoteData();
+    }
 
     Iterative::run(dag, arena);
     put("energy", new Scalar(arena, energy));
     put("convergence", new Scalar(arena, conv));
+
 
     /*
     vector<vector<U> > cols;
@@ -118,7 +260,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
             // do Hbar*R product into Z
             ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
             Z(0) = 0; Z(1) = 0; Z(2) = 0;
-            H.contract(R, Z);
+            Hguess.contract(R, Z);
             for (int nex2 = 1;nex2 <= 2;nex2++)
             {
                 SpinorbitalTensor<U>& Zso = Z(nex2);
@@ -158,8 +300,10 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     vector<complex<double> > w(mysize);
     vector<U> vl(mysize);
     vector<U> vr(mysize);
-    geev('N','N',mysize,matrix.data(),mysize,w.data(),vl.data(),mysize,vr.data(),mysize);
+    geev('V','V',mysize,matrix.data(),mysize,w.data(),vl.data(),mysize,vr.data(),mysize);
 
+    cout << "vl = " << vl << endl;
+    cout << "vr = " << vr << endl;
     cout << "w.size() = " << w.size() << endl;
     cout << setprecision(9) << w << endl;
 */

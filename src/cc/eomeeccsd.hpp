@@ -43,6 +43,7 @@ template <typename U>
 class EOMEECCSD : public Iterative
 {
     protected:
+    	int nroot;
         convergence::Davidson< op::ExcitationOperator<U,2> > davidson;
 
     public:
