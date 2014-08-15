@@ -58,8 +58,8 @@ class Davidson
         enum {GUESS_OVERLAP, LOWEST_ENERGY, CLOSEST_ENERGY};
 
     public:
-        Davidson(const input::Config& config, int nvec=1)
-        : nvec(nvec), mode(LOWEST_ENERGY), lock(false), target(0)
+        Davidson(const input::Config& config, int nvec=1, double target=0.0)
+        : nvec(nvec), mode(LOWEST_ENERGY), lock(false), target(target)
         {
             nextrap = config.get<int>("order");
 
@@ -200,6 +200,8 @@ class Davidson
                         NULL, 1, vr.data(), nextrap);
             if (info != 0) throw std::runtime_error(std::strprintf("davidson: Info in geev: %d", info));
 
+            // std::cout << "l = " << l << std::endl;
+
             int bestev = -1;
             double mincrit = DBL_MAX;
             for (int i = 0;i < nextrap_real;i++)
@@ -219,7 +221,14 @@ class Davidson
                         break;
                 }
 
-                if (crit < mincrit && std::abs(std::imag(l[bestev])) < 1e-9)
+                // std::cout << "crit = " << crit << std::endl;
+                // std::cout << "mincrit = " << mincrit << std::endl;
+                // std::cout << "bestev = " << bestev << std::endl;
+                // std::cout << "real = " << std::real(l[i]) << std::endl;
+                // std::cout << "imag = " << std::imag(l[i]) << std::endl;
+
+
+                if (crit < mincrit && std::abs(std::imag(l[i])) < 1e-9)
                 {
                     mincrit = crit;
                     bestev = i;
