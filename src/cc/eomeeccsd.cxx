@@ -81,9 +81,10 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     // put("energy", new Scalar(arena, energy));
     // put("convergence", new Scalar(arena, conv));
 
-
+    
     TwoElectronOperator<U>& W = get<TwoElectronOperator<U> >("H");
     // TwoElectronOperator<U>& W = get<TwoElectronOperator<U> >("Hbar");
+    // STTwoElectronOperator<U,2>& W = get<STTwoElectronOperator<U,2> >("Hbar");
     SpinorbitalTensor<U> Hguess("Hguess", W.getAIBJ()); // TDA
     // SpinorbitalTensor<U> Hguess("Hguess", W.getABIJ()); // Diags of Hbar?
     Hguess = 0;
@@ -106,11 +107,23 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     // Hguess["abij"] -= FIJ["ii"]; // Diags of Hbar?
     // Hguess["abij"] -= FIJ["jj"]; // Diags of Hbar?
 
-    Hguess["aiaj"] -= FIJ["ij"]; // TDA
-    // Hguess["bibj"] += FIJ["ij"]; // TDA
-    Hguess["aibi"] += FAB["ab"]; // TDA
-    // Hguess["ajbj"] -= FAB["ab"]; // TDA
-    Hguess["aibj"] -= WAIBJ["aibj"]; // TDA
+    Hguess["aiaj"] -= FIJ["ij"];
+    Hguess["aibi"] += FAB["ab"];
+    Hguess["aibj"] -= WAIBJ["aibj"];  
+
+    // Hguess["aiaj"] -= 0.5*FIJ["ij"];
+    // Hguess["aiaj"] -= 0.5*FIJ["ji"]; 
+    // Hguess["aibi"] += 0.5*FAB["ab"]; 
+    // Hguess["aibi"] += 0.5*FAB["ba"];
+    // Hguess["aibj"] -= 0.25*WAIBJ["aibj"]; 
+    // Hguess["aibj"] -= 0.25*WAIBJ["biaj"]; 
+    // Hguess["aibj"] -= 0.25*WAIBJ["ajbi"]; 
+    // Hguess["aibj"] -= 0.25*WAIBJ["bjai"]; 
+
+
+    // Hguess(vec(0,0),vec(0,0))(vec(0,0)) = Hguess(vec(1,0),vec(0,1))(vec(0,0));
+    // Hguess(vec(0,0),vec(0,0))(vec(0,0,0,0)) = 0.5*Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0));
+    // Hguess(vec(2,0),vec(0,2))(vec(0,0,0,0)) = 0.5*Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0));
 
     // SpinorbitalTensor<U> SIJ = W.getIJ(); 
     // SIJ=0; 
@@ -131,38 +144,43 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     vector<U> data3;
     vector<U> data4;
     vector<U> data5;
+    vector<U> data6;
     Hguess(vec(1,0),vec(1,0))(vec(0,0,0,0)).getAllData(data1); // TDA
     Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0)).getAllData(data2); // TDA
     Hguess(vec(0,1),vec(1,0))(vec(0,0,0,0)).getAllData(data3); // TDA
     Hguess(vec(0,1),vec(0,1))(vec(0,0,0,0)).getAllData(data4); // TDA
     Hguess(vec(0,0),vec(0,0))(vec(0,0,0,0)).getAllData(data5); // TDA
+    Hguess(vec(1,1),vec(1,1))(vec(0,0,0,0)).getAllData(data5); // TDA
     // Hguess(vec(0,1),vec(1,0))(vec(0,0,0,0)).getAllData(data3); // TDA
     // Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0)).getAllData(data1); // Diags of Hbar
     // Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0)).getAllData(data2);
     // Hguess(vec(0,0),vec(0,0))(vec(0,0,0,0)).getAllData(data3);
     // Hguess(vec(0,0),vec(0,0))(vec(0,0)).getAllData(data4);
 
-    cout << data1.size() << endl;
-    cout << data1 << endl;
-    cout << data2.size() << endl;
-    cout << data2 << endl;
-    cout << data3.size() << endl;
-    cout << data3 << endl;
-    cout << data4.size() << endl;
-    cout << data4 << endl;
+    // cout << data1.size() << endl;
+    // cout << data1 << endl;
+    // cout << data2.size() << endl;
+    // cout << data2 << endl;
+    // cout << data3.size() << endl;
+    // cout << data3 << endl;
+    // cout << data4.size() << endl;
+    // cout << data4 << endl;
+    // cout << data5.size() << endl;
+    // cout << data5 << endl;
+    // cout << data6.size() << endl;
+    // cout << data6 << endl;
+
+    for (int ii = 0; ii < data1.size(); ii ++)
+    {
+        data5[ii] += data2[ii];
+    }
+
+    cout << "data5" << endl;
     cout << data5.size() << endl;
     cout << data5 << endl;
 
-    // for (int ii = 0; ii < data1.size(); ii ++)
-    // {
-    //     data1[ii] += data2[ii];
-    // }
-
-    // cout << data1.size() << endl;
-    // cout << data1 << endl;
-
     int mysize = occ.nalpha[0] * vrt.nalpha[0];
-    // cout << "mysize = " << mysize << endl;
+    cout << "mysize = " << mysize << endl;
     vector<complex<double> > w(mysize);
     vector<U> vl(mysize*mysize);
     vector<U> vr(mysize*mysize);
@@ -227,19 +245,25 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     }
     // cout << "totval = " << totval << endl;
     // cout << "eval = " << w[evalorder[nroot]] << endl;
-    cout << "eval = " << w[evalorder[0]] << endl;
-    cout << "eval = " << w[evalorder[1]] << endl;
-    cout << "eval = " << w[evalorder[2]] << endl;
-    cout << "eval = " << w[evalorder[3]] << endl;
-    cout << "eval = " << w[evalorder[4]] << endl;
-    cout << "eval = " << w[evalorder[5]] << endl;
+    // cout << "eval = " << setprecision(9) << w[evalorder[0]] << endl;
+    // cout << "eval = " << setprecision(9) << w[evalorder[1]] << endl;
+    // cout << "eval = " << setprecision(9) << w[evalorder[2]] << endl;
+    // cout << "eval = " << setprecision(9) << w[evalorder[3]] << endl;
+    // cout << "eval = " << setprecision(9) << w[evalorder[4]] << endl;
+    // cout << "eval = " << setprecision(9) << w[evalorder[5]] << endl;
+    for (int ii = 0; ii<10; ii++)
+    {
+        cout << "eval" << ii+1 << " = " << setprecision(9) << w[evalorder[ii]] << endl;
+        cout << "evec" << ii+1 << " = " << setprecision(3) << vr[evalorder[ii]*10] << " " << vr[evalorder[ii]*10 + 1] << " " << vr[evalorder[ii]*10 + 2] << " " << vr[evalorder[ii]*10 + 3] << " " << vr[evalorder[ii]*10 + 4] << " " << vr[evalorder[ii]*10 + 5] << " " << vr[evalorder[ii]*10 + 6] << " " << vr[evalorder[ii]*10 + 7] << " " << vr[evalorder[ii]*10 + 8] << " " << vr[evalorder[ii]*10 + 9] << " " << endl;
+        cout << "" << endl;
+    }
 
     R(0) = 0; R(1) = 0; R(2) = 0;
 
     for (int ii=0; ii<mysize; ii++)
     {
-        thisval = myval[ii]/totval;
-        // thisval = myval[ii];
+        // thisval = myval[ii]/totval;
+        thisval = myval[ii];
         if (R(1).arena.rank == 0)
             R(1)(vec(1,0),vec(0,1))(vec(0,0)).writeRemoteData(vec(kv_pair(ii,thisval/sqrt(2))));
         else
@@ -255,6 +279,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     put("energy", new Scalar(arena, energy));
     put("convergence", new Scalar(arena, conv));
 
+    
 
     /*
 
@@ -300,7 +325,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     /*
     vector<vector<U> > cols;
 
-    for (int nex = 1;nex <= 2;nex++)
+    for (int nex = 1;nex <= 1;nex++)
     {
         SpinorbitalTensor<U>& Rso = R(nex);
         SymmetryBlockedTensor<U>& Rsb = Rso(vec(1,0),vec(0,1));
@@ -329,14 +354,14 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
             }
 
             R(1)(vec(0,0),vec(0,0))(vec(0,0)) = R(1)(vec(1,0),vec(0,1))(vec(0,0));
-            R(2)(vec(0,0),vec(0,0))(vec(0,0,0,0)) = 0.5*R(2)(vec(1,0),vec(0,1))(vec(0,0,0,0));
-            R(2)(vec(2,0),vec(0,2))(vec(0,0,0,0)) = 0.5*R(2)(vec(1,0),vec(0,1))(vec(0,0,0,0));
+            // R(2)(vec(0,0),vec(0,0))(vec(0,0,0,0)) = 0.5*R(2)(vec(1,0),vec(0,1))(vec(0,0,0,0));
+            // R(2)(vec(2,0),vec(0,2))(vec(0,0,0,0)) = 0.5*R(2)(vec(1,0),vec(0,1))(vec(0,0,0,0));
 
             // do Hbar*R product into Z
             ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
             Z(0) = 0; Z(1) = 0; Z(2) = 0;
-            Hguess.contract(R, Z);
-            for (int nex2 = 1;nex2 <= 2;nex2++)
+            H.contract(R, Z);
+            for (int nex2 = 1;nex2 <= 1;nex2++)
             {
                 SpinorbitalTensor<U>& Zso = Z(nex2);
                 SymmetryBlockedTensor<U>& Zsb = Zso(vec(1,0),vec(0,1));
@@ -344,7 +369,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                 vector<U> data;
                 // cout << "first " << data << endl;
                 Zctf.getAllData(data);
-                // cout << "second " << data << endl;
+                cout << "second " << data << endl;
                 cols.back().insert(cols.back().end(), data.begin(), data.end());
                 data.assign(data.size(),0.0);
             }
@@ -375,13 +400,13 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     vector<complex<double> > w(mysize);
     vector<U> vl(mysize);
     vector<U> vr(mysize);
-    geev('V','V',mysize,matrix.data(),mysize,w.data(),vl.data(),mysize,vr.data(),mysize);
+    geev('N','N',mysize,matrix.data(),mysize,w.data(),vl.data(),mysize,vr.data(),mysize);
 
-    cout << "vl = " << vl << endl;
-    cout << "vr = " << vr << endl;
+    // cout << "vl = " << vl << endl;
+    // cout << "vr = " << vr << endl;
     cout << "w.size() = " << w.size() << endl;
     cout << setprecision(9) << w << endl;
-*/
+    */
 
 }
 
