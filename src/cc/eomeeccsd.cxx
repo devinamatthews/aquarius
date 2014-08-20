@@ -89,6 +89,9 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     // SpinorbitalTensor<U> Hguess("Hguess", W.getABIJ()); // Diags of Hbar?
     Hguess = 0;
 
+    // SpinorbitalTensor<U> Hnew("Hnew", W.getAIBJ());
+    // Hnew = 0;
+
     // SymmetryBlockedTensor<U> Hguess_sb1 = Hguess(vec(1,0),vec(0,1));
     // CTFTensor<U> Hguess_ctf1 = Hguess_sb1(vec(0,0,0,0));
     // vector<U> data1;
@@ -111,6 +114,8 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     Hguess["aibi"] += FAB["ab"];
     Hguess["aibj"] -= WAIBJ["aibj"];  
 
+    
+
     // Hguess["aiaj"] -= 0.5*FIJ["ij"];
     // Hguess["aiaj"] -= 0.5*FIJ["ji"]; 
     // Hguess["aibi"] += 0.5*FAB["ab"]; 
@@ -118,7 +123,9 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     // Hguess["aibj"] -= 0.25*WAIBJ["aibj"]; 
     // Hguess["aibj"] -= 0.25*WAIBJ["biaj"]; 
     // Hguess["aibj"] -= 0.25*WAIBJ["ajbi"]; 
-    // Hguess["aibj"] -= 0.25*WAIBJ["bjai"]; 
+    // Hguess["aibj"] -= 0.25*WAIBJ["bjai"];
+
+    // Hnew["ajbi"] += Hguess["aibj"]; 
 
 
     // Hguess(vec(0,0),vec(0,0))(vec(0,0)) = Hguess(vec(1,0),vec(0,1))(vec(0,0));
@@ -145,12 +152,24 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     vector<U> data4;
     vector<U> data5;
     vector<U> data6;
+
+    CTFTensor<U> AAAA = Hguess(vec(0,0),vec(0,0))(vec(0,0,0,0));
+    CTFTensor<U> AABB = Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0));
+    CTFTensor<U> AAAAtrans = Hguess(vec(0,0),vec(0,0))(vec(0,0,0,0));
+    CTFTensor<U> AABBtrans = Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0));
+    AAAAtrans = 0;
+    AABBtrans = 0;
+    AAAAtrans["ajbi"] += AAAA["aibj"];
+    AABBtrans["ajbi"] += AABB["aibj"];
+
     Hguess(vec(1,0),vec(1,0))(vec(0,0,0,0)).getAllData(data1); // TDA
-    Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0)).getAllData(data2); // TDA
+    // Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0)).getAllData(data2); // TDA
+    AABBtrans.getAllData(data2);
     Hguess(vec(0,1),vec(1,0))(vec(0,0,0,0)).getAllData(data3); // TDA
     Hguess(vec(0,1),vec(0,1))(vec(0,0,0,0)).getAllData(data4); // TDA
-    Hguess(vec(0,0),vec(0,0))(vec(0,0,0,0)).getAllData(data5); // TDA
-    Hguess(vec(1,1),vec(1,1))(vec(0,0,0,0)).getAllData(data5); // TDA
+    // Hguess(vec(0,0),vec(0,0))(vec(0,0,0,0)).getAllData(data5); // TDA
+    AAAAtrans.getAllData(data5);
+    Hguess(vec(1,1),vec(1,1))(vec(0,0,0,0)).getAllData(data6); // TDA
     // Hguess(vec(0,1),vec(1,0))(vec(0,0,0,0)).getAllData(data3); // TDA
     // Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0)).getAllData(data1); // Diags of Hbar
     // Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0)).getAllData(data2);
