@@ -455,7 +455,7 @@ if [[ $ctfdir != /* && "x$ctfdir" != "x" ]]; then
 fi
 if [ "x$ctfdir" = "x" ]; then
 	make_ctf=yes
-	ctfdir=$srcdir/ctf
+	ctfdir=$topdir/ctf
 	if [ ! -d $ctfdir ]; then
         read -p "Please specify a CTF directory or press enter to get a CTF clone: " ctfdp
         if [ "x$ctfdp" != "x" ]; then
@@ -468,7 +468,7 @@ if [ "x$ctfdir" = "x" ]; then
 			fi
 			echo
 		else
-			echo 'An existing installation of CTF is not found and cannot be downloaded.'
+	    		echo 'An existing installation of CTF is not found and cannot be downloaded.'
 			echo 'Install Git (www.git-scm.com) or download CTF and specify the location'
 			echo 'with configure --ctf=/path/to/ctf.'
 			echo
@@ -494,7 +494,7 @@ AR          = $AR
 LDFLAGS     = $LDFLAGS
 LDFLAGS_PRE = $LDFLAGS_PRE
 LDFLAGS_POST= $LDFLAGS_POST
-INCLUDES    = $INCLUDES
+INCLUDES    = $INCLUDES -I$srcdir -I$srcdir/src
 
 DEPFLAGS    = $DEPS
 
@@ -524,6 +524,16 @@ DEPSTYPE    = $depstype
 
 EOF
 
-cp Makefile.in Makefile
+cp $srcdir/Makefile.in Makefile
+
+if [[ "$(cd $topdir ; pwd)" != "$(cd $srcdir ; pwd)" ]]; then
+    cp $srcdir/rules.mk rules.mk
+    for dir in src src/integrals src/autocc src/time src/input \
+               src/memory src/tensor src/util src/cc src/scf src/task \
+               src/operator src/symmetry src/main; do
+        mkdir -p $dir
+        cp $srcdir/$dir/Makefile $dir/Makefile
+    done
+fi
 
 echo 'Configure was successful.'

@@ -32,14 +32,16 @@ ALL_LIBS_LINK = $(wildcard $(topdir)/src/autocc/*.o) \
                 $(wildcard $(topdir)/src/operator/*.o) \
                 $(wildcard $(topdir)/src/task/*.o)
 
+VPATH=$(srcdir)$(subst $(topdir),,$(shell pwd))
+
 DEPDIR = .deps
 DEPS += $(topdir)/.dummy $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard *.o))))
 ALL_SUBDIRS = $(sort $(SUBDIRS) $(foreach comp,$(ALL_COMPONENTS),$(value $(addsuffix _SUBDIRS,$(comp)))))
 
 _CPPFLAGS = $(CPPFLAGS)
-_DEFS = $(DEFS) -DFORTRAN_INTEGER_SIZE=$(FORTRAN_INTEGER_SIZE) -DF77_NAME=$(F77_NAME) -DF90_NAME=$(F90_NAME) -DTOPDIR=\"$(topdir)\"
+_DEFS = $(DEFS) -DFORTRAN_INTEGER_SIZE=$(FORTRAN_INTEGER_SIZE) -DF77_NAME=$(F77_NAME) -DF90_NAME=$(F90_NAME) -DTOPDIR=\"$(srcdir)\"
 _LDFLAGS = $(LDFLAGS) -L$(topdir)/lib
-_INCLUDES = $(INCLUDES) -I. -I$(topdir) -I$(topdir)/src -I$(CTFDIR)/include #-I$(ELEMENTAL)/include
+_INCLUDES = $(INCLUDES) -I. -I$(srcdir) -I$(srcdir)/src -I$(CTFDIR)/include #-I$(ELEMENTAL)/include
 _CFLAGS = $(OPT) $(WARN) $(CFLAGS)
 _CXXFLAGS = $(OPT) $(WARN) $(CXXFLAGS)
 #_F77FLAGS = $(F77FLAGS)
