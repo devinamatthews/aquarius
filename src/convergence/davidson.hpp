@@ -58,8 +58,8 @@ class Davidson
         enum {GUESS_OVERLAP, LOWEST_ENERGY, CLOSEST_ENERGY};
 
     public:
-        Davidson(const input::Config& config, int nvec=1, double target=0.0)
-        : nvec(nvec), mode(LOWEST_ENERGY), lock(false), target(target)
+        Davidson(const input::Config& config, int nvec=1)
+        : nvec(nvec), mode(CLOSEST_ENERGY), lock(false)
         {
             nextrap = config.get<int>("order");
 
@@ -89,14 +89,19 @@ class Davidson
             }
         }
 
-        double extrapolate(T& c, T& hc, const op::Denominator<typename T::dtype>& D)
+        double extrapolate(T& c, T& hc, const op::Denominator<typename T::dtype>& D, double target=0.0)
         {
-            return extrapolate(std::vector<T*>(1, &c), std::vector<T*>(1, &hc), D);
+            return extrapolate(std::vector<T*>(1, &c), std::vector<T*>(1, &hc), D, target);
         }
 
-        double extrapolate(const std::vector<T*>& c, const std::vector<T*>& hc, const op::Denominator<typename T::dtype>& D)
+        double extrapolate(const std::vector<T*>& c, const std::vector<T*>& hc, const op::Denominator<typename T::dtype>& D, double target=0.0)
         {
             using namespace std;
+
+            if (target == 0.0)
+            {
+                assert(mode != CLOSEST_ENERGY);
+            }
 
             assert(c.size() == nvec);
             assert(hc.size() == nvec);

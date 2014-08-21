@@ -39,8 +39,8 @@ TDA<U>::TDA(const std::string& name, const Config& config)
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("moints", "H"));
-    addProduct(Product("vector", "sortedevals", reqs));
-    addProduct(Product("vector", "sortedevecs", reqs));
+    addProduct(Product("tda.TDAevals", "TDAevals", reqs));
+    addProduct(Product("tda.TDAevecs", "TDAevecs", reqs));
 }
 
 template <typename U>
@@ -49,6 +49,14 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
     TwoElectronOperator<U>& W = get<TwoElectronOperator<U> >("H");
     const Space& occ = W.occ;
     const Space& vrt = W.vrt;
+    int mysize = occ.nalpha[0] * vrt.nalpha[0];
+
+    put("TDAevals", new CTFTensor<U>("TDAevals", arena, 1, vec(mysize), vec(1), true));
+    put("TDAevecs", new CTFTensor<U>("TDAevecs", arena, 1, vec(mysize*mysize), vec(1), true));
+
+    CTFTensor<U>& TDAevals = get<CTFTensor<U> >("TDAevals");
+    CTFTensor<U>& TDAevecs = get<CTFTensor<U> >("TDAevecs");
+
     SpinorbitalTensor<U> Hguess("Hguess", W.getAIBJ()); 
     Hguess = 0;
 
@@ -80,12 +88,6 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
         data1[ii] += data2[ii];
     }
 
-    // cout << "data1" << endl;
-    // cout << data1.size() << endl;
-    // cout << data1 << endl;
-
-    int mysize = occ.nalpha[0] * vrt.nalpha[0];
-    // cout << "mysize = " << mysize << endl;
     vector<complex<double> > w(mysize);
     vector<U> vl(mysize*mysize);
     vector<U> vr(mysize*mysize);
@@ -121,22 +123,33 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
         evalorder[jj+1] = lowestindex;
     }
 
-    vector<complex<double> > sortedevals(mysize);
-    vector<U> sortedevecs(mysize*mysize);
     for (int ii = 0; ii<mysize; ii++)
     {
-        sortedevals[ii] = w[evalorder[ii]];
+        if (std::abs(std::imag(w[evalorder[ii]])) > 1e-5)
+           throw std::runtime_error("TDA: complex eigenvalue");
 
-        // cout << "eval" << ii+1 << " = " << setprecision(9) << w[evalorder[ii]] << endl;
-        // cout << "evec" << ii+1 << " = " << setprecision(3) << vr[evalorder[ii]*10] << " " << vr[evalorder[ii]*10 + 1] << " " << vr[evalorder[ii]*10 + 2] << " " << vr[evalorder[ii]*10 + 3] << " " << vr[evalorder[ii]*10 + 4] << " " << vr[evalorder[ii]*10 + 5] << " " << vr[evalorder[ii]*10 + 6] << " " << vr[evalorder[ii]*10 + 7] << " " << vr[evalorder[ii]*10 + 8] << " " << vr[evalorder[ii]*10 + 9] << " " << endl;
+        // TDAevals.writeRemoteData(vec(kv_pair(ii,real(w[evalorder[ii]]))));
+        if (arena.rank == 0)
+            TDAevals.writeRemoteData(vec(kv_pair(ii,real(w[evalorder[ii]]))));
+        else
+            TDAevals.writeRemoteData();
+
         for (int jj = 0; jj<mysize; jj++)
         {
-            sortedevecs[jj+ii*10] = vr[evalorder[ii]*mysize + jj];
+            // TDAevecs.writeRemoteData(vec(kv_pair(jj+ii*10,vr[evalorder[ii]*mysize + jj])));
+            if (arena.rank == 0)
+                TDAevecs.writeRemoteData(vec(kv_pair(jj+ii*10,vr[evalorder[ii]*mysize + jj])));
+            else
+                TDAevecs.writeRemoteData();
         }
-        // cout << "" << endl;
     }
-    // cout << "TDA EigenEnergies: " << sortedevals << endl;
-    // cout << sortedevecs << endl;
+    // vector<U> test1;
+    // vector<U> test2;
+    // TDAevals.getAllData(test1);
+    // TDAevecs.getAllData(test2);
+    // cout << test1 << endl;
+    // cout << test2 << endl;
+    
 }
 
 INSTANTIATE_SPECIALIZATIONS(TDA);
