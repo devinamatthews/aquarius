@@ -51,105 +51,75 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& vrt = W.vrt;
     int mysize = occ.nalpha[0] * vrt.nalpha[0];
 
-    put("TDAevals", new CTFTensor<U>("TDAevals", arena, 1, vec(mysize), vec(1), true));
-    put("TDAevecs", new CTFTensor<U>("TDAevecs", arena, 1, vec(mysize*mysize), vec(1), true));
+    put("TDAevals", new CTFTensor<U>("TDAevals", arena, 1, vec(mysize), vec(NS), true));
+    put("TDAevecs", new CTFTensor<U>("TDAevecs", arena, 2, vec(mysize,mysize), vec(NS,NS), true));
 
     CTFTensor<U>& TDAevals = get<CTFTensor<U> >("TDAevals");
     CTFTensor<U>& TDAevecs = get<CTFTensor<U> >("TDAevecs");
 
-    SpinorbitalTensor<U> Hguess("Hguess", W.getAIBJ()); 
+    SpinorbitalTensor<U> Hguess("Hguess", W.getAIBJ());
     Hguess = 0;
 
     SpinorbitalTensor<U>& FAB = W.getAB();
     SpinorbitalTensor<U>& FIJ = W.getIJ();
-    SpinorbitalTensor<U>& WAIBJ = W.getAIBJ(); 
+    SpinorbitalTensor<U>& WAIBJ = W.getAIBJ();
 
     Hguess["aiaj"] -= FIJ["ij"];
     Hguess["aibi"] += FAB["ab"];
-    Hguess["aibj"] -= WAIBJ["aibj"];  
+    Hguess["aibj"] -= WAIBJ["aibj"];
 
-    vector<U> data1;
-    vector<U> data2;
+    vector<U> data;
 
-    CTFTensor<U> AAAA = Hguess(vec(0,0),vec(0,0))(vec(0,0,0,0));
-    CTFTensor<U> AABB = Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0));
-    CTFTensor<U> AAAAtrans = Hguess(vec(0,0),vec(0,0))(vec(0,0,0,0));
-    CTFTensor<U> AABBtrans = Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0));
-    AAAAtrans = 0;
-    AABBtrans = 0;
-    AAAAtrans["ajbi"] += AAAA["aibj"];
-    AABBtrans["ajbi"] += AABB["aibj"];
+    CTFTensor<U>& AAAA = Hguess(vec(0,0),vec(0,0))(vec(0,0,0,0));
+    CTFTensor<U>& AABB = Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0));
+    CTFTensor<U> H(AAAA);
+    H["ajbi"]  = AAAA["aibj"];
+    H["ajbi"] += AABB["aibj"];
 
-    AABBtrans.getAllData(data1);
-    AAAAtrans.getAllData(data2);
+    H.getAllData(data);
 
-    for (int ii = 0; ii < data1.size(); ii ++)
+    vector<U> w(mysize);
+    heev('V','U',mysize,data.data(),mysize,w.data());
+
+    vector<int> evalorder = range(mysize);
+
+    cosort(w.begin(), w.end(),
+           evalorder.begin(), evalorder.end());
+
+    vector<tkv_pair<U> > pairs;
+
+    for (int i = 0;i < mysize;i++)
     {
-        data1[ii] += data2[ii];
+        pairs.push_back(tkv_pair<U>(i, w[evalorder[i]]));
     }
 
-    vector<complex<double> > w(mysize);
-    vector<U> vl(mysize*mysize);
-    vector<U> vr(mysize*mysize);
-    geev('N','V',mysize,data1.data(),mysize,w.data(),vl.data(),mysize,vr.data(),mysize);
+    if (arena.rank == 0)
+        TDAevals.writeRemoteData(pairs);
+    else
+        TDAevals.writeRemoteData();
 
-    vector<int> evalorder(mysize);
-    complex<double> lowesteval = w[0]*0.0 + 100000000.0;
-    int lowestindex = mysize+1;
-    for (int ii = 0; ii<mysize; ii++)
+    pairs.clear();
+
+    for (int i = 0;i < mysize;i++)
     {
-        if (abs(w[ii]) < abs(lowesteval))
+        for (int j = 0;j < mysize;j++)
         {
-            lowestindex = ii;
-            lowesteval = w[ii];
+            pairs.push_back(kv_pair(j+i*mysize,data[evalorder[i]*mysize + j]));
         }
     }
-    evalorder[0] = lowestindex;
 
-    for (int jj = 0; jj<mysize-1; jj++)
-    {
-        lowestindex = mysize+1;
-        lowesteval = w[0]*0.0 + 100000000.0;
+    if (arena.rank == 0)
+        TDAevecs.writeRemoteData(pairs);
+    else
+        TDAevecs.writeRemoteData();
 
-        for (int ii = 0; ii<mysize; ii++)
-        {
-            if (abs(w[ii]) < abs(lowesteval) and abs(w[ii]) > abs(w[evalorder[jj]]))
-            {
-                lowestindex = ii;
-                lowesteval = w[ii];
-            }
-        }
-
-        evalorder[jj+1] = lowestindex;
-    }
-
-    for (int ii = 0; ii<mysize; ii++)
-    {
-        if (std::abs(std::imag(w[evalorder[ii]])) > 1e-5)
-           throw std::runtime_error("TDA: complex eigenvalue");
-
-        // TDAevals.writeRemoteData(vec(kv_pair(ii,real(w[evalorder[ii]]))));
-        if (arena.rank == 0)
-            TDAevals.writeRemoteData(vec(kv_pair(ii,real(w[evalorder[ii]]))));
-        else
-            TDAevals.writeRemoteData();
-
-        for (int jj = 0; jj<mysize; jj++)
-        {
-            // TDAevecs.writeRemoteData(vec(kv_pair(jj+ii*10,vr[evalorder[ii]*mysize + jj])));
-            if (arena.rank == 0)
-                TDAevecs.writeRemoteData(vec(kv_pair(jj+ii*10,vr[evalorder[ii]*mysize + jj])));
-            else
-                TDAevecs.writeRemoteData();
-        }
-    }
     // vector<U> test1;
     // vector<U> test2;
     // TDAevals.getAllData(test1);
     // TDAevecs.getAllData(test2);
     // cout << test1 << endl;
     // cout << test2 << endl;
-    
+
 }
 
 INSTANTIATE_SPECIALIZATIONS(TDA);

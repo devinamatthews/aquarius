@@ -2113,6 +2113,114 @@ template<typename T> std::string str(const T& t)
     return oss.str();
 }
 
+template <typename T>
+typename T::value_type max(const T& t)
+{
+    typedef typename T::value_type V;
+
+    if (t.empty()) return V();
+
+    typename T::const_iterator i = t.begin();
+    V v = *i;
+    for (;i != t.end();++i) if (v < *i) v = *i;
+
+    return v;
+}
+
+template <typename T>
+typename T::value_type min(const T& t)
+{
+    typedef typename T::value_type V;
+
+    if (t.empty()) return V();
+
+    typename T::const_iterator i = t.begin();
+    V v = *i;
+    for (;i != t.end();++i) if (*i < v) v = *i;
+
+    return v;
+}
+
+template <typename T, typename S>
+std::vector<std::pair<T,S> > zip(const std::vector<T>& t, const std::vector<S>& s)
+{
+    std::vector<std::pair<T,S> > z;
+    z.reserve(std::max(t.size(), s.size()));
+
+    size_t i = 0;
+    for (;i < std::min(t.size(), s.size());i++)
+    {
+        z.push_back(std::make_pair(t[i], s[i]));
+    }
+
+    if (t.size() > s.size())
+    {
+        for (;i < t.size();i++)
+        {
+            z.push_back(std::make_pair(t[i], S()));
+        }
+    }
+    else if (s.size() > t.size())
+    {
+        for (;i < s.size();i++)
+        {
+            z.push_back(std::make_pair(T(), s[i]));
+        }
+    }
+
+    return z;
+}
+
+template <typename Container, typename Functor, typename=void>
+struct __erase
+{
+    static void erase(Container& v, const Functor& f)
+    {
+        v.erase(std::remove_if(v.begin(), v.end(), f), v.end());
+    }
+};
+
+template <typename Container, typename T>
+struct __erase<Container, T, typename std::enable_if<std::is_same<typename Container::value_type,T>::value>::type>
+{
+    static void erase(Container& v, const T& e)
+    {
+        v.erase(std::remove(v.begin(), v.end(), e), v.end());
+    }
+};
+
+template <typename Container, typename T_or_Functor>
+void erase(Container& v, const T_or_Functor& x)
+{
+    __erase<Container, T_or_Functor>::erase(v, x);
+}
+
+template <typename T> std::vector<T> range(T to)
+{
+    std::vector<T> r;
+    r.reserve((typename std::vector<T>::size_type)to);
+
+    for (T i = T();i < to;++i)
+    {
+        r.push_back(i);
+    }
+
+    return r;
+}
+
+template <typename T> std::vector<T> range(T from, T to)
+{
+    std::vector<T> r;
+    r.reserve((typename std::vector<T>::size_type)(to-from));
+
+    for (T i = from;i < to;++i)
+    {
+        r.push_back(i);
+    }
+
+    return r;
+}
+
 template<typename T> std::vector<T> operator+(const std::vector<T>& v1, const std::vector<T>& v2)
 {
     using std::copy;
