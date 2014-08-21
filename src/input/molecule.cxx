@@ -50,9 +50,11 @@ struct AtomSpec
     string basisSet;
     string truncation;
     double charge_from_input;
-    AtomSpec() {}
-    AtomSpec(const string& symbol, const string& basisSet, const string& truncation, const double& charge_from_input)
-    : symbol(symbol), basisSet(basisSet), truncation(truncation), charge_from_input(charge_from_input) {}
+    AtomSpec() : charge_from_input(0.0) {}
+    AtomSpec(const string& symbol, const string& basisSet,
+             const string& truncation, double charge_from_input)
+    : symbol(symbol), basisSet(basisSet), truncation(truncation),
+      charge_from_input(charge_from_input) {}
 };
 
 struct AtomZmatSpec : AtomSpec
@@ -167,8 +169,8 @@ class Config::Extractor<AtomCartSpec>
             s.pos[2] = Parser<double>::parse(str);
 
             str = nextSpec(c);
-            if (str == "") throw BadValueError(path(node));
-            s.charge_from_input = Parser<double>::parse(str);
+            if (str != "")
+                s.charge_from_input = Parser<double>::parse(str);
 
             return s;
         }
