@@ -119,8 +119,6 @@ class MultiIterative : public task::Task
         enum ConvergenceType {MAX_ABS, RMSD, MAD};
 
     protected:
-        typedef typename U::dtype dtype;
-        CTFTensor<dtype>& energy = get<CTFTensor<dtype> >("energy");
         double conv;
         double convtol;
         ConvergenceType convtype;
@@ -132,7 +130,6 @@ class MultiIterative : public task::Task
     public:
         MultiIterative(const std::string& type, const std::string& name, const input::Config& config)
         : Task(type, name),
-          energy(CTFTensor<dtype>& energy),
           conv(std::numeric_limits<double>::infinity()),
           convtol(config.get<double>("convergence")),
           iter(0),
@@ -158,6 +155,9 @@ class MultiIterative : public task::Task
 
         void run(task::TaskDAG& dag, const Arena& arena)
         {
+            puttmp("energy", new tensor::CTFTensor("energy", arena, 1, vec(1), vec(NS)));
+            tensor::CTFTensor& energy = gettmp<tensor::CTFTensor>("energy");
+
             for (iter = 1;iter <= maxiter && !isConverged();iter++)
             {
                 time::Timer timer;
@@ -165,7 +165,7 @@ class MultiIterative : public task::Task
                 iterate(arena);
                 timer.stop();
                 double dt = timer.seconds(arena);
-                vector<dtype> energyvec;
+                vector<U> energyvec;
                 energy.getAllData(energyvec);
 
                 int ndigit = (int)(ceil(-log10(convtol))+0.5);
@@ -182,8 +182,6 @@ class MultiIterative : public task::Task
                 log(arena) << "Did not converge in " << maxiter << " iterations" << std::endl;
             }
         }
-
-        CTFTensor<dtype>& getEnergy() const { return energy; }
 
         double getConvergence() const { return conv; }
 

@@ -74,7 +74,7 @@ EOMEECCSD<U>::EOMEECCSD(const std::string& name, const Config& config)
         {
             cout << "Too many roots! Not yet available." << endl;
         }
-        
+
     }
 }
 
@@ -92,7 +92,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     CTFTensor<U>& TDAevecs = get<CTFTensor<U> >("TDAevecs");
     vector<U> TDAevecsVec;
     TDAevecs.getAllData(TDAevecsVec);
-    
+
 
     if (multiroot == 0)
     {
@@ -269,7 +269,7 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     vector<double> energyvec(multiroot*nroot+1);
     vector<tkv_pair<U> > pairs;
 
-    CTFTensor<U>& energy = get<CTFTensor<U> >("energy");
+    CTFTensor<U>& energy = gettmp<CTFTensor<U> >("energy");
 
     if (multiroot == 0)
     {
@@ -306,7 +306,7 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
         energy.writeRemoteData(pairs);
     else
         energy.writeRemoteData();
-    
+
 }
 
 INSTANTIATE_SPECIALIZATIONS(EOMEECCSD);
