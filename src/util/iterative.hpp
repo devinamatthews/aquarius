@@ -27,11 +27,13 @@
 
 #include <limits>
 #include <string>
+#include <vector>
 
 #include "time/time.hpp"
 #include "task/task.hpp"
 
 #include "distributed.hpp"
+#include "tensor/ctf_tensor.hpp"
 
 namespace aquarius
 {
@@ -104,6 +106,84 @@ class Iterative : public task::Task
         }
 
         double getEnergy() const { return energy; }
+
+        double getConvergence() const { return conv; }
+
+        bool isConverged() const { return conv < convtol; }
+};
+
+template <typename U>
+class MultiIterative : public task::Task
+{
+    public:
+        enum ConvergenceType {MAX_ABS, RMSD, MAD};
+
+    protected:
+        typedef typename U::dtype dtype;
+        CTFTensor<dtype>& energy = get<CTFTensor<dtype> >("energy");
+        double conv;
+        double convtol;
+        ConvergenceType convtype;
+        int iter;
+        int maxiter;
+
+        virtual void iterate(const Arena& arena) = 0;
+
+    public:
+        MultiIterative(const std::string& type, const std::string& name, const input::Config& config)
+        : Task(type, name),
+          energy(CTFTensor<dtype>& energy),
+          conv(std::numeric_limits<double>::infinity()),
+          convtol(config.get<double>("convergence")),
+          iter(0),
+          maxiter(config.get<int>("max_iterations"))
+        {
+            std::string sconv = config.get<std::string>("conv_type");
+
+            if (sconv == "MAXE")
+            {
+                convtype = MAX_ABS;
+            }
+            else if (sconv == "RMSE")
+            {
+                convtype = RMSD;
+            }
+            else if (sconv == "MAE")
+            {
+                convtype = MAD;
+            }
+        }
+
+        virtual ~MultiIterative() {}
+
+        void run(task::TaskDAG& dag, const Arena& arena)
+        {
+            for (iter = 1;iter <= maxiter && !isConverged();iter++)
+            {
+                time::Timer timer;
+                timer.start();
+                iterate(arena);
+                timer.stop();
+                double dt = timer.seconds(arena);
+                vector<dtype> energyvec;
+                energy.getAllData(energyvec);
+
+                int ndigit = (int)(ceil(-log10(convtol))+0.5);
+
+                log(arena) << "Iteration " << iter << " took " << std::fixed <<
+                              std::setprecision(3) << dt << " s" << std::endl;
+                log(arena) << "Iteration " << iter <<
+                              " energy = " << std::fixed << std::setprecision(ndigit) << energyvec[0] <<
+                              ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
+            }
+
+            if (!isConverged())
+            {
+                log(arena) << "Did not converge in " << maxiter << " iterations" << std::endl;
+            }
+        }
+
+        CTFTensor<dtype>& getEnergy() const { return energy; }
 
         double getConvergence() const { return conv; }
 

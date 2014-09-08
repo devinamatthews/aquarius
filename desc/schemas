@@ -180,6 +180,8 @@ eomeeccsd
 {
     nroot?
     int 0,
+    multiroot?
+    int 0,
     convergence?
     double 1e-9,
     max_iterations?
@@ -193,7 +195,7 @@ eomeeccsd
 	start?
             int 1,
 	order?
-            int 100,
+            int 10,
 	jacobi?
             bool false
     }

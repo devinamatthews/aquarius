@@ -40,10 +40,11 @@ namespace cc
 {
 
 template <typename U>
-class EOMEECCSD : public Iterative
+class EOMEECCSD : public MultiIterative
 {
     protected:
     	int nroot;
+    	int multiroot;
         convergence::Davidson< op::ExcitationOperator<U,2> > davidson;
 
     public:

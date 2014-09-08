@@ -113,13 +113,6 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
     else
         TDAevecs.writeRemoteData();
 
-    // vector<U> test1;
-    // vector<U> test2;
-    // TDAevals.getAllData(test1);
-    // TDAevecs.getAllData(test2);
-    // cout << test1 << endl;
-    // cout << test2 << endl;
-
 }
 
 INSTANTIATE_SPECIALIZATIONS(TDA);

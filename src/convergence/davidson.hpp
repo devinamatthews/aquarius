@@ -53,7 +53,8 @@ class Davidson
         int nvec, nextrap;
         int mode;
         bool lock;
-        double target;
+        double target0;
+        double target1;
 
         enum {GUESS_OVERLAP, LOWEST_ENERGY, CLOSEST_ENERGY};
 
@@ -89,22 +90,38 @@ class Davidson
             }
         }
 
-        double extrapolate(T& c, T& hc, const op::Denominator<typename T::dtype>& D, double target=0.0)
+        std::vector<double> extrapolate(T& c, T& hc, const op::Denominator<typename T::dtype>& D, double target0=0.0)
         {
-            return extrapolate(std::vector<T*>(1, &c), std::vector<T*>(1, &hc), D, target);
+            return extrapolate(std::vector<T*>(1, &c), std::vector<T*>(1, &hc), D, target0);
         }
 
-        double extrapolate(const std::vector<T*>& c, const std::vector<T*>& hc, const op::Denominator<typename T::dtype>& D, double target=0.0)
+        std::vector<double> extrapolate(T& c0, T& c1, T& hc0, T& hc1, const op::Denominator<typename T::dtype>& D, double target0=0.0, double target1=0.0)
+        {
+            std::vector<T*> clist;
+            clist.push_back(&c0);
+            clist.push_back(&c1);
+            std::vector<T*> hclist;
+            hclist.push_back(&hc0);
+            hclist.push_back(&hc1);
+            return extrapolate(clist, hclist, D, target0, target1);
+        }
+
+        std::vector<double> extrapolate(const std::vector<T*>& c, const std::vector<T*>& hc, const op::Denominator<typename T::dtype>& D, double target0=0.0, double target1=0.0)
         {
             using namespace std;
 
-            if (target == 0.0)
+            if (target0 == 0.0)
             {
                 assert(mode != CLOSEST_ENERGY);
             }
 
+            // std::cout << "nvec = " << nvec << std::endl;
+
             assert(c.size() == nvec);
             assert(hc.size() == nvec);
+
+            // std::cout << "c = " << c << std::endl;
+            // std::cout << "hc = " << hc << std::endl;
 
             for (int i = 0;i < nvec;i++)
             {
@@ -112,6 +129,9 @@ class Davidson
                 assert(hc[i] != NULL);
 
                 double norm = sqrt(std::abs(scalar(conj(*c[i])*(*c[i]))));
+
+                // std::cout << "norm = " << norm << std::endl;
+
                 *c[i] /= norm;
                 *hc[i] /= norm;
             }
@@ -131,6 +151,9 @@ class Davidson
              * worry about allocation/deallocation
              */
 
+            // std::cout << "nextrap_real = " << nextrap_real << std::endl;
+            // std::cout << "nextrap = " << nextrap << std::endl;
+
             if (old_c[nextrap_real][0] == NULL)
             {
                 for (int i = 0;i < nvec;i++)
@@ -141,6 +164,8 @@ class Davidson
                 for (int i = 0;i < nvec;i++)
                     *old_c[nextrap_real][i] = *c[i];
             }
+
+            // std::cout << "*old_c[nextrap_real] = " << old_c[nextrap_real] << std::endl;
 
             if (old_hc[nextrap_real][0] == NULL)
             {
@@ -156,6 +181,8 @@ class Davidson
             e[nextrap_real+nextrap_real*nextrap] = 0;
             for (int i = 0;i < nvec;i++)
                 e[nextrap_real+nextrap_real*nextrap] += scalar(conj(*c[i])*(*hc[i]));
+
+            // std::cout << "e1 = " << e << std::endl;
 
             /*
              * Get the new off-diagonal subspace matrix elements for all
@@ -178,6 +205,8 @@ class Davidson
                     //std::cout << "bot" << std::endl;
                 }
             }
+
+            // std::cout << "e2 = " << e << std::endl;
 
             nextrap_real++;
 
@@ -222,7 +251,7 @@ class Davidson
                         crit = std::real(l[i]);
                         break;
                     case CLOSEST_ENERGY:
-                        crit = std::abs(std::real(l[i])-target);
+                        crit = std::abs(std::real(l[i])-target0);
                         break;
                 }
 
@@ -271,8 +300,9 @@ class Davidson
                 double norm = sqrt(std::abs(scalar(conj(*c[j])*(*c[j]))));
                 *c[j] /= norm;
             }
-
-            return std::real(l[bestev]);
+            std::vector<double> myreturn(1);
+            myreturn[0] = std::real(l[bestev]);
+            return myreturn;
         }
 };
 
