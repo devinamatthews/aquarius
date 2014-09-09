@@ -81,15 +81,15 @@ EOMEECCSD<U>::EOMEECCSD(const std::string& name, const Config& config)
 template <typename U>
 void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
+    const STTwoElectronOperator<U,2>& H = this->template get<STTwoElectronOperator<U,2> >("Hbar");
 
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
     int mysize = occ.nalpha[0] * vrt.nalpha[0];
     puttmp("D", new Denominator<U>(H));
-    ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
-    CTFTensor<U>& TDAevecs = get<CTFTensor<U> >("TDAevecs");
+    ExcitationOperator<U,2>& T = this->template get<ExcitationOperator<U,2> >("T");
+    CTFTensor<U>& TDAevecs = this->template get<CTFTensor<U> >("TDAevecs");
     vector<U> TDAevecsVec;
     TDAevecs.getAllData(TDAevecsVec);
 
@@ -98,7 +98,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     {
         put("R", new ExcitationOperator<U,2>("R", arena, occ, vrt));
         puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
-        ExcitationOperator<U,2>& R = get<ExcitationOperator<U,2> >("R");
+        ExcitationOperator<U,2>& R = this->template get<ExcitationOperator<U,2> >("R");
         R(0) = 0; R(1) = 0; R(2) = 0;
         double thisval;
 
@@ -117,17 +117,17 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
         }
 
         put("energy", new CTFTensor<U>("energy", arena, 1, vec(multiroot*nroot+1), vec(NS), true));
-        MultiIterative::run(dag, arena);
+        MultiIterative<U>::run(dag, arena);
         put("convergence", new Scalar(arena, conv));
     }
     else
     {
         put("R0", new ExcitationOperator<U,2>("R0", arena, occ, vrt));
         puttmp("Z0", new ExcitationOperator<U,2>("Z0", arena, occ, vrt));
-        ExcitationOperator<U,2>& R0 = get<ExcitationOperator<U,2> >("R0");
+        ExcitationOperator<U,2>& R0 = this->template get<ExcitationOperator<U,2> >("R0");
         put("R1", new ExcitationOperator<U,2>("R1", arena, occ, vrt));
         puttmp("Z1", new ExcitationOperator<U,2>("Z1", arena, occ, vrt));
-        ExcitationOperator<U,2>& R1 = get<ExcitationOperator<U,2> >("R1");
+        ExcitationOperator<U,2>& R1 = this->template get<ExcitationOperator<U,2> >("R1");
         R0(0) = 0; R0(1) = 0; R0(2) = 0;
         R1(0) = 0; R1(1) = 0; R1(2) = 0;
         double thisval0;
@@ -162,7 +162,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
         {
             put("R2", new ExcitationOperator<U,2>("R2", arena, occ, vrt));
             puttmp("Z2", new ExcitationOperator<U,2>("Z2", arena, occ, vrt));
-            ExcitationOperator<U,2>& R2 = get<ExcitationOperator<U,2> >("R2");
+            ExcitationOperator<U,2>& R2 = this->template get<ExcitationOperator<U,2> >("R2");
             R2(0) = 0; R2(1) = 0; R2(2) = 0;
             double thisval2;
             for (int ii=0; ii<mysize; ii++)
@@ -183,7 +183,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
         {
             put("R3", new ExcitationOperator<U,2>("R3", arena, occ, vrt));
             puttmp("Z3", new ExcitationOperator<U,2>("Z3", arena, occ, vrt));
-            ExcitationOperator<U,2>& R3 = get<ExcitationOperator<U,2> >("R3");
+            ExcitationOperator<U,2>& R3 = this->template get<ExcitationOperator<U,2> >("R3");
             R3(0) = 0; R3(1) = 0; R3(2) = 0;
             double thisval3;
             for (int ii=0; ii<mysize; ii++)
@@ -204,7 +204,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
         {
             put("R4", new ExcitationOperator<U,2>("R4", arena, occ, vrt));
             puttmp("Z4", new ExcitationOperator<U,2>("Z4", arena, occ, vrt));
-            ExcitationOperator<U,2>& R4 = get<ExcitationOperator<U,2> >("R4");
+            ExcitationOperator<U,2>& R4 = this->template get<ExcitationOperator<U,2> >("R4");
             R4(0) = 0; R4(1) = 0; R4(2) = 0;
             double thisval4;
             for (int ii=0; ii<mysize; ii++)
@@ -225,7 +225,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
         {
             put("R5", new ExcitationOperator<U,2>("R5", arena, occ, vrt));
             puttmp("Z5", new ExcitationOperator<U,2>("Z5", arena, occ, vrt));
-            ExcitationOperator<U,2>& R5 = get<ExcitationOperator<U,2> >("R5");
+            ExcitationOperator<U,2>& R5 = this->template get<ExcitationOperator<U,2> >("R5");
             R5(0) = 0; R5(1) = 0; R5(2) = 0;
             double thisval5;
             for (int ii=0; ii<mysize; ii++)
@@ -254,27 +254,27 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 template <typename U>
 void EOMEECCSD<U>::iterate(const Arena& arena)
 {
-    const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
+    const STTwoElectronOperator<U,2>& H = this->template get<STTwoElectronOperator<U,2> >("Hbar");
 
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
     int mysize = occ.nalpha[0] * vrt.nalpha[0];
 
-    CTFTensor<U>& TDAevals = get<CTFTensor<U> >("TDAevals");
+    CTFTensor<U>& TDAevals = this->template get<CTFTensor<U> >("TDAevals");
     vector<U> TDAevalsVec;
     TDAevals.getAllData(TDAevalsVec);
-    Denominator<U>& D = gettmp<Denominator<U> >("D");
+    Denominator<U>& D = this->template gettmp<Denominator<U> >("D");
 
     vector<double> energyvec(multiroot*nroot+1);
     vector<tkv_pair<U> > pairs;
 
-    CTFTensor<U>& energy = gettmp<CTFTensor<U> >("energy");
+    CTFTensor<U>& energy = this->template gettmp<CTFTensor<U> >("energy");
 
     if (multiroot == 0)
     {
-        ExcitationOperator<U,2>& R = get<ExcitationOperator<U,2> >("R");
-        ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+        ExcitationOperator<U,2>& R = this->template get<ExcitationOperator<U,2> >("R");
+        ExcitationOperator<U,2>& Z = this->template gettmp<ExcitationOperator<U,2> >("Z");
         Z = 0;
         H.contract(R, Z);
         energyvec = davidson.extrapolate(R, Z, D, TDAevalsVec[nroot]);
@@ -284,12 +284,12 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     }
     else
     {
-        ExcitationOperator<U,2>& R0 = get<ExcitationOperator<U,2> >("R0");
-        ExcitationOperator<U,2>& Z0 = gettmp<ExcitationOperator<U,2> >("Z0");
+        ExcitationOperator<U,2>& R0 = this->template get<ExcitationOperator<U,2> >("R0");
+        ExcitationOperator<U,2>& Z0 = this->template gettmp<ExcitationOperator<U,2> >("Z0");
         Z0 = 0;
         H.contract(R0, Z0);
-        ExcitationOperator<U,2>& R1 = get<ExcitationOperator<U,2> >("R1");
-        ExcitationOperator<U,2>& Z1 = gettmp<ExcitationOperator<U,2> >("Z1");
+        ExcitationOperator<U,2>& R1 = this->template get<ExcitationOperator<U,2> >("R1");
+        ExcitationOperator<U,2>& Z1 = this->template gettmp<ExcitationOperator<U,2> >("Z1");
         Z1 = 0;
         H.contract(R1, Z1);
 
