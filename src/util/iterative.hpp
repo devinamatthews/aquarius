@@ -155,8 +155,8 @@ class MultiIterative : public task::Task
 
         void run(task::TaskDAG& dag, const Arena& arena)
         {
-            puttmp("energy", new tensor::CTFTensor("energy", arena, 1, vec(1), vec(NS)));
-            tensor::CTFTensor& energy = gettmp<tensor::CTFTensor>("energy");
+            puttmp("energy", new tensor::CTFTensor<U>("energy", arena, 1, vec(1), vec(NS)));
+            tensor::CTFTensor<U>& energy = gettmp<tensor::CTFTensor<U> >("energy");
 
             for (iter = 1;iter <= maxiter && !isConverged();iter++)
             {
