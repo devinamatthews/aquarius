@@ -105,6 +105,7 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
         for (int j = 0;j < mysize;j++)
         {
             pairs.push_back(kv_pair(j+i*mysize,data[evalorder[i]*mysize + j]));
+            // cout << j+i*mysize << " " << data[evalorder[i]*mysize + j] << endl;
         }
     }
 
@@ -112,6 +113,10 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
         TDAevecs.writeRemoteData(pairs);
     else
         TDAevecs.writeRemoteData();
+
+    // vector<U> data1;
+    // TDAevecs.getAllData(data1);
+    // cout << "data1.size() = " << data1.size() << endl;
 
 }
 

@@ -116,9 +116,6 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                 R(1)(vec(0,0),vec(0,0))(vec(0,0)).writeRemoteData();
         }
 
-        put("energy", new CTFTensor<U>("energy", arena, 1, vec(multiroot*nroot+1), vec(NS), true));
-        MultiIterative<U>::run(dag, arena);
-        put("convergence", new Scalar(arena, conv));
     }
     else
     {
@@ -249,6 +246,10 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
         // put("convergence", new Scalar(arena, conv));
     }
 
+    put("energy", new CTFTensor<U>("energy", arena, 1, vec(multiroot*nroot+1), vec(NS), true));
+    MultiIterative<U>::run(dag, arena, multiroot*nroot+1);
+    put("convergence", new Scalar(arena, conv));
+
 }
 
 template <typename U>
@@ -278,7 +279,7 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
         Z = 0;
         H.contract(R, Z);
         energyvec = davidson.extrapolate(R, Z, D, TDAevalsVec[nroot]);
-        cout << "evec = " << energyvec << endl;
+        // cout << "evec = " << energyvec << endl;
         conv = Z.norm(00);
         pairs.push_back(tkv_pair<U>(0, energyvec[0]));
     }
@@ -294,18 +295,34 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
         H.contract(R1, Z1);
 
 
-        energyvec = davidson.extrapolate(R0, R1, Z0, Z1, D, TDAevalsVec[0], TDAevalsVec[1]);
-        conv = Z0.norm(00);
+        std::vector<ExcitationOperator<U,2>* > R(1, &R0);
+        std::vector<ExcitationOperator<U,2>* > Z(1, &Z0);
+        std::vector<double> targets;
+        R.push_back(&R1);
+        Z.push_back(&Z1);
+        targets.push_back(TDAevalsVec[0]);
+        targets.push_back(TDAevalsVec[1]);
+        energyvec = davidson.extrapolate(R, Z, D, targets);
+        conv = Z[0]->norm(00);
 
-        for (int ii = 0; ii < nroot; ii++)
+        // cout << "energyvec = " << energyvec << endl;
+
+        for (int ii = 0; ii <= nroot; ii++)
         {
-            pairs.push_back(tkv_pair<U>(ii, energyvec[ii]));
+            pairs.push_back(kv_pair(ii, energyvec[ii]));
+            // cout << "pair = " << ii << ", " << energyvec[ii] << endl;
         }
     }
+
+
     if (arena.rank == 0)
         energy.writeRemoteData(pairs);
     else
         energy.writeRemoteData();
+
+    // vector<U> data1;
+    // energy.getAllData(data1);
+    // cout << "data1.size() = " << data1.size() << endl;
 
 }
 

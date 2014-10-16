@@ -153,9 +153,9 @@ class MultiIterative : public task::Task
 
         virtual ~MultiIterative() {}
 
-        void run(task::TaskDAG& dag, const Arena& arena)
+        void run(task::TaskDAG& dag, const Arena& arena, int numen)
         {
-            puttmp("energy", new tensor::CTFTensor<U>("energy", arena, 1, std::vec(1), std::vec(NS)));
+            puttmp("energy", new tensor::CTFTensor<U>("energy", arena, 1, std::vec(numen), std::vec(NS)));
             tensor::CTFTensor<U>& energy = gettmp<tensor::CTFTensor<U> >("energy");
 
             for (iter = 1;iter <= maxiter && !isConverged();iter++)
@@ -172,9 +172,17 @@ class MultiIterative : public task::Task
 
                 log(arena) << "Iteration " << iter << " took " << std::fixed <<
                               std::setprecision(3) << dt << " s" << std::endl;
-                log(arena) << "Iteration " << iter <<
+                if (numen == 1)
+                {
+                    log(arena) << "Iteration " << iter <<
                               " energy = " << std::fixed << std::setprecision(ndigit) << energyvec[0] <<
                               ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
+                }
+                else if (numen == 2)
+                    log(arena) << "Iteration " << iter <<
+                              " energies = " << std::fixed << std::setprecision(ndigit) << energyvec[0] << ", " << energyvec[1] <<
+                              ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
+                
             }
 
             if (!isConverged())

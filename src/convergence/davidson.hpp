@@ -47,10 +47,10 @@ class Davidson
 {
     protected:
         typedef typename T::dtype dtype;
-        std::vector< std::vector<T*> > old_c;
-        std::vector< std::vector<T*> > old_hc;
-        std::vector<dtype> c, e;
-        int nvec, nextrap;
+        std::vector< std::vector<T*> > old_c; // hold all R[k][i] where i is over nvec and k is over nextrap
+        std::vector< std::vector<T*> > old_hc; // hold all H*R[i] = Z[i] at every iteration aka Z[k][i]
+        std::vector<dtype> c, e; // e will hold chc[k]
+        int nvec, nextrap; // number of energies, number of iterations
         int mode;
         bool lock;
         double target0;
@@ -62,10 +62,10 @@ class Davidson
         Davidson(const input::Config& config, int nvec=1)
         : nvec(nvec), mode(CLOSEST_ENERGY), lock(false)
         {
-            nextrap = config.get<int>("order");
+            nextrap = config.get<int>("order"); // max number of iterations
 
-            e.resize(nextrap*nextrap);
-            c.resize(nextrap);
+            e.resize(nextrap*nextrap*nvec*nvec);
+            c.resize(nvec);
 
             old_c.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
             old_hc.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
@@ -92,25 +92,14 @@ class Davidson
 
         std::vector<double> extrapolate(T& c, T& hc, const op::Denominator<typename T::dtype>& D, double target0=0.0)
         {
-            return extrapolate(std::vector<T*>(1, &c), std::vector<T*>(1, &hc), D, target0);
+            return extrapolate(std::vector<T*>(1, &c), std::vector<T*>(1, &hc), D, std::vector<double>(1,target0));
         }
 
-        std::vector<double> extrapolate(T& c0, T& c1, T& hc0, T& hc1, const op::Denominator<typename T::dtype>& D, double target0=0.0, double target1=0.0)
-        {
-            std::vector<T*> clist;
-            clist.push_back(&c0);
-            clist.push_back(&c1);
-            std::vector<T*> hclist;
-            hclist.push_back(&hc0);
-            hclist.push_back(&hc1);
-            return extrapolate(clist, hclist, D, target0, target1);
-        }
-
-        std::vector<double> extrapolate(const std::vector<T*>& c, const std::vector<T*>& hc, const op::Denominator<typename T::dtype>& D, double target0=0.0, double target1=0.0)
+        std::vector<double> extrapolate(const std::vector<T*>& c, const std::vector<T*>& hc, const op::Denominator<typename T::dtype>& D, std::vector<double> targets)
         {
             using namespace std;
 
-            if (target0 == 0.0)
+            if (targets[0] == 0.0)
             {
                 assert(mode != CLOSEST_ENERGY);
             }
@@ -136,10 +125,10 @@ class Davidson
                 *hc[i] /= norm;
             }
 
-            int nextrap_real;
+            int nextrap_real; // What iteration are we on
             for (nextrap_real = 0;nextrap_real < nextrap && old_c[nextrap_real][0] != NULL;nextrap_real++);
 
-            if (nextrap_real == nextrap)
+            if (nextrap_real == nextrap) // aka we've reached our maximum iteration
             {
                 //TODO: compact
                 assert(0);
@@ -159,8 +148,9 @@ class Davidson
                 for (int i = 0;i < nvec;i++)
                     old_c[nextrap_real][i] = new T(*c[i]);
             }
-            else
-            {
+            else // Not sure how we'd get to this else... let's put a print statement to catch if we do
+            { // Maybe we'd get here if we were compacting?
+                std::cout << "Got to a place I never thought we would get!" << std::endl;
                 for (int i = 0;i < nvec;i++)
                     *old_c[nextrap_real][i] = *c[i];
             }
@@ -178,37 +168,72 @@ class Davidson
                     *old_hc[nextrap_real][i] = *hc[i];
             }
 
-            e[nextrap_real+nextrap_real*nextrap] = 0;
-            for (int i = 0;i < nvec;i++)
-                e[nextrap_real+nextrap_real*nextrap] += scalar(conj(*c[i])*(*hc[i]));
-
-            // std::cout << "e1 = " << e << std::endl;
-
-            /*
-             * Get the new off-diagonal subspace matrix elements for all
-             * previous vectors.
-             */
-
-            for (int i = 0;i < nextrap_real;i++)
+            // e[nextrap_real+nextrap_real*nextrap] = 0;
+            for (int i = 0;i < nvec;i++) // Set diagonals of e
             {
-                e[i+nextrap_real*nextrap] = 0;
-                e[nextrap_real+i*nextrap] = 0;
-                //for (int j = 0;j < nvec;i++)
-                for (int j = 0;j < nvec;j++)
+                // e[i+i*nextrap*nvec+nextrap_real*nvec+nextrap_real*nextrap*nvec*nvec] = 0;
+                e[i+i*nextrap*nvec+nextrap_real*nvec+nextrap_real*nextrap*nvec*nvec] = scalar(conj(*c[i])*(*hc[i])); 
+            }  
+
+            // Get the new off-diagonal subspace matrix elements for the current vectors
+
+            int min_index = nvec * nextrap_real;
+            int max_index = nvec * (nextrap_real + 1);
+
+            for (int vert = min_index;vert < max_index;vert++)
+            {
+                for (int horiz = vert + 1;horiz < max_index;horiz++) 
                 {
-                    //std::cout << "top" << std::endl;
-                    ////std::cout << "old_c " << old_c[i][j] << std::endl;
-                    //std::cout << "hc " << hc[j] << std::endl;
-                    e[i+nextrap_real*nextrap] += scalar(conj(*old_c[i][j])*(*hc[j]));
-                    //std::cout << "middle" << std::endl;
-                    e[nextrap_real+i*nextrap] += scalar(conj(*c[j])*(*old_hc[i][j]));
-                    //std::cout << "bot" << std::endl;
+                    int upper_tri_ind = vert*nextrap*nvec + horiz;
+                    int lower_tri_ind = horiz*nextrap*nvec + vert;
+                    e[upper_tri_ind] = scalar(conj(*c[horiz%nvec])*(*hc[vert%nvec]));
+                    e[lower_tri_ind] = scalar(conj(*c[vert%nvec])*(*hc[horiz%nvec]));
                 }
             }
 
+            // Get the new off-diagonal subspace matrix elements for the past vectors
+
+            if (nextrap_real > 0)
+            {
+                for (int vert = min_index;vert < max_index;vert++)
+                {
+                    for (int horiz = 0;horiz < min_index;horiz++) 
+                    {
+                        int upper_tri_ind = horiz*nextrap*nvec + vert;
+                        int lower_tri_ind = vert*nextrap*nvec + horiz;
+                        e[upper_tri_ind] = scalar(conj(*c[vert%nvec])*(*old_hc[horiz/nvec][horiz%nvec]));
+                        e[lower_tri_ind] = scalar(conj(*old_c[horiz/nvec][horiz%nvec])*(*hc[vert%nvec]));
+                    }
+                }
+            }
+
+            
+
+            // for (int i = 0;i < nextrap_real;i++)
+            // {
+            //     // std::cout << "Got here" << std::endl;
+            //     e[i+nextrap_real*nextrap] = 0;
+            //     e[nextrap_real+i*nextrap] = 0;
+            //     //for (int j = 0;j < nvec;i++)
+            //     for (int j = 0;j < nvec;j++) // I don't think we should be adding these together
+            //     {
+            //         //std::cout << "top" << std::endl;
+            //         ////std::cout << "old_c " << old_c[i][j] << std::endl;
+            //         //std::cout << "hc " << hc[j] << std::endl;
+            //         e[i+nextrap_real*nextrap] += scalar(conj(*old_c[i][j])*(*hc[j])); // index wrong
+            //         //std::cout << "middle" << std::endl;
+            //         e[nextrap_real+i*nextrap] += scalar(conj(*c[j])*(*old_hc[i][j])); // index wrong
+            //         //std::cout << "bot" << std::endl;
+            //     }
+            // }
+
             // std::cout << "e2 = " << e << std::endl;
 
-            nextrap_real++;
+            nextrap_real++; // DONT FORGET THIS GOT PLUSED.
+
+            // DID YOU FORGET? DON'T FORGET.
+
+            // This is because now we're constructing the next state
 
             /*
             for (int i = 0;i < nextrap_real;i++)
@@ -225,33 +250,77 @@ class Davidson
             //std::cout << "Check 2" << std::endl;
 
             int info;
-            std::vector<dtype> tmp(nextrap*nextrap);
-            std::vector<dtype> vr(nextrap*nextrap);
-            std::vector<typename std::complex_type<dtype>::type> l(nextrap);
+            std::vector<dtype> tmp(nextrap*nextrap*nvec*nvec);
+            std::vector<dtype> vr(nextrap*nextrap*nvec*nvec); // Eigenvectors
+            std::vector<typename std::complex_type<dtype>::type> l(nextrap*nvec); // Eigenvalues
 
             std::copy(e.begin(), e.end(), tmp.begin());
-            info = geev('N', 'V', nextrap_real, tmp.data(), nextrap, l.data(),
-                        NULL, 1, vr.data(), nextrap);
+            info = geev('N', 'V', nextrap_real*nvec, tmp.data(), nextrap*nvec, l.data(),
+                        NULL, 1, vr.data(), nextrap*nvec);
             if (info != 0) throw std::runtime_error(std::strprintf("davidson: Info in geev: %d", info));
 
-            // std::cout << "l = " << l << std::endl;
-
-            int bestev = -1;
-            double mincrit = DBL_MAX;
-            for (int i = 0;i < nextrap_real;i++)
+            std::cout << "l.size() = " << l.size() << std::endl;
+            for (int i = 0; i < nextrap_real*nvec; i++)
             {
-                double crit = 0;
+                std::cout << "l[" << i << "] = " << l[i] << std::endl;
+            }
+
+            std::vector<int> bestevs;
+            std::vector<double> mincrit;
+            std::vector<double> crit;
+            for (int i = 0; i < nvec; i++) {
+                bestevs.push_back(-1);
+                mincrit.push_back(DBL_MAX);
+                crit.push_back(0.0);
+            }
+            for (int i = 0;i < nextrap_real*nvec;i++)
+            {
+                
+                for (int j = 0; j < nvec; j++)
+                    crit[j] = 0.0;
 
                 switch (mode)
                 {
                     case GUESS_OVERLAP:
-                        crit = 1-std::abs(vr[i*nextrap_real]);
+                        for (int j = 0; j < nvec; j++)
+                        {
+                            crit[j] = 1-std::abs(vr[i*nextrap_real]);
+                            if (crit[j] < mincrit[j] && std::abs(std::imag(l[i])) < 1e-9)
+                            {
+                                mincrit[j] = crit[j];
+                                bestevs[j] = i;
+                            }
+                        }
                         break;
                     case LOWEST_ENERGY:
-                        crit = std::real(l[i]);
+                        crit[0] = std::real(l[i]);
+                        if (crit[0] < mincrit[0] && std::abs(std::imag(l[i])) < 1e-9)
+                        {
+                            mincrit[0] = crit[0];
+                            bestevs[0] = i;
+                        }
+                        for (int j = 1; j < nvec; j++)
+                        {
+                            crit[j] = std::real(l[i]);
+                            if (crit[j] < mincrit[j] && std::abs(std::imag(l[i])) < 1e-9 && crit[j] > mincrit[j-1])
+                            {
+                                mincrit[j] = crit[j];
+                                bestevs[j] = i;
+                            }
+                        }
                         break;
                     case CLOSEST_ENERGY:
-                        crit = std::abs(std::real(l[i])-target0);
+                        for (int j = 0; j < nvec; j++)
+                        {
+                            crit[j] = std::abs(std::real(l[i])-targets[j]);
+                            std::cout << "crit[" << i << "," << j << "] = " << crit[j] << std::endl;
+                            if (crit[j] < mincrit[j] && std::abs(std::imag(l[i])) < 1e-9)
+                            {
+                                std::cout << "changed!" << std::endl;
+                                mincrit[j] = crit[j];
+                                bestevs[j] = i;
+                            }
+                        }
                         break;
                 }
 
@@ -261,16 +330,17 @@ class Davidson
                 // std::cout << "real = " << std::real(l[i]) << std::endl;
                 // std::cout << "imag = " << std::imag(l[i]) << std::endl;
 
-
-                if (crit < mincrit && std::abs(std::imag(l[i])) < 1e-9)
-                {
-                    mincrit = crit;
-                    bestev = i;
-                }
             }
 
-            assert(bestev != -1);
+            assert(bestevs[0] != -1);
+            assert(bestevs[0] != -1);
 
+            std::cout << "bestevs[0] = " << bestevs[0] << std::endl;
+            std::cout << "bestevs[1] = " << bestevs[1] << std::endl;
+            // if (bestevs[0] == bestevs[1])
+            // {
+            //     bestevs[1] = bestevs[0] + 1;
+            // }
             //std::cout << "Check 9" << std::endl;
 
             //if (std::abs(std::imag(l[bestev])) > 1e-5)
@@ -278,30 +348,43 @@ class Davidson
 
             for (int j = 0;j < nvec;j++)
             {
-                *hc[j] = (*old_c[0][j])*vr[0+bestev*nextrap];
-                *c[j] = (*old_hc[0][j])*vr[0+bestev*nextrap];
+                *hc[j] = (*old_c[0][j])*vr[0+bestevs[j]*nextrap*nvec]; // Not sure why using hc for c and vice versa
+                *c[j] = (*old_hc[0][j])*vr[0+bestevs[j]*nextrap*nvec]; // original times the evec element for it
 
                 for (int i = 1;i < nextrap_real;i++)
                 {
-                    *hc[j] += (*old_c[i][j])*vr[i+bestev*nextrap];
-                    *c[j] += (*old_hc[i][j])*vr[i+bestev*nextrap];
+                    *hc[j] += (*old_c[i][j])*vr[i+bestevs[j]*nextrap*nvec]; // weight each old c by its evec value
+                    *c[j] += (*old_hc[i][j])*vr[i+bestevs[j]*nextrap*nvec]; // same for old_hc. making the new state state
                 }
 
-                *c[j] -= std::real(l[bestev])*(*hc[j]);
-                *hc[j] = *c[j];
-                c[j]->weight(D, std::real(l[bestev]));
+                // so now hc is V*y = x and c is A*V*y = A*x
+
+                *c[j] -= std::real(l[bestevs[j]])*(*hc[j]); 
+
+                // now c = A*x - mu*x = -r
+
+                *hc[j] = *c[j]; // This is what we norm to determine convergence, which is r, makes sense.
+
+                c[j]->weight(D, std::real(l[bestevs[j]])); // Look into weight function
 
                 for (int i = 0;i < nextrap_real;i++)
                 {
-                    double olap = scalar(conj(*c[j])*(*old_c[i][j]));
-                    *c[j] -= (*old_c[i][j])*olap;
+                    for (int k = 0; k < nvec; k++)
+                    {
+                        double olap = scalar(conj(*c[j])*(*old_c[i][k])); // orthogonalize against all previous cs
+                        *c[j] -= (*old_c[i][k])*olap;
+                    }
                 }
-
                 double norm = sqrt(std::abs(scalar(conj(*c[j])*(*c[j]))));
                 *c[j] /= norm;
             }
-            std::vector<double> myreturn(1);
-            myreturn[0] = std::real(l[bestev]);
+            std::vector<double> myreturn(nvec);
+            for (int i = 0; i < nvec; i++)
+                myreturn[i] = std::real(l[bestevs[i]]);
+            // if (nvec == 2)
+            // {
+            //     myreturn[1] = std::real(l[bestevs[1]]);
+            // }
             return myreturn;
         }
 };
