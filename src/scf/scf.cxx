@@ -107,8 +107,8 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
         calcS2();
     }
 
-    put("energy", new Scalar(arena, energy));
-    put("convergence", new Scalar(arena, conv));
+    put("energy", new T(energy));
+    put("convergence", new T(conv));
 
     int nfrozen = 0;
     if (frozen_core)
@@ -247,8 +247,8 @@ void UHF<T>::calcS2()
 
     S2 -= abs(scalar(Delta*conj(Delta)));
 
-    put("S2", new Scalar(S.arena, S2));
-    put("multiplicity", new Scalar(S.arena, sqrt(4*S2+1)));
+    put("S2", new T(S2));
+    put("multiplicity", new T(sqrt(4*S2+1)));
 }
 
 template <typename T>

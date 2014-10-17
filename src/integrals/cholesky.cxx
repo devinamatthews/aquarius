@@ -34,7 +34,7 @@ using namespace aquarius::symmetry;
 
 template <typename T>
 CholeskyIntegrals<T>::CholeskyIntegrals(const Arena& arena, const Context& ctx, const Config& config, const Molecule& molecule)
-: Resource(arena),
+: Distributed(arena),
   molecule(molecule),
   ctx(ctx),
   nvec(0),

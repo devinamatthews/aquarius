@@ -43,10 +43,7 @@ template <typename U>
 class EOMEECCSD : public MultiIterative<U>
 {
     protected:
-    	int nroot;
-    	int multiroot;
-        convergence::Davidson< op::ExcitationOperator<U,2> > davidson;
-
+        int nroot;
         using task::Task::addProduct;
         using task::Task::put;
         using task::Task::get;

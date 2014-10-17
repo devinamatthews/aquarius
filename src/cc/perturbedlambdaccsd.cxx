@@ -58,7 +58,7 @@ void PerturbedLambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
     puttmp("N", new DeexcitationOperator<U,2>("N", arena, occ, vrt));
     puttmp("Z", new DeexcitationOperator<U,2>("Z", arena, occ, vrt));
 
-    double omega = get<Scalar>("omega");
+    U omega = get<U>("omega");
 
     DeexcitationOperator<U,2>& L = get<DeexcitationOperator<U,2> >("L");
     DeexcitationOperator<U,2>& LA = get<DeexcitationOperator<U,2> >("LA");
@@ -85,7 +85,7 @@ void PerturbedLambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
     Iterative::run(dag, arena);
 
-    put("convergence", new Scalar(arena, conv));
+    put("convergence", new U(conv));
 }
 
 template <typename U>

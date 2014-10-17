@@ -48,7 +48,7 @@ namespace tensor
 
 template<class T>
 class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T>,
-                          public task::Resource
+                          public Distributed
 {
     INHERIT_FROM_INDEXABLE_COMPOSITE_TENSOR(SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T)
 

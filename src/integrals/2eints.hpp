@@ -118,14 +118,14 @@ class TwoElectronIntegrals
         void prim2contr4l(size_t nother, double* buf1, double* buf2);
 };
 
-class ERI : public task::Resource
+class ERI : public task::Destructible, public Distributed
 {
     public:
         const symmetry::PointGroup& group;
         std::vector<double> ints;
         std::vector<idx4_t> idxs;
 
-        ERI(const Arena& arena, const symmetry::PointGroup& group) : Resource(arena), group(group) {}
+        ERI(const Arena& arena, const symmetry::PointGroup& group) : Distributed(arena), group(group) {}
 
         void print(task::Printer& p) const;
 };

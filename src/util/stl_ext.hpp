@@ -2636,6 +2636,363 @@ struct complex_type<complex<T> >
     typedef complex<T> type;
 };
 
+template <class T, int ndim>
+class tensor;
+
+template <class T, int ndim, int dim>
+class tensor_ref
+{
+    friend class tensor_ref<T,ndim,dim-1>;
+    friend class tensor<T,ndim>;
+
+    private:
+        tensor_ref& operator=(const tensor_ref& other);
+
+    protected:
+        tensor<T, ndim>& array;
+        size_t idx;
+
+        tensor_ref(const tensor_ref& other)
+        : array(other.array), idx(other.idx) {}
+
+        tensor_ref(tensor<T, ndim>& array, size_t idx, int i);
+
+    public:
+        tensor_ref<T,ndim,dim+1> operator[](int i);
+
+        const tensor_ref<T,ndim,dim+1> operator[](int i) const;
+
+        //operator T*();
+
+        //operator const T*() const;
+};
+
+template <class T, int ndim>
+class tensor_ref<T, ndim, ndim>
+{
+    friend class tensor_ref<T,ndim,ndim-1>;
+    friend class tensor<T,ndim>;
+
+    private:
+        tensor_ref& operator=(const tensor_ref& other);
+
+    protected:
+        tensor<T, ndim>& array;
+        size_t idx;
+
+        tensor_ref(const tensor_ref& other)
+        : array(other.array), idx(other.idx) {}
+
+        tensor_ref(tensor<T, ndim>& array, size_t idx, int i);
+
+    public:
+        T& operator[](int i);
+
+        const T& operator[](int i) const;
+
+        //operator T*();
+
+        //operator const T*() const;
+};
+
+template <class T, int ndim>
+class tensor
+{
+    template<class T_, int ndim_, int dim_> friend class tensor_ref;
+
+    friend void swap(tensor& a, tensor& b)
+    {
+        using std::swap;
+        swap(a.data_, b.data_);
+        swap(a.len, b.len);
+        swap(a.stride, b.stride);
+    }
+
+    protected:
+        T* data_;
+        std::vector<int> len;
+        std::vector<size_t> stride;
+
+    public:
+        enum Layout {COLUMN_MAJOR, ROW_MAJOR};
+
+        tensor(const tensor& other)
+        : len(other.len), stride(other.stride)
+        {
+            size_t num = 1;
+            for (int i = 0;i < ndim;i++) num *= len[i];
+            data_ = new T[num];
+            std::copy(other.data_, other.data_+num, data_);
+        }
+
+        explicit tensor(const std::vector<int>& len = std::vector<int>(ndim,0),
+                        const T& val = T(), Layout layout = ROW_MAJOR)
+        : len(len), stride(ndim)
+        {
+            assert(len.size() == ndim);
+
+            if (layout == ROW_MAJOR)
+            {
+                stride[ndim-1] = 1;
+                for (int i = ndim-2;i >= 0;i--)
+                {
+                    stride[i] = stride[i+1]*len[i+1];
+                }
+                data_ = new T[stride[0]*len[0]];
+                std::fill(data_, data_+stride[0]*len[0], val);
+            }
+            else
+            {
+                stride[0] = 1;
+                for (int i = 1;i < ndim;i++)
+                {
+                    stride[i] = stride[i-1]*len[i-1];
+                }
+                data_ = new T[stride[ndim-1]*len[ndim-1]];
+                std::fill(data_, data_+stride[ndim-1]*len[ndim-1], val);
+            }
+        }
+
+        ~tensor()
+        {
+            delete[] data_;
+        }
+
+        void resize(const std::vector<int>& len, const T& val = T(), Layout layout = ROW_MAJOR)
+        {
+            delete[] data_;
+            assert(len.size() == ndim);
+            this->len = len;
+
+            if (layout == ROW_MAJOR)
+            {
+                stride[ndim-1] = 1;
+                for (int i = ndim-2;i >= 0;i--)
+                {
+                    stride[i] = stride[i+1]*len[i+1];
+                }
+                data_ = new T[stride[0]*len[0]];
+                std::fill(data_, data_+stride[0]*len[0], val);
+            }
+            else
+            {
+                stride[0] = 1;
+                for (int i = 1;i < ndim;i++)
+                {
+                    stride[i] = stride[i-1]*len[i-1];
+                }
+                data_ = new T[stride[ndim-1]*len[ndim-1]];
+                std::fill(data_, data_+stride[ndim-1]*len[ndim-1], val);
+            }
+        }
+
+        void clear()
+        {
+            resize(std::vector<int>(ndim, 0));
+        }
+
+        tensor& operator=(tensor other)
+        {
+            swap(*this, other);
+            return *this;
+        }
+
+        tensor_ref<T,ndim,2> operator[](int i)
+        {
+            assert(i >= 0 && i < len[0]);
+            return tensor_ref<T,ndim,2>(*this, (size_t)0, i);
+        }
+
+        const tensor_ref<T,ndim,2> operator[](int i) const
+        {
+            assert(i >= 0 && i < len[0]);
+            return tensor_ref<T,ndim,2>(const_cast<tensor&>(*this), (size_t)0, i);
+        }
+
+        double* data() { return data_; }
+
+        const double* data() const { return data_; }
+
+        operator T*(){ return data_; }
+
+        operator const T*() const { return data_; }
+
+        const std::vector<int>& length() const { return len; }
+};
+
+template <class T>
+class tensor<T,0>
+{
+    protected:
+        T data_;
+
+    public:
+        tensor(const T& val = T()) : data_(val) {}
+
+        double& data() { return data_; }
+
+        const double& data() const { return data_; }
+
+        operator T&() { return data_; }
+
+        operator const T&() const { return data_; }
+};
+
+template <class T>
+class tensor<T,1>
+{
+    friend void swap(tensor& a, tensor& b)
+    {
+        using std::swap;
+        swap(a.data_, b.data_);
+        swap(a.len, b.len);
+    }
+
+    protected:
+        T* data_;
+        int len;
+
+    public:
+        tensor(const tensor& other)
+        : len(other.len)
+        {
+            data_ = new T[len];
+            std::copy(other.data_, other.data_+len, data_);
+        }
+
+        explicit tensor(int n = 0, const T& val = T())
+        : len(n)
+        {
+            data_ = new T[len];
+            std::fill(data_, data_+len, val);
+        }
+
+        ~tensor()
+        {
+            delete[] data_;
+        }
+
+        void resize(int n, const T& val = T())
+        {
+            len = n;
+            delete[] data_;
+            data_ = new T[len];
+            std::fill(data_, data_+len, val);
+        }
+
+        void clear()
+        {
+            resize(0);
+        }
+
+        tensor& operator=(tensor other)
+        {
+            swap(*this, other);
+            return *this;
+        }
+
+        T& operator[](int i)
+        {
+            assert(i >= 0 && i < len);
+            return data_[i];
+        }
+
+        const T& operator[](int i) const
+        {
+            assert(i >= 0 && i < len);
+            return data_[i];
+        }
+
+        double* data() { return data_; }
+
+        const double* data() const { return data_; }
+
+        operator T*() { return data_; }
+
+        operator const T*() const { return data_; }
+
+        int length() const { return len; }
+};
+
+template <class T, int ndim, int dim>
+tensor_ref<T,ndim,dim>::tensor_ref(tensor<T, ndim>& array, size_t idx, int i)
+: array(array), idx(idx+i*array.stride[dim-2]) {}
+
+template <class T, int ndim, int dim>
+tensor_ref<T,ndim,dim+1> tensor_ref<T,ndim,dim>::operator[](int i)
+{
+    assert(i >= 0 && i < array.len[dim-1]);
+    return tensor_ref<T,ndim,dim+1>(array, idx, i);
+}
+
+template <class T, int ndim, int dim>
+const tensor_ref<T,ndim,dim+1> tensor_ref<T,ndim,dim>::operator[](int i) const
+{
+    assert(i >= 0 && i < array.len[dim-1]);
+    return tensor_ref<T,ndim,dim+1>(array, idx, i);
+}
+
+//template <class T, int ndim, int dim>
+//tensor_ref<T,ndim,dim>::operator T*()
+//{
+//    return array.data_+idx;
+//}
+
+//template <class T, int ndim, int dim>
+//tensor_ref<T,ndim,dim>::operator const T*() const
+//{
+//    return array.data_+idx;
+//}
+
+template <class T, int ndim>
+tensor_ref<T,ndim,ndim>::tensor_ref(tensor<T, ndim>& array, size_t idx, int i)
+: array(array), idx(idx+i*array.stride[ndim-2]) {}
+
+template <class T, int ndim>
+T& tensor_ref<T,ndim,ndim>::operator[](int i)
+{
+    assert(i >= 0 && i < array.len[ndim-1]);
+    return array.data_[idx+i*array.stride[ndim-1]];
+}
+
+template <class T, int ndim>
+const T& tensor_ref<T,ndim,ndim>::operator[](int i) const
+{
+    assert(i >= 0 && i < array.len[ndim-1]);
+    return array.data_[idx+i*array.stride[ndim-1]];
+}
+
+//template <class T, int ndim>
+//tensor_ref<T,ndim,ndim>::operator T*()
+//{
+//    return array.data_+idx;
+//}
+
+//template <class T, int ndim>
+//tensor_ref<T,ndim,ndim>::operator const T*() const
+//{
+//    return array.data_+idx;
+//}
+
+template <class T>
+class matrix : public tensor<T,2>
+{
+    public:
+        using typename tensor<T,2>::Layout;
+        using tensor<T,2>::ROW_MAJOR;
+        using tensor<T,2>::COLUMN_MAJOR;
+
+        matrix() {}
+
+        matrix(int m, int n, const T& val = T(), Layout layout = ROW_MAJOR)
+        : tensor<T,2>(vec(m,n), val, layout) {}
+
+        void resize(int m, int n, const T& val = T(), Layout layout = ROW_MAJOR)
+        {
+            tensor<T,2>::resize(vec(m,n), val, layout);
+        }
+};
+
 template <class T, class U>
 struct doublet
 {

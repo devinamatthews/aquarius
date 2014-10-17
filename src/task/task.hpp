@@ -134,33 +134,26 @@ class Printer
         }
 };
 
-class Resource : public Distributed
+class Destructible
 {
     public:
-        Resource(const Arena& arena)
-        : Distributed(arena) {}
-
-        virtual ~Resource() {}
+        virtual ~Destructible() {}
 };
 
-struct Scalar : public Resource
+template <typename T>
+class Resource : public Destructible
 {
-    double value;
+    private:
+        Resource(const Resource& other);
 
-    Scalar(const Arena& arena, double value = 0)
-    : Resource(arena), value(value) {}
+        Resource& operator=(const Resource& other);
 
-    operator double() { return value; }
-};
+    public:
+        T* const data;
 
-struct Boolean : public Resource
-{
-    bool value;
+        Resource(T* data) : data(data) {}
 
-    Boolean(const Arena& arena, bool value = false)
-    : Resource(arena), value(value) {}
-
-    operator bool() { return value; }
+        ~Resource() { delete data; }
 };
 
 class Product;
@@ -198,7 +191,7 @@ class Product
     protected:
         std::string type;
         std::string name;
-        std::global_ptr<Resource> data;
+        std::global_ptr<Destructible> data;
         std::shared_ptr<std::vector<Requirement> > requirements;
         std::shared_ptr<bool> used;
 
@@ -215,13 +208,13 @@ class Product
 
         template <typename T> void put(T* resource)
         {
-            data.reset(static_cast<Resource*>(resource));
+            data.reset(new Resource<T>(resource));
         }
 
         template <typename T> T& get()
         {
             if (!data) throw std::logic_error("Product " + name + " does not exist.");
-            return static_cast<T&>(*data);
+            return *static_cast<Resource<T>&>(*data).data;
         }
 
         bool exists() const { return data; }

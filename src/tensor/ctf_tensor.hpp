@@ -57,7 +57,7 @@ namespace tensor
 {
 
 template <typename T>
-class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public task::Resource
+class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public Distributed
 {
     INHERIT_FROM_INDEXABLE_TENSOR(CTFTensor<T>,T)
 

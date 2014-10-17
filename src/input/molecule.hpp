@@ -43,7 +43,7 @@ namespace input
 class Atom;
 class AtomCartSpec;
 
-class Molecule : public task::Resource
+class Molecule
 {
     friend class MoleculeTask;
 
@@ -160,7 +160,7 @@ class Molecule : public task::Resource
         void initBasis(const input::Config& config, const std::vector<AtomCartSpec>& cartpos);
 
     public:
-        Molecule(const Arena& arena, const Config& config);
+        Molecule(const Config& config);
 
         void print(task::Printer& p) const {}
 

@@ -441,7 +441,7 @@ void TaskDAG::satisfyExplicitRequirements(const Arena& world)
             {
                 if (reqs.back()->getType()!="double")
                     Logger::error(world)<<"Attempting to specify a non-scalar requirement by value"<<endl;
-                p.put(new Scalar(world, t1->second.get<double>("using."+u->second+".=")));
+                p.put(new double(t1->second.get<double>("using."+u->second+".=")));
                 fulfiller = &p;
             }
             else
@@ -613,8 +613,8 @@ CompareScalars::CompareScalars(const string& name, const Config& config)
 
 void CompareScalars::run(TaskDAG& dag, const Arena& arena)
 {
-    double val1 = get<Scalar>("val1");
-    double val2 = get<Scalar>("val2");
+    double val1 = get<double>("val1");
+    double val2 = get<double>("val2");
 
     bool match = abs(val1-val2) < tolerance;
 
@@ -628,7 +628,7 @@ void CompareScalars::run(TaskDAG& dag, const Arena& arena)
                 setprecision((int)(0.5-log10(tolerance))) << val1 << " vs " << val2 << endl;
     }
 
-    put("match", new Boolean(arena, match));
+    put("match", new bool(match));
 }
 
 REGISTER_TASK(CompareScalars,"compare");

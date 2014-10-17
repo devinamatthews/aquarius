@@ -47,7 +47,7 @@ namespace tensor
 
 template <class T>
 class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>,
-                              public task::Resource
+                              public Distributed
 {
     INHERIT_FROM_INDEXABLE_COMPOSITE_TENSOR(SymmetryBlockedTensor<T>,CTFTensor<T>,T)
 

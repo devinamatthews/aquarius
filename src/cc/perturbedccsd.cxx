@@ -58,7 +58,7 @@ void PerturbedCCSD<U>::run(TaskDAG& dag, const Arena& arena)
     puttmp("X", new ExcitationOperator<U,2>("X", arena, occ, vrt));
     puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
 
-    double omega = get<Scalar>("omega");
+    U omega = get<U>("omega");
 
     ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
     ExcitationOperator<U,2>& TA = get<ExcitationOperator<U,2> >("TA");

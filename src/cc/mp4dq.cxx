@@ -77,7 +77,7 @@ void MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
 
 
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
-    put("mp2", new Scalar(arena, energy));
+    put("mp2", new U(energy));
 
     TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
 
@@ -108,7 +108,7 @@ void MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
 
     //Logger::log(arena) << "MP3 energy = " << setprecision(15) << energy << endl;
     Logger::log(arena) << "MP3 correlation energy = " << setprecision(15) << energy - mp2energy << endl;
-    put("mp3", new Scalar(arena, energy));
+    put("mp3", new U(energy));
 
 
 
@@ -129,7 +129,7 @@ void MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
 
     //Logger::log(arena) << "LCCD(2) energy = " << setprecision(15) << energy << endl;
     Logger::log(arena) << "MP4D correlation energy = " << setprecision(15) << energy - mp3energy << endl;
-    put("mp4d", new Scalar(arena, energy));
+    put("mp4d", new U(energy));
 
 
 
@@ -165,7 +165,7 @@ void MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
     //Logger::log(arena) << "CCD(1) energy = " << setprecision(15) << energy << endl;
     Logger::log(arena) << "MP4Q correlation energy = " << setprecision(15) << energy - mp3energy << endl;
     Logger::log(arena) << "MP4DQ correlation energy = " << setprecision(15) << mp4denergy + mp4qenergy << endl;
-    put("mp4q", new Scalar(arena, energy));
+    put("mp4q", new U( energy));
 
     /*
     if (isUsed("S2") || isUsed("multiplicity"))
@@ -178,7 +178,7 @@ void MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
     }
     */
 
-    put("energy", new Scalar(arena, energy));
+    put("energy", new U(energy));
 
     if (isUsed("Hbar"))
     {

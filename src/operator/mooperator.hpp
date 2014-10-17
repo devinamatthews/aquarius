@@ -34,14 +34,14 @@ namespace aquarius
 namespace op
 {
 
-class MOOperator : public task::Resource
+class MOOperator : public Distributed
 {
     public:
         const Space occ;
         const Space vrt;
 
         MOOperator(const Arena& arena, const Space& occ, const Space& vrt)
-        : Resource(arena), occ(occ), vrt(vrt) {}
+        : Distributed(arena), occ(occ), vrt(vrt) {}
 };
 
 }

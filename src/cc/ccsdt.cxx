@@ -79,15 +79,15 @@ void CCSDT<U>::run(task::TaskDAG& dag, const Arena& arena)
     conv = T.norm(00);
 
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
-    put("mp2", new Scalar(arena, energy));
+    put("mp2", new U(energy));
 
     CTF_Timer_epoch ep(name.c_str());
     ep.begin();
     Iterative::run(dag, arena);
     ep.end();
 
-    put("energy", new Scalar(arena, energy));
-    put("convergence", new Scalar(arena, conv));
+    put("energy", new U(energy));
+    put("convergence", new U(conv));
 
     /*
     if (isUsed("S2") || isUsed("multiplicity"))

@@ -152,7 +152,7 @@ map<const tCTF_World<T>*,map<const PointGroup*,pair<int,SpinorbitalTensor<T>*> >
 template<class T>
 SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const SpinorbitalTensor<T>& t, const T val)
 : IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T >(name, 0, 0),
-  Resource(t.arena), group(t.group), spin(0)
+  Distributed(t.arena), group(t.group), spin(0)
 {
     cases.push_back(SpinCase());
     cases.back().construct(*this, vector<int>(), vector<int>());
@@ -163,7 +163,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const SpinorbitalTen
 template<class T>
 SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& other)
 : IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T >(other),
-  Resource(other.arena), group(other.group), spaces(other.spaces),
+  Distributed(other.arena), group(other.group), spaces(other.spaces),
   nout(other.nout), nin(other.nin), spin(other.spin), cases(other.cases)
 {
     assert(tensors.size() == cases.size());
@@ -177,7 +177,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& other)
 template<class T>
 SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const SpinorbitalTensor<T>& other)
 : IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T >(name, other),
-  Resource(other.arena), group(other.group), spaces(other.spaces),
+  Distributed(other.arena), group(other.group), spaces(other.spaces),
   nout(other.nout), nin(other.nin), spin(other.spin), cases(other.cases)
 {
     assert(tensors.size() == cases.size());
@@ -195,7 +195,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const Arena& arena,
                                         const vector<int>& nout,
                                         const vector<int>& nin, int spin)
 : IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T>(name, std::sum(nout)+std::sum(nin), 0),
-  Resource(arena), group(group), spaces(spaces), nout(nout), nin(nin), spin(spin)
+  Distributed(arena), group(group), spaces(spaces), nout(nout), nin(nin), spin(spin)
 {
     int nspaces = spaces.size();
     int nouttot = std::sum(nout);

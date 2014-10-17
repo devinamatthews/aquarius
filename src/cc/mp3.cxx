@@ -75,7 +75,7 @@ void MP3<U>::run(TaskDAG& dag, const Arena& arena)
 
 
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
-    put("mp2", new Scalar(arena, energy));
+    put("mp2", new U(energy));
 
     TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
 
@@ -105,9 +105,9 @@ void MP3<U>::run(TaskDAG& dag, const Arena& arena)
 
     Logger::log(arena) << "MP3 energy = " << setprecision(15) << energy << endl;
     Logger::log(arena) << "MP3 correlation energy = " << setprecision(15) << energy - mp2energy << endl;
-    put("mp3", new Scalar(arena, energy));
+    put("mp3", new U(energy));
 
-    put("energy", new Scalar(arena, energy));
+    put("energy", new U(energy));
 
     /*
     if (isUsed("S2") || isUsed("multiplicity"))

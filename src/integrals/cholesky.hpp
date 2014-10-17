@@ -41,7 +41,7 @@ namespace integrals
 {
 
 template <typename T>
-class CholeskyIntegrals : public task::Resource
+class CholeskyIntegrals : public task::Destructible, public Distributed
 {
     public:
         const input::Molecule& molecule;

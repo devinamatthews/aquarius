@@ -66,7 +66,7 @@ struct Space
 };
 
 template <class T>
-struct MOSpace : public Space, public task::Resource
+struct MOSpace : public Space, public Distributed
 {
     const std::vector<int> nao;
     const tensor::SymmetryBlockedTensor<T> Calpha;
@@ -74,14 +74,14 @@ struct MOSpace : public Space, public task::Resource
 
     MOSpace(const tensor::SymmetryBlockedTensor<T>& Calpha, const tensor::SymmetryBlockedTensor<T>& Cbeta)
     : Space(Calpha.getGroup(), Calpha.getLengths()[1], Cbeta.getLengths()[1]),
-      Resource(Calpha.arena),
+      Distributed(Calpha.arena),
       nao(Calpha.getLengths()[0]),
       Calpha(Calpha),
       Cbeta(Cbeta) {}
 
     MOSpace(tensor::SymmetryBlockedTensor<T>* Calpha, tensor::SymmetryBlockedTensor<T>* Cbeta)
     : Space(Calpha->getGroup(), Calpha->getLengths()[1], Cbeta->getLengths()[1]),
-      Resource(Calpha->arena),
+      Distributed(Calpha->arena),
       nao(Calpha->getLengths()[0]),
       Calpha(Calpha),
       Cbeta(Cbeta) {}

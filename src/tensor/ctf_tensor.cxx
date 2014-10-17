@@ -36,7 +36,7 @@ map<const tCTF_World<T>*,pair<int,CTFTensor<T>*> > CTFTensor<T>::scalars;
  */
 template <typename T>
 CTFTensor<T>::CTFTensor(const string& name, const Arena& arena, T scalar)
-: IndexableTensor< CTFTensor<T>,T >(name), Resource(arena), len(0), sym(0)
+: IndexableTensor< CTFTensor<T>,T >(name), Distributed(arena), len(0), sym(0)
 {
     allocate();
     *dt = scalar;
@@ -48,7 +48,7 @@ CTFTensor<T>::CTFTensor(const string& name, const Arena& arena, T scalar)
  */
 template <typename T>
 CTFTensor<T>::CTFTensor(const string& name, const CTFTensor<T>& A, T scalar)
-: IndexableTensor< CTFTensor<T>,T >(name), Resource(A.arena),
+: IndexableTensor< CTFTensor<T>,T >(name), Distributed(A.arena),
   len(0), sym(0)
 {
     allocate();
@@ -61,7 +61,7 @@ CTFTensor<T>::CTFTensor(const string& name, const CTFTensor<T>& A, T scalar)
  */
 template <typename T>
 CTFTensor<T>::CTFTensor(const CTFTensor<T>& A, bool copy, bool zero)
-: IndexableTensor< CTFTensor<T>,T >(A.name, A.ndim), Resource(A.arena),
+: IndexableTensor< CTFTensor<T>,T >(A.name, A.ndim), Distributed(A.arena),
   len(A.len), sym(A.sym)
 {
     allocate();
@@ -83,7 +83,7 @@ CTFTensor<T>::CTFTensor(const CTFTensor<T>& A, bool copy, bool zero)
  */
 template <typename T>
 CTFTensor<T>::CTFTensor(const string& name, const CTFTensor<T>& A, bool copy, bool zero)
-: IndexableTensor< CTFTensor<T>,T >(name, A.ndim), Resource(A.arena),
+: IndexableTensor< CTFTensor<T>,T >(name, A.ndim), Distributed(A.arena),
   len(A.len), sym(A.sym)
 {
     allocate();
@@ -102,7 +102,7 @@ CTFTensor<T>::CTFTensor(const string& name, const CTFTensor<T>& A, bool copy, bo
 
 template <typename T>
 CTFTensor<T>::CTFTensor(const string& name, CTFTensor<T>* A)
-: IndexableTensor< CTFTensor<T>,T >(name, A->ndim), Resource(A->arena),
+: IndexableTensor< CTFTensor<T>,T >(name, A->ndim), Distributed(A->arena),
   len(A->len), sym(A->sym)
 {
     dt = A->dt;
@@ -112,7 +112,7 @@ CTFTensor<T>::CTFTensor(const string& name, CTFTensor<T>* A)
 
 template <typename T>
 CTFTensor<T>::CTFTensor(const string& name, const CTFTensor<T>& A, const vector<int>& start_A, const vector<int>& len_A)
-: IndexableTensor< CTFTensor<T>,T >(name, A.ndim), Resource(A.arena),
+: IndexableTensor< CTFTensor<T>,T >(name, A.ndim), Distributed(A.arena),
   len(len_A), sym(A.sym)
 {
     allocate();
@@ -126,7 +126,7 @@ CTFTensor<T>::CTFTensor(const string& name, const CTFTensor<T>& A, const vector<
 template <typename T>
 CTFTensor<T>::CTFTensor(const string& name, const Arena& arena, int ndim, const vector<int>& len, const vector<int>& sym,
                           bool zero)
-: IndexableTensor< CTFTensor<T>,T >(name, ndim), Resource(arena),
+: IndexableTensor< CTFTensor<T>,T >(name, ndim), Distributed(arena),
   len(len), sym(sym)
 {
     assert(len.size() == ndim);

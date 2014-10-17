@@ -36,6 +36,7 @@
 #include <cassert>
 #include <algorithm>
 #include <cfloat>
+#include <limits>
 
 namespace aquarius
 {
@@ -43,32 +44,111 @@ namespace convergence
 {
 
 template<typename T>
-class Davidson
+class Davidson : public task::Destructible
 {
+    private:
+        Davidson(const Davidson& other);
+
+        Davidson& operator=(const Davidson& other);
+
     protected:
         typedef typename T::dtype dtype;
         std::vector< std::vector<T*> > old_c; // hold all R[k][i] where i is over nvec and k is over nextrap
         std::vector< std::vector<T*> > old_hc; // hold all H*R[i] = Z[i] at every iteration aka Z[k][i]
-        std::vector<dtype> c, e; // e will hold chc[k]
+        std::vector<T*> guess;
+        std::matrix<dtype> overlap;
+        std::tensor<dtype,4> e; // e will hold chc[k]
+        std::vector<dtype> c;
         int nvec, nextrap; // number of energies, number of iterations
         int mode;
-        bool lock;
-        double target0;
-        double target1;
+        std::vector<dtype> target;
 
         enum {GUESS_OVERLAP, LOWEST_ENERGY, CLOSEST_ENERGY};
 
     public:
         Davidson(const input::Config& config, int nvec=1)
-        : nvec(nvec), mode(CLOSEST_ENERGY), lock(false)
+        : nvec(nvec), mode(LOWEST_ENERGY), target(nvec)
         {
             nextrap = config.get<int>("order"); // max number of iterations
 
-            e.resize(nextrap*nextrap*nvec*nvec);
-            c.resize(nvec);
+            assert(nvec > 0);
+            assert(nextrap > 0);
+
+            overlap.resize(nvec, nextrap);
+            e.resize(std::vec(nvec, nextrap, nvec, nextrap));
+            c.resize(nextrap*nvec);
 
             old_c.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
             old_hc.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
+        }
+
+        Davidson(const input::Config& config, dtype target)
+        : nvec(1), mode(CLOSEST_ENERGY), target(1,target)
+        {
+            nextrap = config.get<int>("order"); // max number of iterations
+
+            assert(nvec > 0);
+            assert(nextrap > 0);
+
+            overlap.resize(nvec, nextrap);
+            e.resize(std::vec(nvec, nextrap, nvec, nextrap));
+            c.resize(nextrap*nvec);
+
+            old_c.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
+            old_hc.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
+        }
+
+        Davidson(const input::Config& config, const std::vector<dtype>& target)
+        : nvec(target.size()), mode(CLOSEST_ENERGY), target(target)
+        {
+            nextrap = config.get<int>("order"); // max number of iterations
+
+            assert(nvec > 0);
+            assert(nextrap > 0);
+
+            overlap.resize(nvec, nextrap);
+            e.resize(std::vec(nvec, nextrap, nvec, nextrap));
+            c.resize(nextrap*nvec);
+
+            old_c.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
+            old_hc.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
+        }
+
+        Davidson(const input::Config& config, const T& guess)
+        : nvec(1), mode(GUESS_OVERLAP), target(1)
+        {
+            nextrap = config.get<int>("order"); // max number of iterations
+
+            assert(nvec > 0);
+            assert(nextrap > 0);
+
+            overlap.resize(nvec, nextrap);
+            e.resize(std::vec(nvec, nextrap, nvec, nextrap));
+            c.resize(nextrap*nvec);
+
+            old_c.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
+            old_hc.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
+
+            guess.resize(1, new T(guess));
+        }
+
+        Davidson(const input::Config& config, const std::vector<T*>& guess)
+        : nvec(guess.size()), mode(GUESS_OVERLAP), target(guess.size())
+        {
+            nextrap = config.get<int>("order"); // max number of iterations
+
+            overlap.resize(nvec, nextrap);
+            assert(nvec > 0);
+            assert(nextrap > 0);
+
+            e.resize(std::vec(nvec, nextrap, nvec, nextrap));
+            c.resize(nextrap*nvec);
+
+            old_c.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
+            old_hc.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
+
+            guess.resize(nvec);
+            for (int i = 0;i < nvec;i++) guess[i] = new T(*guess[i]);
         }
 
         ~Davidson()
@@ -88,21 +168,24 @@ class Davidson
                     if (*i != NULL) delete *i;
                 }
             }
+
+            for (typename std::vector<T*>::iterator i = guess.begin();i != guess.end();++i)
+            {
+                if (*i != NULL) delete *i;
+            }
         }
 
-        std::vector<double> extrapolate(T& c, T& hc, const op::Denominator<typename T::dtype>& D, double target0=0.0)
+        dtype extrapolate(T& c, T& hc, const op::Denominator<dtype>& D)
         {
-            return extrapolate(std::vector<T*>(1, &c), std::vector<T*>(1, &hc), D, std::vector<double>(1,target0));
+            assert(nvec == 1);
+            return extrapolate(std::vec(&c), std::vec(&hc), D)[0];
         }
 
-        std::vector<double> extrapolate(const std::vector<T*>& c, const std::vector<T*>& hc, const op::Denominator<typename T::dtype>& D, std::vector<double> targets)
+        std::vector<dtype> extrapolate(const std::vector<T*>& c, const std::vector<T*>& hc, const op::Denominator<dtype>& D)
         {
             using namespace std;
 
-            if (targets[0] == 0.0)
-            {
-                assert(mode != CLOSEST_ENERGY);
-            }
+            assert(nvec == c.size() && nvec == hc.size());
 
             // std::cout << "nvec = " << nvec << std::endl;
 
@@ -112,6 +195,9 @@ class Davidson
             // std::cout << "c = " << c << std::endl;
             // std::cout << "hc = " << hc << std::endl;
 
+            /*
+             * Check and normalize incoming c and H*c vectors
+             */
             for (int i = 0;i < nvec;i++)
             {
                 assert(c[i] != NULL);
@@ -148,9 +234,9 @@ class Davidson
                 for (int i = 0;i < nvec;i++)
                     old_c[nextrap_real][i] = new T(*c[i]);
             }
-            else // Not sure how we'd get to this else... let's put a print statement to catch if we do
-            { // Maybe we'd get here if we were compacting?
-                std::cout << "Got to a place I never thought we would get!" << std::endl;
+            else
+            {
+                // should only happen after compaction
                 for (int i = 0;i < nvec;i++)
                     *old_c[nextrap_real][i] = *c[i];
             }
@@ -164,17 +250,37 @@ class Davidson
             }
             else
             {
+                // should only happen after compaction
                 for (int i = 0;i < nvec;i++)
                     *old_hc[nextrap_real][i] = *hc[i];
             }
 
-            // e[nextrap_real+nextrap_real*nextrap] = 0;
-            for (int i = 0;i < nvec;i++) // Set diagonals of e
+            /*
+             * Augment the subspace matrix with the new vectors
+             */
+            for (int i = 0;i < nvec;i++)
             {
-                // e[i+i*nextrap*nvec+nextrap_real*nvec+nextrap_real*nextrap*nvec*nvec] = 0;
-                e[i+i*nextrap*nvec+nextrap_real*nvec+nextrap_real*nextrap*nvec*nvec] = scalar(conj(*c[i])*(*hc[i])); 
-            }  
+                /*
+                 * Compute and save overlap with guess for later
+                 */
+                if (mode == GUESS_OVERLAP)
+                    overlap[i][nextrap_real] = std::abs(scalar(conj(*c[i])*(*guess[i])));
 
+                for (int j = 0;j < nvec;j++)
+                {
+                    // "Diagonal"
+                    e[i][nextrap_real][j][nextrap_real] = scalar(conj(*c[i])*(*hc[j]));
+
+                    // "Off-diagonal"
+                    for (int k = 0;k < nextrap_real;k++)
+                    {
+                        e[i][nextrap_real][j][k] = scalar(conj(*c[i])*(*old_hc[k][j]));
+                        e[i][k][j][nextrap_real] = scalar(conj(*old_c[k][i])*(*hc[j]));
+                    }
+                }
+            }
+
+            /*
             // Get the new off-diagonal subspace matrix elements for the current vectors
 
             int min_index = nvec * nextrap_real;
@@ -182,7 +288,7 @@ class Davidson
 
             for (int vert = min_index;vert < max_index;vert++)
             {
-                for (int horiz = vert + 1;horiz < max_index;horiz++) 
+                for (int horiz = vert + 1;horiz < max_index;horiz++)
                 {
                     int upper_tri_ind = vert*nextrap*nvec + horiz;
                     int lower_tri_ind = horiz*nextrap*nvec + vert;
@@ -197,7 +303,7 @@ class Davidson
             {
                 for (int vert = min_index;vert < max_index;vert++)
                 {
-                    for (int horiz = 0;horiz < min_index;horiz++) 
+                    for (int horiz = 0;horiz < min_index;horiz++)
                     {
                         int upper_tri_ind = horiz*nextrap*nvec + vert;
                         int lower_tri_ind = vert*nextrap*nvec + horiz;
@@ -206,8 +312,9 @@ class Davidson
                     }
                 }
             }
+            */
 
-            
+
 
             // for (int i = 0;i < nextrap_real;i++)
             // {
@@ -249,14 +356,22 @@ class Davidson
 
             //std::cout << "Check 2" << std::endl;
 
+            /*
+             * Diagonalize the subspace matrix to obtain approximate solutions
+             */
             int info;
-            std::vector<dtype> tmp(nextrap*nextrap*nvec*nvec);
-            std::vector<dtype> vr(nextrap*nextrap*nvec*nvec); // Eigenvectors
-            std::vector<typename std::complex_type<dtype>::type> l(nextrap*nvec); // Eigenvalues
+            std::tensor<dtype,4> tmp(std::vec(nvec,nextrap_real,nvec,nextrap_real));
+            std::tensor<dtype,3> vr(std::vec(nvec,nextrap_real,nvec*nextrap_real)); // Eigenvectors
+            std::vector<typename std::complex_type<dtype>::type> l(nextrap_real*nvec); // Eigenvalues
 
-            std::copy(e.begin(), e.end(), tmp.begin());
-            info = geev('N', 'V', nextrap_real*nvec, tmp.data(), nextrap*nvec, l.data(),
-                        NULL, 1, vr.data(), nextrap*nvec);
+            for (int m = 0;m < nextrap_real;m++)
+                for (int k = 0;k < nvec;k++)
+                    for (int j = 0;j < nextrap_real;j++)
+                        for (int i = 0;i < nvec;i++)
+                            tmp[i][j][k][m] = e[i][j][k][m];
+
+            info = geev('N', 'V', nextrap_real*nvec, tmp.data(), nextrap_real*nvec, l.data(),
+                        NULL, 1, vr.data(), nextrap_real*nvec);
             if (info != 0) throw std::runtime_error(std::strprintf("davidson: Info in geev: %d", info));
 
             std::cout << "l.size() = " << l.size() << std::endl;
@@ -265,75 +380,49 @@ class Davidson
                 std::cout << "l[" << i << "] = " << l[i] << std::endl;
             }
 
-            std::vector<int> bestevs;
-            std::vector<double> mincrit;
-            std::vector<double> crit;
-            for (int i = 0; i < nvec; i++) {
-                bestevs.push_back(-1);
-                mincrit.push_back(DBL_MAX);
-                crit.push_back(0.0);
-            }
-            for (int i = 0;i < nextrap_real*nvec;i++)
+            /*
+             * Assign eigenvalues (exclusively) to states by the selected criterion
+             */
+            std::vector<int> bestevs(nvec, -1);
+            for (int j = 0; j < nvec; j++)
             {
-                
-                for (int j = 0; j < nvec; j++)
-                    crit[j] = 0.0;
+                dtype crit;
+                dtype mincrit = std::numeric_limits<dtype>::max();
 
-                switch (mode)
+                for (int i = 0;i < nextrap_real*nvec;i++)
                 {
-                    case GUESS_OVERLAP:
-                        for (int j = 0; j < nvec; j++)
-                        {
-                            crit[j] = 1-std::abs(vr[i*nextrap_real]);
-                            if (crit[j] < mincrit[j] && std::abs(std::imag(l[i])) < 1e-9)
-                            {
-                                mincrit[j] = crit[j];
-                                bestevs[j] = i;
-                            }
-                        }
-                        break;
-                    case LOWEST_ENERGY:
-                        crit[0] = std::real(l[i]);
-                        if (crit[0] < mincrit[0] && std::abs(std::imag(l[i])) < 1e-9)
-                        {
-                            mincrit[0] = crit[0];
-                            bestevs[0] = i;
-                        }
-                        for (int j = 1; j < nvec; j++)
-                        {
-                            crit[j] = std::real(l[i]);
-                            if (crit[j] < mincrit[j] && std::abs(std::imag(l[i])) < 1e-9 && crit[j] > mincrit[j-1])
-                            {
-                                mincrit[j] = crit[j];
-                                bestevs[j] = i;
-                            }
-                        }
-                        break;
-                    case CLOSEST_ENERGY:
-                        for (int j = 0; j < nvec; j++)
-                        {
-                            crit[j] = std::abs(std::real(l[i])-targets[j]);
-                            std::cout << "crit[" << i << "," << j << "] = " << crit[j] << std::endl;
-                            if (crit[j] < mincrit[j] && std::abs(std::imag(l[i])) < 1e-9)
-                            {
-                                std::cout << "changed!" << std::endl;
-                                mincrit[j] = crit[j];
-                                bestevs[j] = i;
-                            }
-                        }
-                        break;
+                    bool found = false;
+                    for (int k = 0;k < j;k++)
+                    {
+                        if (bestevs[k] == i) found = true;
+                    }
+                    if (found) continue;
+
+                    switch (mode)
+                    {
+                        case GUESS_OVERLAP:
+                            crit = 0.0;
+                            for (int m = 0;m < nextrap_real;m++)
+                                for (int k = 0;k < nvec;k++)
+                                    crit -= vr[k][m][i]*overlap[k][m];
+                            break;
+                        case LOWEST_ENERGY:
+                            crit = std::real(l[i]);
+                            break;
+                        case CLOSEST_ENERGY:
+                            crit = std::abs(std::real(l[i])-target[j]);
+                            break;
+                    }
+
+                    if (crit < mincrit && std::abs(std::imag(l[i])) < 1e-9)
+                    {
+                        mincrit = crit;
+                        bestevs[j] = i;
+                    }
                 }
 
-                // std::cout << "crit = " << crit << std::endl;
-                // std::cout << "mincrit = " << mincrit << std::endl;
-                // std::cout << "bestev = " << bestev << std::endl;
-                // std::cout << "real = " << std::real(l[i]) << std::endl;
-                // std::cout << "imag = " << std::imag(l[i]) << std::endl;
-
+                assert(bestevs[j] != -1);
             }
-
-            assert(bestevs[0] != -1);
-            assert(bestevs[0] != -1);
 
             std::cout << "bestevs[0] = " << bestevs[0] << std::endl;
             std::cout << "bestevs[1] = " << bestevs[1] << std::endl;
@@ -346,45 +435,70 @@ class Davidson
             //if (std::abs(std::imag(l[bestev])) > 1e-5)
             //    throw std::runtime_error("davidson: complex eigenvalue");
 
+            /*
+             * Calculate residuals and apply Davidson correction
+             */
             for (int j = 0;j < nvec;j++)
             {
-                *hc[j] = (*old_c[0][j])*vr[0+bestevs[j]*nextrap*nvec]; // Not sure why using hc for c and vice versa
-                *c[j] = (*old_hc[0][j])*vr[0+bestevs[j]*nextrap*nvec]; // original times the evec element for it
+                /*
+                 * Form current trial vector y and H*y = x
+                 */
+                *c [j] = (*old_c [0][j])*vr[j][0][bestevs[j]];
+                *hc[j] = (*old_hc[0][j])*vr[j][0][bestevs[j]]; // original times the evec element for it
 
                 for (int i = 1;i < nextrap_real;i++)
                 {
-                    *hc[j] += (*old_c[i][j])*vr[i+bestevs[j]*nextrap*nvec]; // weight each old c by its evec value
-                    *c[j] += (*old_hc[i][j])*vr[i+bestevs[j]*nextrap*nvec]; // same for old_hc. making the new state state
+                    *c [j] += (*old_c [i][j])*vr[j][i][bestevs[j]]; // weight each old c by its evec value
+                    *hc[j] += (*old_hc[i][j])*vr[j][i][bestevs[j]]; // same for old_hc. making the new state state
                 }
 
                 // so now hc is V*y = x and c is A*V*y = A*x
 
-                *c[j] -= std::real(l[bestevs[j]])*(*hc[j]); 
+                *hc[j] -= std::real(l[bestevs[j]])*(*c[j]);
+
+                /*
+                 * If we were to determine convergence at this point, then c
+                 * would be the solution vector
+                 *
+                 * This needs to be fixed, since right now the caller has no way
+                 * of obtaining the solution!
+                 */
 
                 // now c = A*x - mu*x = -r
 
-                *hc[j] = *c[j]; // This is what we norm to determine convergence, which is r, makes sense.
-
+                *c[j] = *hc[j]; // This is what we norm to determine convergence, which is r, makes sense.
                 c[j]->weight(D, std::real(l[bestevs[j]])); // Look into weight function
+
+                /*
+                 * Orthogonalize new guess vector against existing subspace and against
+                 * other guess vectors
+                 */
+                for (int k = 0; k < j; k++)
+                {
+                    dtype olap = scalar(conj(*c[j])*(*c[k])); // orthogonalize against new cs which have just been constructed
+                    *c[j] -= (*c[k])*olap;
+                }
 
                 for (int i = 0;i < nextrap_real;i++)
                 {
                     for (int k = 0; k < nvec; k++)
                     {
-                        double olap = scalar(conj(*c[j])*(*old_c[i][k])); // orthogonalize against all previous cs
+                        dtype olap = scalar(conj(*c[j])*(*old_c[i][k])); // orthogonalize against all previous cs
                         *c[j] -= (*old_c[i][k])*olap;
                     }
                 }
+
+                /*
+                 * Normalize
+                 */
                 double norm = sqrt(std::abs(scalar(conj(*c[j])*(*c[j]))));
                 *c[j] /= norm;
             }
-            std::vector<double> myreturn(nvec);
+
+            std::vector<dtype> myreturn(nvec);
             for (int i = 0; i < nvec; i++)
                 myreturn[i] = std::real(l[bestevs[i]]);
-            // if (nvec == 2)
-            // {
-            //     myreturn[1] = std::real(l[bestevs[1]]);
-            // }
+
             return myreturn;
         }
 };

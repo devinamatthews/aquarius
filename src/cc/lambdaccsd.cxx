@@ -74,8 +74,8 @@ void LambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
     Iterative::run(dag, arena);
 
-    put("energy", new Scalar(arena, energy));
-    put("convergence", new Scalar(arena, conv));
+    put("energy", new U(energy));
+    put("convergence", new U(conv));
 }
 
 template <typename U>
