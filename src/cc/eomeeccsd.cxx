@@ -210,7 +210,7 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     const Space& vrt = H.vrt;
 
     Davidson<ExcitationOperator<U,2> >& davidson =
-        this->template gettmp<Davidson<ExcitationOperator<U,2> > >("davidson");
+        this->template gettmp<Davidson<ExcitationOperator<U,2> > >("Davidson");
 
     Denominator<U>& D = this->template gettmp<Denominator<U> >("D");
     std::vector<ExcitationOperator<U,2>*> R;
@@ -264,14 +264,16 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     }
 
     vector<U> energyvec = davidson.extrapolate(R, Z, D);
+    cout << "energyvec[0] = " << energyvec[0] << endl;
     conv = Z[0]->norm(00);
-    for (int i = 1;i < nroot;i++)
-        conv = max(conv, Z[i]->norm(00));
+    cout << "conv = " << conv << endl;
+    // for (int i = 1;i < nroot;i++)
+    //     conv = max(conv, Z[i]->norm(00));
 
     // cout << "energyvec = " << energyvec << endl;
 
     vector<tkv_pair<U> > pairs;
-    for (int ii = 0; ii <= nroot; ii++)
+    for (int ii = 0; ii < nroot; ii++)
     {
         pairs.push_back(kv_pair(ii, energyvec[ii]));
         // cout << "pair = " << ii << ", " << energyvec[ii] << endl;

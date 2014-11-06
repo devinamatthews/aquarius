@@ -153,9 +153,9 @@ class MultiIterative : public task::Task
 
         virtual ~MultiIterative() {}
 
-        void run(task::TaskDAG& dag, const Arena& arena, int numen)
+        void run(task::TaskDAG& dag, const Arena& arena, int nroot)
         {
-            puttmp("energy", new tensor::CTFTensor<U>("energy", arena, 1, std::vec(numen), std::vec(NS)));
+            puttmp("energy", new tensor::CTFTensor<U>("energy", arena, 1, std::vec(nroot), std::vec(NS),true));
             tensor::CTFTensor<U>& energy = gettmp<tensor::CTFTensor<U> >("energy");
 
             for (iter = 1;iter <= maxiter && !isConverged();iter++)
@@ -167,18 +167,19 @@ class MultiIterative : public task::Task
                 double dt = timer.seconds(arena);
                 std::vector<U> energyvec;
                 energy.getAllData(energyvec);
+                std::cout << "energyvec.size() = " << energyvec.size() << std::endl;
 
                 int ndigit = (int)(ceil(-log10(convtol))+0.5);
 
                 log(arena) << "Iteration " << iter << " took " << std::fixed <<
                               std::setprecision(3) << dt << " s" << std::endl;
-                if (numen == 1)
+                if (nroot == 1)
                 {
                     log(arena) << "Iteration " << iter <<
                               " energy = " << std::fixed << std::setprecision(ndigit) << energyvec[0] <<
                               ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
                 }
-                else if (numen == 2)
+                else if (nroot == 2)
                     log(arena) << "Iteration " << iter <<
                               " energies = " << std::fixed << std::setprecision(ndigit) << energyvec[0] << ", " << energyvec[1] <<
                               ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;

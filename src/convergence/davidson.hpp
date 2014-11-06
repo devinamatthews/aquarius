@@ -374,11 +374,11 @@ class Davidson : public task::Destructible
                         NULL, 1, vr.data(), nextrap_real*nvec);
             if (info != 0) throw std::runtime_error(std::strprintf("davidson: Info in geev: %d", info));
 
-            std::cout << "l.size() = " << l.size() << std::endl;
-            for (int i = 0; i < nextrap_real*nvec; i++)
-            {
-                std::cout << "l[" << i << "] = " << l[i] << std::endl;
-            }
+            // std::cout << "l.size() = " << l.size() << std::endl;
+            // for (int i = 0; i < nextrap_real*nvec; i++)
+            // {
+            //     std::cout << "l[" << i << "] = " << l[i] << std::endl;
+            // }
 
             /*
              * Assign eigenvalues (exclusively) to states by the selected criterion
@@ -424,8 +424,8 @@ class Davidson : public task::Destructible
                 assert(bestevs[j] != -1);
             }
 
-            std::cout << "bestevs[0] = " << bestevs[0] << std::endl;
-            std::cout << "bestevs[1] = " << bestevs[1] << std::endl;
+            // std::cout << "bestevs[0] = " << bestevs[0] << std::endl;
+            // std::cout << "bestevs[1] = " << bestevs[1] << std::endl;
             // if (bestevs[0] == bestevs[1])
             // {
             //     bestevs[1] = bestevs[0] + 1;
@@ -452,7 +452,7 @@ class Davidson : public task::Destructible
                     *hc[j] += (*old_hc[i][j])*vr[j][i][bestevs[j]]; // same for old_hc. making the new state state
                 }
 
-                // so now hc is V*y = x and c is A*V*y = A*x
+                // so now c is V*y = x and hc is A*V*y = A*x
 
                 *hc[j] -= std::real(l[bestevs[j]])*(*c[j]);
 
@@ -464,7 +464,7 @@ class Davidson : public task::Destructible
                  * of obtaining the solution!
                  */
 
-                // now c = A*x - mu*x = -r
+                // now hc = A*x - mu*x = -r
 
                 *c[j] = *hc[j]; // This is what we norm to determine convergence, which is r, makes sense.
                 c[j]->weight(D, std::real(l[bestevs[j]])); // Look into weight function
