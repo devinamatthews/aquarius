@@ -167,7 +167,6 @@ class MultiIterative : public task::Task
                 double dt = timer.seconds(arena);
                 std::vector<U> energyvec;
                 energy.getAllData(energyvec);
-                std::cout << "energyvec.size() = " << energyvec.size() << std::endl;
 
                 int ndigit = (int)(ceil(-log10(convtol))+0.5);
 
@@ -182,6 +181,21 @@ class MultiIterative : public task::Task
                 else if (nroot == 2)
                     log(arena) << "Iteration " << iter <<
                               " energies = " << std::fixed << std::setprecision(ndigit) << energyvec[0] << ", " << energyvec[1] <<
+                              ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
+
+                else if (nroot == 3)
+                    log(arena) << "Iteration " << iter <<
+                              " energies = " << std::fixed << std::setprecision(ndigit) << energyvec[0] << ", " << energyvec[1] << ", " << energyvec[2] <<
+                              ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
+
+                else if (nroot == 4)
+                    log(arena) << "Iteration " << iter <<
+                              " energies = " << std::fixed << std::setprecision(ndigit) << energyvec[0] << ", " << energyvec[1] << ", " << energyvec[2] << ", " << energyvec[3] <<
+                              ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
+
+                else if (nroot == 5)
+                    log(arena) << "Iteration " << iter <<
+                              " energies = " << std::fixed << std::setprecision(ndigit) << energyvec[0] << ", " << energyvec[1] << ", " << energyvec[2] << ", " << energyvec[3] << ", " << energyvec[4] <<
                               ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
                 
             }

@@ -191,11 +191,6 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
         }
     }
 
-    // Iterative::run(dag, arena);
-    // put("TDAevals", new CTFTensor<U>("TDAevals", arena, 1, vec(mysize), vec(NS), true));
-    // put("energy", new Scalar(arena, energy));
-    // put("convergence", new Scalar(arena, conv));
-
     put("energy", new CTFTensor<U>("energy", arena, 1, vec(nroot), vec(NS), true));
     MultiIterative<U>::run(dag, arena, nroot);
     put("convergence", new U(conv));
@@ -264,19 +259,15 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     }
 
     vector<U> energyvec = davidson.extrapolate(R, Z, D);
-    cout << "energyvec[0] = " << energyvec[0] << endl;
     conv = Z[0]->norm(00);
-    cout << "conv = " << conv << endl;
-    // for (int i = 1;i < nroot;i++)
-    //     conv = max(conv, Z[i]->norm(00));
+    for (int i = 1;i < nroot;i++)
+        conv = max(conv, Z[i]->norm(00));
 
-    // cout << "energyvec = " << energyvec << endl;
 
     vector<tkv_pair<U> > pairs;
     for (int ii = 0; ii < nroot; ii++)
     {
         pairs.push_back(kv_pair(ii, energyvec[ii]));
-        // cout << "pair = " << ii << ", " << energyvec[ii] << endl;
     }
 
     CTFTensor<U>& energy = this->template gettmp<CTFTensor<U> >("energy");
@@ -284,11 +275,6 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
         energy.writeRemoteData(pairs);
     else
         energy.writeRemoteData();
-
-    // vector<U> data1;
-    // energy.getAllData(data1);
-    // cout << "data1.size() = " << data1.size() << endl;
-
 }
 
 INSTANTIATE_SPECIALIZATIONS(EOMEECCSD);
