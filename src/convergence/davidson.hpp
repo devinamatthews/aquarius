@@ -67,7 +67,7 @@ class Davidson : public task::Destructible
 
     public:
         Davidson(const input::Config& config, int nvec=1)
-        : nvec(nvec), mode(CLOSEST_ENERGY), target(nvec)
+        : nvec(nvec), mode(LOWEST_ENERGY), target(nvec)
         {
             nextrap = config.get<int>("order"); // max number of iterations
 
