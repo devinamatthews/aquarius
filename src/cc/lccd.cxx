@@ -29,128 +29,108 @@ using namespace aquarius::op;
 using namespace aquarius::cc;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
-using namespace aquarius::time;
 using namespace aquarius::task;
+using namespace aquarius::time;
 
 template <typename U>
-LCCD<U>::LCCD(const string& name, const Config& config)
-: Iterative("lccd", name, config), diis(config.get("diis"))
+LCCD<U>::LCCD(const std::string& name, const Config& config)
+: Iterative<U>("lccd", name, config), diis(config.get("diis"))
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("moints", "H"));
-    addProduct(Product("double", "mp2", reqs));
-    addProduct(Product("double", "energy", reqs));
-    addProduct(Product("double", "convergence", reqs));
-    addProduct(Product("double", "S2", reqs));
-    addProduct(Product("double", "multiplicity", reqs));
-    addProduct(Product("lccd.T", "T", reqs));
-    addProduct(Product("lccd.Hbar", "Hbar", reqs));
+    this->addProduct(Product("double", "energy", reqs));
+    this->addProduct(Product("double", "convergence", reqs));
+    this->addProduct(Product("double", "S2", reqs));
+    this->addProduct(Product("double", "multiplicity", reqs));
+    this->addProduct(Product("lccd.T", "T", reqs));
+    this->addProduct(Product("lccd.Hbar", "Hbar", reqs));
 }
 
 template <typename U>
 void LCCD<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
+    const TwoElectronOperator<U>& H = this->template get<TwoElectronOperator<U> >("H");
 
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    put("T", new ExcitationOperator<U,2>("T", arena, occ, vrt));
-    puttmp("D", new Denominator<U>(H));
-    puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
+    this->put   (  "T", new ExcitationOperator<U,2>("T", arena, occ, vrt));
+    this->puttmp(  "Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
+    this->puttmp(  "D", new Denominator<U>(H));
 
-    ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
-    Denominator<U>& D = gettmp<Denominator<U> >("D");
-    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+    ExcitationOperator<U,2>& T = this->template get   <ExcitationOperator<U,2> >(  "T");
+    Denominator<U>&          D = this->template gettmp<Denominator<U> >         (  "D");
+    ExcitationOperator<U,2>& Z = this->template gettmp<ExcitationOperator<U,2> >(  "Z");
 
-    Z(0) = (U)0.0;
-    T(0) = (U)0.0;
-    T(1) = (U)0.0;
+    Z(0) = 0;
+    T(0) = 0;
+    T(1) = 0;
     T(2) = H.getABIJ();
 
     T.weight(D);
 
-    energy = 0.25*real(scalar(H.getABIJ()*T(2)));
+    this->energy() = 0.25*real(scalar(H.getABIJ()*T(2)));
+    this->conv() = T.norm(00);
 
-    conv = T.norm(00);
+    CTF_Timer_epoch ep(this->name.c_str());
+    ep.begin();
+    Iterative<U>::run(dag, arena);
+    ep.end();
 
-    Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
-    put("mp2", new U(energy));
-
-    Iterative::run(dag, arena);
-
-    put("energy", new U(energy));
-    put("convergence", new U(conv));
+    this->put("energy", new U(this->energy()));
+    this->put("convergence", new U(this->conv()));
 
     /*
     if (isUsed("S2") || isUsed("multiplicity"))
     {
-        double s2 = getProjectedS2(occ, vrt, T(1), T(2));
+        double s2 = this->template getProjectedS2(occ, vrt, T(1), T(2));
         double mult = sqrt(4*s2+1);
 
-        put("S2", new Scalar(arena, s2));
-        put("multiplicity", new Scalar(arena, mult));
+        this->put("S2", new Scalar(arena, s2));
+        this->put("multiplicity", new Scalar(arena, mult));
     }
     */
 
-    if (isUsed("Hbar"))
+    if (this->isUsed("Hbar"))
     {
-        put("Hbar", new STTwoElectronOperator<U,2>("Hbar", H, T, true));
+        this->put("Hbar", new STTwoElectronOperator<U>("Hbar", H, T, true));
     }
 }
 
 template <typename U>
 void LCCD<U>::iterate(const Arena& arena)
 {
-    TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
+    const TwoElectronOperator<U>& H = this->template get<TwoElectronOperator<U> >("H");
 
-    ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
-    Denominator<U>& D = gettmp<Denominator<U> >("D");
-    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+    const SpinorbitalTensor<U>&   fAE =   H.getAB();
+    const SpinorbitalTensor<U>&   fMI =   H.getIJ();
+    const SpinorbitalTensor<U>& VABIJ = H.getABIJ();
+    const SpinorbitalTensor<U>& VABEF = H.getABCD();
+    const SpinorbitalTensor<U>& VMNIJ = H.getIJKL();
+    const SpinorbitalTensor<U>& VAMEI = H.getAIBJ();
 
-    TwoElectronOperator<U> H("W", H_, TwoElectronOperator<U>::AB|
-                                 TwoElectronOperator<U>::IJ|
-                                 TwoElectronOperator<U>::IJKL|
-                                 TwoElectronOperator<U>::AIBJ);
-
-    SpinorbitalTensor<U>& FBC = H.getAB();
-    SpinorbitalTensor<U>& FKJ = H.getIJ();
-    SpinorbitalTensor<U>& WIJAB = H.getIJAB();
-    SpinorbitalTensor<U>& WABCD = H.getABCD();
-    SpinorbitalTensor<U>& WKLIJ = H.getIJKL();
-    SpinorbitalTensor<U>& WBKCJ = H.getAIBJ();
-
-//    sched.set_max_partitions(1);
-    /**************************************************************************
-     *
-     * Intermediates, now aligned with Shavitt and Bartlett, 9.126
-     */
-    //FKJ["kj"] += 0.5*WIJAB["klcd"]*T(2)["dclj"]; /* 9, through 3 */
-    //WKLIJ["klij"] += 0.5*WIJAB["klcd"]*T(2)["cdij"]; /* 7, through 5 */
-    //FBC["bc"] -= 0.5*WIJAB["klcd"]*T(2)["dblk"]; /* 10, through 2 */
-    //WBKCJ["bkcj"] -= 0.5*WIJAB["klcd"]*T(2)["bdjl"]; /* 8, through 6, Minus sign cancels that in 6*/
-    /*
-     *************************************************************************/
+    ExcitationOperator<U,2>& T = this->template get   <ExcitationOperator<U,2> >(  "T");
+    Denominator<U>&          D = this->template gettmp<Denominator<U>          >(  "D");
+    ExcitationOperator<U,2>& Z = this->template gettmp<ExcitationOperator<U,2> >(  "Z");
 
     /**************************************************************************
      *
-     * T(1)->T(2) and T(2)->T(2), now aligned with Shavitt and Bartlett 9.126
+     * LCCD Iteration
      */
-    Z(2)["abij"] = WIJAB["ijab"]; /* 1, ijab instead of abij because getIJAB instead of getABIJ. Makes intermeds 7, 8 nicer. */
-    Z(2)["abij"] += FBC["bc"]*T(2)["acij"]; /* 2 */
-    Z(2)["abij"] -= FKJ["kj"]*T(2)["abik"]; /* 3 */
-    Z(2)["abij"] += 0.5*WABCD["abcd"]*T(2)["cdij"]; /* 4 */
-    Z(2)["abij"] += 0.5*WKLIJ["klij"]*T(2)["abkl"]; /* 5 */
-    Z(2)["abij"] -= WBKCJ["bkcj"]*T(2)["acik"]; /* 6, minus sign because getAIBJ instead of getIABJ, which necessitates -bkcj instead of +kbcj */
+    Z(2)["abij"]  =     VABIJ["abij"];
+    Z(2)["abij"] +=       fAE[  "af"]*T(2)["fbij"];
+    Z(2)["abij"] -=       fMI[  "ni"]*T(2)["abnj"];
+    Z(2)["abij"] += 0.5*VABEF["abef"]*T(2)["efij"];
+    Z(2)["abij"] += 0.5*VMNIJ["mnij"]*T(2)["abmn"];
+    Z(2)["abij"] +=     VAMEI["amei"]*T(2)["ebjm"];
     /*
      *************************************************************************/
 
     Z.weight(D);
     T += Z;
 
-    energy = 0.25*real(scalar(H.getABIJ()*T(2)));
-
-    conv = Z.norm(00);
+    this->energy() = 0.25*real(scalar(H.getABIJ()*T(2)));
+    this->conv() = Z.norm(00);
 
     diis.extrapolate(T, Z);
 }

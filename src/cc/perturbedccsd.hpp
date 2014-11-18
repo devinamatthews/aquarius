@@ -48,9 +48,10 @@ namespace cc
  *                           c
  */
 template <typename U>
-class PerturbedCCSD : public Iterative
+class PerturbedCCSD : public Iterative<U>
 {
     protected:
+        U omega;
         convergence::DIIS< op::ExcitationOperator<U,2> > diis;
 
     public:

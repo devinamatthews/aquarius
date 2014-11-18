@@ -40,7 +40,7 @@ namespace cc
 {
 
 template <typename U>
-class TDA : public NonIterative
+class TDA : public task::Task
 {
     protected:
 

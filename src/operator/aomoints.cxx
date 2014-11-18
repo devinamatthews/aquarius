@@ -779,13 +779,6 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     const MOSpace<T>& occ = this->template get<MOSpace<T> >("occ");
     const MOSpace<T>& vrt = this->template get<MOSpace<T> >("vrt");
 
-    const SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
-    const SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
-
-    this->put("H", new TwoElectronOperator<T>("V", OneElectronOperator<T>("f", occ, vrt, Fa, Fb)));
-    //this->put("H", new TwoElectronOperator<T>(arena, occ, vrt));
-    TwoElectronOperator<T>& H = this->template get<TwoElectronOperator<T> >("H");
-
     const ERI& ints = this->template get<ERI>("I");
 
     const SymmetryBlockedTensor<T>& cA_ = vrt.Calpha;
@@ -804,6 +797,31 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     vector<int> ni_ = vec(sum(ni))+vector<int>(n-1,0);
     vector<int> nA_ = vec(sum(nA))+vector<int>(n-1,0);
     vector<int> na_ = vec(sum(na))+vector<int>(n-1,0);
+
+    const SymmetryBlockedTensor<T>& Ea = this->template get<SymmetryBlockedTensor<T> >("Ea");
+    const SymmetryBlockedTensor<T>& Eb = this->template get<SymmetryBlockedTensor<T> >("Eb");
+
+    this->put("H", new TwoElectronOperator<T>("V", OneElectronOperator<T>("f", arena, occ, vrt)));
+    //this->put("H", new TwoElectronOperator<T>(arena, occ, vrt));
+    TwoElectronOperator<T>& H = this->template get<TwoElectronOperator<T> >("H");
+
+    {
+        vector<int> zero(n);
+        SymmetryBlockedTensor<T> Ea_occ("Ea_occ", arena, ints.group, 1, vec(nI), vec(NS), false);
+        SymmetryBlockedTensor<T> Eb_occ("Eb_occ", arena, ints.group, 1, vec(ni), vec(NS), false);
+        SymmetryBlockedTensor<T> Ea_vrt("Ea_vrt", arena, ints.group, 1, vec(nA), vec(NS), false);
+        SymmetryBlockedTensor<T> Eb_vrt("Eb_vrt", arena, ints.group, 1, vec(na), vec(NS), false);
+
+        Ea_occ.slice(1.0, false, Ea, vec(zero), 0.0);
+        Ea_vrt.slice(1.0, false, Ea, vec(nI), 0.0);
+        Eb_occ.slice(1.0, false, Eb, vec(zero), 0.0);
+        Eb_vrt.slice(1.0, false, Eb, vec(ni), 0.0);
+
+        H.getIJ()(vec(0,1),vec(0,1))["II"] = Ea_occ["I"];
+        H.getIJ()(vec(0,0),vec(0,0))["ii"] = Eb_occ["i"];
+        H.getAB()(vec(1,0),vec(1,0))["AA"] = Ea_vrt["A"];
+        H.getAB()(vec(0,0),vec(0,0))["aa"] = Eb_vrt["a"];
+    }
 
     SymmetryBlockedTensor<T> ABIJ__("<AB|IJ>", arena, ints.group, 4, vec(nA,nA,nI,nI), vec(NS,NS,NS,NS), false);
     SymmetryBlockedTensor<T> abij__("<ab|ij>", arena, ints.group, 4, vec(na,na,ni,ni), vec(NS,NS,NS,NS), false);

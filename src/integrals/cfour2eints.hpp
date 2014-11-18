@@ -1,4 +1,4 @@
-/* Copyright (c) 2013, Devin Matthews
+/* Copyright (c) 2014, Devin Matthews
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,25 +22,32 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#include "st1eoperator.hpp"
+#ifndef _AQUARIUS_INTEGRALS_CFOUR2EINTS_HPP_
+#define _AQUARIUS_INTEGRALS_CFOUR2EINTS_HPP_
 
-using namespace std;
-using namespace aquarius;
-using namespace aquarius::op;
-using namespace aquarius::tensor;
+#include <cstddef>
+#include <string>
+#include <vector>
+#include <stdexcept>
+#include <cstring>
+#include <algorithm>
 
-template <typename U>
-STOneElectronOperator<U,2>::STOneElectronOperator(const std::string& name, const OneElectronOperator<U>& X,
-                                                  const ExcitationOperator<U,2>& T)
-: OneElectronOperator<U>(name, X)
+#include "2eints.hpp"
+
+namespace aquarius
 {
-    this->ij["mi"] += this->ia["me"]*T(1)["ei"];
+namespace integrals
+{
 
-    this->ai["ai"] += T(2)["aeim"]*this->ia["me"];
-    this->ai["ai"] += T(1)["ei"]*this->ab["ae"];
-    this->ai["ai"] -= T(1)["am"]*this->ij["mi"];
+class CFOURTwoElectronIntegralsTask : public task::Task
+{
+    public:
+        CFOURTwoElectronIntegralsTask(const std::string& name, const input::Config& config);
 
-    this->ab["ae"] -= this->ia["me"]*T(1)["am"];
+        void run(task::TaskDAG& dag, const Arena& arena);
+};
+
+}
 }
 
-INSTANTIATE_SPECIALIZATIONS_2(STOneElectronOperator,2);
+#endif

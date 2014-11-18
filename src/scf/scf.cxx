@@ -23,6 +23,7 @@
  * SUCH DAMAGE. */
 
 #include "scf.hpp"
+#include "util/stl_ext.hpp"
 
 using namespace std;
 using namespace aquarius;
@@ -37,51 +38,53 @@ using namespace aquarius::symmetry;
 
 template <typename T>
 UHF<T>::UHF(const std::string& type, const std::string& name, const Config& config)
-: Iterative(type, name, config), frozen_core(config.get<bool>("frozen_core")),
+: Iterative<T>(type, name, config), frozen_core(config.get<bool>("frozen_core")),
   diis(config.get("diis"), 2)
 {
     vector<Requirement> reqs;
     reqs += Requirement("molecule", "molecule");
     reqs += Requirement("ovi", "S");
     reqs += Requirement("1ehamiltonian", "H");
-    addProduct(Product("double", "energy", reqs));
-    addProduct(Product("double", "convergence", reqs));
-    addProduct(Product("double", "S2", reqs));
-    addProduct(Product("double", "multiplicity", reqs));
-    addProduct(Product("occspace", "occ", reqs));
-    addProduct(Product("vrtspace", "vrt", reqs));
-    addProduct(Product("Fa", "Fa", reqs));
-    addProduct(Product("Fb", "Fb", reqs));
-    addProduct(Product("Da", "Da", reqs));
-    addProduct(Product("Db", "Db", reqs));
+    this->addProduct(Product("double", "energy", reqs));
+    this->addProduct(Product("double", "convergence", reqs));
+    this->addProduct(Product("double", "S2", reqs));
+    this->addProduct(Product("double", "multiplicity", reqs));
+    this->addProduct(Product("occspace", "occ", reqs));
+    this->addProduct(Product("vrtspace", "vrt", reqs));
+    this->addProduct(Product("Ea", "Ea", reqs));
+    this->addProduct(Product("Eb", "Eb", reqs));
+    this->addProduct(Product("Fa", "Fa", reqs));
+    this->addProduct(Product("Fb", "Fb", reqs));
+    this->addProduct(Product("Da", "Da", reqs));
+    this->addProduct(Product("Db", "Db", reqs));
 }
 
 template <typename T>
 void UHF<T>::run(TaskDAG& dag, const Arena& arena)
 {
-    const Molecule& molecule = get<Molecule>("molecule");
+    const Molecule& molecule = this->template get<Molecule>("molecule");
     const PointGroup& group = molecule.getGroup();
 
     const vector<int>& norb = molecule.getNumOrbitals();
     int nalpha = molecule.getNumAlphaElectrons();
     int nbeta = molecule.getNumBetaElectrons();
 
-    energy = molecule.getNuclearRepulsion();
+    this->energy() = molecule.getNuclearRepulsion();
 
     vector<int> shapeNN = vec(NS,NS);
     vector<vector<int> > sizenn = vec(norb,norb);
 
-    put("Fa", new SymmetryBlockedTensor<T>("Fa", arena, group, 2, sizenn, shapeNN, false));
-    put("Fb", new SymmetryBlockedTensor<T>("Fb", arena, group, 2, sizenn, shapeNN, false));
-    put("Da", new SymmetryBlockedTensor<T>("Da", arena, group, 2, sizenn, shapeNN, true));
-    put("Db", new SymmetryBlockedTensor<T>("Db", arena, group, 2, sizenn, shapeNN, true));
+    this->put("Fa", new SymmetryBlockedTensor<T>("Fa", arena, group, 2, sizenn, shapeNN, false));
+    this->put("Fb", new SymmetryBlockedTensor<T>("Fb", arena, group, 2, sizenn, shapeNN, false));
+    this->put("Da", new SymmetryBlockedTensor<T>("Da", arena, group, 2, sizenn, shapeNN, true));
+    this->put("Db", new SymmetryBlockedTensor<T>("Db", arena, group, 2, sizenn, shapeNN, true));
 
-    puttmp("dF", new SymmetryBlockedTensor<T>("dF", arena, group, 2, sizenn, shapeNN, false));
-    puttmp("Ca", new SymmetryBlockedTensor<T>("Ca", arena, group, 2, sizenn, shapeNN, false));
-    puttmp("Cb", new SymmetryBlockedTensor<T>("Cb", arena, group, 2, sizenn, shapeNN, false));
-    puttmp("dDa", new SymmetryBlockedTensor<T>("dDa", arena, group, 2, sizenn, shapeNN, false));
-    puttmp("dDb", new SymmetryBlockedTensor<T>("dDb", arena, group, 2, sizenn, shapeNN, false));
-    puttmp("S^-1/2", new SymmetryBlockedTensor<T>("S^-1/2", arena, group, 2, sizenn, shapeNN, false));
+    this->puttmp("dF", new SymmetryBlockedTensor<T>("dF", arena, group, 2, sizenn, shapeNN, false));
+    this->puttmp("Ca", new SymmetryBlockedTensor<T>("Ca", arena, group, 2, sizenn, shapeNN, false));
+    this->puttmp("Cb", new SymmetryBlockedTensor<T>("Cb", arena, group, 2, sizenn, shapeNN, false));
+    this->puttmp("dDa", new SymmetryBlockedTensor<T>("dDa", arena, group, 2, sizenn, shapeNN, false));
+    this->puttmp("dDb", new SymmetryBlockedTensor<T>("dDb", arena, group, 2, sizenn, shapeNN, false));
+    this->puttmp("S^-1/2", new SymmetryBlockedTensor<T>("S^-1/2", arena, group, 2, sizenn, shapeNN, false));
 
     occ_alpha.resize(group.getNumIrreps());
     occ_beta.resize(group.getNumIrreps());
@@ -97,18 +100,18 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
 
     calcSMinusHalf();
 
-    CTF_Timer_epoch ep(name.c_str());
+    CTF_Timer_epoch ep(this->name.c_str());
     ep.begin();
-    Iterative::run(dag, arena);
+    Iterative<T>::run(dag, arena);
     ep.end();
 
-    if (isUsed("S2") || isUsed("multiplicity"))
+    if (this->isUsed("S2") || this->isUsed("multiplicity"))
     {
         calcS2();
     }
 
-    put("energy", new T(energy));
-    put("convergence", new T(conv));
+    this->put("energy", new T(this->energy()));
+    this->put("convergence", new T(this->conv()));
 
     int nfrozen = 0;
     if (frozen_core)
@@ -155,7 +158,7 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
         nfrozen_beta[E_beta_occ[i].second]++;
     }
 
-    log(arena) << "Dropping MOs: " << nfrozen_alpha << ", " << nfrozen_beta << endl;
+    Logger::log(arena) << "Dropping MOs: " << nfrozen_alpha << ", " << nfrozen_beta << endl;
 
     vector<int> vrt_alpha(group.getNumIrreps());
     vector<int> vrt_beta(group.getNumIrreps());
@@ -172,19 +175,60 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
     }
 
     vector<int> zero(norb.size(), 0);
-    put("occ", new MOSpace<T>(new SymmetryBlockedTensor<T>("CI", gettmp<SymmetryBlockedTensor<T> >("Ca"),
+    this->put("occ", new MOSpace<T>(new SymmetryBlockedTensor<T>("CI", this->template gettmp<SymmetryBlockedTensor<T> >("Ca"),
                                                            vec(zero,nfrozen_alpha),
                                                            vec(norb,occ_alpha)),
-                              new SymmetryBlockedTensor<T>("Ci", gettmp<SymmetryBlockedTensor<T> >("Cb"),
+                              new SymmetryBlockedTensor<T>("Ci", this->template gettmp<SymmetryBlockedTensor<T> >("Cb"),
                                                            vec(zero,nfrozen_beta),
                                                            vec(norb,occ_beta))));
 
-   	put("vrt", new MOSpace<T>(new SymmetryBlockedTensor<T>("CA", gettmp<SymmetryBlockedTensor<T> >("Ca"),
+   	this->put("vrt", new MOSpace<T>(new SymmetryBlockedTensor<T>("CA", this->template gettmp<SymmetryBlockedTensor<T> >("Ca"),
                                                            vec(zero,vrt0_alpha),
                                                            vec(norb,vrt_alpha)),
-   	                          new SymmetryBlockedTensor<T>("Ca", gettmp<SymmetryBlockedTensor<T> >("Cb"),
+   	                          new SymmetryBlockedTensor<T>("Ca", this->template gettmp<SymmetryBlockedTensor<T> >("Cb"),
                                                            vec(zero,vrt0_beta),
                                                            vec(norb,vrt_beta))));
+
+    vector<int> shapeN = vec(NS);
+    vector<vector<int> > sizena = vec(norb);
+    vector<vector<int> > sizenb = vec(norb);
+    for (int i = 0;i < group.getNumIrreps();i++) sizena[0][i] -= nfrozen_alpha[i];
+    for (int i = 0;i < group.getNumIrreps();i++) sizenb[0][i] -= nfrozen_beta[i];
+
+    this->put("Ea", new SymmetryBlockedTensor<T>("Ea", arena, group, 1, sizena, shapeN, false));
+    this->put("Eb", new SymmetryBlockedTensor<T>("Eb", arena, group, 1, sizenb, shapeN, false));
+    SymmetryBlockedTensor<T>& Ea = this->template get<SymmetryBlockedTensor<T> >("Ea");
+    SymmetryBlockedTensor<T>& Eb = this->template get<SymmetryBlockedTensor<T> >("Eb");
+
+    for (int i = 0;i < group.getNumIrreps();i++)
+    {
+        vector<tkv_pair<T> > pairs;
+        int nf = nfrozen_alpha[i];
+
+        sort(E_alpha[i].begin(), E_alpha[i].end());
+        for (int j = 0;j < norb[i]-nf;j++)
+            pairs.push_back(tkv_pair<T>(j, E_alpha[i][j+nf]));
+
+        if (arena.rank == 0)
+            Ea.writeRemoteData(vec(i), pairs);
+        else
+            Ea.writeRemoteData(vec(i));
+    }
+
+    for (int i = 0;i < group.getNumIrreps();i++)
+    {
+        vector<tkv_pair<T> > pairs;
+        int nf = nfrozen_beta[i];
+
+        sort(E_beta[i].begin(), E_beta[i].end());
+        for (int j = 0;j < norb[i]-nf;j++)
+            pairs.push_back(tkv_pair<T>(j, E_beta[i][j+nf]));
+
+        if (arena.rank == 0)
+            Eb.writeRemoteData(vec(i), pairs);
+        else
+            Eb.writeRemoteData(vec(i));
+    }
 }
 
 template <typename T>
@@ -196,22 +240,22 @@ void UHF<T>::iterate(const Arena& arena)
     diagonalizeFock();
     calcDensity();
 
-    const Molecule& molecule = get<Molecule>("molecule");
+    const Molecule& molecule = this->template get<Molecule>("molecule");
     int norb = sum(molecule.getNumOrbitals());
 
-    SymmetryBlockedTensor<T>& dDa = gettmp<SymmetryBlockedTensor<T> >("dDa");
-    SymmetryBlockedTensor<T>& dDb = gettmp<SymmetryBlockedTensor<T> >("dDb");
+    SymmetryBlockedTensor<T>& dDa = this->template gettmp<SymmetryBlockedTensor<T> >("dDa");
+    SymmetryBlockedTensor<T>& dDb = this->template gettmp<SymmetryBlockedTensor<T> >("dDb");
 
-    switch (convtype)
+    switch (this->convtype)
     {
-        case MAX_ABS:
-            conv = max(dDa.norm(00), dDb.norm(00));
+        case Iterative<T>::MAX_ABS:
+            this->conv() = max(dDa.norm(00), dDb.norm(00));
             break;
-        case RMSD:
-            conv = (dDa.norm(2)+dDb.norm(2))/sqrt(2*norb*norb);
+        case Iterative<T>::RMSD:
+            this->conv() = (dDa.norm(2)+dDb.norm(2))/sqrt(2*norb*norb);
             break;
-        case MAD:
-            conv = (dDa.norm(1)+dDb.norm(1))/(2*norb*norb);
+        case Iterative<T>::MAD:
+            this->conv() = (dDa.norm(1)+dDb.norm(1))/(2*norb*norb);
             break;
     }
 }
@@ -219,19 +263,19 @@ void UHF<T>::iterate(const Arena& arena)
 template <typename T>
 void UHF<T>::calcS2()
 {
-    const Molecule& molecule = get<Molecule>("molecule");
+    const Molecule& molecule = this->template get<Molecule>("molecule");
     const PointGroup& group = molecule.getGroup();
 
     const vector<int>& norb = molecule.getNumOrbitals();
     int nalpha = molecule.getNumAlphaElectrons();
     int nbeta = molecule.getNumBetaElectrons();
 
-    SymmetryBlockedTensor<T>& S = get<SymmetryBlockedTensor<T> >("S");
+    SymmetryBlockedTensor<T>& S = this->template get<SymmetryBlockedTensor<T> >("S");
 
     vector<int> zero(norb.size(), 0);
-    SymmetryBlockedTensor<T> Ca_occ("CI", gettmp<SymmetryBlockedTensor<T> >("Ca"),
+    SymmetryBlockedTensor<T> Ca_occ("CI", this->template gettmp<SymmetryBlockedTensor<T> >("Ca"),
                                     vec(zero,zero), vec(norb,occ_alpha));
-    SymmetryBlockedTensor<T> Cb_occ("Ci", gettmp<SymmetryBlockedTensor<T> >("Cb"),
+    SymmetryBlockedTensor<T> Cb_occ("Ci", this->template gettmp<SymmetryBlockedTensor<T> >("Cb"),
                                     vec(zero,zero), vec(norb,occ_beta));
 
     SymmetryBlockedTensor<T> Delta("Delta", S.arena, group, 2, vec(vec(nalpha),vec(nbeta)), vec(NS,NS), false);
@@ -247,19 +291,19 @@ void UHF<T>::calcS2()
 
     S2 -= abs(scalar(Delta*conj(Delta)));
 
-    put("S2", new T(S2));
-    put("multiplicity", new T(sqrt(4*S2+1)));
+    this->put("S2", new T(S2));
+    this->put("multiplicity", new T(sqrt(4*S2+1)));
 }
 
 template <typename T>
 void UHF<T>::calcSMinusHalf()
 {
-    const Molecule& molecule = get<Molecule>("molecule");
+    const Molecule& molecule = this->template get<Molecule>("molecule");
 
     const vector<int>& norb = molecule.getNumOrbitals();
 
-    SymmetryBlockedTensor<T>& S = get<SymmetryBlockedTensor<T> >("S");
-    SymmetryBlockedTensor<T>& Smhalf = gettmp<SymmetryBlockedTensor<T> >("S^-1/2");
+    SymmetryBlockedTensor<T>& S = this->template get<SymmetryBlockedTensor<T> >("S");
+    SymmetryBlockedTensor<T>& Smhalf = this->template gettmp<SymmetryBlockedTensor<T> >("S^-1/2");
 
     for (int i = 0;i < molecule.getGroup().getNumIrreps();i++)
     {
@@ -364,17 +408,17 @@ void UHF<T>::calcSMinusHalf()
 template <typename T>
 void UHF<T>::diagonalizeFock()
 {
-    const Molecule& molecule = get<Molecule>("molecule");
+    const Molecule& molecule = this->template get<Molecule>("molecule");
 
     const vector<int>& norb = molecule.getNumOrbitals();
     int nalpha = molecule.getNumAlphaElectrons();
     int nbeta = molecule.getNumBetaElectrons();
 
-    SymmetryBlockedTensor<T>& S = get<SymmetryBlockedTensor<T> >("S");
-    SymmetryBlockedTensor<T>& Fa = get<SymmetryBlockedTensor<T> >("Fa");
-    SymmetryBlockedTensor<T>& Fb = get<SymmetryBlockedTensor<T> >("Fb");
-    SymmetryBlockedTensor<T>& Ca = gettmp<SymmetryBlockedTensor<T> >("Ca");
-    SymmetryBlockedTensor<T>& Cb = gettmp<SymmetryBlockedTensor<T> >("Cb");
+    SymmetryBlockedTensor<T>& S = this->template get<SymmetryBlockedTensor<T> >("S");
+    SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
+    SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
+    SymmetryBlockedTensor<T>& Ca = this->template gettmp<SymmetryBlockedTensor<T> >("Ca");
+    SymmetryBlockedTensor<T>& Cb = this->template gettmp<SymmetryBlockedTensor<T> >("Cb");
 
     for (int i = 0;i < molecule.getGroup().getNumIrreps();i++)
     {
@@ -500,7 +544,7 @@ void UHF<T>::diagonalizeFock()
         if (S.arena.rank == 0)
         {
             int info;
-            vector<T> fock, s;
+            vector<T> fock, s, ctsc(norb[i]*norb[i]);
             vector< tkv_pair<T> > pairs(norb[i]*norb[i]);
 
             S.getAllData(irreps, s, 0);
@@ -537,10 +581,11 @@ void UHF<T>::diagonalizeFock()
 
             Ca.writeRemoteData(irreps, pairs);
 
+            tmp = s;
             Fb.getAllData(irreps, fock, 0);
             assert(fock.size() == norb[i]*norb[i]);
             PROFILE_FLOPS(9*norb[i]*norb[i]*norb[i]);
-            info = hegv(AXBX, 'V', 'U', norb[i], fock.data(), norb[i], s.data(), norb[i], E_beta[i].data());
+            info = hegv(AXBX, 'V', 'U', norb[i], fock.data(), norb[i], tmp.data(), norb[i], E_beta[i].data());
             assert(info == 0);
             S.arena.Bcast(E_beta[i], 0);
 
@@ -609,19 +654,19 @@ void UHF<T>::diagonalizeFock()
         occ_beta[E_beta_sorted[i].second]++;
     }
 
-    log(S.arena) << "Iteration " << iter << " occupation = " << occ_alpha << ", " << occ_beta << endl;
+    Logger::log(S.arena) << "Iteration " << this->iter() << " occupation = " << occ_alpha << ", " << occ_beta << endl;
 }
 
 template <typename T>
 void UHF<T>::calcEnergy()
 {
-    const Molecule& molecule = get<Molecule>("molecule");
+    const Molecule& molecule = this->template get<Molecule>("molecule");
 
-    SymmetryBlockedTensor<T>& H = get<SymmetryBlockedTensor<T> >("H");
-    SymmetryBlockedTensor<T>& Fa = get<SymmetryBlockedTensor<T> >("Fa");
-    SymmetryBlockedTensor<T>& Fb = get<SymmetryBlockedTensor<T> >("Fb");
-    SymmetryBlockedTensor<T>& Da = get<SymmetryBlockedTensor<T> >("Da");
-    SymmetryBlockedTensor<T>& Db = get<SymmetryBlockedTensor<T> >("Db");
+    SymmetryBlockedTensor<T>& H = this->template get<SymmetryBlockedTensor<T> >("H");
+    SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
+    SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
+    SymmetryBlockedTensor<T>& Da = this->template get<SymmetryBlockedTensor<T> >("Da");
+    SymmetryBlockedTensor<T>& Db = this->template get<SymmetryBlockedTensor<T> >("Db");
 
     /*
      * E = (1/2)Tr[D(F+H)]
@@ -630,9 +675,9 @@ void UHF<T>::calcEnergy()
      */
     Fa["ab"] += H["ab"];
     Fb["ab"] += H["ab"];
-    energy = molecule.getNuclearRepulsion();
-    energy += 0.5*scalar(Da["ab"]*Fa["ab"]);
-    energy += 0.5*scalar(Db["ab"]*Fb["ab"]);
+    this->energy()  = molecule.getNuclearRepulsion();
+    this->energy() += 0.5*scalar(Da["ab"]*Fa["ab"]);
+    this->energy() += 0.5*scalar(Db["ab"]*Fb["ab"]);
     Fa["ab"] -= H["ab"];
     Fb["ab"] -= H["ab"];
 }
@@ -640,21 +685,21 @@ void UHF<T>::calcEnergy()
 template <typename T>
 void UHF<T>::calcDensity()
 {
-    const Molecule& molecule = get<Molecule>("molecule");
+    const Molecule& molecule = this->template get<Molecule>("molecule");
 
     const vector<int>& norb = molecule.getNumOrbitals();
     int nalpha = molecule.getNumAlphaElectrons();
     int nbeta = molecule.getNumBetaElectrons();
 
-    SymmetryBlockedTensor<T>& dDa = gettmp<SymmetryBlockedTensor<T> >("dDa");
-    SymmetryBlockedTensor<T>& dDb = gettmp<SymmetryBlockedTensor<T> >("dDb");
-    SymmetryBlockedTensor<T>& Da = get<SymmetryBlockedTensor<T> >("Da");
-    SymmetryBlockedTensor<T>& Db = get<SymmetryBlockedTensor<T> >("Db");
+    SymmetryBlockedTensor<T>& dDa = this->template gettmp<SymmetryBlockedTensor<T> >("dDa");
+    SymmetryBlockedTensor<T>& dDb = this->template gettmp<SymmetryBlockedTensor<T> >("dDb");
+    SymmetryBlockedTensor<T>& Da = this->template get<SymmetryBlockedTensor<T> >("Da");
+    SymmetryBlockedTensor<T>& Db = this->template get<SymmetryBlockedTensor<T> >("Db");
 
     vector<int> zero(norb.size(), 0);
-    SymmetryBlockedTensor<T> Ca_occ("CI", gettmp<SymmetryBlockedTensor<T> >("Ca"),
+    SymmetryBlockedTensor<T> Ca_occ("CI", this->template gettmp<SymmetryBlockedTensor<T> >("Ca"),
                                     vec(zero,zero), vec(norb,occ_alpha));
-    SymmetryBlockedTensor<T> Cb_occ("Ci", gettmp<SymmetryBlockedTensor<T> >("Cb"),
+    SymmetryBlockedTensor<T> Cb_occ("Ci", this->template gettmp<SymmetryBlockedTensor<T> >("Cb"),
                                     vec(zero,zero), vec(norb,occ_beta));
 
     /*
@@ -671,13 +716,13 @@ void UHF<T>::calcDensity()
 template <typename T>
 void UHF<T>::DIISExtrap()
 {
-    SymmetryBlockedTensor<T>& S = get<SymmetryBlockedTensor<T> >("S");
-    SymmetryBlockedTensor<T>& Smhalf = gettmp<SymmetryBlockedTensor<T> >("S^-1/2");
-    SymmetryBlockedTensor<T>& dF = gettmp<SymmetryBlockedTensor<T> >("dF");
-    SymmetryBlockedTensor<T>& Fa = get<SymmetryBlockedTensor<T> >("Fa");
-    SymmetryBlockedTensor<T>& Fb = get<SymmetryBlockedTensor<T> >("Fb");
-    SymmetryBlockedTensor<T>& Da = get<SymmetryBlockedTensor<T> >("Da");
-    SymmetryBlockedTensor<T>& Db = get<SymmetryBlockedTensor<T> >("Db");
+    SymmetryBlockedTensor<T>& S = this->template get<SymmetryBlockedTensor<T> >("S");
+    SymmetryBlockedTensor<T>& Smhalf = this->template gettmp<SymmetryBlockedTensor<T> >("S^-1/2");
+    SymmetryBlockedTensor<T>& dF = this->template gettmp<SymmetryBlockedTensor<T> >("dF");
+    SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
+    SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
+    SymmetryBlockedTensor<T>& Da = this->template get<SymmetryBlockedTensor<T> >("Da");
+    SymmetryBlockedTensor<T>& Db = this->template get<SymmetryBlockedTensor<T> >("Db");
 
     /*
      * Generate the residual:

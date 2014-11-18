@@ -49,15 +49,11 @@ namespace cc
  *       _    -T   T       T
  * where X = e  X e  = (X e )
  *                           c
- *
- * Note that the left-hand eigenfunction L is solved for, and not the
- * traditional lambda operator /\, where L = (1-/\)
  */
 template <typename U>
-class LambdaCCSD : public Iterative
+class LambdaCCSD : public Iterative<U>
 {
     protected:
-        double Ecc;
         convergence::DIIS< op::DeexcitationOperator<U,2> > diis;
 
     public:

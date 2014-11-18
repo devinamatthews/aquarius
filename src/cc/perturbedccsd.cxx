@@ -33,73 +33,60 @@ using namespace aquarius::task;
 
 template <typename U>
 PerturbedCCSD<U>::PerturbedCCSD(const string& name, const Config& config)
-: Iterative("perturbedccsd", name, config), diis(config.get("diis"))
+: Iterative<U>("perturbedccsd", name, config), diis(config.get("diis"))
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("ccsd.T", "T"));
     reqs.push_back(Requirement("ccsd.Hbar", "Hbar"));
     reqs.push_back(Requirement("1epert", "A"));
     reqs.push_back(Requirement("double", "omega"));
-    addProduct(Product("double", "convergence", reqs));
-    addProduct(Product("ccsd.TA", "TA", reqs));
+    this->addProduct(Product("double", "convergence", reqs));
+    this->addProduct(Product("ccsd.TA", "TA", reqs));
 }
 
 template <typename U>
 void PerturbedCCSD<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const OneElectronOperator<U>& A = get<OneElectronOperator<U> >("A");
-    const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
+    const OneElectronOperator<U>& A = this->template get<OneElectronOperator<U> >("A");
+    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
 
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    put("TA", new ExcitationOperator<U,2>("T^A", arena, occ, vrt));
-    puttmp("D", new ExcitationOperator<U,2>("D", arena, occ, vrt));
-    puttmp("X", new ExcitationOperator<U,2>("X", arena, occ, vrt));
-    puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
+    ExcitationOperator<U,2>& T = this->template get<ExcitationOperator<U,2> >("T");
 
-    U omega = get<U>("omega");
+    this->put   ("TA", new ExcitationOperator<U,2>("T^A", arena, occ, vrt));
+    //TODO: this->puttmp( "X", new STExcitationOperator<U,2>("X", A, T));
+    this->puttmp( "Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
+    this->puttmp( "D", new Denominator<U>(H));
 
-    ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
-    ExcitationOperator<U,2>& TA = get<ExcitationOperator<U,2> >("TA");
-    ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
-    ExcitationOperator<U,2>& X = gettmp<ExcitationOperator<U,2> >("X");
+    omega = this->template get<U>("omega");
 
-    D(0) = (U)1.0;
-    D(1)["ai"]  = H.getIJ()["ii"];
-    D(1)["ai"] -= H.getAB()["aa"];
-    D(2)["abij"]  = H.getIJ()["ii"];
-    D(2)["abij"] += H.getIJ()["jj"];
-    D(2)["abij"] -= H.getAB()["aa"];
-    D(2)["abij"] -= H.getAB()["bb"];
+    ExcitationOperator<U,2>& TA = this->template get   <ExcitationOperator<U,2> >  ("TA");
+    Denominator<U>&           D = this->template gettmp<Denominator<U> >           ( "D");
+    ExcitationOperator<U,2>&  X = this->template gettmp<ExcitationOperator<U,2> >( "X");
 
-    D += omega;
-    D = 1/D;
-
-    STExcitationOperator<U,2>::transform(A, T, X);
-    X(0) = (U)0.0;
-
-    TA = X*D;
+    X(0) = 0;
+    TA.weight(D, omega);
 }
 
 template <typename U>
 void PerturbedCCSD<U>::iterate(const Arena& arena)
 {
-    const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
+    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
 
-    ExcitationOperator<U,2>& TA = get<ExcitationOperator<U,2> >("TA");
-    ExcitationOperator<U,2>& D = gettmp<ExcitationOperator<U,2> >("D");
-    ExcitationOperator<U,2>& X = gettmp<ExcitationOperator<U,2> >("X");
-    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+    ExcitationOperator<U,2>& TA = this->template get   <ExcitationOperator<U,2> >("TA");
+    Denominator<U>&           D = this->template gettmp<Denominator<U> >         ( "D");
+    ExcitationOperator<U,2>&  X = this->template gettmp<ExcitationOperator<U,2> >( "X");
+    ExcitationOperator<U,2>&  Z = this->template gettmp<ExcitationOperator<U,2> >( "Z");
 
     Z = X;
-    H.contract(TA, Z);
+    //TODO: H.contract(TA, Z);
 
-     Z *=  D;
-    // Z -= TA;
-    TA +=  Z;
+    Z.weight(D, omega);
+    TA += Z;
 
-    conv = Z.norm(00);
+    this->conv() = Z.norm(00);
 
     diis.extrapolate(TA, Z);
 }

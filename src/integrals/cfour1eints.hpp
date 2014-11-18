@@ -1,4 +1,4 @@
-/* Copyright (c) 2013, Devin Matthews
+/* Copyright (c) 2014, Devin Matthews
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,37 +22,28 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_CC_CCD_HPP_
-#define _AQUARIUS_CC_CCD_HPP_
+#ifndef _AQUARIUS_INTEGRALS_CFOUR1EINTS_HPP_
+#define _AQUARIUS_INTEGRALS_CFOUR1EINTS_HPP_
 
-#include <iomanip>
+#include <cstddef>
+#include <string>
+#include <vector>
+#include <stdexcept>
+#include <cstring>
 
-#include "time/time.hpp"
-#include "task/task.hpp"
-#include "util/iterative.hpp"
-#include "operator/2eoperator.hpp"
-#include "operator/excitationoperator.hpp"
-#include "operator/st2eoperator.hpp"
-#include "operator/denominator.hpp"
-#include "convergence/diis.hpp"
+#include "1eints.hpp"
 
 namespace aquarius
 {
-namespace cc
+namespace integrals
 {
 
-template <typename U>
-class CCD : public Iterative<U>
+class CFOUROneElectronIntegralsTask : public task::Task
 {
-    protected:
-        convergence::DIIS< op::ExcitationOperator<U,2> > diis;
-
     public:
-        CCD(const std::string& name, const input::Config& config);
+        CFOUROneElectronIntegralsTask(const std::string& name, const input::Config& config);
 
         void run(task::TaskDAG& dag, const Arena& arena);
-
-        void iterate(const Arena& arena);
 };
 
 }

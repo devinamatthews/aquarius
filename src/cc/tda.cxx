@@ -35,7 +35,7 @@ using namespace aquarius::task;
 
 template <typename U>
 TDA<U>::TDA(const std::string& name, const Config& config)
-: NonIterative("tda", name, config)
+: Task("tda", name)
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("moints", "H"));
@@ -72,11 +72,16 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
 
     CTFTensor<U>& AAAA = Hguess(vec(0,0),vec(0,0))(vec(0,0,0,0));
     CTFTensor<U>& AABB = Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0));
+    CTFTensor<U>& BBAA = Hguess(vec(0,1),vec(1,0))(vec(0,0,0,0));
+    CTFTensor<U>& BBBB = Hguess(vec(1,1),vec(1,1))(vec(0,0,0,0));
     CTFTensor<U> H(AAAA);
-    H["ajbi"]  = AAAA["aibj"];
-    H["ajbi"] += AABB["aibj"];
+    H["ajbi"]  = 0.5*AAAA["aibj"];
+    H["ajbi"] += 0.5*AABB["aibj"];
+    H["ajbi"] += 0.5*BBAA["aibj"];
+    H["ajbi"] += 0.5*BBBB["aibj"];
 
     H.getAllData(data);
+    printf("H: %18.15f\n", H.norm(2));
 
     vector<U> w(mysize);
     heev('V','U',mysize,data.data(),mysize,w.data());
@@ -85,6 +90,8 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
 
     cosort(w.begin(), w.end(),
            evalorder.begin(), evalorder.end());
+    printf("%18.15f\n", w[0]);
+    printf("%18.15f\n", w[1]);
 
     vector<tkv_pair<U> > pairs;
 

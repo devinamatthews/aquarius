@@ -1009,8 +1009,8 @@ typename std::real_type<T>::type SpinorbitalTensor<T>::norm(int p) const
         double factor = 1;
         for (int s = 0;s < spaces.size();s++)
         {
-            factor *= binom(nout[s], sc->alpha_out[s]);
-            factor *= binom( nin[s],  sc->alpha_in[s]);
+            //factor *= binom(nout[s], sc->alpha_out[s]);
+            //factor *= binom( nin[s],  sc->alpha_in[s]);
         }
 
         typename std::real_type<T>::type subnrm = sc->tensor->norm(p);

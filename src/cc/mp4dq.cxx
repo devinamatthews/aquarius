@@ -34,7 +34,7 @@ using namespace aquarius::task;
 
 template <typename U>
 MP4DQ<U>::MP4DQ(const string& name, const Config& config)
-: NonIterative("mp4dq", name, config)
+: Task("mp4dq", name)
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("moints", "H"));
@@ -45,8 +45,6 @@ MP4DQ<U>::MP4DQ(const string& name, const Config& config)
     addProduct(Product("double", "energy", reqs));
     addProduct(Product("double", "S2", reqs));
     addProduct(Product("double", "multiplicity", reqs));
-    addProduct(Product("mp4dq.T", "T", reqs));
-    addProduct(Product("mp4dq.Hbar", "Hbar", reqs));
 }
 
 template <typename U>
@@ -57,11 +55,11 @@ void MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    put("T", new ExcitationOperator<U,2>("T", arena, occ, vrt));
+    puttmp("T", new ExcitationOperator<U,2>("T", arena, occ, vrt));
     puttmp("D", new Denominator<U>(H));
     puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
 
-    ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
+    ExcitationOperator<U,2>& T = gettmp<ExcitationOperator<U,2> >("T");
     Denominator<U>& D = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
 
@@ -72,7 +70,7 @@ void MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
 
     T.weight(D);
 
-    energy = 0.25*real(scalar(H.getABIJ()*T(2)));
+    double energy = 0.25*real(scalar(H.getABIJ()*T(2)));
     double mp2energy = energy;
 
 
@@ -110,8 +108,6 @@ void MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
     Logger::log(arena) << "MP3 correlation energy = " << setprecision(15) << energy - mp2energy << endl;
     put("mp3", new U(energy));
 
-
-
     ExcitationOperator<U,2>& Znew = gettmp<ExcitationOperator<U,2> >("Z");
 
     Znew(2)["abij"] = WMNEF["ijab"];
@@ -131,8 +127,6 @@ void MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
     Logger::log(arena) << "MP4D correlation energy = " << setprecision(15) << energy - mp3energy << endl;
     put("mp4d", new U(energy));
 
-
-
     ExcitationOperator<U,2>& Tccd = get<ExcitationOperator<U,2> >("T");
     Denominator<U>& Dccd = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,2>& Zccd = gettmp<ExcitationOperator<U,2> >("Z");
@@ -143,7 +137,6 @@ void MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
     Tccd(2) = H.getABIJ();
 
     Tccd.weight(Dccd);
-
 
     FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
     WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*T(2)["efij"];
@@ -179,72 +172,7 @@ void MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
     */
 
     put("energy", new U(energy));
-
-    if (isUsed("Hbar"))
-    {
-        put("Hbar", new STTwoElectronOperator<U,2>("Hbar", H, T, true));
-    }
 }
-
-#if 0
-template <typename U>
-void MP4DQ<U>::iterate(const Arena& arena)
-{
-    TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
-
-    ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
-    Denominator<U>& D = gettmp<Denominator<U> >("D");
-    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
-
-    TwoElectronOperator<U> H("W", H_, TwoElectronOperator<U>::AB|
-                                 TwoElectronOperator<U>::IJ|
-                                 TwoElectronOperator<U>::IJKL|
-                                 TwoElectronOperator<U>::AIBJ);
-
-    SpinorbitalTensor<U>& FAE = H.getAB();
-    SpinorbitalTensor<U>& FMI = H.getIJ();
-    SpinorbitalTensor<U>& WMNEF = H.getIJAB();
-    SpinorbitalTensor<U>& WABEF = H.getABCD();
-    SpinorbitalTensor<U>& WMNIJ = H.getIJKL();
-    SpinorbitalTensor<U>& WAMEI = H.getAIBJ();
-
-//    sched.set_max_partitions(1);
-    /**************************************************************************
-     *
-     * Intermediates
-     */
-    // FMI["mi"] += 0.5*WMNEF["mnef"]*T(2)["efin"];
-
-
-    // WMNIJ["mnij"] += 0.5*WMNEF["mnef"]*T(2)["efij"];
-    // FAE["ae"] -= 0.5*WMNEF["mnef"]*T(2)["afmn"];
-    // WAMEI["amei"] -= 0.5*WMNEF["mnef"]*T(2)["afin"];
-    /*
-     *************************************************************************/
-
-    /**************************************************************************
-     *
-     * T(1)->T(2) and T(2)->T(2)
-     */
-    Z(2)["abij"] = WMNEF["ijab"];
-    Z(2)["abij"] += FAE["af"]*T(2)["fbij"];
-    Z(2)["abij"] -= FMI["ni"]*T(2)["abnj"];
-    Z(2)["abij"] += 0.5*WABEF["abef"]*T(2)["efij"];
-    Z(2)["abij"] += 0.5*WMNIJ["mnij"]*T(2)["abmn"];
-    Z(2)["abij"] -= WAMEI["amei"]*T(2)["ebmj"];
-    /*
-     *************************************************************************/
-
-    Z.weight(D);
-    T += Z;
-
-    energy = 0.25*real(scalar(H.getABIJ()*T(2)));
-
-    conv = Z.norm(00);
-
-    diis.extrapolate(T, Z);
-}
-#endif
 
 INSTANTIATE_SPECIALIZATIONS(MP4DQ);
 REGISTER_TASK(MP4DQ<double>,"mp4dq");

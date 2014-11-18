@@ -1,4 +1,4 @@
-/* Copyright (c) 2013, Devin Matthews
+/* Copyright (c) 2014, Devin Matthews
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,19 +22,17 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_CC_CCD_HPP_
-#define _AQUARIUS_CC_CCD_HPP_
+#ifndef _AQUARIUS_CC_CCSDTQ_HPP_
+#define _AQUARIUS_CC_CCSDTQ_HPP_
 
-#include <iomanip>
-
-#include "time/time.hpp"
 #include "task/task.hpp"
+#include "time/time.hpp"
 #include "util/iterative.hpp"
 #include "operator/2eoperator.hpp"
 #include "operator/excitationoperator.hpp"
-#include "operator/st2eoperator.hpp"
-#include "operator/denominator.hpp"
 #include "convergence/diis.hpp"
+
+#include "ccsd.hpp"
 
 namespace aquarius
 {
@@ -42,17 +40,23 @@ namespace cc
 {
 
 template <typename U>
-class CCD : public Iterative<U>
+class CCSDTQ : public Iterative<U>
 {
     protected:
-        convergence::DIIS< op::ExcitationOperator<U,2> > diis;
+        convergence::DIIS< op::ExcitationOperator<U,4> > diis;
 
     public:
-        CCD(const std::string& name, const input::Config& config);
+        CCSDTQ(const std::string& name, const input::Config& config);
 
         void run(task::TaskDAG& dag, const Arena& arena);
 
         void iterate(const Arena& arena);
+
+        /*
+        double getProjectedS2() const;
+
+        double getProjectedMultiplicity() const;
+        */
 };
 
 }

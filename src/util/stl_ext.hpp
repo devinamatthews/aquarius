@@ -2726,7 +2726,7 @@ class tensor
         }
 
         explicit tensor(const std::vector<int>& len = std::vector<int>(ndim,0),
-                        const T& val = T(), Layout layout = ROW_MAJOR)
+                        const T& val = T(), Layout layout = COLUMN_MAJOR)
         : len(len), stride(ndim)
         {
             assert(len.size() == ndim);
@@ -2758,7 +2758,7 @@ class tensor
             delete[] data_;
         }
 
-        void resize(const std::vector<int>& len, const T& val = T(), Layout layout = ROW_MAJOR)
+        void resize(const std::vector<int>& len, const T& val = T(), Layout layout = COLUMN_MAJOR)
         {
             delete[] data_;
             assert(len.size() == ndim);
@@ -2818,6 +2818,16 @@ class tensor
         operator const T*() const { return data_; }
 
         const std::vector<int>& length() const { return len; }
+
+        const int size() const
+        {
+            int sz = len[0];
+            for (int i = 1;i < ndim;i++)
+            {
+                sz *= len[i];
+            }
+            return sz;
+        }
 };
 
 template <class T>
@@ -2912,6 +2922,8 @@ class tensor<T,1>
         operator const T*() const { return data_; }
 
         int length() const { return len; }
+
+        int size() const { return len; }
 };
 
 template <class T, int ndim, int dim>

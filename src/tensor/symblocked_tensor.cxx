@@ -318,7 +318,11 @@ void SymmetryBlockedTensor<T>::slice(T alpha, bool conja, const SymmetryBlockedT
                                      T beta, const vector<vector<int> >& start_B)
 {
     int n = group.getNumIrreps();
-    slice(alpha, conja, A, vector<vector<int> >(this->ndim,vector<int>(n,0)), beta, start_B, A.len);
+    vector<vector<int> > len_B = len;
+    for (int i = 0;i < this->ndim;i++)
+        for (int j = 0;j < n;j++)
+            len_B[i][j] -= start_B[i][j];
+    slice(alpha, conja, A, vector<vector<int> >(A.ndim,vector<int>(n,0)), beta, start_B, len_B);
 }
 
 template <class T>

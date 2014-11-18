@@ -40,16 +40,10 @@ namespace cc
 {
 
 template <typename U>
-class EOMEECCSD : public MultiIterative<U>
+class EOMEECCSD : public Iterative<U>
 {
     protected:
         int nroot;
-        using task::Task::addProduct;
-        using task::Task::put;
-        using task::Task::get;
-        using task::Task::puttmp;
-        using task::Task::gettmp;
-        using MultiIterative<U>::conv;
 
     public:
         EOMEECCSD(const std::string& name, const input::Config& config);

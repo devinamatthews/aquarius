@@ -33,7 +33,6 @@
 #include "operator/2eoperator.hpp"
 #include "operator/excitationoperator.hpp"
 #include "operator/st2eoperator.hpp"
-#include "operator/stexcitationoperator.hpp"
 #include "operator/denominator.hpp"
 #include "convergence/diis.hpp"
 
@@ -43,7 +42,7 @@ namespace cc
 {
 
 template <typename U>
-class LCCD : public Iterative
+class LCCD : public Iterative<U>
 {
     protected:
         convergence::DIIS< op::ExcitationOperator<U,2> > diis;

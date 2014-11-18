@@ -249,7 +249,9 @@ template <typename T>
 void CTFTensor<T>::slice(T alpha, bool conja, const CTFTensor<T>& A,
                           T beta, const vector<int>& start_B)
 {
-    slice(alpha, conja, A, vector<int>(this->ndim, 0), beta, start_B, A.len);
+    vector<int> len_B = len;
+    for (int i = 0;i < this->ndim;i++) len_B[i] -= start_B[i];
+    slice(alpha, conja, A, vector<int>(A.ndim, 0), beta, start_B, len_B);
 }
 
 template <typename T>
@@ -509,7 +511,14 @@ void CTFTensor<T>::weight(const vector<const vector<T>*>& d, double shift)
             den += (*d[j])[o];
         }
 
-        pairs[i].d /= (den+shift);
+        if (std::abs(den+shift) < 1e-4)
+        {
+            pairs[i].d = 0;
+        }
+        else
+        {
+            pairs[i].d /= (den+shift);
+        }
     }
 
     writeRemoteData(pairs);

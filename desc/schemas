@@ -213,6 +213,8 @@ cholesky
     calc_cutoff?
         double 1e-15
 },
+cfour1eints,
+cfour2eints,
 compare
 {
     tolerance double

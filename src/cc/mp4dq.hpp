@@ -32,8 +32,6 @@
 #include "util/iterative.hpp"
 #include "operator/2eoperator.hpp"
 #include "operator/excitationoperator.hpp"
-#include "operator/st2eoperator.hpp"
-#include "operator/stexcitationoperator.hpp"
 #include "operator/denominator.hpp"
 #include "convergence/diis.hpp"
 
@@ -43,7 +41,7 @@ namespace cc
 {
 
 template <typename U>
-class MP4DQ : public NonIterative
+class MP4DQ : public task::Task
 {
     protected:
 

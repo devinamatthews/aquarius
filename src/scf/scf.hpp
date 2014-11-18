@@ -49,7 +49,7 @@ namespace scf
 {
 
 template <typename T>
-class UHF : public Iterative
+class UHF : public Iterative<T>
 {
     protected:
         bool frozen_core;

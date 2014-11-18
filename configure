@@ -524,15 +524,21 @@ DEPSTYPE    = $depstype
 
 EOF
 
-cp $srcdir/Makefile.in Makefile
+if [[ ! -f Makefile ]]; then
+    ln -s $srcdir/Makefile.in Makefile
+fi
 
 if [[ "$(cd $topdir ; pwd)" != "$(cd $srcdir ; pwd)" ]]; then
-    cp $srcdir/rules.mk rules.mk
+    if [[ ! -f rules.mk ]]; then
+        ln -s $srcdir/rules.mk rules.mk
+    fi
     for dir in src src/integrals src/autocc src/time src/input \
                src/memory src/tensor src/util src/cc src/scf src/task \
                src/operator src/symmetry src/main; do
         mkdir -p $dir
-        cp $srcdir/$dir/Makefile $dir/Makefile
+        if [[ ! -f $dir/Makefile ]]; then
+            ln -s $srcdir/$dir/Makefile $dir/Makefile
+        fi
     done
 fi
 

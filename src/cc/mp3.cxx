@@ -34,7 +34,7 @@ using namespace aquarius::task;
 
 template <typename U>
 MP3<U>::MP3(const string& name, const Config& config)
-: NonIterative("mp3", name, config)
+: Task("mp3", name)
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("moints", "H"));
@@ -43,8 +43,6 @@ MP3<U>::MP3(const string& name, const Config& config)
     addProduct(Product("double", "energy", reqs));
     addProduct(Product("double", "S2", reqs));
     addProduct(Product("double", "multiplicity", reqs));
-    addProduct(Product("mp3.T", "T", reqs));
-    addProduct(Product("mp3.Hbar", "Hbar", reqs));
 }
 
 template <typename U>
@@ -55,11 +53,11 @@ void MP3<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    put("T", new ExcitationOperator<U,2>("T", arena, occ, vrt));
+    puttmp("T", new ExcitationOperator<U,2>("T", arena, occ, vrt));
     puttmp("D", new Denominator<U>(H));
     puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
 
-    ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
+    ExcitationOperator<U,2>& T = gettmp<ExcitationOperator<U,2> >("T");
     Denominator<U>& D = gettmp<Denominator<U> >("D");
     ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
 
@@ -70,7 +68,7 @@ void MP3<U>::run(TaskDAG& dag, const Arena& arena)
 
     T.weight(D);
 
-    energy = 0.25*real(scalar(H.getABIJ()*T(2)));
+    double energy = 0.25*real(scalar(H.getABIJ()*T(2)));
     double mp2energy = energy;
 
 
@@ -119,11 +117,6 @@ void MP3<U>::run(TaskDAG& dag, const Arena& arena)
         put("multiplicity", new Scalar(arena, mult));
     }
     */
-
-    if (isUsed("Hbar"))
-    {
-        put("Hbar", new STTwoElectronOperator<U,2>("Hbar", H, T, true));
-    }
 }
 
 #if 0

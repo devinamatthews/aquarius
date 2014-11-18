@@ -40,7 +40,7 @@ namespace cc
 {
 
 template <typename U>
-class CCSDT : public Iterative
+class CCSDT : public Iterative<U>
 {
     protected:
         convergence::DIIS< op::ExcitationOperator<U,3> > diis;

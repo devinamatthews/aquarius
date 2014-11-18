@@ -43,6 +43,16 @@ namespace aquarius
 namespace convergence
 {
 
+namespace
+{
+
+template <typename T> bool absGreaterThan(const T& a, const T& b)
+{
+    return std::abs(a) > std::abs(b);
+}
+
+}
+
 template<typename T>
 class Davidson : public task::Destructible
 {
@@ -53,103 +63,61 @@ class Davidson : public task::Destructible
 
     protected:
         typedef typename T::dtype dtype;
-        std::vector< std::vector<T*> > old_c; // hold all R[k][i] where i is over nvec and k is over nextrap
+        std::vector< std::vector<T*> > old_c; // hold all R[k][i] where i is over nvec and k is over maxextrap
         std::vector< std::vector<T*> > old_hc; // hold all H*R[i] = Z[i] at every iteration aka Z[k][i]
         std::vector<T*> guess;
-        std::matrix<dtype> overlap;
-        std::tensor<dtype,4> e; // e will hold chc[k]
+        std::tensor<dtype,3> guess_overlap;
+        std::tensor<dtype,4> s, e; // e will hold chc[k]
         std::vector<dtype> c;
-        int nvec, nextrap; // number of energies, number of iterations
-        int mode;
+        int nvec, maxextrap, nextrap; // number of energies, number of iterations
+        std::vector<int> mode;
         std::vector<dtype> target;
+        std::vector<dtype> previous;
 
         enum {GUESS_OVERLAP, LOWEST_ENERGY, CLOSEST_ENERGY};
 
+        void init(const input::Config& config)
+        {
+            nextrap = 0;
+            maxextrap = config.get<int>("order"); // max number of iterations
+
+            assert(nvec > 0);
+            assert(maxextrap > 0);
+
+            guess_overlap.resize(std::vec(nvec, maxextrap, nvec));
+            s.resize(std::vec(nvec, maxextrap, nvec, maxextrap));
+            e.resize(std::vec(nvec, maxextrap, nvec, maxextrap));
+            c.resize(maxextrap*nvec);
+
+            old_c.resize(maxextrap, std::vector<T*>(nvec, (T*)NULL));
+            old_hc.resize(maxextrap, std::vector<T*>(nvec, (T*)NULL));
+
+            for (int i = 0;i < guess.size();i++)
+            {
+                guess[i] = new T(*guess[i]);
+            }
+        }
+
     public:
         Davidson(const input::Config& config, int nvec=1)
-        : nvec(nvec), mode(CLOSEST_ENERGY), target(nvec)
-        {
-            nextrap = config.get<int>("order"); // max number of iterations
-
-            assert(nvec > 0);
-            assert(nextrap > 0);
-
-            overlap.resize(nvec, nextrap);
-            e.resize(std::vec(nvec, nextrap, nvec, nextrap));
-            c.resize(nextrap*nvec);
-
-            old_c.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
-            old_hc.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
-        }
+        : nvec(nvec), mode(nvec,LOWEST_ENERGY), target(nvec), previous(nvec)
+        { init(config); }
 
         Davidson(const input::Config& config, dtype target)
-        : nvec(1), mode(CLOSEST_ENERGY), target(1,target)
-        {
-            nextrap = config.get<int>("order"); // max number of iterations
-
-            assert(nvec > 0);
-            assert(nextrap > 0);
-
-            overlap.resize(nvec, nextrap);
-            e.resize(std::vec(nvec, nextrap, nvec, nextrap));
-            c.resize(nextrap*nvec);
-
-            old_c.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
-            old_hc.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
-        }
+        : nvec(1), mode(1,CLOSEST_ENERGY), target(1,target), previous(1)
+        { init(config); }
 
         Davidson(const input::Config& config, const std::vector<dtype>& target)
-        : nvec(target.size()), mode(CLOSEST_ENERGY), target(target)
-        {
-            nextrap = config.get<int>("order"); // max number of iterations
-
-            assert(nvec > 0);
-            assert(nextrap > 0);
-
-            overlap.resize(nvec, nextrap);
-            e.resize(std::vec(nvec, nextrap, nvec, nextrap));
-            c.resize(nextrap*nvec);
-
-            old_c.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
-            old_hc.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
-        }
+        : nvec(target.size()), mode(target.size(),CLOSEST_ENERGY), target(target), previous(target.size())
+        { init(config); }
 
         Davidson(const input::Config& config, const T& guess)
-        : nvec(1), mode(GUESS_OVERLAP), target(1)
-        {
-            nextrap = config.get<int>("order"); // max number of iterations
-
-            assert(nvec > 0);
-            assert(nextrap > 0);
-
-            overlap.resize(nvec, nextrap);
-            e.resize(std::vec(nvec, nextrap, nvec, nextrap));
-            c.resize(nextrap*nvec);
-
-            old_c.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
-            old_hc.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
-
-            guess.resize(1, new T(guess));
-        }
+        : guess(1,&guess), nvec(1), mode(1,GUESS_OVERLAP), target(1), previous(1)
+        { init(config); }
 
         Davidson(const input::Config& config, const std::vector<T*>& guess)
-        : nvec(guess.size()), mode(GUESS_OVERLAP), target(guess.size())
-        {
-            nextrap = config.get<int>("order"); // max number of iterations
-
-            overlap.resize(nvec, nextrap);
-            assert(nvec > 0);
-            assert(nextrap > 0);
-
-            e.resize(std::vec(nvec, nextrap, nvec, nextrap));
-            c.resize(nextrap*nvec);
-
-            old_c.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
-            old_hc.resize(nextrap, std::vector<T*>(nvec, (T*)NULL));
-
-            guess.resize(nvec);
-            for (int i = 0;i < nvec;i++) guess[i] = new T(*guess[i]);
-        }
+        : guess(guess), nvec(guess.size()), mode(guess.size(),GUESS_OVERLAP), target(guess.size()), previous(guess.size())
+        { init(config); }
 
         ~Davidson()
         {
@@ -200,15 +168,45 @@ class Davidson : public task::Destructible
 
                 double norm = sqrt(std::abs(scalar(conj(*c[i])*(*c[i]))));
 
-
                 *c[i] /= norm;
                 *hc[i] /= norm;
+
+                printf("Norm R %d %18.15f\n", i+1, (*c[i])(1)(vec(1,0),vec(0,1)).norm(2));
+
+                {
+                    vector<dtype> values;
+                    (*c[i])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                    vector<int64_t> keys = range<int64_t>(5*19);
+                    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                           absGreaterThan<dtype>);
+
+                    for (int j = 0;j < 30;j++)
+                    {
+                        int ia = keys[j]%19+6;
+                        int ii = keys[j]/19+1;
+                        //printf("%2d %2d %18.15f\n", ii, ia, values[j]);
+                    }
+                }
+
+                printf("Norm H*R %d %18.15f\n", i+1, (*hc[i])(1)(vec(1,0),vec(0,1)).norm(2));
+
+                {
+                    vector<dtype> values;
+                    (*hc[i])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                    vector<int64_t> keys = range<int64_t>(5*19);
+                    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                           absGreaterThan<dtype>);
+
+                    for (int j = 0;j < 10;j++)
+                    {
+                        int ia = keys[j]%19+6;
+                        int ii = keys[j]/19+1;
+                        //printf("%2d %2d %18.15f\n", ii, ia, values[j]);
+                    }
+                }
             }
 
-            int nextrap_real; // What iteration are we on
-            for (nextrap_real = 0;nextrap_real < nextrap && old_c[nextrap_real][0] != NULL;nextrap_real++);
-
-            if (nextrap_real == nextrap) // aka we've reached our maximum iteration
+            if (nextrap == maxextrap) // aka we've reached our maximum iteration
             {
                 //TODO: compact
                 assert(0);
@@ -220,28 +218,48 @@ class Davidson : public task::Destructible
              * worry about allocation/deallocation
              */
 
-            if (old_c[nextrap_real][0] == NULL)
+            if (old_c[nextrap][0] == NULL)
             {
                 for (int i = 0;i < nvec;i++)
-                    old_c[nextrap_real][i] = new T(*c[i]);
+                {
+                    old_c[nextrap][i] = new T(*c[i]);
+                    {
+                        vector<dtype> values;
+                        (*old_c[nextrap][i])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                        vector<int64_t> keys = range<int64_t>(5*19);
+                        cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                               absGreaterThan<dtype>);
+                        //printf("Badness old c %d %d %d %15.12g\n", i+1, i+1, nextrap+1, std::abs(values[19-4*i]));
+                    }
+                }
             }
             else
             {
                 // should only happen after compaction
                 for (int i = 0;i < nvec;i++)
-                    *old_c[nextrap_real][i] = *c[i];
+                    *old_c[nextrap][i] = *c[i];
             }
 
-            if (old_hc[nextrap_real][0] == NULL)
+            if (old_hc[nextrap][0] == NULL)
             {
                 for (int i = 0;i < nvec;i++)
-                    old_hc[nextrap_real][i] = new T(*hc[i]);
+                {
+                    old_hc[nextrap][i] = new T(*hc[i]);
+                    {
+                        vector<dtype> values;
+                        (*old_hc[nextrap][i])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                        vector<int64_t> keys = range<int64_t>(5*19);
+                        cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                               absGreaterThan<dtype>);
+                        //printf("Badness old hc %d %d %d %15.12g\n", i+1, i+1, nextrap+1, std::abs(values[19-4*i]));
+                    }
+                }
             }
             else
             {
                 // should only happen after compaction
                 for (int i = 0;i < nvec;i++)
-                    *old_hc[nextrap_real][i] = *hc[i];
+                    *old_hc[nextrap][i] = *hc[i];
             }
 
             /*
@@ -252,42 +270,94 @@ class Davidson : public task::Destructible
                 /*
                  * Compute and save overlap with guess for later
                  */
-                if (mode == GUESS_OVERLAP)
-                    overlap[i][nextrap_real] = std::abs(scalar(conj(*c[i])*(*guess[i])));
+                if (!guess.empty())
+                {
+                    for (int j = 0;j < nvec;j++)
+                    {
+                        guess_overlap[i][nextrap][j] = std::abs(scalar(conj(*c[i])*(*guess[j])));
+                    }
+                }
 
                 for (int j = 0;j < nvec;j++)
                 {
                     // "Diagonal"
-                    e[i][nextrap_real][j][nextrap_real] = scalar(conj(*c[i])*(*hc[j]));
+                    e[i][nextrap][j][nextrap] = scalar(conj(*hc[i])*(*c[j]));
+                    s[i][nextrap][j][nextrap] = scalar(conj(*c[i])*(*c[j]));
+                    //printf("s %d %d %d %18.15f\n", nextrap, i, j, s[i][nextrap][j][nextrap]);
 
                     // "Off-diagonal"
-                    for (int k = 0;k < nextrap_real;k++)
+                    for (int k = 0;k < nextrap;k++)
                     {
-                        e[i][nextrap_real][j][k] = scalar(conj(*old_c[k][i])*(*hc[j]));
-                        e[i][k][j][nextrap_real] = scalar(conj(*c[i])*(*old_hc[k][j]));
+                        e[i][nextrap][j][k] = scalar(conj(*old_hc[k][i])*(*c[j]));
+                        e[i][k][j][nextrap] = scalar(conj(*hc[i])*(*old_c[k][j]));
+                        s[i][nextrap][j][k] = scalar(conj(*old_c[k][i])*(*c[j]));
+                        s[i][k][j][nextrap] = scalar(conj(*c[i])*(*old_c[k][j]));
+                        //printf("s %d %d %d %18.15f\n", k, i, j, s[i][nextrap][j][nextrap]);
                     }
                 }
             }
 
-            nextrap_real++; 
+            nextrap++;
 
             /*
              * Diagonalize the subspace matrix to obtain approximate solutions
              */
             int info;
-            std::tensor<dtype,4> tmp(std::vec(nvec,nextrap_real,nvec,nextrap_real));
-            std::tensor<dtype,3> vr(std::vec(nvec,nextrap_real*nvec,nextrap_real));
-            std::vector<typename std::complex_type<dtype>::type> l(nextrap_real*nvec); // Eigenvalues
+            std::vector<dtype> beta(nvec*nextrap);
+            std::tensor<dtype,4> tmp1(std::vec(nvec,nextrap,nvec,nextrap));
+            std::tensor<dtype,4> tmp2(std::vec(nvec,nextrap,nvec,nextrap));
+            std::tensor<dtype,3> vr(std::vec(nvec,nextrap,nvec*nextrap));
+            std::vector<typename std::complex_type<dtype>::type> l(nextrap*nvec); // Eigenvalues
 
-            for (int m = 0;m < nextrap_real;m++)
+            for (int m = 0;m < nextrap;m++)
+            {
                 for (int k = 0;k < nvec;k++)
-                    for (int j = 0;j < nextrap_real;j++)
+                {
+                    for (int j = 0;j < nextrap;j++)
+                    {
                         for (int i = 0;i < nvec;i++)
-                            tmp[i][j][k][m] = e[i][j][k][m];
+                        {
+                            printf("%15.12f ", e[i][j][k][m]);
+                            tmp1[i][j][k][m] = e[i][j][k][m];
+                            tmp2[i][j][k][m] = s[i][j][k][m];
+                        }
+                    }
+                    printf("\n");
+                }
+            }
 
-            info = geev('N', 'V', nextrap_real*nvec, tmp.data(), nextrap_real*nvec, l.data(),
-                        NULL, 1, vr.data(), nextrap_real*nvec);
-            if (info != 0) throw std::runtime_error(std::strprintf("davidson: Info in geev: %d", info));
+            //info = ggev('N', 'V', nextrap*nvec, tmp1.data(), nextrap*nvec,
+            //            tmp2.data(), nextrap*nvec, l.data(), beta.data(), NULL, 1,
+            //            vr.data(), nextrap*nvec);
+            info = geev('N', 'V', nextrap*nvec, tmp1.data(), nextrap*nvec,
+                        l.data(), NULL, 1,
+                        vr.data(), nextrap*nvec);
+            if (info != 0) throw std::runtime_error(std::strprintf("davidson: Info in ggev: %d", info));
+
+            /*
+             * Fix sign of eigenvectors
+             */
+            for (int i = 0;i < nextrap*nvec;i++)
+            {
+                //l[i] /= beta[i];
+                printf("%15.12f\n", std::real(l[i]));
+
+                for (int m = 0;m < nextrap;m++)
+                {
+                    for (int k = 0;k < nvec;k++)
+                    {
+                        if (std::abs(vr[k][m][i]) > 1e-10)
+                        {
+                            if (std::real(vr[k][m][i]) < 0)
+                            {
+                                scal(nextrap*nvec, -1, &vr[0][0][i], 1);
+                            }
+                            m = nextrap;
+                            break;
+                        }
+                    }
+                }
+            }
 
             /*
              * Assign eigenvalues (exclusively) to states by the selected criterion
@@ -298,8 +368,10 @@ class Davidson : public task::Destructible
                 dtype crit;
                 dtype mincrit = std::numeric_limits<dtype>::max();
 
-                for (int i = 0;i < nextrap_real*nvec;i++)
+                for (int i = 0;i < nextrap*nvec;i++)
                 {
+                    //if (j == 0) printf("%15.12f\n", std::real(l[i]));
+
                     bool found = false;
                     for (int k = 0;k < j;k++)
                     {
@@ -307,13 +379,13 @@ class Davidson : public task::Destructible
                     }
                     if (found) continue;
 
-                    switch (mode)
+                    switch (mode[j])
                     {
                         case GUESS_OVERLAP:
                             crit = 0.0;
-                            for (int m = 0;m < nextrap_real;m++)
+                            for (int m = 0;m < nextrap;m++)
                                 for (int k = 0;k < nvec;k++)
-                                    crit -= vr[k][i][m]*overlap[k][m];
+                                    crit -= vr[k][m][i]*guess_overlap[k][m][j];
                             break;
                         case LOWEST_ENERGY:
                             crit = std::real(l[i]);
@@ -323,7 +395,7 @@ class Davidson : public task::Destructible
                             break;
                     }
 
-                    if (crit < mincrit && std::abs(std::imag(l[i])) < 1e-9)
+                    if (crit < mincrit && std::abs(std::imag(l[i])) < 1e-12)
                     {
                         mincrit = crit;
                         bestevs[j] = i;
@@ -331,6 +403,15 @@ class Davidson : public task::Destructible
                 }
 
                 assert(bestevs[j] != -1);
+
+                if (nextrap > 1 && mode[j] != CLOSEST_ENERGY &&
+                    std::abs(previous[j]-std::real(l[bestevs[j]])) < 1e-6)
+                {
+                    cout << "Locking root " << (j+1) << endl;
+                    mode[j] = CLOSEST_ENERGY;
+                    target[j] = std::real(l[bestevs[j]]);
+                }
+                previous[j] = std::real(l[bestevs[j]]);
             }
 
             /*
@@ -341,18 +422,52 @@ class Davidson : public task::Destructible
                 /*
                  * Form current trial vector y and H*y = x
                  */
-                *c [j] = (*old_c [0][j])*vr[j][bestevs[j]][0];
-                *hc[j] = (*old_hc[0][j])*vr[j][bestevs[j]][0]; // original times the evec element for it
+                *c [j] = 0;
+                *hc[j] = 0;
 
-
-                for (int i = 1;i < nextrap_real;i++)
+                for (int i = nextrap-1;i >= 0;i--)
                 {
-                    *c [j] += (*old_c [i][j])*vr[j][bestevs[j]][i]; // weight each old c by its evec value
-                    *hc[j] += (*old_hc[i][j])*vr[j][bestevs[j]][i]; // same for old_hc. making the new state state
+                    for (int k = nvec-1;k >= 0;k--)
+                    {
+                        *c [j] += (*old_c [i][k])*vr[k][i][bestevs[j]]; // weight each old c by its evec value
+                        *hc[j] += (*old_hc[i][k])*vr[k][i][bestevs[j]]; // same for old_hc. making the new state state
+                    }
                 }
 
                 // so now c is V*y = x and hc is A*V*y = A*x
 
+                printf("Norm c %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
+                {
+                    vector<dtype> values;
+                    (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                    vector<int64_t> keys = range<int64_t>(5*19);
+                    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                           absGreaterThan<dtype>);
+
+                    for (int k = 0;k < 30;k++)
+                    {
+                        int ia = keys[k]%19+6;
+                        int ii = keys[k]/19+1;
+                        //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
+                    }
+                    printf("Badness     c %d %15.12g\n", j+1, std::abs(values[19-4*j]));
+                }
+                printf("Norm H*c %d %15.12f\n", j+1, (*hc[j])(1)(vec(1,0),vec(0,1)).norm(2));
+                {
+                    vector<dtype> values;
+                    (*hc[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                    vector<int64_t> keys = range<int64_t>(5*19);
+                    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                           absGreaterThan<dtype>);
+
+                    for (int k = 0;k < 30;k++)
+                    {
+                        int ia = keys[k]%19+6;
+                        int ii = keys[k]/19+1;
+                        //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
+                    }
+                    printf("Badness   H*c %d %15.12g\n", j+1, std::abs(values[19-4*j]));
+                }
                 *hc[j] -= std::real(l[bestevs[j]])*(*c[j]);
 
                 /*
@@ -365,33 +480,95 @@ class Davidson : public task::Destructible
 
                 // now hc = A*x - mu*x = -r
 
-                *c[j] = *hc[j]; // This is what we norm to determine convergence, which is r, makes sense.
-                c[j]->weight(D, std::real(l[bestevs[j]])); // Look into weight function
-
-                /*
-                 * Orthogonalize new guess vector against existing subspace and against
-                 * other guess vectors
-                 */
-                for (int k = 0; k < j; k++)
+                *c[j] = -*hc[j]; // This is what we norm to determine convergence, which is r, makes sense.
+                printf("Norm r %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
                 {
-                    dtype olap = scalar(conj(*c[j])*(*c[k])); // orthogonalize against new cs which have just been constructed
-                    *c[j] -= (*c[k])*olap;
-                }
+                    vector<dtype> values;
+                    (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                    vector<int64_t> keys = range<int64_t>(5*19);
+                    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                           absGreaterThan<dtype>);
 
-                for (int i = 0;i < nextrap_real;i++)
-                {
-                    for (int k = 0; k < nvec; k++)
+                    for (int k = 0;k < 10;k++)
                     {
-                        dtype olap = scalar(conj(*c[j])*(*old_c[i][k])); // orthogonalize against all previous cs
-                        *c[j] -= (*old_c[i][k])*olap;
+                        int ia = keys[k]%19+6;
+                        int ii = keys[k]/19+1;
+                        //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
                     }
+                    printf("Badness     r %d %15.12g\n", j+1, std::abs(values[19-4*j]));
+                }
+                c[j]->weight(D, std::real(l[bestevs[j]])); // Look into weight function
+                printf("Norm d %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
+                {
+                    vector<dtype> values;
+                    (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                    vector<int64_t> keys = range<int64_t>(5*19);
+                    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                           absGreaterThan<dtype>);
+
+                    for (int k = 0;k < 10;k++)
+                    {
+                        int ia = keys[k]%19+6;
+                        int ii = keys[k]/19+1;
+                        //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
+                    }
+                    printf("Badness     d %d %15.12g\n", j+1, std::abs(values[19-4*j]));
                 }
 
-                /*
-                 * Normalize
-                 */
                 double norm = sqrt(std::abs(scalar(conj(*c[j])*(*c[j]))));
                 *c[j] /= norm;
+
+                //printf("%d %15.12g\n", j+1, norm);
+            }
+
+            for (int j = 0;j < nvec;j++)
+            {
+                for (int k = 0;k < nvec;k++)
+                {
+                    for (int i = 0;i < nextrap;i++)
+                    {
+                        dtype olap = scalar(conj(*c[j])*(*old_c[i][k]));
+                        *c[j] -= olap*(*old_c[i][k]);
+                    }
+
+                    if (k == j) continue;
+                    dtype olap = scalar(conj(*c[j])*(*c[k]));
+                    *c[j] -= olap*(*c[k]);
+                }
+
+                for (int k = nvec-1;k >= 0;k--)
+                {
+                    for (int i = nextrap-1;i >= 0;i--)
+                    {
+                        dtype olap = scalar(conj(*c[j])*(*old_c[i][k]));
+                        *c[j] -= olap*(*old_c[i][k]);
+                    }
+
+                    if (k == j) continue;
+                    dtype olap = scalar(conj(*c[j])*(*c[k]));
+                    *c[j] -= olap*(*c[k]);
+                }
+
+                double norm = sqrt(std::abs(scalar(conj(*c[j])*(*c[j]))));
+                *c[j] /= norm;
+
+                printf("Norm new c %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
+                {
+                    vector<dtype> values;
+                    (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                    vector<int64_t> keys = range<int64_t>(5*19);
+                    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                           absGreaterThan<dtype>);
+
+                    for (int k = 0;k < 10;k++)
+                    {
+                        int ia = keys[k]%19+6;
+                        int ii = keys[k]/19+1;
+                        //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
+                    }
+
+                    printf("Badness new c %d %15.12g\n", j+1, std::abs(values[19-4*j]));
+                }
             }
 
             std::vector<dtype> myreturn(nvec);

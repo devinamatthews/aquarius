@@ -37,8 +37,8 @@ MOIntegrals<T>::MOIntegrals(const string& type, const string& name, const Config
     vector<Requirement> reqs;
     reqs += Requirement("occspace", "occ");
     reqs += Requirement("vrtspace", "vrt");
-    reqs += Requirement("Fa", "Fa");
-    reqs += Requirement("Fb", "Fb");
+    reqs += Requirement("Ea", "Ea");
+    reqs += Requirement("Eb", "Eb");
     addProduct(Product("moints", "H", reqs));
 }
 

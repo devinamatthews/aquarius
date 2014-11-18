@@ -52,7 +52,7 @@ namespace cc
  * As in LambdaCCSD, the full left-hand eigenfunction is used instead of lambda.
  */
 template <typename U>
-class PerturbedLambdaCCSD : public Iterative
+class PerturbedLambdaCCSD : public Iterative<U>
 {
     protected:
         convergence::DIIS< op::DeexcitationOperator<U,2> > diis;

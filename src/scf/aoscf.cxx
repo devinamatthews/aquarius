@@ -107,6 +107,7 @@ void AOUHF<T>::buildFock()
     const vector<T>& eris = ints.ints;
     const vector<idx4_t>& idxs = ints.idxs;
     size_t neris = eris.size();
+    assert(eris.size() == idxs.size());
 
     int64_t flops = 0;
     #pragma omp parallel reduction(+:flops)

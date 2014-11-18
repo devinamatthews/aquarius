@@ -38,51 +38,113 @@
 namespace aquarius
 {
 
+template <typename U>
 class Iterative : public task::Task
 {
     public:
         enum ConvergenceType {MAX_ABS, RMSD, MAD};
 
-    protected:
-        double energy;
-        double conv;
+    private:
+        std::vector<U> energy_;
+        std::vector<double> conv_;
         double convtol;
-        ConvergenceType convtype;
-        int iter;
+        int iter_;
         int maxiter;
+
+        static ConvergenceType getConvType(const input::Config& config)
+        {
+            std::string sconv = config.get<std::string>("conv_type");
+
+            if (sconv == "MAXE")
+            {
+                return MAX_ABS;
+            }
+            else if (sconv == "RMSE")
+            {
+                return RMSD;
+            }
+            else if (sconv == "MAE")
+            {
+                return MAD;
+            }
+
+            assert(0);
+            return MAX_ABS;
+        }
+
+    protected:
+        const ConvergenceType convtype;
+
+        U& energy()
+        {
+            assert(energy_.size() == 1);
+            return energy_[0];
+        }
+
+        U& energy(int i)
+        {
+            assert(i >= 0 && i < energy_.size());
+            return energy_[i];
+        }
+
+        double& conv()
+        {
+            assert(conv_.size() == 1);
+            return conv_[0];
+        }
+
+        double& conv(int i)
+        {
+            assert(i >= 0 && i < conv_.size());
+            return conv_[i];
+        }
+
+        const U& energy() const
+        {
+            assert(energy_.size() == 1);
+            return energy_[0];
+        }
+
+        const U& energy(int i) const
+        {
+            assert(i >= 0 && i < energy_.size());
+            return energy_[i];
+        }
+
+        const double& conv() const
+        {
+            assert(conv_.size() == 1);
+            return conv_[0];
+        }
+
+        const double& conv(int i) const
+        {
+            assert(i >= 0 && i < conv_.size());
+            return conv_[i];
+        }
+
+        int iter() const
+        {
+            return iter_;
+        }
 
         virtual void iterate(const Arena& arena) = 0;
 
     public:
         Iterative(const std::string& type, const std::string& name, const input::Config& config)
         : Task(type, name),
-          energy(0),
-          conv(std::numeric_limits<double>::infinity()),
           convtol(config.get<double>("convergence")),
-          iter(0),
-          maxiter(config.get<int>("max_iterations"))
-        {
-            std::string sconv = config.get<std::string>("conv_type");
-
-            if (sconv == "MAXE")
-            {
-                convtype = MAX_ABS;
-            }
-            else if (sconv == "RMSE")
-            {
-                convtype = RMSD;
-            }
-            else if (sconv == "MAE")
-            {
-                convtype = MAD;
-            }
-        }
+          maxiter(config.get<int>("max_iterations")),
+          convtype(getConvType(config)) {}
 
         virtual ~Iterative() {}
 
-        void run(task::TaskDAG& dag, const Arena& arena)
+        void run(task::TaskDAG& dag, const Arena& arena, int nsolution = 1)
         {
-            for (iter = 1;iter <= maxiter && !isConverged();iter++)
+            energy_.resize(nsolution);
+            conv_.resize(nsolution, std::numeric_limits<U>::max());
+
+            for (iter_ = 1;iter_ <= maxiter && !isConverged();iter_++)
             {
                 time::Timer timer;
                 timer.start();
@@ -92,112 +154,25 @@ class Iterative : public task::Task
 
                 int ndigit = (int)(ceil(-log10(convtol))+0.5);
 
-                log(arena) << "Iteration " << iter << " took " << std::fixed <<
+                log(arena) << "Iteration " << iter_ << " took " << std::fixed <<
                               std::setprecision(3) << dt << " s" << std::endl;
-                log(arena) << "Iteration " << iter <<
-                              " energy = " << std::fixed << std::setprecision(ndigit) << energy <<
-                              ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
-            }
 
-            if (!isConverged())
-            {
-                log(arena) << "Did not converge in " << maxiter << " iterations" << std::endl;
-            }
-        }
-
-        double getEnergy() const { return energy; }
-
-        double getConvergence() const { return conv; }
-
-        bool isConverged() const { return conv < convtol; }
-};
-
-template <typename U>
-class MultiIterative : public task::Task
-{
-    public:
-        enum ConvergenceType {MAX_ABS, RMSD, MAD};
-
-    protected:
-        double conv;
-        double convtol;
-        ConvergenceType convtype;
-        int iter;
-        int maxiter;
-
-        virtual void iterate(const Arena& arena) = 0;
-
-    public:
-        MultiIterative(const std::string& type, const std::string& name, const input::Config& config)
-        : Task(type, name),
-          conv(std::numeric_limits<double>::infinity()),
-          convtol(config.get<double>("convergence")),
-          iter(0),
-          maxiter(config.get<int>("max_iterations"))
-        {
-            std::string sconv = config.get<std::string>("conv_type");
-
-            if (sconv == "MAXE")
-            {
-                convtype = MAX_ABS;
-            }
-            else if (sconv == "RMSE")
-            {
-                convtype = RMSD;
-            }
-            else if (sconv == "MAE")
-            {
-                convtype = MAD;
-            }
-        }
-
-        virtual ~MultiIterative() {}
-
-        void run(task::TaskDAG& dag, const Arena& arena, int nroot)
-        {
-            puttmp("energy", new tensor::CTFTensor<U>("energy", arena, 1, std::vec(nroot), std::vec(NS),true));
-            tensor::CTFTensor<U>& energy = gettmp<tensor::CTFTensor<U> >("energy");
-
-            for (iter = 1;iter <= maxiter && !isConverged();iter++)
-            {
-                time::Timer timer;
-                timer.start();
-                iterate(arena);
-                timer.stop();
-                double dt = timer.seconds(arena);
-                std::vector<U> energyvec;
-                energy.getAllData(energyvec);
-
-                int ndigit = (int)(ceil(-log10(convtol))+0.5);
-
-                log(arena) << "Iteration " << iter << " took " << std::fixed <<
-                              std::setprecision(3) << dt << " s" << std::endl;
-                if (nroot == 1)
+                for (int i = 0;i < nsolution;i++)
                 {
-                    log(arena) << "Iteration " << iter <<
-                              " energy = " << std::fixed << std::setprecision(ndigit) << energyvec[0] <<
-                              ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
+                    if (nsolution > 1)
+                    {
+                        log(arena) << "Iteration " << iter_ << " sol'n " << (i+1) <<
+                                      " energy = " << std::fixed << std::setprecision(ndigit) << energy_[i] <<
+                                      ", convergence = " << std::scientific << std::setprecision(3) << conv_[i] << std::endl;
+                    }
+                    else if (!isConverged(i))
+                    {
+                        log(arena) << "Iteration " << iter_ <<
+                                      " energy = " << std::fixed << std::setprecision(ndigit) << energy_[i] <<
+                                      ", convergence = " << std::scientific << std::setprecision(3) << conv_[i] << std::endl;
+                    }
                 }
-                else if (nroot == 2)
-                    log(arena) << "Iteration " << iter <<
-                              " energies = " << std::fixed << std::setprecision(ndigit) << energyvec[0] << ", " << energyvec[1] <<
-                              ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
 
-                else if (nroot == 3)
-                    log(arena) << "Iteration " << iter <<
-                              " energies = " << std::fixed << std::setprecision(ndigit) << energyvec[0] << ", " << energyvec[1] << ", " << energyvec[2] <<
-                              ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
-
-                else if (nroot == 4)
-                    log(arena) << "Iteration " << iter <<
-                              " energies = " << std::fixed << std::setprecision(ndigit) << energyvec[0] << ", " << energyvec[1] << ", " << energyvec[2] << ", " << energyvec[3] <<
-                              ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
-
-                else if (nroot == 5)
-                    log(arena) << "Iteration " << iter <<
-                              " energies = " << std::fixed << std::setprecision(ndigit) << energyvec[0] << ", " << energyvec[1] << ", " << energyvec[2] << ", " << energyvec[3] << ", " << energyvec[4] <<
-                              ", convergence = " << std::scientific << std::setprecision(3) << conv << std::endl;
-                
             }
 
             if (!isConverged())
@@ -206,28 +181,32 @@ class MultiIterative : public task::Task
             }
         }
 
-        double getConvergence() const { return conv; }
+        double getConvergence() const
+        {
+            return conv();
+        }
 
-        bool isConverged() const { return conv < convtol; }
-};
+        double getConvergence(int i) const
+        {
+            return conv(i);
+        }
 
-class NonIterative : public task::Task
-{
-    protected:
-        double energy;
+        bool isConverged() const
+        {
+            bool converged = true;
 
-    public:
-        NonIterative(const std::string& type, const std::string& name, const input::Config& config)
-        : Task(type, name),
-          energy(0)
-        { }
+            for (int i = 0;i < conv_.size();i++)
+            {
+                if (conv_[i] >= convtol) converged = false;
+            }
 
-        virtual ~NonIterative() { }
+            return converged;
+        }
 
-        void run(task::TaskDAG& dag, const Arena& arena) { }
-
-        double getEnergy() const { return energy; }
-
+        bool isConverged(int i) const
+        {
+            return conv(i) < convtol;
+        }
 };
 
 }

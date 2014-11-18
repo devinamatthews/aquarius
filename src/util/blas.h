@@ -1658,6 +1658,26 @@ inline integer iamax(const integer n, const dcomplex* x, const integer incx)
     return izamax(n, x, incx);
 }
 
+inline float amax(const integer n, const float* x, const integer incx)
+{
+    return x[isamax(n, x, incx)];
+}
+
+inline double amax(const integer n, const double* x, const integer incx)
+{
+    return x[idamax(n, x, incx)];
+}
+
+inline scomplex amax(const integer n, const scomplex* x, const integer incx)
+{
+    return x[icamax(n, x, incx)];
+}
+
+inline dcomplex amax(const integer n, const dcomplex* x, const integer incx)
+{
+    return x[izamax(n, x, incx)];
+}
+
 /******************************************************************************
  *
  * Level 2 BLAS, C++ overloads

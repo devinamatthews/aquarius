@@ -33,37 +33,37 @@ using namespace aquarius::task;
 
 template <typename U>
 PerturbedLambdaCCSD<U>::PerturbedLambdaCCSD(const std::string& name, const Config& config)
-: Iterative("perturbedlambdaccsd", name, config), diis(config.get("diis"))
+: Iterative<U>("perturbedlambdaccsd", name, config), diis(config.get("diis"))
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("ccsd.L", "L"));
     reqs.push_back(Requirement("ccsd.Hbar", "Hbar"));
     reqs.push_back(Requirement("1epert", "A"));
     reqs.push_back(Requirement("double", "omega"));
-    addProduct(Product("double", "convergence", reqs));
-    addProduct(Product("ccsd.LA", "LA", reqs));
+    this->addProduct(Product("double", "convergence", reqs));
+    this->addProduct(Product("ccsd.LA", "LA", reqs));
 }
 
 template <typename U>
 void PerturbedLambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const PerturbedSTTwoElectronOperator<U,2>& A = get<PerturbedSTTwoElectronOperator<U,2> >("A");
-    const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
+    const PerturbedSTTwoElectronOperator<U>& A = this->template get<PerturbedSTTwoElectronOperator<U> >("A");
+    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
 
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    put("LA", new DeexcitationOperator<U,2>("L^A", arena, occ, vrt));
-    puttmp("D", new DeexcitationOperator<U,2>("D", arena, occ, vrt));
-    puttmp("N", new DeexcitationOperator<U,2>("N", arena, occ, vrt));
-    puttmp("Z", new DeexcitationOperator<U,2>("Z", arena, occ, vrt));
+    this->put   ("LA", new DeexcitationOperator<U,2>("L^A", arena, occ, vrt));
+    this->puttmp( "D", new DeexcitationOperator<U,2>("D", arena, occ, vrt));
+    this->puttmp( "N", new DeexcitationOperator<U,2>("N", arena, occ, vrt));
+    this->puttmp( "Z", new DeexcitationOperator<U,2>("Z", arena, occ, vrt));
 
-    U omega = get<U>("omega");
+    U omega = this->template get<U>("omega");
 
-    DeexcitationOperator<U,2>& L = get<DeexcitationOperator<U,2> >("L");
-    DeexcitationOperator<U,2>& LA = get<DeexcitationOperator<U,2> >("LA");
-    DeexcitationOperator<U,2>& D = gettmp<DeexcitationOperator<U,2> >("D");
-    DeexcitationOperator<U,2>& N = gettmp<DeexcitationOperator<U,2> >("N");
+    DeexcitationOperator<U,2>&  L = this->template get   <DeexcitationOperator<U,2> >( "L");
+    DeexcitationOperator<U,2>& LA = this->template get   <DeexcitationOperator<U,2> >("LA");
+    DeexcitationOperator<U,2>&  D = this->template gettmp<DeexcitationOperator<U,2> >( "D");
+    DeexcitationOperator<U,2>&  N = this->template gettmp<DeexcitationOperator<U,2> >( "N");
 
     D(0) = (U)1.0;
     D(1)["ia"]  = H.getIJ()["ii"];
@@ -78,33 +78,33 @@ void PerturbedLambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
     N(1) = (U)0.0;
     N(2) = (U)0.0;
-    A.contract(L, N);
+    //TODO: A.contract(L, N);
     N(0) = (U)0.0;
 
     LA = N*D;
 
-    Iterative::run(dag, arena);
+    Iterative<U>::run(dag, arena);
 
-    put("convergence", new U(conv));
+    this->put("convergence", new U(this->conv()));
 }
 
 template <typename U>
 void PerturbedLambdaCCSD<U>::iterate(const Arena& arena)
 {
-    const STTwoElectronOperator<U,2>& H = get<STTwoElectronOperator<U,2> >("Hbar");
+    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
 
-    DeexcitationOperator<U,2>& LA = get<DeexcitationOperator<U,2> >("LA");
-    DeexcitationOperator<U,2>& D = gettmp<DeexcitationOperator<U,2> >("D");
-    DeexcitationOperator<U,2>& N = gettmp<DeexcitationOperator<U,2> >("N");
-    DeexcitationOperator<U,2>& Z = gettmp<DeexcitationOperator<U,2> >("Z");
+    DeexcitationOperator<U,2>& LA = this->template get   <DeexcitationOperator<U,2> >("LA");
+    DeexcitationOperator<U,2>&  D = this->template gettmp<DeexcitationOperator<U,2> >( "D");
+    DeexcitationOperator<U,2>&  N = this->template gettmp<DeexcitationOperator<U,2> >( "N");
+    DeexcitationOperator<U,2>&  Z = this->template gettmp<DeexcitationOperator<U,2> >( "Z");
 
     Z = N;
-    H.contract(LA, Z);
+    //TODO: H.contract(LA, Z);
 
      Z *= D;
     LA += Z;
 
-    conv = Z.norm(00);
+    this->conv() = Z.norm(00);
 
     diis.extrapolate(LA, Z);
 }
