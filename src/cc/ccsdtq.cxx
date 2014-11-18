@@ -105,11 +105,9 @@ void CCSDTQ<U>::run(task::TaskDAG& dag, const Arena& arena)
     Tau["abij"]  = T(2)["abij"];
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
 
-    this->energy() = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
-    this->conv() = T.norm(00);
-
-    Logger::log(arena) << "MP2 energy = " << setprecision(15) << this->energy() << endl;
-    this->put("mp2", new U(this->energy()));
+    double mp2 = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
+    Logger::log(arena) << "MP2 energy = " << setprecision(15) << mp2 << endl;
+    this->put("mp2", new U(mp2));
 
     CTF_Timer_epoch ep(this->name.c_str());
     ep.begin();

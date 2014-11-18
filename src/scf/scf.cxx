@@ -69,8 +69,6 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
     int nalpha = molecule.getNumAlphaElectrons();
     int nbeta = molecule.getNumBetaElectrons();
 
-    this->energy() = molecule.getNuclearRepulsion();
-
     vector<int> shapeNN = vec(NS,NS);
     vector<vector<int> > sizenn = vec(norb,norb);
 
@@ -195,39 +193,23 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
     for (int i = 0;i < group.getNumIrreps();i++) sizena[0][i] -= nfrozen_alpha[i];
     for (int i = 0;i < group.getNumIrreps();i++) sizenb[0][i] -= nfrozen_beta[i];
 
-    this->put("Ea", new SymmetryBlockedTensor<T>("Ea", arena, group, 1, sizena, shapeN, false));
-    this->put("Eb", new SymmetryBlockedTensor<T>("Eb", arena, group, 1, sizenb, shapeN, false));
-    SymmetryBlockedTensor<T>& Ea = this->template get<SymmetryBlockedTensor<T> >("Ea");
-    SymmetryBlockedTensor<T>& Eb = this->template get<SymmetryBlockedTensor<T> >("Eb");
+    this->put("Ea", new vector<vector<typename real_type<T>::type> >(group.getNumIrreps()));
+    this->put("Eb", new vector<vector<typename real_type<T>::type> >(group.getNumIrreps()));
+    vector<vector<typename real_type<T>::type> >& Ea =
+        this->template get<vector<vector<typename real_type<T>::type> > >("Ea");
+    vector<vector<typename real_type<T>::type> >& Eb =
+        this->template get<vector<vector<typename real_type<T>::type> > >("Eb");
 
     for (int i = 0;i < group.getNumIrreps();i++)
     {
-        vector<tkv_pair<T> > pairs;
-        int nf = nfrozen_alpha[i];
-
         sort(E_alpha[i].begin(), E_alpha[i].end());
-        for (int j = 0;j < norb[i]-nf;j++)
-            pairs.push_back(tkv_pair<T>(j, E_alpha[i][j+nf]));
-
-        if (arena.rank == 0)
-            Ea.writeRemoteData(vec(i), pairs);
-        else
-            Ea.writeRemoteData(vec(i));
+        Ea[i].assign(E_alpha[i].begin()+nfrozen_alpha[i], E_alpha[i].end());
     }
 
     for (int i = 0;i < group.getNumIrreps();i++)
     {
-        vector<tkv_pair<T> > pairs;
-        int nf = nfrozen_beta[i];
-
         sort(E_beta[i].begin(), E_beta[i].end());
-        for (int j = 0;j < norb[i]-nf;j++)
-            pairs.push_back(tkv_pair<T>(j, E_beta[i][j+nf]));
-
-        if (arena.rank == 0)
-            Eb.writeRemoteData(vec(i), pairs);
-        else
-            Eb.writeRemoteData(vec(i));
+        Eb[i].assign(E_beta[i].begin()+nfrozen_beta[i], E_beta[i].end());
     }
 }
 

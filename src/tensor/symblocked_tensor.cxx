@@ -424,7 +424,8 @@ vector<int> SymmetryBlockedTensor<T>::getStrides(const string& indices, const in
         }
     }
 
-    return strides;
+    //return strides;
+    return stride_A;
 }
 
 template <class T>
