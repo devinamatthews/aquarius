@@ -31,6 +31,7 @@
 #include "operator/st2eoperator.hpp"
 #include "operator/excitationoperator.hpp"
 #include "operator/denominator.hpp"
+#include "input/molecule.hpp"
 
 #include "ccsd.hpp"
 
