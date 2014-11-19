@@ -99,7 +99,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
             this->puttmp(zname, new ExcitationOperator<U,2>(zname, arena, occ, vrt));
 
             ExcitationOperator<U,2>& R = this->template get<ExcitationOperator<U,2> >(rname);
-            R(1) = TDAevecs[i][root];
+            R(1) = TDAevecs[i][root]; // Does this assume evecs are sorted like Evals?
         }
 
         Iterative<U>::run(dag, arena, nroot_per_irrep[i]);
