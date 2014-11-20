@@ -69,9 +69,6 @@ void LCCD<U>::run(TaskDAG& dag, const Arena& arena)
 
     T.weight(D);
 
-    this->energy() = 0.25*real(scalar(H.getABIJ()*T(2)));
-    this->conv() = T.norm(00);
-
     CTF_Timer_epoch ep(this->name.c_str());
     ep.begin();
     Iterative<U>::run(dag, arena);

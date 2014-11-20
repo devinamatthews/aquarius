@@ -71,7 +71,6 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
     ExcitationOperator<U,2>& T = this->template get   <ExcitationOperator<U,2> >(  "T");
     Denominator<U>&          D = this->template gettmp<Denominator<U> >         (  "D");
     ExcitationOperator<U,2>& Z = this->template gettmp<ExcitationOperator<U,2> >(  "Z");
-    SpinorbitalTensor<U>&  Tau = this->template gettmp<SpinorbitalTensor<U> >   ("Tau");
 
     Z(0) = (U)0.0;
     T(0) = (U)0.0;
@@ -80,10 +79,7 @@ void CCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
     T.weight(D);
 
-    Tau["abij"]  = T(2)["abij"];
-    Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
-
-    double mp2 = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
+    double mp2 = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*T(2)));
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << mp2 << endl;
     this->put("mp2", new U(mp2));
 
@@ -173,7 +169,7 @@ void CCSD<U>::iterate(const Arena& arena)
 
     WAMIJ["amij"]  =     VAMIJ["amij"];
     WAMIJ["amij"] += 0.5*VAMEF["amef"]* Tau["efij"];
-    WAMIJ["amij"] +=     WAMEI["amej"]*T(1)[  "ei"];
+    WAMIJ["amij"] +=     VAMEI["amej"]*T(1)[  "ei"];
 
     WAMEI["amei"]  =     VAMEI["amei"];
     WAMEI["amei"] += 0.5*VMNEF["mnef"]*T(2)["afni"];
@@ -197,8 +193,8 @@ void CCSD<U>::iterate(const Arena& arena)
     Z(2)["abij"]  =     VABIJ["abij"];
     Z(2)["abij"] +=     VABEJ["abej"]*T(1)[  "ei"];
     Z(2)["abij"] -=     WAMIJ["amij"]*T(1)[  "bm"];
-    Z(2)["abij"] +=       FAE[  "af"]*T(2)["fbij"];
-    Z(2)["abij"] -=       FMI[  "ni"]*T(2)["abnj"];
+    Z(2)["abij"] +=       FAE[  "ae"]*T(2)["ebij"];
+    Z(2)["abij"] -=       FMI[  "mi"]*T(2)["abmj"];
     Z(2)["abij"] += 0.5*VABEF["abef"]* Tau["efij"];
     Z(2)["abij"] += 0.5*WMNIJ["mnij"]* Tau["abmn"];
     Z(2)["abij"] +=     WAMEI["amei"]*T(2)["ebjm"];

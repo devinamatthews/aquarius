@@ -2359,16 +2359,9 @@ template<typename T, class Predicate> std::vector<T> filter_copy(const std::vect
     return v2;
 }
 
-template<typename T> typename enable_if<!is_arithmetic<T>::value,T>::type sum(const std::vector<T>& v)
+template<typename T> T sum(const std::vector<T>& v)
 {
-    T s;
-    for (int i = 0;i < v.size();i++) s += v[i];
-    return s;
-}
-
-template<typename T> typename enable_if<is_arithmetic<T>::value,T>::type sum(const std::vector<T>& v)
-{
-    T s = (T)0;
+    T s = T();
     for (int i = 0;i < v.size();i++) s += v[i];
     return s;
 }

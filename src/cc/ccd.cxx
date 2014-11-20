@@ -61,7 +61,7 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
     this->puttmp(  "FAE", new SpinorbitalTensor<U>(    "F(ae)",   H.getAB()));
     this->puttmp(  "FMI", new SpinorbitalTensor<U>(    "F(mi)",   H.getIJ()));
     this->puttmp("WMNIJ", new SpinorbitalTensor<U>( "W(mn,ij)", H.getIJKL()));
-    this->puttmp("WAMEJ", new SpinorbitalTensor<U>("W~(am,ej)", H.getAIBJ()));
+    this->puttmp("WAMEI", new SpinorbitalTensor<U>("W~(am,ei)", H.getAIBJ()));
 
     ExcitationOperator<U,2>& T = this->template get   <ExcitationOperator<U,2> >(  "T");
     Denominator<U>&          D = this->template gettmp<Denominator<U> >         (  "D");
@@ -73,9 +73,6 @@ void CCD<U>::run(TaskDAG& dag, const Arena& arena)
     T(2) = H.getABIJ();
 
     T.weight(D);
-
-    this->energy() = 0.25*real(scalar(H.getABIJ()*T(2)));
-    this->conv() = T.norm(00);
 
     CTF_Timer_epoch ep(this->name.c_str());
     ep.begin();

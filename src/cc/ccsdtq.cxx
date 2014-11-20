@@ -191,7 +191,7 @@ void CCSDTQ<U>::iterate(const Arena& arena)
       FAE[  "ae"]  =       fAE[  "ae"];
       FAE[  "ae"] -= 0.5*VMNEF["mnef"]*T(2)["afmn"];
       FAE[  "ae"] -=       FME[  "me"]*T(1)[  "am"];
-      FAE[  "ae"] +=     WAMEF["amef"]*T(1)[  "fm"];
+      FAE[  "ae"] +=     VAMEF["amef"]*T(1)[  "fm"];
 
     WMNIJ["mnij"]  =     VMNIJ["mnij"];
     WMNIJ["mnij"] += 0.5*VMNEF["mnef"]* Tau["efij"];
@@ -201,12 +201,12 @@ void CCSDTQ<U>::iterate(const Arena& arena)
     WMNEJ["mnej"] +=     VMNEF["mnef"]*T(1)[  "fj"];
 
     WAMIJ["amij"]  =     VAMIJ["amij"];
-    WAMIJ["amij"] += 0.5*WAMEF["amef"]* Tau["efij"];
-    WAMIJ["amij"] +=     WAMEI["amej"]*T(1)[  "ei"];
+    WAMIJ["amij"] += 0.5*VAMEF["amef"]* Tau["efij"];
+    WAMIJ["amij"] +=     VAMEI["amej"]*T(1)[  "ei"];
 
     WAMEI["amei"]  =     VAMEI["amei"];
     WAMEI["amei"] += 0.5*VMNEF["mnef"]*T(2)["afni"];
-    WAMEI["amei"] +=     WAMEF["amef"]*T(1)[  "fi"];
+    WAMEI["amei"] +=     VAMEF["amef"]*T(1)[  "fi"];
     WAMEI["amei"] -=     WMNEJ["nmei"]*T(1)[  "an"];
     /*
      *************************************************************************/
@@ -247,16 +247,16 @@ void CCSDTQ<U>::iterate(const Arena& arena)
     WAMEI["amei"] += 0.5*WMNEJ["nmei"]*T(1)[    "an"];
 
     WABEJ["abej"]  =     VABEJ["abej"];
-    WABEJ["abej"] +=     WAMEF["amef"]*T(2)[  "fbmj"];
+    WABEJ["abej"] +=     VAMEF["amef"]*T(2)[  "fbmj"];
     WABEJ["abej"] += 0.5*WMNEJ["mnej"]*T(2)[  "abmn"];
-    WABEJ["abej"] +=     WABEF["abef"]*T(1)[    "fj"];
+    WABEJ["abej"] +=     VABEF["abef"]*T(1)[    "fj"];
     WABEJ["abej"] -=     WAMEI["amej"]*T(1)[    "bm"];
     WABEJ["abej"] -= 0.5*VMNEF["mnef"]*T(3)["afbmnj"];
 
     WAMEI["amei"] -= 0.5*WMNEJ["nmei"]*T(1)[    "an"];
 
     WABEF["abef"]  =     VABEF["abef"];
-    WABEF["abef"] -=     WAMEF["amef"]*T(1)[    "bm"];
+    WABEF["abef"] -=     VAMEF["amef"]*T(1)[    "bm"];
     WABEF["abef"] += 0.5*VMNEF["mnef"]* Tau[  "abmn"];
 
     WAMEF["amef"]  =     VAMEF["amef"];
