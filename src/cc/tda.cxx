@@ -48,219 +48,127 @@ TDA<U>::TDA(const std::string& name, const Config& config)
 template <typename U>
 void TDA<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    cout << "Start run" << endl;
     TwoElectronOperator<U>& W = get<TwoElectronOperator<U> >("H");
     const Space& occ = W.occ;
     const Space& vrt = W.vrt;
-    // int mysize = occ.nalpha[0] * vrt.nalpha[0] + occ.nbeta[0] * vrt.nbeta[0];
 
     SpinorbitalTensor<U> Hguess("Hguess", W.getAIBJ());
     Hguess = 0;
-
-    cout << "t1" << endl;
 
     SpinorbitalTensor<U>& FAB = W.getAB();
     SpinorbitalTensor<U>& FIJ = W.getIJ();
     SpinorbitalTensor<U>& WAIBJ = W.getAIBJ();
 
-    cout << "t2" << endl;
-
     Hguess["aiaj"] -= FIJ["ij"];
     Hguess["aibi"] += FAB["ab"];
     Hguess["aibj"] -= WAIBJ["aibj"];
 
-    int count = 0;
-    int mysize = 0;
-
-    cout << "t6" << endl;  
-
     const Molecule& molecule = get<Molecule>("molecule");
     const PointGroup& group = molecule.getGroup();
-    for (int R = 0;R < group.getNumIrreps();R++) {
-        mysize = 0;
-        cout << "R = " << R << endl;
-        const Representation& irr_R = group.getIrrep(R);
-        for (int spin_bj = 1;spin_bj >= 0;spin_bj--) {
-            for (int j = 0;j < group.getNumIrreps();j++) {
-                const Representation& irr_j = group.getIrrep(j);
-                for (int b = 0;b < group.getNumIrreps();b++) {
-                    const Representation& irr_b = group.getIrrep(b);
-                    if (!(irr_b*irr_j*irr_R).isTotallySymmetric()) continue; // Loop over j,b only order N
+    int nirrep = group.getNumIrreps();
 
-                    if (spin_bj == 1) {
-                        mysize += vrt.nalpha[b]*occ.nalpha[j];
-                    }
-                    else {
-                        mysize += vrt.nbeta[b]*occ.nbeta[j];
-                    }
+    put("TDAevecs", new vector<vector<SpinorbitalTensor<U> > >);
+    put("TDAevals", new vector<vector<U> >);
+    vector<vector<SpinorbitalTensor<U> > >& TDAevecs = get<vector<vector<SpinorbitalTensor<U> > > >("TDAevecs");
+    vector<vector<U> >& TDAevals = get<vector<vector<U> > >("TDAevals");
+
+    
+    vector<int> alphasize(nirrep);
+    vector<int> betasize(nirrep);
+    vector<int> tempvec1(2);
+    vector<vector<int> > subindex(nirrep,tempvec1);
+    int count;
+    int alphatot;
+    int betatot;
+    for (int R = 0;R < nirrep;R++) {
+        const Representation& irr_R = group.getIrrep(R);
+        count = 0;
+        alphatot = 0;
+        betatot = 0;
+
+        for (int j = 0;j < nirrep;j++) {
+            const Representation& irr_j = group.getIrrep(j);
+            for (int b = 0;b < nirrep;b++) {
+                const Representation& irr_b = group.getIrrep(b);
+                if (!(irr_b*irr_j*irr_R).isTotallySymmetric()) continue;
+                subindex[count][0] = b;
+                subindex[count][1] = j;
+                alphasize[count] = vrt.nalpha[b]*occ.nalpha[j];
+                betasize[count] = vrt.nbeta[b]*occ.nbeta[j];
+                alphatot += vrt.nalpha[b]*occ.nalpha[j];
+                betatot += vrt.nbeta[b]*occ.nbeta[j];
+                count += 1;
+                assert(count <= nirrep);
+            }
+        }
+
+        assert(count == nirrep);
+        int SL = alphatot+betatot;
+        vector<U> data(pow(SL,2));
+        int Yoffset = 0;
+        int Xoffset = 0;
+
+        for (int Y = 0; Y < nirrep; Y++) {
+            int b = subindex[Y][0];
+            int j = subindex[Y][1];
+            if (Y != 0) 
+                Yoffset += (alphasize[Y-1] + betasize[Y-1]);
+            for (int X = 0; X < nirrep; X++) {
+                int a = subindex[X][0];
+                int i = subindex[X][1];
+                if (X == 0)
+                    Xoffset = 0;
+                else
+                    Xoffset += (alphasize[X-1] + betasize[X-1]);
+                for (int spin_bj = 1;spin_bj >= 0;spin_bj--) {
                     for (int spin_ai = 1;spin_ai >= 0;spin_ai--) {
-                        for (int i = 0;i < group.getNumIrreps();i++) {
-                            const Representation& irr_i = group.getIrrep(i);
-                            for (int a = 0;a < group.getNumIrreps();a++) {
-                                const Representation& irr_a = group.getIrrep(a);
-                                if (!(irr_a*irr_i*irr_R).isTotallySymmetric()) continue; // Loop over i,a only order N
-                                CTFTensor<U>& this_tensor = Hguess(vec(spin_ai,spin_bj),vec(spin_bj,spin_ai))(vec(a,j,b,i));
-                                CTFTensor<U> trans_this_tensor(this_tensor);
-                                trans_this_tensor["ajbi"] = this_tensor["aibj"];
-                                count += 1;
+                        CTFTensor<U>& this_tensor = Hguess(vec(spin_ai,spin_bj),vec(spin_bj,spin_ai))(vec(a,j,b,i));
+                        // CTFTensor<U> trans_tensor(Hguess(vec(spin_ai,spin_bj),vec(spin_bj,spin_ai))(vec(a,i,b,j))); // Fix for UHF, use norm ctor using vrt, occ
+                        CTFTensor<U> trans_tensor("trans_tensor", arena, 4, vec(vrt.nalpha[a],occ.nalpha[i],vrt.nbeta[b],occ.nbeta[j]), vec(NS,NS,NS,NS), true);
+                        trans_tensor["ajbi"] = this_tensor["aibj"];
+                        vector<U> tempdata;
+                        trans_tensor.getAllData(tempdata);
+                        int ind1 = (1-spin_bj)*alphasize[Y] + spin_bj*betasize[Y];
+                        int ind2 = (1-spin_ai)*alphasize[X] + spin_ai*betasize[X];
+                        assert(tempdata.size() == ind1*ind2);
+                        for (int k = 0; k < ind1; k++) {
+                            for (int l = 0; l < ind2; l++) {
+                                data[l+k*SL+Xoffset+Yoffset*SL + spin_ai*alphasize[X] + spin_bj*alphasize[Y]*SL] = tempdata[l+k*ind2];
                             }
-                        }
+                        } 
                     }
                 }
             }
         }
-        // Do diagonalization!
+        vector<U> w(SL);
+        heev('V','U',SL,data.data(),SL,w.data());
+        TDAevals.push_back(w);
+        for (int i = 0; i < w.size(); i++)
+            cout << setprecision(10)<< w[i] << endl;
+        /* First attempt at evec storage:
+        SpinorbitalTensor<U> tempSoT(W.getAI());
+        tempSoT = 0;
+        vector<SpinorbitalTensor<U> > tempvec2(SL,tempSoT);
+        TDAevecs.push_back(tempvec2);
+        for (int i = 0; i < SL; i++) {
+            int offset = 0;
+            int alphadone = 0;
+            int betadone = 0;
+            for (int j = 0; j < nirrep; j++) {
+                for (int k = 0; k < alphasize[j]; k++) {
+                    TDAevecs[R][i](vec(0,0),vec(0,0))(vec(subindex[j][0],subindex[j][1])).writeRemoteData(vec(kv_pair(alphadone+k,data[i*SL+offset+k])));
+                }
+                offset += alphasize[j];
+                alphadone += alphasize[j];
+                for (int l = 0; l < betasize[j]; l++) {
+                    TDAevecs[R][i](vec(1,0),vec(0,1))(vec(subindex[j][0],subindex[j][1])).writeRemoteData(vec(kv_pair(betadone+l,data[i*SL+offset+l])));
+                }
+                offset += betasize[j];
+                betadone += betasize[j];
+            }
+        }
+        */
     }
-
-    cout << "count = " << count << endl;
-
-
-    put("TDAevals", new CTFTensor<U>("TDAevals", arena, 1, vec(mysize), vec(NS), true));
-    put("TDAevecs", new CTFTensor<U>("TDAevecs", arena, 2, vec(mysize,mysize), vec(NS,NS), true));
-
-    CTFTensor<U>& TDAevals = get<CTFTensor<U> >("TDAevals");
-    CTFTensor<U>& TDAevecs = get<CTFTensor<U> >("TDAevecs");
-
-    
-
-    vector<U> dataAAAA;
-    vector<U> dataAABB;
-    vector<U> dataBBBB;
-    vector<U> dataBBAA;
-
-    CTFTensor<U>& AAAA = Hguess(vec(0,0),vec(0,0))(vec(0,0,0,0));
-    CTFTensor<U>& AABB = Hguess(vec(1,0),vec(0,1))(vec(0,0,0,0));
-    CTFTensor<U>& BBBB = Hguess(vec(1,1),vec(1,1))(vec(0,0,0,0));
-    CTFTensor<U>& BBAA = Hguess(vec(0,1),vec(1,0))(vec(0,0,0,0));
-    // CTFTensor<U> H(AAAA);
-    // H["ajbi"]  = AAAA["aibj"];
-    // H["ajbi"] += AABB["aibj"];
-
-    CTFTensor<U> TAAAA(AAAA);
-    CTFTensor<U> TAABB(AABB);
-    CTFTensor<U> TBBBB(BBBB);
-    CTFTensor<U> TBBAA(BBAA);
-    TAAAA["ajbi"] = AAAA["aibj"];
-    TAABB["ajbi"] = AABB["aibj"];
-    TBBBB["ajbi"] = BBBB["aibj"];
-    TBBAA["ajbi"] = BBAA["aibj"];
-    TAAAA.getAllData(dataAAAA);
-    TAABB.getAllData(dataAABB);
-    TBBBB.getAllData(dataBBBB);
-    TBBAA.getAllData(dataBBAA);
-
-    int alphasize = sqrt(dataAAAA.size());
-    int betasize = sqrt(dataBBBB.size());
-    int rowlength = alphasize+betasize;
-    // assert(rowlength == mysize);
-    assert(dataAABB.size() == alphasize*betasize);
-    assert(dataBBAA.size() == alphasize*betasize);
-    vector<U> data(pow(rowlength,2));
-
-    for (int i = 0; i < alphasize; ++i) {
-        for (int j = 0; j < alphasize; ++j) {
-            data[j+i*rowlength] = dataAAAA[j+i*alphasize];
-        }
-    }
-
-    for (int i = 0; i < betasize; ++i) {
-        for (int j = 0; j < betasize; ++j) {
-            data[j+alphasize*rowlength+alphasize+i*rowlength] = dataBBBB[j+i*betasize];
-        }
-    } 
-
-    for (int i = 0; i < alphasize; ++i) {
-        for (int j = 0; j < betasize; ++j) {
-            data[j+alphasize+i*rowlength] = dataAABB[j+i*betasize];
-        }
-    } 
-
-    for (int i = 0; i < betasize; ++i) {
-        for (int j = 0; j < alphasize; ++j) {
-            data[j+alphasize*rowlength+i*rowlength] = dataBBAA[j+i*alphasize];
-        }
-    } 
-
-    // cout << "TAAA, size = " << data.size() << endl;
-    // for (int i = 0; i < data.size(); ++i) {
-    //     cout << data[i] << endl;
-    // }
-
-    vector<U> w(mysize);
-    heev('V','U',mysize,data.data(),mysize,w.data());
-
-    // cout << " ok " << endl;
-
-    // for (int i = 0; i < data.size(); ++i) {
-    //     cout << data[i] << endl;
-    // }
-
-    int num_singlets = 0;
-    int num_triplets = 0;
-    vector<int> checkspin(mysize);
-    double thisdot = 0.0;
-    for (int i = 0; i < mysize; ++i) {
-        thisdot = 0.0;
-        for (int j = 0; j < alphasize; ++j) { // What if alphasize != betasize?
-            thisdot += data[j+i*rowlength]*data[j+alphasize+i*rowlength];
-        }
-        if (thisdot > 0.0) {
-            checkspin[i] = 1; // aka this is a singlet state
-            num_singlets += 1;
-        }
-        else {
-            assert(thisdot < 0.0);
-            num_triplets += 1;
-            checkspin[i] = 3; // aka this is a triplet state
-        }
-    }
-
-    // std::cout << num_singlets << " singlet states" << std::endl;
-    // std::cout << num_triplets << " triplet states" << std::endl;
-
-
-    vector<int> evalorder = range(mysize);
-
-    cosort(w.begin(), w.end(),
-           evalorder.begin(), evalorder.end());
-    printf("%18.15f\n", w[0]);
-    printf("%18.15f\n", w[1]);
-
-    vector<tkv_pair<U> > pairs;
-
-    for (int i = 0;i < mysize;i++)
-    {
-        if (checkspin[evalorder[i]] == 1) {
-            pairs.push_back(tkv_pair<U>(i, w[evalorder[i]]));
-            // cout << setprecision(10) << w[evalorder[i]] << endl;
-        }
-    }
-
-    if (arena.rank == 0)
-        TDAevals.writeRemoteData(pairs);
-    else
-        TDAevals.writeRemoteData();
-
-    pairs.clear();
-
-    for (int i = 0;i < mysize;i++)
-    {
-        for (int j = 0;j < mysize;j++)
-        {
-            pairs.push_back(kv_pair(j+i*mysize,data[evalorder[i]*mysize + j]));
-            // cout << j+i*mysize << " " << data[evalorder[i]*mysize + j] << endl;
-        }
-    }
-
-    if (arena.rank == 0)
-        TDAevecs.writeRemoteData(pairs);
-    else
-        TDAevecs.writeRemoteData();
-
-    // vector<U> data1;
-    // TDAevecs.getAllData(data1);
-    // cout << "data1.size() = " << data1.size() << endl;
-
 }
 
 INSTANTIATE_SPECIALIZATIONS(TDA);
