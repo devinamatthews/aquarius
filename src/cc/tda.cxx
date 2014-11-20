@@ -72,7 +72,7 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
     vector<vector<SpinorbitalTensor<U> > >& TDAevecs = get<vector<vector<SpinorbitalTensor<U> > > >("TDAevecs");
     vector<vector<U> >& TDAevals = get<vector<vector<U> > >("TDAevals");
 
-    
+
     vector<int> alphasize(nirrep);
     vector<int> betasize(nirrep);
     vector<int> tempvec1(2);
@@ -104,14 +104,14 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
 
         assert(count == nirrep);
         int SL = alphatot+betatot;
-        vector<U> data(pow(SL,2));
+        vector<U> data(SL*SL);
         int Yoffset = 0;
         int Xoffset = 0;
 
         for (int Y = 0; Y < nirrep; Y++) {
             int b = subindex[Y][0];
             int j = subindex[Y][1];
-            if (Y != 0) 
+            if (Y != 0)
                 Yoffset += (alphasize[Y-1] + betasize[Y-1]);
             for (int X = 0; X < nirrep; X++) {
                 int a = subindex[X][0];
@@ -124,7 +124,10 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                     for (int spin_ai = 1;spin_ai >= 0;spin_ai--) {
                         CTFTensor<U>& this_tensor = Hguess(vec(spin_ai,spin_bj),vec(spin_bj,spin_ai))(vec(a,j,b,i));
                         // CTFTensor<U> trans_tensor(Hguess(vec(spin_ai,spin_bj),vec(spin_bj,spin_ai))(vec(a,i,b,j))); // Fix for UHF, use norm ctor using vrt, occ
-                        CTFTensor<U> trans_tensor("trans_tensor", arena, 4, vec(vrt.nalpha[a],occ.nalpha[i],vrt.nbeta[b],occ.nbeta[j]), vec(NS,NS,NS,NS), true);
+                        CTFTensor<U> trans_tensor("trans_tensor", arena, 4, vec((spin_ai == 1 ? vrt.nalpha[a] : vrt.nbeta[a]),
+                                                                                (spin_ai == 1 ? occ.nalpha[i] : occ.nbeta[i]),
+                                                                                (spin_bj == 1 ? vrt.nalpha[b] : vrt.nbeta[b]),
+                                                                                (spin_bj == 1 ? occ.nalpha[j] : occ.nbeta[j])), vec(NS,NS,NS,NS), true);
                         trans_tensor["ajbi"] = this_tensor["aibj"];
                         vector<U> tempdata;
                         trans_tensor.getAllData(tempdata);
@@ -135,7 +138,7 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                             for (int l = 0; l < ind2; l++) {
                                 data[l+k*SL+Xoffset+Yoffset*SL + spin_ai*alphasize[X] + spin_bj*alphasize[Y]*SL] = tempdata[l+k*ind2];
                             }
-                        } 
+                        }
                     }
                 }
             }
