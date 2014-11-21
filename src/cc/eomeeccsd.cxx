@@ -64,6 +64,8 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
+    // cout << "test" << endl;
+
     this->puttmp("D", new Denominator<U>(H));
     vector<vector<SpinorbitalTensor<U> > >& TDAevecs =
         this->template get<vector<vector<SpinorbitalTensor<U> > > >("TDAevecs");
@@ -88,18 +90,53 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
         nroot_per_irrep[tda_sorted[i].second]++;
     }
 
+    // cout << "test2" << endl;
     for (int i = 0;i < nirrep;i++)
     {
+        vector<int> singlets;
+        int tempind = 0;
+        while (singlets.size() == 0 or singlets.size() < nroot_per_irrep[i]) {
+            vector<U> alphadata;
+            vector<U> betadata;
+            TDAevecs[i][tempind](vec(0,0),vec(0,0))(vec(0,0)).getAllData(alphadata);
+            TDAevecs[i][tempind](vec(1,0),vec(0,1))(vec(0,0)).getAllData(betadata);
+            assert(alphadata.size() == tda_sorted.size()/2);
+            assert(betadata.size() == tda_sorted.size()/2);
+            double dotproduct = 0.0;
+            for (int i = 0; i < alphadata.size(); i++) {
+                dotproduct += alphadata[i]*betadata[i];
+            }  
+            if (dotproduct > 0.0)
+                singlets.push_back(tempind);
+            // cout << "tempind = " << tempind << endl;
+            // cout << "dotproduct = " << dotproduct << endl;
+            tempind += 1;
+        }
         for (int root = 0;root < nroot_per_irrep[i];root++)
         {
             string rname = "R"+str(root);
             string zname = "Z"+str(root);
 
-            this->put   (rname, new ExcitationOperator<U,2>(rname, arena, occ, vrt));
+            // cout << "test3" << endl;
+
+            this->puttmp(rname, new ExcitationOperator<U,2>(rname, arena, occ, vrt));
             this->puttmp(zname, new ExcitationOperator<U,2>(zname, arena, occ, vrt));
 
-            ExcitationOperator<U,2>& R = this->template get<ExcitationOperator<U,2> >(rname);
-            R(1) = TDAevecs[i][root]; // Does this assume evecs are sorted like Evals?
+            // cout << "root = " << root << endl;
+            // cout << "nroot_per_irrep[i] = " << nroot_per_irrep[i] << endl;
+
+            ExcitationOperator<U,2>& R = this->template gettmp<ExcitationOperator<U,2> >(rname);
+            R(0) = 0; R(1) = 0; R(2) = 0;
+            R(1) = TDAevecs[i][singlets[root]]; 
+
+            // vector<U> alphadata;
+            // vector<U> betadata;
+            // R(1)(vec(0,0),vec(0,0))(vec(0,0)).getAllData(alphadata);
+            // R(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(betadata);
+            // for (int i = 0; i < alphadata.size(); i++){
+            //     cout << i << setprecision(15) << " " << alphadata[i] << " " << betadata[i] << " " << alphadata[i]*betadata[i] << endl;
+            // }
+            
         }
 
         Iterative<U>::run(dag, arena, nroot_per_irrep[i]);
@@ -140,10 +177,11 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
 
     for (int root = 0;root < nroot;root++)
     {
+        // cout << "am I here?" << endl;
         string rname = "R"+str(root);
         string zname = "Z"+str(root);
 
-        ExcitationOperator<U,2>& R = this->template get   <ExcitationOperator<U,2> >(rname);
+        ExcitationOperator<U,2>& R = this->template gettmp<ExcitationOperator<U,2> >(rname);
         ExcitationOperator<U,2>& Z = this->template gettmp<ExcitationOperator<U,2> >(zname);
 
         //0.5*R(1)(vec(0,0),vec(0,0))[  "ai"] += 0.5*R(1)(vec(1,0),vec(0,1))[  "ai"];
@@ -186,7 +224,7 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
 
     vector<U> energies = davidson.extrapolate(Rs, Zs, D);
 
-    for (int i = 1;i < nroot;i++)
+    for (int i = 0;i < nroot;i++)
     {
         this->energy(i) = energies[i];
         this->conv(i) = Zs[i]->norm(00);

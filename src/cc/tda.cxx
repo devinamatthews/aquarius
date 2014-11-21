@@ -72,7 +72,7 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
     vector<vector<SpinorbitalTensor<U> > >& TDAevecs = get<vector<vector<SpinorbitalTensor<U> > > >("TDAevecs");
     vector<vector<U> >& TDAevals = get<vector<vector<U> > >("TDAevals");
 
-
+    
     vector<int> alphasize(nirrep);
     vector<int> betasize(nirrep);
     vector<int> tempvec1(2);
@@ -104,14 +104,14 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
 
         assert(count == nirrep);
         int SL = alphatot+betatot;
-        vector<U> data(SL*SL);
+        vector<U> data(pow(SL,2));
         int Yoffset = 0;
         int Xoffset = 0;
 
         for (int Y = 0; Y < nirrep; Y++) {
             int b = subindex[Y][0];
             int j = subindex[Y][1];
-            if (Y != 0)
+            if (Y != 0) 
                 Yoffset += (alphasize[Y-1] + betasize[Y-1]);
             for (int X = 0; X < nirrep; X++) {
                 int a = subindex[X][0];
@@ -123,11 +123,8 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                 for (int spin_bj = 1;spin_bj >= 0;spin_bj--) {
                     for (int spin_ai = 1;spin_ai >= 0;spin_ai--) {
                         CTFTensor<U>& this_tensor = Hguess(vec(spin_ai,spin_bj),vec(spin_bj,spin_ai))(vec(a,j,b,i));
-                        // CTFTensor<U> trans_tensor(Hguess(vec(spin_ai,spin_bj),vec(spin_bj,spin_ai))(vec(a,i,b,j))); // Fix for UHF, use norm ctor using vrt, occ
-                        CTFTensor<U> trans_tensor("trans_tensor", arena, 4, vec((spin_ai == 1 ? vrt.nalpha[a] : vrt.nbeta[a]),
-                                                                                (spin_ai == 1 ? occ.nalpha[i] : occ.nbeta[i]),
-                                                                                (spin_bj == 1 ? vrt.nalpha[b] : vrt.nbeta[b]),
-                                                                                (spin_bj == 1 ? occ.nalpha[j] : occ.nbeta[j])), vec(NS,NS,NS,NS), true);
+                        CTFTensor<U> trans_tensor(Hguess(vec(spin_ai,spin_bj),vec(spin_bj,spin_ai))(vec(a,i,b,j))); // Fix for UHF, use norm ctor using vrt, occ
+                        // CTFTensor<U> trans_tensor("trans_tensor", arena, 4, vec(vrt.nalpha[a],occ.nalpha[i],vrt.nbeta[b],occ.nbeta[j]), vec(NS,NS,NS,NS), true);
                         trans_tensor["ajbi"] = this_tensor["aibj"];
                         vector<U> tempdata;
                         trans_tensor.getAllData(tempdata);
@@ -138,7 +135,7 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                             for (int l = 0; l < ind2; l++) {
                                 data[l+k*SL+Xoffset+Yoffset*SL + spin_ai*alphasize[X] + spin_bj*alphasize[Y]*SL] = tempdata[l+k*ind2];
                             }
-                        }
+                        } 
                     }
                 }
             }
@@ -146,9 +143,19 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
         vector<U> w(SL);
         heev('V','U',SL,data.data(),SL,w.data());
         TDAevals.push_back(w);
-        for (int i = 0; i < w.size(); i++)
-            cout << setprecision(10)<< w[i] << endl;
-        /* First attempt at evec storage:
+        // cout << "Eval:" << endl;
+        // // for (int i = 0; i < w.size(); i++)
+        // //     cout << setprecision(10) << i << " " << w[i] << endl;
+        // cout << setprecision(10) << 1 << " " << w[1] << endl;
+
+        // double temptot = 0.0;
+        // cout << "Evec:" << endl;
+        // for (int i = SL; i < 2*SL; i++) {
+        //     cout << setprecision(10) << i-SL << " " << 2*data[i]*data[i] << endl;
+        //     temptot += data[i]*data[i];
+        // }
+        // cout << "temptot = " << temptot << endl;
+        // First attempt at evec storage:
         SpinorbitalTensor<U> tempSoT(W.getAI());
         tempSoT = 0;
         vector<SpinorbitalTensor<U> > tempvec2(SL,tempSoT);
@@ -157,20 +164,37 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
             int offset = 0;
             int alphadone = 0;
             int betadone = 0;
+            // double total = 0.0;
+            // for (int m = 0; m < SL; m++) {
+            //     total += data[i*SL + m];
+            // }
+            // cout << "total = " << total << endl;
             for (int j = 0; j < nirrep; j++) {
                 for (int k = 0; k < alphasize[j]; k++) {
-                    TDAevecs[R][i](vec(0,0),vec(0,0))(vec(subindex[j][0],subindex[j][1])).writeRemoteData(vec(kv_pair(alphadone+k,data[i*SL+offset+k])));
+                    if (arena.rank == 0)
+                        // TDAevecs[R][i](vec(0,0),vec(0,0))(vec(0,0)).writeRemoteData(vec(kv_pair(alphadone+k,data[i*SL+offset+k]/sqrt(2))));
+                        TDAevecs[R][i](vec(0,0),vec(0,0))(vec(0,0)).writeRemoteData(vec(kv_pair(alphadone+k,data[i*SL+offset+k])));
+                    else
+                        TDAevecs[R][i](vec(0,0),vec(0,0))(vec(0,0)).writeRemoteData();
+                    // total += data[i*SL+offset+k];
                 }
                 offset += alphasize[j];
                 alphadone += alphasize[j];
+                
                 for (int l = 0; l < betasize[j]; l++) {
-                    TDAevecs[R][i](vec(1,0),vec(0,1))(vec(subindex[j][0],subindex[j][1])).writeRemoteData(vec(kv_pair(betadone+l,data[i*SL+offset+l])));
+                    if (arena.rank == 0)
+                        // TDAevecs[R][i](vec(1,0),vec(0,1))(vec(0,0)).writeRemoteData(vec(kv_pair(betadone+l,data[i*SL+offset+l]/sqrt(2))));
+                        TDAevecs[R][i](vec(1,0),vec(0,1))(vec(0,0)).writeRemoteData(vec(kv_pair(betadone+l,data[i*SL+offset+l])));
+                    else
+                        TDAevecs[R][i](vec(1,0),vec(0,1))(vec(0,0)).writeRemoteData();
+                    // total += data[i*SL+offset+l];
                 }
                 offset += betasize[j];
                 betadone += betasize[j];
+                
             }
         }
-        */
+        
     }
 }
 
