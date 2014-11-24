@@ -153,6 +153,9 @@ class Davidson : public task::Destructible
         {
             using namespace std;
 
+            // std::cout << setprecision(10) <<"Inf Norm hc = " << hc[0]->norm(00) << std::endl;
+            // std::cout << setprecision(10) <<"Inf Norm c = " << c[0]->norm(00) << std::endl;
+
             assert(nvec == c.size() && nvec == hc.size());
 
             assert(c.size() == nvec);
@@ -171,39 +174,39 @@ class Davidson : public task::Destructible
                 *c[i] /= norm;
                 *hc[i] /= norm;
 
-                printf("Norm R %d %18.15f\n", i+1, (*c[i])(1)(vec(1,0),vec(0,1)).norm(2));
+                // printf("Norm R %d %18.15f\n", i+1, (*c[i])(1)(vec(1,0),vec(0,1)).norm(2));
 
-                {
-                    vector<dtype> values;
-                    (*c[i])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
-                    vector<int64_t> keys = range<int64_t>(5*19);
-                    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
-                           absGreaterThan<dtype>);
+                // {
+                //     vector<dtype> values;
+                //     (*c[i])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                //     vector<int64_t> keys = range<int64_t>(5*19);
+                //     cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                //            absGreaterThan<dtype>);
 
-                    for (int j = 0;j < 30;j++)
-                    {
-                        int ia = keys[j]%19+6;
-                        int ii = keys[j]/19+1;
-                        //printf("%2d %2d %18.15f\n", ii, ia, values[j]);
-                    }
-                }
+                //     for (int j = 0;j < 30;j++)
+                //     {
+                //         int ia = keys[j]%19+6;
+                //         int ii = keys[j]/19+1;
+                //         //printf("%2d %2d %18.15f\n", ii, ia, values[j]);
+                //     }
+                // }
 
-                printf("Norm H*R %d %18.15f\n", i+1, (*hc[i])(1)(vec(1,0),vec(0,1)).norm(2));
+                // printf("Norm H*R %d %18.15f\n", i+1, (*hc[i])(1)(vec(1,0),vec(0,1)).norm(2));
 
-                {
-                    vector<dtype> values;
-                    (*hc[i])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
-                    vector<int64_t> keys = range<int64_t>(5*19);
-                    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
-                           absGreaterThan<dtype>);
+                // {
+                //     vector<dtype> values;
+                //     (*hc[i])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                //     vector<int64_t> keys = range<int64_t>(5*19);
+                //     cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                //            absGreaterThan<dtype>);
 
-                    for (int j = 0;j < 10;j++)
-                    {
-                        int ia = keys[j]%19+6;
-                        int ii = keys[j]/19+1;
-                        //printf("%2d %2d %18.15f\n", ii, ia, values[j]);
-                    }
-                }
+                //     for (int j = 0;j < 10;j++)
+                //     {
+                //         int ia = keys[j]%19+6;
+                //         int ii = keys[j]/19+1;
+                //         //printf("%2d %2d %18.15f\n", ii, ia, values[j]);
+                //     }
+                // }
             }
 
             if (nextrap == maxextrap) // aka we've reached our maximum iteration
@@ -317,12 +320,12 @@ class Davidson : public task::Destructible
                     {
                         for (int i = 0;i < nvec;i++)
                         {
-                            printf("%15.12f ", e[i][j][k][m]);
+                            // printf("%15.12f ", e[i][j][k][m]);
                             tmp1[i][j][k][m] = e[i][j][k][m];
                             tmp2[i][j][k][m] = s[i][j][k][m];
                         }
                     }
-                    printf("\n");
+                    // printf("\n");
                 }
             }
 
@@ -340,7 +343,7 @@ class Davidson : public task::Destructible
             for (int i = 0;i < nextrap*nvec;i++)
             {
                 //l[i] /= beta[i];
-                printf("%15.12f\n", std::real(l[i]));
+                // printf("%15.12f\n", std::real(l[i]));
 
                 for (int m = 0;m < nextrap;m++)
                 {
@@ -358,6 +361,18 @@ class Davidson : public task::Destructible
                     }
                 }
             }
+
+            // std::cout << "evec check:" << std::endl;
+            //  for (int i = 0;i < nextrap*nvec;i++)
+            // {
+            //     for (int m = 0;m < nextrap;m++)
+            //     {
+            //         for (int k = 0;k < nvec;k++) 
+            //         {
+            //             std::cout << vr[k][m][i] << std::endl;
+            //         }
+            //     }
+            // }
 
             /*
              * Assign eigenvalues (exclusively) to states by the selected criterion
@@ -434,41 +449,45 @@ class Davidson : public task::Destructible
                     }
                 }
 
+                // std::cout << setprecision(10) <<"Inf Norm hc = " << hc[j]->norm(00) << std::endl;
+                // std::cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << std::endl;
+
                 // so now c is V*y = x and hc is A*V*y = A*x
 
-                printf("Norm c %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
-                {
-                    vector<dtype> values;
-                    (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
-                    vector<int64_t> keys = range<int64_t>(5*19);
-                    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
-                           absGreaterThan<dtype>);
+                // printf("Norm c %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
+                // {
+                //     vector<dtype> values;
+                //     (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                //     vector<int64_t> keys = range<int64_t>(5*19);
+                //     cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                //            absGreaterThan<dtype>);
 
-                    for (int k = 0;k < 30;k++)
-                    {
-                        int ia = keys[k]%19+6;
-                        int ii = keys[k]/19+1;
-                        //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
-                    }
-                    printf("Badness     c %d %15.12g\n", j+1, std::abs(values[19-4*j]));
-                }
-                printf("Norm H*c %d %15.12f\n", j+1, (*hc[j])(1)(vec(1,0),vec(0,1)).norm(2));
-                {
-                    vector<dtype> values;
-                    (*hc[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
-                    vector<int64_t> keys = range<int64_t>(5*19);
-                    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
-                           absGreaterThan<dtype>);
+                //     for (int k = 0;k < 30;k++)
+                //     {
+                //         int ia = keys[k]%19+6;
+                //         int ii = keys[k]/19+1;
+                //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
+                //     }
+                //     printf("Badness     c %d %15.12g\n", j+1, std::abs(values[19-4*j]));
+                // }
+                // printf("Norm H*c %d %15.12f\n", j+1, (*hc[j])(1)(vec(1,0),vec(0,1)).norm(2));
+                // {
+                //     vector<dtype> values;
+                //     (*hc[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                //     vector<int64_t> keys = range<int64_t>(5*19);
+                //     cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                //            absGreaterThan<dtype>);
 
-                    for (int k = 0;k < 30;k++)
-                    {
-                        int ia = keys[k]%19+6;
-                        int ii = keys[k]/19+1;
-                        //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
-                    }
-                    printf("Badness   H*c %d %15.12g\n", j+1, std::abs(values[19-4*j]));
-                }
+                //     for (int k = 0;k < 30;k++)
+                //     {
+                //         int ia = keys[k]%19+6;
+                //         int ii = keys[k]/19+1;
+                //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
+                //     }
+                //     printf("Badness   H*c %d %15.12g\n", j+1, std::abs(values[19-4*j]));
+                // }
                 *hc[j] -= std::real(l[bestevs[j]])*(*c[j]);
+                // std::cout << setprecision(10) <<"Inf Norm hc = " << hc[j]->norm(00) << std::endl;
 
                 /*
                  * If we were to determine convergence at this point, then c
@@ -481,42 +500,45 @@ class Davidson : public task::Destructible
                 // now hc = A*x - mu*x = -r
 
                 *c[j] = -*hc[j]; // This is what we norm to determine convergence, which is r, makes sense.
-                printf("Norm r %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
-                {
-                    vector<dtype> values;
-                    (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
-                    vector<int64_t> keys = range<int64_t>(5*19);
-                    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
-                           absGreaterThan<dtype>);
+                // std::cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << std::endl;
+                // printf("Norm r %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
+                // {
+                //     vector<dtype> values;
+                //     (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                //     vector<int64_t> keys = range<int64_t>(5*19);
+                //     cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                //            absGreaterThan<dtype>);
 
-                    for (int k = 0;k < 10;k++)
-                    {
-                        int ia = keys[k]%19+6;
-                        int ii = keys[k]/19+1;
-                        //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
-                    }
-                    printf("Badness     r %d %15.12g\n", j+1, std::abs(values[19-4*j]));
-                }
+                //     for (int k = 0;k < 10;k++)
+                //     {
+                //         int ia = keys[k]%19+6;
+                //         int ii = keys[k]/19+1;
+                //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
+                //     }
+                //     printf("Badness     r %d %15.12g\n", j+1, std::abs(values[19-4*j]));
+                // }
                 c[j]->weight(D, std::real(l[bestevs[j]])); // Look into weight function
-                printf("Norm d %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
-                {
-                    vector<dtype> values;
-                    (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
-                    vector<int64_t> keys = range<int64_t>(5*19);
-                    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
-                           absGreaterThan<dtype>);
+                // std::cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << std::endl;
+                // printf("Norm d %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
+                // {
+                //     vector<dtype> values;
+                //     (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                //     vector<int64_t> keys = range<int64_t>(5*19);
+                //     cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                //            absGreaterThan<dtype>);
 
-                    for (int k = 0;k < 10;k++)
-                    {
-                        int ia = keys[k]%19+6;
-                        int ii = keys[k]/19+1;
-                        //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
-                    }
-                    printf("Badness     d %d %15.12g\n", j+1, std::abs(values[19-4*j]));
-                }
+                //     for (int k = 0;k < 10;k++)
+                //     {
+                //         int ia = keys[k]%19+6;
+                //         int ii = keys[k]/19+1;
+                //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
+                //     }
+                //     printf("Badness     d %d %15.12g\n", j+1, std::abs(values[19-4*j]));
+                // }
 
                 double norm = sqrt(std::abs(scalar(conj(*c[j])*(*c[j]))));
                 *c[j] /= norm;
+                
 
                 //printf("%d %15.12g\n", j+1, norm);
             }
@@ -552,23 +574,25 @@ class Davidson : public task::Destructible
                 double norm = sqrt(std::abs(scalar(conj(*c[j])*(*c[j]))));
                 *c[j] /= norm;
 
-                printf("Norm new c %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
-                {
-                    vector<dtype> values;
-                    (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
-                    vector<int64_t> keys = range<int64_t>(5*19);
-                    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
-                           absGreaterThan<dtype>);
+                // std::cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << std::endl;
 
-                    for (int k = 0;k < 10;k++)
-                    {
-                        int ia = keys[k]%19+6;
-                        int ii = keys[k]/19+1;
-                        //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
-                    }
+                // printf("Norm new c %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
+                // {
+                //     vector<dtype> values;
+                //     (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                //     vector<int64_t> keys = range<int64_t>(5*19);
+                //     cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                //            absGreaterThan<dtype>);
 
-                    printf("Badness new c %d %15.12g\n", j+1, std::abs(values[19-4*j]));
-                }
+                //     for (int k = 0;k < 10;k++)
+                //     {
+                //         int ia = keys[k]%19+6;
+                //         int ii = keys[k]/19+1;
+                //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
+                //     }
+
+                //     printf("Badness new c %d %15.12g\n", j+1, std::abs(values[19-4*j]));
+                // }
             }
 
             std::vector<dtype> myreturn(nvec);
