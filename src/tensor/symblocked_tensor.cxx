@@ -34,47 +34,43 @@ using namespace aquarius::task;
 template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other)
 : IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(other), Distributed(other.arena),
-  group(other.group), len(other.len), sym(other.sym), factor(other.factor), reorder(other.reorder)
+  group(other.group), rep(other.rep), len(other.len), sym(other.sym), factor(other.factor),
+  reorder(other.reorder)
 {
     register_scalar();
 }
 
 template <class T>
-SymmetryBlockedTensor<T>::SymmetryBlockedTensor(SymmetryBlockedTensor<T>* other)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(other->name, other->ndim, 0), Distributed(other->arena),
-  group(other->group), len(other->len), sym(other->sym)
+SymmetryBlockedTensor<T>::SymmetryBlockedTensor(SymmetryBlockedTensor<T>&& other)
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(move(other)), Distributed(other.arena),
+  group(other.group), rep(move(other.rep)), len(move(other.len)), sym(move(other.sym)),
+  factor(move(other.factor)), reorder(move(other.reorder))
 {
-    factor.swap(other->factor);
-    reorder.swap(other->reorder);
-    tensors.swap(other->tensors);
     register_scalar();
-    delete other;
 }
 
 template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, const SymmetryBlockedTensor<T>& other)
 : IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(name, other), Distributed(other.arena),
-  group(other.group), len(other.len), sym(other.sym), factor(other.factor), reorder(other.reorder)
+  group(other.group), rep(other.rep), len(other.len), sym(other.sym), factor(other.factor),
+  reorder(other.reorder)
 {
     register_scalar();
 }
 
 template <class T>
-SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, SymmetryBlockedTensor<T>* other)
-: IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(name, other->ndim, 0), Distributed(other->arena),
-  group(other->group), len(other->len), sym(other->sym)
+SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, SymmetryBlockedTensor<T>&& other)
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(name, move(other)), Distributed(other.arena),
+  group(other.group), rep(move(other.rep)), len(move(other.len)), sym(move(other.sym)),
+  factor(move(other.factor)), reorder(move(other.reorder))
 {
-    factor.swap(other->factor);
-    reorder.swap(other->reorder);
-    tensors.swap(other->tensors);
     register_scalar();
-    delete other;
 }
 
 template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, const SymmetryBlockedTensor<T>& other, T scalar)
 : IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(name, 0, 0), Distributed(other.arena),
-  group(other.group), len(0), sym(0)
+  group(other.group), rep(group.totallySymmetricIrrep()), len(0), sym(0)
 {
     factor.resize(1, 1.0);
     reorder.resize(1, vector<int>(1, 0));
@@ -89,7 +85,7 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, const Symmet
                                                 const vector<vector<int> >& start_A,
                                                 const vector<vector<int> >& len_A)
 : IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(name, A.ndim, 0), Distributed(A.arena),
-  group(A.group), len(len_A), sym(A.sym)
+  group(A.group), rep(A.rep), len(len_A), sym(A.sym)
 {
     allocate(false);
     slice((T)1, false, A, start_A, (T)0);
@@ -101,7 +97,21 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, const Arena&
                                                 int ndim, const vector<vector<int> >& len,
                                                 const vector<int>& sym, bool zero)
 : IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(name, ndim, 0), Distributed(arena),
-  group(group), len(len), sym(sym)
+  group(group), rep(group.totallySymmetricIrrep()), len(len), sym(sym)
+{
+    assert(sym.size() == ndim);
+    assert(len.size() == ndim);
+
+    allocate(zero);
+    register_scalar();
+}
+
+template <class T>
+SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, const Arena& arena, const PointGroup& group,
+                                                const Representation& rep, int ndim, const vector<vector<int> >& len,
+                                                const vector<int>& sym, bool zero)
+: IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(name, ndim, 0), Distributed(arena),
+  group(group), rep(rep), len(len), sym(sym)
 {
     assert(sym.size() == ndim);
     assert(len.size() == ndim);
@@ -139,7 +149,7 @@ void SymmetryBlockedTensor<T>::allocate(bool zero)
 
     int t = 0;
     vector<int> idx(ndim, 0);
-    vector<Representation> prod(ndim+1, group.totallySymmetricIrrep());
+    vector<Representation> prod(ndim+1, rep);
     for (bool done = false;!done;t++)
     {
         if (prod[0].isTotallySymmetric())
@@ -190,11 +200,11 @@ void SymmetryBlockedTensor<T>::allocate(bool zero)
         if (ndim == 0) done = true;
     }
 
-    vector<int> norder(reorder[0]);
+    vector<int> norder = range(ndim);
 
     t = 0;
     idx.assign(ndim, 0);
-    prod.assign(ndim+1, group.totallySymmetricIrrep());
+    prod.assign(ndim+1, rep);
     for (bool done = false;!done;t++)
     {
         if (prod[0].isTotallySymmetric() && tensors[t].tensor == NULL)

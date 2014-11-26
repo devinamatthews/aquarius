@@ -71,14 +71,14 @@ void CholeskyMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     const vector<int>& na = vrt.nbeta;
     int R = chol.getRank();
 
-    vector<vector<int> > sizeIIR = vec(nI, nI, vec(R));
-    vector<vector<int> > sizeiiR = vec(ni, ni, vec(R));
-    vector<vector<int> > sizeAAR = vec(nA, nA, vec(R));
-    vector<vector<int> > sizeaaR = vec(na, na, vec(R));
-    vector<vector<int> > sizeAIR = vec(nA, nI, vec(R));
-    vector<vector<int> > sizeaiR = vec(na, ni, vec(R));
+    vector<vector<int> > sizeIIR = {nI, nI, {R}};
+    vector<vector<int> > sizeiiR = {ni, ni, {R}};
+    vector<vector<int> > sizeAAR = {nA, nA, {R}};
+    vector<vector<int> > sizeaaR = {na, na, {R}};
+    vector<vector<int> > sizeAIR = {nA, nI, {R}};
+    vector<vector<int> > sizeaiR = {na, ni, {R}};
 
-    vector<int> shapeNNN = vec(NS, NS, NS);
+    vector<int> shapeNNN = {NS, NS, NS};
 
     SymmetryBlockedTensor<T> LIJ("LIJ", arena, group, 3, sizeIIR, shapeNNN, false);
     SymmetryBlockedTensor<T> Lij("Lij", arena, group, 3, sizeiiR, shapeNNN, false);
@@ -88,10 +88,10 @@ void CholeskyMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     SymmetryBlockedTensor<T> Lai("Lai", arena, group, 3, sizeaiR, shapeNNN, false);
 
     {
-        vector<vector<int> > sizeNIR = vec(N, nI, vec(R));
-        vector<vector<int> > sizeNiR = vec(N, ni, vec(R));
-        vector<vector<int> > sizeNAR = vec(N, nA, vec(R));
-        vector<vector<int> > sizeNaR = vec(N, na, vec(R));
+        vector<vector<int> > sizeNIR = {N, nI, {R}};
+        vector<vector<int> > sizeNiR = {N, ni, {R}};
+        vector<vector<int> > sizeNAR = {N, nA, {R}};
+        vector<vector<int> > sizeNaR = {N, na, {R}};
 
         SymmetryBlockedTensor<T> LpI("LpI", arena, group, 3, sizeNIR, shapeNNN, false);
         SymmetryBlockedTensor<T> Lpi("Lpi", arena, group, 3, sizeNiR, shapeNNN, false);
@@ -125,50 +125,50 @@ void CholeskyMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     LDAB["ABR"] = D["R"]*LAB["ABR"];
     LDab["abR"] = D["R"]*Lab["abR"];
 
-    H.getIJKL()(vec(0,2),vec(0,2))["IJKL"] = 0.5*LDIJ["IKR"]*LIJ["JLR"];
-    H.getIJKL()(vec(0,1),vec(0,1))["IjKl"] =     LDIJ["IKR"]*Lij["jlR"];
-    H.getIJKL()(vec(0,0),vec(0,0))["ijkl"] = 0.5*LDij["ikR"]*Lij["jlR"];
+    H.getIJKL()({0,2},{0,2})["IJKL"] = 0.5*LDIJ["IKR"]*LIJ["JLR"];
+    H.getIJKL()({0,1},{0,1})["IjKl"] =     LDIJ["IKR"]*Lij["jlR"];
+    H.getIJKL()({0,0},{0,0})["ijkl"] = 0.5*LDij["ikR"]*Lij["jlR"];
 
-    H.getIJAK()(vec(0,2),vec(1,1))["IJAK"] =  LDIJ["JKR"]*LAI["AIR"];
-    H.getIJAK()(vec(0,1),vec(1,0))["IjAk"] =  LDij["jkR"]*LAI["AIR"];
-    H.getIJAK()(vec(0,1),vec(0,1))["IjaK"] = -LDIJ["IKR"]*Lai["ajR"];
-    H.getIJAK()(vec(0,0),vec(0,0))["ijak"] =  LDij["jkR"]*Lai["aiR"];
+    H.getIJAK()({0,2},{1,1})["IJAK"] =  LDIJ["JKR"]*LAI["AIR"];
+    H.getIJAK()({0,1},{1,0})["IjAk"] =  LDij["jkR"]*LAI["AIR"];
+    H.getIJAK()({0,1},{0,1})["IjaK"] = -LDIJ["IKR"]*Lai["ajR"];
+    H.getIJAK()({0,0},{0,0})["ijak"] =  LDij["jkR"]*Lai["aiR"];
 
-    H.getAIJK()(vec(1,1),vec(0,2))["AIJK"] = H.getIJAK()(vec(0,2),vec(1,1))["JKAI"];
-    H.getAIJK()(vec(1,0),vec(0,1))["AiJk"] = H.getIJAK()(vec(0,1),vec(1,0))["JkAi"];
-    H.getAIJK()(vec(0,1),vec(0,1))["aIJk"] = H.getIJAK()(vec(0,1),vec(0,1))["JkaI"];
-    H.getAIJK()(vec(0,0),vec(0,0))["aijk"] = H.getIJAK()(vec(0,0),vec(0,0))["jkai"];
+    H.getAIJK()({1,1},{0,2})["AIJK"] = H.getIJAK()({0,2},{1,1})["JKAI"];
+    H.getAIJK()({1,0},{0,1})["AiJk"] = H.getIJAK()({0,1},{1,0})["JkAi"];
+    H.getAIJK()({0,1},{0,1})["aIJk"] = H.getIJAK()({0,1},{0,1})["JkaI"];
+    H.getAIJK()({0,0},{0,0})["aijk"] = H.getIJAK()({0,0},{0,0})["jkai"];
 
-    H.getABIJ()(vec(2,0),vec(0,2))["ABIJ"] = 0.5*LDAI["AIR"]*LAI["BJR"];
-    H.getABIJ()(vec(1,0),vec(0,1))["AbIj"] =     LDAI["AIR"]*Lai["bjR"];
-    H.getABIJ()(vec(0,0),vec(0,0))["abij"] = 0.5*LDai["aiR"]*Lai["bjR"];
+    H.getABIJ()({2,0},{0,2})["ABIJ"] = 0.5*LDAI["AIR"]*LAI["BJR"];
+    H.getABIJ()({1,0},{0,1})["AbIj"] =     LDAI["AIR"]*Lai["bjR"];
+    H.getABIJ()({0,0},{0,0})["abij"] = 0.5*LDai["aiR"]*Lai["bjR"];
 
-    H.getIJAB()(vec(0,2),vec(2,0))["IJAB"] = H.getABIJ()(vec(2,0),vec(0,2))["ABIJ"];
-    H.getIJAB()(vec(0,1),vec(1,0))["IjAb"] = H.getABIJ()(vec(1,0),vec(0,1))["AbIj"];
-    H.getIJAB()(vec(0,0),vec(0,0))["ijab"] = H.getABIJ()(vec(0,0),vec(0,0))["abij"];
+    H.getIJAB()({0,2},{2,0})["IJAB"] = H.getABIJ()({2,0},{0,2})["ABIJ"];
+    H.getIJAB()({0,1},{1,0})["IjAb"] = H.getABIJ()({1,0},{0,1})["AbIj"];
+    H.getIJAB()({0,0},{0,0})["ijab"] = H.getABIJ()({0,0},{0,0})["abij"];
 
-    H.getAIBJ()(vec(1,1),vec(1,1))["AIBJ"]  = LDAB["ABR"]*LIJ["IJR"];
-    H.getAIBJ()(vec(1,1),vec(1,1))["AIBJ"] -= LDAI["AJR"]*LAI["BIR"];
-    H.getAIBJ()(vec(1,0),vec(1,0))["AiBj"]  = LDAB["ABR"]*Lij["ijR"];
-    H.getAIBJ()(vec(0,1),vec(0,1))["aIbJ"]  = LDab["abR"]*LIJ["IJR"];
-    H.getAIBJ()(vec(0,0),vec(0,0))["aibj"]  = LDab["abR"]*Lij["ijR"];
-    H.getAIBJ()(vec(0,0),vec(0,0))["aibj"] -= LDai["ajR"]*Lai["biR"];
-    H.getAIBJ()(vec(1,0),vec(0,1))["AibJ"]  = -H.getABIJ()(vec(1,0),vec(0,1))["AbJi"];
-    H.getAIBJ()(vec(0,1),vec(1,0))["aIBj"]  = -H.getABIJ()(vec(1,0),vec(0,1))["BaIj"];
+    H.getAIBJ()({1,1},{1,1})["AIBJ"]  = LDAB["ABR"]*LIJ["IJR"];
+    H.getAIBJ()({1,1},{1,1})["AIBJ"] -= LDAI["AJR"]*LAI["BIR"];
+    H.getAIBJ()({1,0},{1,0})["AiBj"]  = LDAB["ABR"]*Lij["ijR"];
+    H.getAIBJ()({0,1},{0,1})["aIbJ"]  = LDab["abR"]*LIJ["IJR"];
+    H.getAIBJ()({0,0},{0,0})["aibj"]  = LDab["abR"]*Lij["ijR"];
+    H.getAIBJ()({0,0},{0,0})["aibj"] -= LDai["ajR"]*Lai["biR"];
+    H.getAIBJ()({1,0},{0,1})["AibJ"]  = -H.getABIJ()({1,0},{0,1})["AbJi"];
+    H.getAIBJ()({0,1},{1,0})["aIBj"]  = -H.getABIJ()({1,0},{0,1})["BaIj"];
 
-    H.getABCI()(vec(2,0),vec(1,1))["ABCI"] =  LDAB["ACR"]*LAI["BIR"];
-    H.getABCI()(vec(1,0),vec(1,0))["AbCi"] =  LDAB["ACR"]*Lai["biR"];
-    H.getABCI()(vec(1,0),vec(0,1))["AbcI"] = -LDab["bcR"]*LAI["AIR"];
-    H.getABCI()(vec(0,0),vec(0,0))["abci"] =  LDab["acR"]*Lai["biR"];
+    H.getABCI()({2,0},{1,1})["ABCI"] =  LDAB["ACR"]*LAI["BIR"];
+    H.getABCI()({1,0},{1,0})["AbCi"] =  LDAB["ACR"]*Lai["biR"];
+    H.getABCI()({1,0},{0,1})["AbcI"] = -LDab["bcR"]*LAI["AIR"];
+    H.getABCI()({0,0},{0,0})["abci"] =  LDab["acR"]*Lai["biR"];
 
-    H.getAIBC()(vec(1,1),vec(2,0))["AIBC"] = H.getABCI()(vec(2,0),vec(1,1))["BCAI"];
-    H.getAIBC()(vec(1,0),vec(1,0))["AiBc"] = H.getABCI()(vec(1,0),vec(1,0))["BcAi"];
-    H.getAIBC()(vec(0,1),vec(1,0))["aIBc"] = H.getABCI()(vec(1,0),vec(0,1))["BcaI"];
-    H.getAIBC()(vec(0,0),vec(0,0))["aibc"] = H.getABCI()(vec(0,0),vec(0,0))["bcai"];
+    H.getAIBC()({1,1},{2,0})["AIBC"] = H.getABCI()({2,0},{1,1})["BCAI"];
+    H.getAIBC()({1,0},{1,0})["AiBc"] = H.getABCI()({1,0},{1,0})["BcAi"];
+    H.getAIBC()({0,1},{1,0})["aIBc"] = H.getABCI()({1,0},{0,1})["BcaI"];
+    H.getAIBC()({0,0},{0,0})["aibc"] = H.getABCI()({0,0},{0,0})["bcai"];
 
-    H.getABCD()(vec(2,0),vec(2,0))["ABCD"] = 0.5*LDAB["ACR"]*LAB["BDR"];
-    H.getABCD()(vec(1,0),vec(1,0))["AbCd"] =     LDAB["ACR"]*Lab["bdR"];
-    H.getABCD()(vec(0,0),vec(0,0))["abcd"] = 0.5*LDab["acR"]*Lab["bdR"];
+    H.getABCD()({2,0},{2,0})["ABCD"] = 0.5*LDAB["ACR"]*LAB["BDR"];
+    H.getABCD()({1,0},{1,0})["AbCd"] =     LDAB["ACR"]*Lab["bdR"];
+    H.getABCD()({0,0},{0,0})["abcd"] = 0.5*LDab["acR"]*Lab["bdR"];
 }
 
 INSTANTIATE_SPECIALIZATIONS(CholeskyMOIntegrals);

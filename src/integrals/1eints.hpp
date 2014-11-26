@@ -155,7 +155,7 @@ class OneElectronIntegralsTask : public task::Task
             public:
                 OneElectronIntegral(const Arena& arena, const std::string& name,
                                     const symmetry::PointGroup& group, const std::vector<int>& norb)
-                : tensor::SymmetryBlockedTensor<double>(name, arena, group, 2, std::vec(norb,norb), std::vec(NS,NS), true),
+                : tensor::SymmetryBlockedTensor<double>(name, arena, group, 2, {norb,norb}, {NS,NS}, true),
                   name(name) {}
         };
 

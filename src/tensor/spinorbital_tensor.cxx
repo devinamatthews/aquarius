@@ -155,7 +155,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const SpinorbitalTen
   Distributed(t.arena), group(t.group), spin(0)
 {
     cases.push_back(SpinCase());
-    cases.back().construct(*this, vector<int>(), vector<int>());
+    cases.back().construct(*this, group.totallySymmetricIrrep(), vector<int>(), vector<int>());
     *cases.back().tensor = val;
     register_scalar();
 }
@@ -250,7 +250,113 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const Arena& arena,
                 if (ok)
                 {
                     cases.push_back(SpinCase());
-                    cases.back().construct(*this, alpha_out, alpha_in);
+                    cases.back().construct(*this, group.totallySymmetricIrrep(), alpha_out, alpha_in);
+                }
+
+                for (int i = 0;i < alphain;i++)
+                {
+                    whichin[i]++;
+                    if (i < alphain-1)
+                    {
+                        if (whichin[i] <= whichin[i+1]) break;
+                        whichin[i] = 0;
+                    }
+                    else
+                    {
+                        if (whichin[i] < nspaces) break;
+                        if (i == alphain-1) donein = true;
+                    }
+                }
+
+                if (alphain == 0) donein = true;
+            }
+
+            for (int i = 0;i < alphaout;i++)
+            {
+                whichout[i]++;
+                if (i < alphaout-1)
+                {
+                    if (whichout[i] <= whichout[i+1]) break;
+                    whichout[i] = 0;
+                }
+                else
+                {
+                    if (whichout[i] < nspaces) break;
+                    if (i == alphaout-1) doneout = true;
+                }
+            }
+
+            if (alphaout == 0) doneout = true;
+        }
+    }
+
+    register_scalar();
+}
+
+template<class T>
+SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const Arena& arena,
+                                        const PointGroup& group,
+                                        const Representation& rep,
+                                        const vector<Space>& spaces,
+                                        const vector<int>& nout,
+                                        const vector<int>& nin, int spin)
+: IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T>(name, std::sum(nout)+std::sum(nin), 0),
+  Distributed(arena), group(group), spaces(spaces), nout(nout), nin(nin), spin(spin)
+{
+    int nspaces = spaces.size();
+    int nouttot = std::sum(nout);
+    int nintot = std::sum(nin);
+    vector<int> whichout(nouttot), whichin(nintot);
+    vector<int> alpha_out(nspaces), alpha_in(nspaces);
+
+    for (int i = 0;i < nspaces;i++) assert(group == spaces[i].group);
+
+    assert(abs(spin) <= nouttot+nintot);
+    assert(abs(spin) >= abs(nouttot-nintot));
+    assert(abs(spin)%2 == abs(nouttot-nintot)%2);
+
+    for (int alphaout = 0;alphaout <= nouttot;alphaout++)
+    {
+        int alphain = alphaout + (nouttot-nintot-spin)/2;
+        if (alphain < 0 || alphain > nintot) continue;
+
+        fill(whichout.begin(), whichout.end(), 0);
+
+        for (bool doneout = false;!doneout;)
+        {
+            fill(alpha_out.begin(), alpha_out.end(), 0);
+
+            for (int i = 0;i < alphaout;i++)
+            {
+                alpha_out[whichout[i]]++;
+            }
+
+            fill(whichin.begin(), whichin.end(), 0);
+
+            for (bool donein = false;!donein;)
+            {
+                fill(alpha_in.begin(), alpha_in.end(), 0);
+
+                for (int i = 0;i < alphain;i++)
+                {
+                    alpha_in[whichin[i]]++;
+                }
+
+                bool ok = true;
+                for (int i = 0;i < spaces.size();i++)
+                {
+                    if (alpha_out[i] > nout[i] ||
+                        alpha_in[i] > nin[i])
+                    {
+                        ok = false;
+                        break;
+                    }
+                }
+
+                if (ok)
+                {
+                    cases.push_back(SpinCase());
+                    cases.back().construct(*this, rep, alpha_out, alpha_in);
                 }
 
                 for (int i = 0;i < alphain;i++)
@@ -301,6 +407,7 @@ SpinorbitalTensor<T>::~SpinorbitalTensor()
 
 template<class T>
 void SpinorbitalTensor<T>::SpinCase::construct(SpinorbitalTensor<T>& t,
+                                               const Representation& rep,
                                                const vector<int>& alpha_out,
                                                const vector<int>& alpha_in)
 {
@@ -346,7 +453,7 @@ void SpinorbitalTensor<T>::SpinCase::construct(SpinorbitalTensor<T>& t,
         if (i > 0) sym[i-1] = NS;
     }
 
-    tensor = new SymmetryBlockedTensor<T>(t.name, t.arena, t.group, t.ndim, len, sym, true);
+    tensor = new SymmetryBlockedTensor<T>(t.name, t.arena, t.group, rep, t.ndim, len, sym, true);
     t.addTensor(tensor);
 }
 
@@ -549,9 +656,9 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
         exclude(lines_CnotAB_in, lines_BandC_in);
 
         Diagram d = Diagram(Diagram::SPINORBITAL,
-                            vec(Term(Diagram::SPINORBITAL)*
-                                Fragment("A", lines_A_out, lines_A_in)*
-                                Fragment("B", lines_B_out, lines_B_in)));
+                            {Term(Diagram::SPINORBITAL)*
+                             Fragment("A", lines_A_out, lines_A_in)*
+                             Fragment("B", lines_B_out, lines_B_in)});
 
         for (int s = 0;s < max(max(A.spaces.size(),B.spaces.size()),spaces.size());s++)
         {
@@ -684,31 +791,16 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
             const SymmetryBlockedTensor<T>& tensor_B = B(alpha_out_B, alpha_in_B);
 
             /*
-            cout << alpha << " " << beta[sc] << " " << *t << endl;
-            cout <<    tensor_A.getSymmetry() << " " <<   alpha_out_A << " " <<   alpha_in_A << endl;
-            cout <<    tensor_B.getSymmetry() << " " <<   alpha_out_B << " " <<   alpha_in_B << endl;
-            cout << scC.tensor->getSymmetry() << " " << scC.alpha_out << " " << scC.alpha_in << endl;
-            cout << idx_A__ << " " << idx_B__ << " " << idx_C__ << endl;
-
-            T before;
-            if (this->ndim == 0)
-            {
-                int64_t n;
-                before = (*scC.tensor)(0).getRawData(n)[0];
-            }
+                cout << alpha << " " << beta[sc] << " " << *t << endl;
+                cout <<    tensor_A.getSymmetry() << " " <<   alpha_out_A << " " <<   alpha_in_A << endl;
+                cout <<    tensor_B.getSymmetry() << " " <<   alpha_out_B << " " <<   alpha_in_B << endl;
+                cout << scC.tensor->getSymmetry() << " " << scC.alpha_out << " " << scC.alpha_in << endl;
+                cout << idx_A__ << " " << idx_B__ << " " << idx_C__ << endl;
             */
 
             scC.tensor->mult(alpha*diagFactor, conja, tensor_A, idx_A__,
                                                conjb, tensor_B, idx_B__,
                                      beta[sc],                  idx_C__);
-
-            /*
-            if (this->ndim == 0)
-            {
-                int64_t n;
-                cout << "? " << (*scC.tensor)(0).getRawData(n)[0]-before << endl;
-            }
-            */
 
             beta[sc] = 1.0;
         }
@@ -830,8 +922,8 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
         exclude(lines_BnotA_in, lines_AandB_in);
 
         Diagram d = Diagram(Diagram::SPINORBITAL,
-                            vec(Term(Diagram::SPINORBITAL)*
-                                Fragment("A", lines_A_out, lines_A_in)));
+                            {Term(Diagram::SPINORBITAL)*
+                             Fragment("A", lines_A_out, lines_A_in)});
 
         for (int s = 0;s < max(A.spaces.size(),spaces.size());s++)
         {
@@ -1009,8 +1101,8 @@ typename std::real_type<T>::type SpinorbitalTensor<T>::norm(int p) const
         double factor = 1;
         for (int s = 0;s < spaces.size();s++)
         {
-            //factor *= binom(nout[s], sc->alpha_out[s]);
-            //factor *= binom( nin[s],  sc->alpha_in[s]);
+            factor *= binom(nout[s], sc->alpha_out[s]);
+            factor *= binom( nin[s],  sc->alpha_in[s]);
         }
 
         typename std::real_type<T>::type subnrm = sc->tensor->norm(p);

@@ -226,16 +226,16 @@ double CCSD<U>::getProjectedS2(const MOSpace<U>& occ, const MOSpace<U>& vrt,
     int nA = vrt.nalpha;
     int na = vrt.nbeta;
 
-    vector<int> shapeNN = vec(NS,NS);
-    vector<int> shapeNNNN = vec(NS,NS,NS,NS);
-    vector<int> sizeAI = vec(nA,nI);
-    vector<int> sizeAi = vec(nA,ni);
-    vector<int> sizeaI = vec(na,nI);
-    vector<int> sizeai = vec(na,ni);
-    vector<int> sizeIi = vec(nI,ni);
-    vector<int> sizeIn = vec(nI,N);
-    vector<int> sizein = vec(ni,N);
-    vector<int> sizeAaIi = vec(nA,na,nI,ni);
+    vector<int> shapeNN = {NS,NS};
+    vector<int> shapeNNNN = {NS,NS,NS,NS};
+    vector<int> sizeAI = {nA,nI};
+    vector<int> sizeAi = {nA,ni};
+    vector<int> sizeaI = {na,nI};
+    vector<int> sizeai = {na,ni};
+    vector<int> sizeIi = {nI,ni};
+    vector<int> sizeIn = {nI,N};
+    vector<int> sizein = {ni,N};
+    vector<int> sizeAaIi = {nA,na,nI,ni};
 
     const CTFTensor<U>& CA = vrt.Calpha;
     const CTFTensor<U>& Ca = vrt.Cbeta;
@@ -243,7 +243,7 @@ double CCSD<U>::getProjectedS2(const MOSpace<U>& occ, const MOSpace<U>& vrt,
     const CTFTensor<U>& Ci = occ.Cbeta;
 
     //TODO
-    CTFTensor<U> S(arena, 2, vec(N,N), shapeNN, true);
+    CTFTensor<U> S(arena, 2, {N,N}, shapeNN, true);
 
     CTFTensor<U> DAI(arena, 2, sizeAI, shapeNN, false);
     CTFTensor<U> DAi(arena, 2, sizeAi, shapeNN, false);

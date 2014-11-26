@@ -65,6 +65,13 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,S
                           const std::vector<int>& nout,
                           const std::vector<int>& nin, int spin=0);
 
+        SpinorbitalTensor(const std::string& name, const Arena& arena,
+                          const symmetry::PointGroup& group,
+                          const symmetry::Representation& rep,
+                          const std::vector<op::Space>& spaces,
+                          const std::vector<int>& nout,
+                          const std::vector<int>& nin, int spin=0);
+
         ~SpinorbitalTensor();
 
         const symmetry::PointGroup& getGroup() const { return group; }
@@ -100,6 +107,7 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,S
             std::vector<int> alpha_out, alpha_in;
 
             void construct(SpinorbitalTensor<T>& t,
+                           const symmetry::Representation& rep,
                            const std::vector<int>& alpha_out,
                            const std::vector<int>& alpha_in);
         };

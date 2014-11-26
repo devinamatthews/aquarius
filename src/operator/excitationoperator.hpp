@@ -63,14 +63,32 @@ class ExcitationOperator
 
                 tensors[ex+std::abs(np-nh)].isAlloced = true;
                 tensors[ex+std::abs(np-nh)].tensor =
-                    new tensor::SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt,occ), std::vec(nv,0), std::vec(0,no), spin);
+                    new tensor::SpinorbitalTensor<T>(name, arena, occ.group, {vrt,occ}, {nv,0}, {0,no}, spin);
+            }
+        }
+
+        ExcitationOperator(const std::string& name, const Arena& arena, const Space& occ, const Space& vrt,
+                           const symmetry::Representation& rep, int spin=0)
+        : MOOperator(arena, occ, vrt),
+          tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
+           tensor::SpinorbitalTensor<T>, T >(name, std::max(np,nh)+1),
+          spin(spin)
+        {
+            for (int ex = 0;ex <= std::min(np,nh);ex++)
+            {
+                int nv = ex+(np > nh ? np-nh : 0);
+                int no = ex+(nh > np ? nh-np : 0);
+
+                tensors[ex+std::abs(np-nh)].isAlloced = true;
+                tensors[ex+std::abs(np-nh)].tensor =
+                    new tensor::SpinorbitalTensor<T>(name, arena, occ.group, rep, {vrt,occ}, {nv,0}, {0,no}, spin);
             }
         }
 
         void weight(const Denominator<T>& d, double shift = 0)
         {
-            std::vector<const std::vector<std::vector<T> >*> da = vec(&d.getDA(), &d.getDI());
-            std::vector<const std::vector<std::vector<T> >*> db = vec(&d.getDa(), &d.getDi());
+            std::vector<const std::vector<std::vector<T> >*> da{&d.getDA(), &d.getDI()};
+            std::vector<const std::vector<std::vector<T> >*> db{&d.getDa(), &d.getDi()};
 
             for (int ex = 0;ex <= std::min(np,nh);ex++)
             {

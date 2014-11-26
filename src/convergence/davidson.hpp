@@ -84,9 +84,9 @@ class Davidson : public task::Destructible
             assert(nvec > 0);
             assert(maxextrap > 0);
 
-            guess_overlap.resize(std::vec(nvec, maxextrap, nvec));
-            s.resize(std::vec(nvec, maxextrap, nvec, maxextrap));
-            e.resize(std::vec(nvec, maxextrap, nvec, maxextrap));
+            guess_overlap.resize({nvec, maxextrap, nvec});
+            s.resize({nvec, maxextrap, nvec, maxextrap});
+            e.resize({nvec, maxextrap, nvec, maxextrap});
             c.resize(maxextrap*nvec);
 
             old_c.resize(maxextrap, std::vector<T*>(nvec, (T*)NULL));
@@ -146,7 +146,7 @@ class Davidson : public task::Destructible
         dtype extrapolate(T& c, T& hc, const op::Denominator<dtype>& D)
         {
             assert(nvec == 1);
-            return extrapolate(std::vec(&c), std::vec(&hc), D)[0];
+            return extrapolate({&c}, {&hc}, D)[0];
         }
 
         std::vector<dtype> extrapolate(const std::vector<T*>& c, const std::vector<T*>& hc, const op::Denominator<dtype>& D)
@@ -174,11 +174,11 @@ class Davidson : public task::Destructible
                 *c[i] /= norm;
                 *hc[i] /= norm;
 
-                // printf("Norm R %d %18.15f\n", i+1, (*c[i])(1)(vec(1,0),vec(0,1)).norm(2));
+                // printf("Norm R %d %18.15f\n", i+1, (*c[i])(1)({1,0},{0,1}).norm(2));
 
                 // {
                 //     vector<dtype> values;
-                //     (*c[i])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                //     (*c[i])(1)({1,0},{0,1})({0,0}).getAllData(values);
                 //     vector<int64_t> keys = range<int64_t>(5*19);
                 //     cosort(values.begin(), values.end(), keys.begin(), keys.end(),
                 //            absGreaterThan<dtype>);
@@ -191,11 +191,11 @@ class Davidson : public task::Destructible
                 //     }
                 // }
 
-                // printf("Norm H*R %d %18.15f\n", i+1, (*hc[i])(1)(vec(1,0),vec(0,1)).norm(2));
+                // printf("Norm H*R %d %18.15f\n", i+1, (*hc[i])(1)({1,0},{0,1}).norm(2));
 
                 // {
                 //     vector<dtype> values;
-                //     (*hc[i])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                //     (*hc[i])(1)({1,0},{0,1})({0,0}).getAllData(values);
                 //     vector<int64_t> keys = range<int64_t>(5*19);
                 //     cosort(values.begin(), values.end(), keys.begin(), keys.end(),
                 //            absGreaterThan<dtype>);
@@ -226,14 +226,14 @@ class Davidson : public task::Destructible
                 for (int i = 0;i < nvec;i++)
                 {
                     old_c[nextrap][i] = new T(*c[i]);
-                    {
-                        vector<dtype> values;
-                        (*old_c[nextrap][i])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
-                        vector<int64_t> keys = range<int64_t>(5*19);
-                        cosort(values.begin(), values.end(), keys.begin(), keys.end(),
-                               absGreaterThan<dtype>);
-                        //printf("Badness old c %d %d %d %15.12g\n", i+1, i+1, nextrap+1, std::abs(values[19-4*i]));
-                    }
+                    //{
+                    //    vector<dtype> values;
+                    //    (*old_c[nextrap][i])(1)({1,0},{0,1})({0,0}).getAllData(values);
+                    //    vector<int64_t> keys = range<int64_t>(5*19);
+                    //    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                    //           absGreaterThan<dtype>);
+                    //    //printf("Badness old c %d %d %d %15.12g\n", i+1, i+1, nextrap+1, std::abs(values[19-4*i]));
+                    //}
                 }
             }
             else
@@ -248,14 +248,14 @@ class Davidson : public task::Destructible
                 for (int i = 0;i < nvec;i++)
                 {
                     old_hc[nextrap][i] = new T(*hc[i]);
-                    {
-                        vector<dtype> values;
-                        (*old_hc[nextrap][i])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
-                        vector<int64_t> keys = range<int64_t>(5*19);
-                        cosort(values.begin(), values.end(), keys.begin(), keys.end(),
-                               absGreaterThan<dtype>);
-                        //printf("Badness old hc %d %d %d %15.12g\n", i+1, i+1, nextrap+1, std::abs(values[19-4*i]));
-                    }
+                    //{
+                    //    vector<dtype> values;
+                    //    (*old_hc[nextrap][i])(1)({1,0},{0,1})({0,0}).getAllData(values);
+                    //    vector<int64_t> keys = range<int64_t>(5*19);
+                    //    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
+                    //           absGreaterThan<dtype>);
+                    //    //printf("Badness old hc %d %d %d %15.12g\n", i+1, i+1, nextrap+1, std::abs(values[19-4*i]));
+                    //}
                 }
             }
             else
@@ -307,9 +307,9 @@ class Davidson : public task::Destructible
              */
             int info;
             std::vector<dtype> beta(nvec*nextrap);
-            std::tensor<dtype,4> tmp1(std::vec(nvec,nextrap,nvec,nextrap));
-            std::tensor<dtype,4> tmp2(std::vec(nvec,nextrap,nvec,nextrap));
-            std::tensor<dtype,3> vr(std::vec(nvec,nextrap,nvec*nextrap));
+            std::tensor<dtype,4> tmp1({nvec,nextrap,nvec,nextrap});
+            std::tensor<dtype,4> tmp2({nvec,nextrap,nvec,nextrap});
+            std::tensor<dtype,3> vr({nvec,nextrap,nvec*nextrap});
             std::vector<typename std::complex_type<dtype>::type> l(nextrap*nvec); // Eigenvalues
 
             for (int m = 0;m < nextrap;m++)
@@ -367,7 +367,7 @@ class Davidson : public task::Destructible
             // {
             //     for (int m = 0;m < nextrap;m++)
             //     {
-            //         for (int k = 0;k < nvec;k++) 
+            //         for (int k = 0;k < nvec;k++)
             //         {
             //             std::cout << vr[k][m][i] << std::endl;
             //         }
@@ -454,10 +454,10 @@ class Davidson : public task::Destructible
 
                 // so now c is V*y = x and hc is A*V*y = A*x
 
-                // printf("Norm c %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
+                // printf("Norm c %d %15.12f\n", j+1, (*c[j])(1)({1,0},{0,1}).norm(2));
                 // {
                 //     vector<dtype> values;
-                //     (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                //     (*c[j])(1)({1,0},{0,1})({0,0}).getAllData(values);
                 //     vector<int64_t> keys = range<int64_t>(5*19);
                 //     cosort(values.begin(), values.end(), keys.begin(), keys.end(),
                 //            absGreaterThan<dtype>);
@@ -470,10 +470,10 @@ class Davidson : public task::Destructible
                 //     }
                 //     printf("Badness     c %d %15.12g\n", j+1, std::abs(values[19-4*j]));
                 // }
-                // printf("Norm H*c %d %15.12f\n", j+1, (*hc[j])(1)(vec(1,0),vec(0,1)).norm(2));
+                // printf("Norm H*c %d %15.12f\n", j+1, (*hc[j])(1)({1,0},{0,1}).norm(2));
                 // {
                 //     vector<dtype> values;
-                //     (*hc[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                //     (*hc[j])(1)({1,0},{0,1})({0,0}).getAllData(values);
                 //     vector<int64_t> keys = range<int64_t>(5*19);
                 //     cosort(values.begin(), values.end(), keys.begin(), keys.end(),
                 //            absGreaterThan<dtype>);
@@ -501,10 +501,10 @@ class Davidson : public task::Destructible
 
                 *c[j] = -*hc[j]; // This is what we norm to determine convergence, which is r, makes sense.
                 // std::cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << std::endl;
-                // printf("Norm r %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
+                // printf("Norm r %d %15.12f\n", j+1, (*c[j])(1)({1,0},{0,1}).norm(2));
                 // {
                 //     vector<dtype> values;
-                //     (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                //     (*c[j])(1)({1,0},{0,1})({0,0}).getAllData(values);
                 //     vector<int64_t> keys = range<int64_t>(5*19);
                 //     cosort(values.begin(), values.end(), keys.begin(), keys.end(),
                 //            absGreaterThan<dtype>);
@@ -519,10 +519,10 @@ class Davidson : public task::Destructible
                 // }
                 c[j]->weight(D, std::real(l[bestevs[j]])); // Look into weight function
                 // std::cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << std::endl;
-                // printf("Norm d %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
+                // printf("Norm d %d %15.12f\n", j+1, (*c[j])(1)({1,0},{0,1}).norm(2));
                 // {
                 //     vector<dtype> values;
-                //     (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                //     (*c[j])(1)({1,0},{0,1})({0,0}).getAllData(values);
                 //     vector<int64_t> keys = range<int64_t>(5*19);
                 //     cosort(values.begin(), values.end(), keys.begin(), keys.end(),
                 //            absGreaterThan<dtype>);
@@ -538,7 +538,7 @@ class Davidson : public task::Destructible
 
                 double norm = sqrt(std::abs(scalar(conj(*c[j])*(*c[j]))));
                 *c[j] /= norm;
-                
+
 
                 //printf("%d %15.12g\n", j+1, norm);
             }
@@ -576,10 +576,10 @@ class Davidson : public task::Destructible
 
                 // std::cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << std::endl;
 
-                // printf("Norm new c %d %15.12f\n", j+1, (*c[j])(1)(vec(1,0),vec(0,1)).norm(2));
+                // printf("Norm new c %d %15.12f\n", j+1, (*c[j])(1)({1,0},{0,1}).norm(2));
                 // {
                 //     vector<dtype> values;
-                //     (*c[j])(1)(vec(1,0),vec(0,1))(vec(0,0)).getAllData(values);
+                //     (*c[j])(1)({1,0},{0,1})({0,0}).getAllData(values);
                 //     vector<int64_t> keys = range<int64_t>(5*19);
                 //     cosort(values.begin(), values.end(), keys.begin(), keys.end(),
                 //            absGreaterThan<dtype>);

@@ -613,14 +613,14 @@ Diagram Term::symmetrize() const
         {
             _external.erase(find(_external.begin(), _external.end(), *l1));
             assert(l->getSpin() == l1->getSpin());
-            particles += vec(*l, *l1);
-            (l->isAlpha() ? alpha : beta) += vec(min(*l, *l1));
+            particles += {*l, *l1};
+            (l->isAlpha() ? alpha : beta) += {min(*l, *l1)};
         }
 
         l = _external.erase(l);
     }
 
-    Diagram diagram(type, vec(*this));
+    Diagram diagram(type, {*this});
     for (int i = 0;i < particles.size();i++)
     {
         Diagram tmp(type);

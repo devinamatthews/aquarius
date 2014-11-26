@@ -53,6 +53,7 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
 
     protected:
         const symmetry::PointGroup& group;
+        symmetry::Representation rep;
         std::vector< std::vector<int> > len;
         std::vector<int> sym;
         std::vector<double> factor;
@@ -77,11 +78,11 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
 
         SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other);
 
-        SymmetryBlockedTensor(SymmetryBlockedTensor<T>* other);
+        SymmetryBlockedTensor(SymmetryBlockedTensor<T>&& other);
 
         SymmetryBlockedTensor(const std::string& name, const SymmetryBlockedTensor<T>& other);
 
-        SymmetryBlockedTensor(const std::string& name, SymmetryBlockedTensor<T>* other);
+        SymmetryBlockedTensor(const std::string& name, SymmetryBlockedTensor<T>&& other);
 
         SymmetryBlockedTensor(const std::string& name, const SymmetryBlockedTensor<T>& other, T scalar);
 
@@ -91,6 +92,10 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
 
         SymmetryBlockedTensor(const std::string& name, const Arena& arena, const symmetry::PointGroup& group,
                               int ndim, const std::vector<std::vector<int> >& len,
+                              const std::vector<int>& sym, bool zero=true);
+
+        SymmetryBlockedTensor(const std::string& name, const Arena& arena, const symmetry::PointGroup& group,
+                              const symmetry::Representation& rep, int ndim, const std::vector<std::vector<int> >& len,
                               const std::vector<int>& sym, bool zero=true);
 
         ~SymmetryBlockedTensor();

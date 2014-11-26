@@ -73,20 +73,20 @@ void CCSDTQ<U>::run(task::TaskDAG& dag, const Arena& arena)
 
     this->puttmp("WABCEJK", new SpinorbitalTensor<U>("W~(abc,ejk)", arena,
                                                H.getABIJ().getGroup(),
-                                               vec(vrt, occ), vec(3, 0),
-                                               vec(1, 2)));
+                                               {vrt, occ}, {3, 0},
+                                               {1, 2}));
     this->puttmp("WABMIJK", new SpinorbitalTensor<U>("W~(abm,ijk)", arena,
                                                H.getABIJ().getGroup(),
-                                               vec(vrt, occ), vec(2, 1),
-                                               vec(0, 3)));
+                                               {vrt, occ}, {2, 1},
+                                               {0, 3}));
     this->puttmp("WAMNIJK", new SpinorbitalTensor<U>("W~(amn,ijk)", arena,
                                                H.getABIJ().getGroup(),
-                                               vec(vrt, occ), vec(1, 2),
-                                               vec(0, 3)));
+                                               {vrt, occ}, {1, 2},
+                                               {0, 3}));
     this->puttmp("WABMEJI", new SpinorbitalTensor<U>("W~(abm,ejk)", arena,
                                                H.getABIJ().getGroup(),
-                                               vec(vrt, occ), vec(2, 1),
-                                               vec(1, 2)));
+                                               {vrt, occ}, {2, 1},
+                                               {1, 2}));
 
     ExcitationOperator<U,4>& T = this->template get   <ExcitationOperator<U,4> >(  "T");
     Denominator<U>&          D = this->template gettmp<Denominator<U> >         (  "D");

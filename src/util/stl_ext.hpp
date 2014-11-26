@@ -38,1587 +38,26 @@
 #include <complex>
 #include <cstdarg>
 #include <cstdio>
+#include <tuple>
 
 #include "memory/memory.h"
 
-#if defined(__GXX_EXPERIMENTAL_CXX0X__) || _MSC_VER >= 1600 || __cplusplus >= 201103l
+#if !(defined(__GXX_EXPERIMENTAL_CXX0X__) || _MSC_VER >= 1600 || __cplusplus >= 201103l)
+#error "A C++11-capable compiler is required."
+#endif
 
 #include <type_traits>
 #include <memory>
 
 #define NON_COPYABLE(name) \
 public: \
-    name() = delete; \
+    name(const name&) = delete; \
 private:
 
 #define NON_ASSIGNABLE(name) \
 public: \
     name& operator=(const name&) = delete; \
 private:
-
-#else
-
-#define NON_COPYABLE(name) \
-private: \
-    name(const name&);
-
-#define NON_ASSIGNABLE(name) \
-private: \
-    void operator=(const name&);
-
-namespace std
-{
-    template <bool cond, class return_type = void> struct enable_if {};
-    template <class return_type> struct enable_if<true, return_type> { typedef return_type type; };
-    template <> struct enable_if<true> { typedef void type; };
-
-    template <class T, class U> struct is_same      { static const bool value = false; };
-    template <class T>          struct is_same<T,T> { static const bool value = true; };
-
-    template <class T> struct remove_cv                   {typedef T type; };
-    template <class T> struct remove_cv<const T>          {typedef T type; };
-    template <class T> struct remove_cv<volatile T>       {typedef T type; };
-    template <class T> struct remove_cv<const volatile T> {typedef T type; };
-
-    template <class T> struct make_unsigned__                   { typedef T type; };
-    template <>        struct make_unsigned__<signed char>      { typedef unsigned char type; };
-    template <>        struct make_unsigned__<signed short>     { typedef unsigned short type; };
-    template <>        struct make_unsigned__<signed int>       { typedef unsigned int type; };
-    template <>        struct make_unsigned__<signed long>      { typedef unsigned long type; };
-    template <>        struct make_unsigned__<signed long long> { typedef unsigned long long type; };
-
-    template <class T> struct make_unsigned                   { typedef typename make_unsigned__<T>::type type; };
-    template <class T> struct make_unsigned<const T>          { typedef const typename make_unsigned__<T>::type type; };
-    template <class T> struct make_unsigned<volatile T>       { typedef volatile typename make_unsigned__<T>::type type; };
-    template <class T> struct make_unsigned<const volatile T> { typedef const volatile typename make_unsigned__<T>::type type; };
-
-    template <class T> struct is_const          { static const bool value = false; };
-    template <class T> struct is_const<const T> { static const bool value = true; };
-
-    template <class T, class U = void> struct is_integral { static const bool value = false; };
-    template <class T> struct is_integral<T,
-        typename enable_if<is_same<unsigned char,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
-        { static const bool value = true; };
-    template <class T> struct is_integral<T,
-        typename enable_if<is_same<unsigned short,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
-        { static const bool value = true; };
-    template <class T> struct is_integral<T,
-        typename enable_if<is_same<unsigned int,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
-        { static const bool value = true; };
-    template <class T> struct is_integral<T,
-        typename enable_if<is_same<unsigned long,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
-        { static const bool value = true; };
-    template <class T> struct is_integral<T,
-        typename enable_if<is_same<unsigned long long,typename remove_cv<typename make_unsigned<T>::type>::type>::value>::type>
-        { static const bool value = true; };
-    template <class T> struct is_integral<T,
-        typename enable_if<is_same<bool,typename remove_cv<T>::type>::value>::type>
-        { static const bool value = true; };
-    template <class T> struct is_integral<T,
-        typename enable_if<is_same<wchar_t,typename remove_cv<T>::type>::value>::type>
-        { static const bool value = true; };
-
-    template <class T, class U = void> struct is_floating_point { static const bool value = false; };
-    template <class T> struct is_floating_point<T,
-        typename enable_if<is_same<float,typename remove_cv<T>::type>::value>::type>
-        { static const bool value = true; };
-    template <class T> struct is_floating_point<T,
-        typename enable_if<is_same<double,typename remove_cv<T>::type>::value>::type>
-        { static const bool value = true; };
-    template <class T> struct is_floating_point<T,
-        typename enable_if<is_same<long double,typename remove_cv<T>::type>::value>::type>
-        { static const bool value = true; };
-
-    template <class T, class U = void> struct is_arithmetic { static const bool value = false; };
-    template <class T> struct is_arithmetic<T,
-        typename enable_if<is_integral<T>::value>::type>
-        { static const bool value = true; };
-    template <class T> struct is_arithmetic<T,
-        typename enable_if<is_floating_point<T>::value>::type>
-        { static const bool value = true; };
-
-    template <class T, class U = void> struct is_pod { static const bool value = false; };
-    template <class T> struct is_pod<T,
-        typename enable_if<is_arithmetic<T>::value>::type>
-        { static const bool value = true; };
-    template <class T> struct is_pod<complex<T>,
-        typename enable_if<is_arithmetic<T>::value>::type>
-        { static const bool value = true; };
-
-    template <class T>
-    class shared_ptr
-    {
-        friend void swap(shared_ptr& a, shared_ptr& b)
-        {
-            a.swap(b);
-        }
-
-        friend ostream& operator<<(ostream& os, const shared_ptr& sp)
-        {
-            os << sp.get();
-            return os;
-        }
-
-        friend bool operator==(const shared_ptr& a, const shared_ptr& b)
-        {
-            return a.get() == b.get();
-        }
-
-        friend bool operator==(const T* a, const shared_ptr& b)
-        {
-            return a == b.get();
-        }
-
-        friend bool operator==(const shared_ptr& a, const T* b)
-        {
-            return a.get() == b;
-        }
-
-        friend bool operator<(const shared_ptr& a, const shared_ptr& b)
-        {
-            return a.get() < b.get();
-        }
-
-        friend bool operator<(const T* a, const shared_ptr& b)
-        {
-            return a < b.get();
-        }
-
-        friend bool operator<(const shared_ptr& a, const T* b)
-        {
-            return a.get() < b;
-        }
-
-        protected:
-            struct ref_ptr
-            {
-                T* ptr;
-                long count;
-                ref_ptr(T* ptr)
-                : ptr(ptr), count(0) {}
-            };
-            ref_ptr* ptr;
-
-            void assign_ptr(ref_ptr* ptr)
-            {
-                this->ptr = ptr;
-                if (ptr != NULL) ptr->count++;
-            }
-
-            void release_ptr()
-            {
-                if (ptr == NULL) return;
-                ptr->count--;
-                if (ptr->count == 0)
-                {
-                    delete ptr->ptr;
-                    delete ptr;
-                }
-                ptr = NULL;
-            }
-
-        public:
-            shared_ptr()
-            {
-                assign_ptr(NULL);
-            }
-
-            shared_ptr(T* p)
-            {
-                if (p == NULL)
-                {
-                    assign_ptr(NULL);
-                }
-                else
-                {
-                    assign_ptr(new ref_ptr(p));
-                }
-            }
-
-            shared_ptr(const shared_ptr& other)
-            {
-                assign_ptr(other.ptr);
-            }
-
-            ~shared_ptr()
-            {
-                release_ptr();
-            }
-
-            shared_ptr& operator=(const shared_ptr& other)
-            {
-                if (other.ptr == this->ptr) return *this;
-                release_ptr();
-                assign_ptr(other.ptr);
-                return *this;
-            }
-
-            void swap(shared_ptr& other)
-            {
-                std::swap(ptr, other.ptr);
-            }
-
-            void reset()
-            {
-                release_ptr();
-            }
-
-            void reset(T* p)
-            {
-                release_ptr();
-                if (p == NULL)
-                {
-                    assign_ptr(NULL);
-                }
-                else
-                {
-                    assign_ptr(new ref_ptr(p));
-                }
-            }
-
-            T* get()
-            {
-                if (ptr == NULL) return NULL;
-                return ptr->ptr;
-            }
-
-            const T* get() const
-            {
-                if (ptr == NULL) return NULL;
-                return ptr->ptr;
-            }
-
-            T& operator*()
-            {
-                return *get();
-            }
-
-            const T& operator*() const
-            {
-                return *get();
-            }
-
-            T* operator->()
-            {
-                return get();
-            }
-
-            const T* operator->() const
-            {
-                return get();
-            }
-
-            long use_count() const
-            {
-                if (ptr == NULL) return 0;
-                return ptr->count;
-            }
-
-            bool unique() const
-            {
-                return use_count() == 1;
-            }
-
-            operator bool() const
-            {
-                return ptr != NULL;
-            }
-    };
-
-    template <class T>
-    class myvector : public vector<T>
-    {
-        public:
-            explicit myvector() : vector<T>() {}
-
-            explicit myvector(typename vector<T>::size_type n,
-			                  const typename vector<T>::value_type& val = typename vector<T>::value_type())
-            : vector<T>(n, val) {}
-
-            template <class InputIterator>
-            myvector (InputIterator first, InputIterator last)
-            : vector<T>(first, last) {}
-
-            myvector (const myvector& x)
-            : vector<T>(x) {}
-
-            typename vector<T>::pointer data()
-            {
-                if (this->size() == 0)
-                {
-                    return NULL;
-                }
-                else
-                {
-                    return &((*this)[0]);
-                }
-            }
-
-            typename vector<T>::const_pointer data() const
-            {
-                if (this->size() == 0)
-                {
-                    return NULL;
-                }
-                else
-                {
-                    return &((*this)[0]);
-                }
-            }
-    };
-    #define vector myvector
-
-    #define valarray myvalarray
-    template <class T>
-    class valarray
-    {
-        friend void swap(valarray& v1, valarray& v2)
-        {
-            v1.swap(v2);
-        }
-
-        friend T* begin(valarray& v)
-        {
-            return v.ptr;
-        }
-
-        friend const T* begin(const valarray& v)
-        {
-            return v.ptr;
-        }
-
-        friend T* end(valarray& v)
-        {
-            return v.ptr+v.n;
-        }
-
-        friend const T* end(const valarray& v)
-        {
-            return v.ptr+v.n;
-        }
-
-        friend valarray operator+(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]+v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator-(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]-v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator*(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]*v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator/(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]/v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator%(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]%v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator^(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]^v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator&(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]&v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator|(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]|v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator<<(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]<<v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator>>(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]>>v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator+(const T& v1, const valarray& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1+v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator-(const T& v1, const valarray& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1-v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator*(const T& v1, const valarray& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1*v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator/(const T& v1, const valarray& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1/v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator%(const T& v1, const valarray& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1%v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator^(const T& v1, const valarray& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1^v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator&(const T& v1, const valarray& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1&v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator|(const T& v1, const valarray& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1|v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator<<(const T& v1, const valarray& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1<<v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator>>(const T& v1, const valarray& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1>>v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray operator+(const valarray& v1, const T& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]+v2;
-            }
-
-            return out;
-        }
-
-        friend valarray operator-(const valarray& v1, const T& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]-v2;
-            }
-
-            return out;
-        }
-
-        friend valarray operator*(const valarray& v1, const T& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]*v2;
-            }
-
-            return out;
-        }
-
-        friend valarray operator/(const valarray& v1, const T& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]/v2;
-            }
-
-            return out;
-        }
-
-        friend valarray operator%(const valarray& v1, const T& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]%v2;
-            }
-
-            return out;
-        }
-
-        friend valarray operator^(const valarray& v1, const T& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]^v2;
-            }
-
-            return out;
-        }
-
-        friend valarray operator&(const valarray& v1, const T& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]&v2;
-            }
-
-            return out;
-        }
-
-        friend valarray operator|(const valarray& v1, const T& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]|v2;
-            }
-
-            return out;
-        }
-
-        friend valarray operator<<(const valarray& v1, const T& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]<<v2;
-            }
-
-            return out;
-        }
-
-        friend valarray operator>>(const valarray& v1, const T& v2)
-        {
-            valarray out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]>>v2;
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator&&(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]&&v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator||(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]||v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator==(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]==v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator!=(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]!=v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator<(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]<v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator>(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]>v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator<=(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]<=v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator>=(const valarray& v1, const valarray& v2)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(v1.n == v2.n);
-            #endif
-
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]>=v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator&&(const T& v1, const valarray& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1&&v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator||(const T& v1, const valarray& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1||v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator==(const T& v1, const valarray& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1==v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator!=(const T& v1, const valarray& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1!=v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator<(const T& v1, const valarray& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1<v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator>(const T& v1, const valarray& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1>v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator<=(const T& v1, const valarray& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1<=v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator>=(const T& v1, const valarray& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1>=v2[i];
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator&&(const valarray& v1, const T& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]&&v2;
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator||(const valarray& v1, const T& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]||v2;
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator==(const valarray& v1, const T& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]==v2;
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator!=(const valarray& v1, const T& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]!=v2;
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator<(const valarray& v1, const T& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]<v2;
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator>(const valarray& v1, const T& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]>v2;
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator<=(const valarray& v1, const T& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]<=v2;
-            }
-
-            return out;
-        }
-
-        friend valarray<bool> operator>=(const valarray& v1, const T& v2)
-        {
-            valarray<bool> out(v1.n, false);
-
-            for (size_t i = 0;i < v1.n;i++)
-            {
-                out[i] = v1[i]>=v2;
-            }
-
-            return out;
-        }
-
-        protected:
-            T* ptr;
-            size_t n;
-
-            valarray(size_t n, bool nozero)
-            : ptr(NULL), n(n)
-            {
-                if (n > 0) ptr = new T[n];
-            }
-
-        public:
-            valarray()
-            : ptr(NULL), n(0) {}
-
-            explicit valarray (size_t n)
-            : ptr(NULL), n(n)
-            {
-                if (n > 0)
-                {
-                    ptr = new T[n];
-                    fill(ptr, ptr+n, T());
-                }
-            }
-
-            valarray (const T& val, size_t n)
-            : ptr(NULL), n(n)
-            {
-                if (n > 0)
-                {
-                    ptr = new T[n];
-                    fill(ptr, ptr+n, val);
-                }
-            }
-
-            valarray (const T* p, size_t n)
-            : ptr(NULL), n(n)
-            {
-                if (n > 0)
-                {
-                    ptr = new T[n];
-                    copy(p, p+n, ptr);
-                }
-            }
-
-            valarray (const valarray& x)
-            : ptr(NULL), n(x.n)
-            {
-                if (n > 0)
-                {
-                    ptr = new T[n];
-                    copy(x.ptr, x.ptr+n, ptr);
-                }
-            }
-
-            ~valarray()
-            {
-                if (ptr != NULL) delete[] ptr;
-            }
-
-            valarray apply(T func(T)) const
-            {
-                valarray out(n, false);
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    out[i] = func(ptr[i]);
-                }
-
-                return out;
-            }
-
-            valarray apply(T func(const T&)) const
-            {
-                valarray out(n, false);
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    out[i] = func(ptr[i]);
-                }
-
-                return out;
-            }
-
-            valarray cshift(int s) const
-            {
-                valarray out(n, false);
-
-                if (s >= n || s <= -n) s = s%n;
-
-                if (s < 0)
-                {
-                    copy(ptr    , ptr+n+s, out.ptr-s);
-                    copy(ptr+n+s, ptr+n  , out.ptr  );
-                }
-                else
-                {
-                    copy(ptr+s, ptr+n, out.ptr    );
-                    copy(ptr  , ptr+s, out.ptr+n-s);
-                }
-
-                return out;
-            }
-
-            T max() const
-            {
-                if (n == 0) return T();
-
-                T mx = ptr[0];
-
-                for (size_t i = 1;i < n;i++)
-                {
-                    mx = max(mx, ptr[i]);
-                }
-
-                return mx;
-            }
-
-            T min() const
-            {
-                if (n == 0) return T();
-
-                T mn = ptr[0];
-
-                for (size_t i = 1;i < n;i++)
-                {
-                    mn = min(mn, ptr[i]);
-                }
-
-                return mn;
-            }
-
-            valarray& operator=(const valarray& other)
-            {
-                if (n != other.n)
-                {
-                    if (ptr != NULL) delete[] ptr;
-                    if (other.n > 0) ptr = new T[other.n];
-                }
-
-                n = other.n;
-                copy(other.ptr, other.ptr+n, ptr);
-
-                return *this;
-            }
-
-            T& operator[](size_t i)
-            {
-                #ifdef _GLIBCXX_DEBUG
-                assert(i < n);
-                #endif
-                return ptr[i];
-            }
-
-            T operator[](size_t i) const
-            {
-                #ifdef _GLIBCXX_DEBUG
-                assert(i < n);
-                #endif
-                return ptr[i];
-            }
-
-            void resize(size_t sz, T c = T())
-            {
-                if (n > 0) delete[] ptr;
-                n = sz;
-                if (n > 0) ptr = new T[n];
-                fill(ptr, ptr+n, c);
-            }
-
-            valarray shift(int s) const
-            {
-                valarray out(n, false);
-
-                if (s >= n || s <= -n) s = s%n;
-
-                if (s < 0)
-                {
-                    copy(ptr, ptr+n+s, out.ptr-s);
-                    fill(out.ptr, out.ptr-s, T());
-                }
-                else
-                {
-                    copy(ptr+s, ptr+n, out.ptr);
-                    fill(out.ptr+n-s, out.ptr+n, T());
-                }
-
-                return out;
-            }
-
-            size_t size() const
-            {
-                return n;
-            }
-
-            T sum() const
-            {
-                T s = T();
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    s += ptr[i];
-                }
-
-                return s;
-            }
-
-            void swap(valarray& other)
-            {
-                swap(n, other.n);
-                swap(ptr, other.ptr);
-            }
-
-            valarray operator+() const
-            {
-                return valarray(*this);
-            }
-
-            valarray operator-() const
-            {
-                valarray out(n, false);
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    out[i] = -ptr[i];
-                }
-
-                return out;
-            }
-
-            valarray operator~() const
-            {
-                valarray out(n, false);
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    out[i] = ~ptr[i];
-                }
-
-                return out;
-            }
-
-            valarray<bool> operator!() const
-            {
-                valarray<bool> out(n, false);
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    out[i] = !ptr[i];
-                }
-
-                return out;
-            }
-
-            valarray& operator*= (const valarray& rhs)
-            {
-                #ifdef _GLIBCXX_DEBUG
-                assert(n == rhs.n);
-                #endif
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] *= rhs[i];
-                }
-
-                return *this;
-            }
-
-            valarray& operator/= (const valarray& rhs)
-            {
-                #ifdef _GLIBCXX_DEBUG
-                assert(n == rhs.n);
-                #endif
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] /= rhs[i];
-                }
-
-                return *this;
-            }
-
-            valarray& operator%= (const valarray& rhs)
-            {
-                #ifdef _GLIBCXX_DEBUG
-                assert(n == rhs.n);
-                #endif
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] %= rhs[i];
-                }
-
-                return *this;
-            }
-
-            valarray& operator+= (const valarray& rhs)
-            {
-                #ifdef _GLIBCXX_DEBUG
-                assert(n == rhs.n);
-                #endif
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] += rhs[i];
-                }
-
-                return *this;
-            }
-
-            valarray& operator-= (const valarray& rhs)
-            {
-                #ifdef _GLIBCXX_DEBUG
-                assert(n == rhs.n);
-                #endif
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] -= rhs[i];
-                }
-
-                return *this;
-            }
-
-            valarray& operator^= (const valarray& rhs)
-            {
-                #ifdef _GLIBCXX_DEBUG
-                assert(n == rhs.n);
-                #endif
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] ^= rhs[i];
-                }
-
-                return *this;
-            }
-
-            valarray& operator&= (const valarray& rhs)
-            {
-                #ifdef _GLIBCXX_DEBUG
-                assert(n == rhs.n);
-                #endif
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] &= rhs[i];
-                }
-
-                return *this;
-            }
-
-            valarray& operator|= (const valarray& rhs)
-            {
-                #ifdef _GLIBCXX_DEBUG
-                assert(n == rhs.n);
-                #endif
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] |= rhs[i];
-                }
-
-                return *this;
-            }
-
-            valarray& operator<<= (const valarray& rhs)
-            {
-                #ifdef _GLIBCXX_DEBUG
-                assert(n == rhs.n);
-                #endif
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] <<= rhs[i];
-                }
-
-                return *this;
-            }
-
-            valarray& operator>>= (const valarray& rhs)
-            {
-                #ifdef _GLIBCXX_DEBUG
-                assert(n == rhs.n);
-                #endif
-
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] >>= rhs[i];
-                }
-
-                return *this;
-            }
-
-            valarray& operator*= (const T& val)
-            {
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] *= val;
-                }
-
-                return *this;
-            }
-
-            valarray& operator/= (const T& val)
-            {
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] /= val;
-                }
-
-                return *this;
-            }
-
-            valarray& operator%= (const T& val)
-            {
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] %= val;
-                }
-
-                return *this;
-            }
-
-            valarray& operator+= (const T& val)
-            {
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] += val;
-                }
-
-                return *this;
-            }
-
-            valarray& operator-= (const T& val)
-            {
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] -= val;
-                }
-
-                return *this;
-            }
-
-            valarray& operator^= (const T& val)
-            {
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] ^= val;
-                }
-
-                return *this;
-            }
-
-            valarray& operator&= (const T& val)
-            {
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] &= val;
-                }
-
-                return *this;
-            }
-
-            valarray& operator|= (const T& val)
-            {
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] |= val;
-                }
-
-                return *this;
-            }
-
-            valarray& operator<<= (const T& val)
-            {
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] <<= val;
-                }
-
-                return *this;
-            }
-
-            valarray& operator>>= (const T& val)
-            {
-                for (size_t i = 0;i < n;i++)
-                {
-                    ptr[i] >>= val;
-                }
-
-                return *this;
-            }
-    };
-
-    template<typename I1, typename I2, typename Pred>
-    I2 copy_if(I1 begin, I1 end, I2 result, Pred pred)
-    {
-        return remove_copy_if(begin, end, result, not1(pred));
-    }
-}
-
-#endif
 
 #define ENABLE_IF_CONST(const_type,return_type) \
 template <typename _IsConst = const_type > \
@@ -1638,329 +77,369 @@ template <typename new_type > return_type
 namespace std
 {
 
+namespace detail
+{
+
+    template <size_t I, typename... Args>
+    struct min_size_helper
+    {
+        size_t operator()(const tuple<Args...>& v)
+        {
+            return min(get<I-1>(v).size(), min_size_helper<I-1, Args...>()(v));
+        }
+    };
+
+    template <typename... Args>
+    struct min_size_helper<1, Args...>
+    {
+        size_t operator()(const tuple<Args...>& v)
+        {
+            return get<0>(v).size();
+        }
+    };
+
+    template <typename... Args>
+    struct min_size_helper<0, Args...>
+    {
+        size_t operator()(const tuple<Args...>& v)
+        {
+            return 0;
+        }
+    };
+
+    template <typename... Args>
+    size_t min_size(const tuple<Args...>& v)
+    {
+        return min_size_helper<sizeof...(Args), Args...>()(v);
+    }
+
+    template <size_t I, typename... Args>
+    struct cbegin_helper
+    {
+        void operator()(tuple<typename decay<Args>::type::const_iterator...>& i,
+                        const tuple<Args...>& v)
+        {
+            get<I-1>(i) = get<I-1>(v).begin();
+            cbegin_helper<I-1, Args...>()(i, v);
+        }
+    };
+
+    template <typename... Args>
+    struct cbegin_helper<1, Args...>
+    {
+        void operator()(tuple<typename decay<Args>::type::const_iterator...>& i,
+                        const tuple<Args...>& v)
+        {
+            get<0>(i) = get<0>(v).begin();
+        }
+    };
+
+    template <typename... Args>
+    struct cbegin_helper<0, Args...>
+    {
+        void operator()(tuple<typename decay<Args>::type::const_iterator...>& i,
+                        const tuple<Args...>& v) {}
+    };
+
+    template <typename... Args>
+    tuple<typename decay<Args>::type::const_iterator...> cbegin(const tuple<Args...>& v)
+    {
+        tuple<typename decay<Args>::type::const_iterator...> i;
+        cbegin_helper<sizeof...(Args), Args...>()(i, v);
+        return i;
+    }
+
+    template <size_t I, typename... Args>
+    struct increment_helper
+    {
+        void operator()(tuple<typename vector<Args>::const_iterator...>& i)
+        {
+            ++get<I-1>(i);
+            increment_helper<I-1, Args...>()(i);
+        }
+    };
+
+    template <typename... Args>
+    struct increment_helper<1, Args...>
+    {
+        void operator()(tuple<typename vector<Args>::const_iterator...>& i)
+        {
+            ++get<0>(i);
+        }
+    };
+
+    template <typename... Args>
+    struct increment_helper<0, Args...>
+    {
+        void operator()(tuple<typename vector<Args>::const_iterator...>& i) {}
+    };
+
+    template <typename... Args>
+    void increment(tuple<typename vector<Args>::const_iterator...>& i)
+    {
+        increment_helper<sizeof...(Args), Args...>()(i);
+    }
+
+    template <int... S> struct integer_sequence {};
+    template <int N, int... S> struct static_range : static_range<N-1, N-1, S...> {};
+    template <int... S> struct static_range<0, S...> : integer_sequence<S...> {};
+
+    template <typename... Args>
+    struct call_helper
+    {
+        template <typename Func, int... S>
+        call_helper(Func func, const tuple<Args...>& args, integer_sequence<S...> seq)
+        {
+            func(get<S>(args)...);
+        }
+    };
+
+    template <size_t I, typename... Args>
+    struct not_end_helper
+    {
+        bool operator()(const tuple<typename decay<Args>::type::const_iterator...>& i,
+                    const tuple<Args...>& v)
+        {
+            return get<I-1>(i) != get<I-1>(v).end() &&
+                   not_end_helper<I-1, Args...>()(i, v);
+        }
+    };
+
+    template <typename... Args>
+    struct not_end_helper<1, Args...>
+    {
+        bool operator()(const tuple<typename decay<Args>::type::const_iterator...>& i,
+                    const tuple<Args...>& v)
+        {
+            return get<0>(i) != get<0>(v).end();
+        }
+    };
+
+    template <typename... Args>
+    struct not_end_helper<0, Args...>
+    {
+        bool operator()(const tuple<typename decay<Args>::type::const_iterator...>& i,
+                        const tuple<Args...>& v)
+        {
+            return false;
+        }
+    };
+
+    template <typename... Args>
+    bool not_end(const tuple<typename decay<Args>::type::const_iterator...>& i,
+                 const tuple<Args...>& v)
+    {
+        return not_end_helper<sizeof...(Args), Args...>()(i, v);
+    }
+
+    template <size_t I, typename... Args>
+    struct print_tuple_helper : print_tuple_helper<I-1, Args...>
+    {
+        print_tuple_helper(ostream& os, const tuple<Args...>& t)
+        : print_tuple_helper<I-1, Args...>(os, t)
+        {
+            os << get<I-1>(t);
+            if (I < sizeof...(Args)) os << ", ";
+        }
+    };
+
+    template <typename... Args>
+    struct print_tuple_helper<1, Args...>
+    {
+        print_tuple_helper(ostream& os, const tuple<Args...>& t)
+        {
+            os << get<0>(t);
+            if (1 < sizeof...(Args)) os << ", ";
+        }
+    };
+
+    template <typename... Args>
+    struct print_tuple_helper<0, Args...>
+    {
+        print_tuple_helper(ostream& os, const tuple<Args...>& t) {}
+    };
+
+
+    template <size_t I, typename... Args>
+    struct reserve_helper
+    {
+        void operator()(tuple<vector<Args>...>& t, size_t n)
+        {
+            get<I-1>(t).reserve(n);
+            reserve_helper<I-1, Args...>()(t, n);
+        }
+    };
+
+    template <typename... Args>
+    struct reserve_helper<1, Args...>
+    {
+        void operator()(tuple<vector<Args>...>& t, size_t n)
+        {
+            get<0>(t).reserve(n);
+        }
+    };
+
+    template <typename... Args>
+    struct reserve_helper<0, Args...>
+    {
+        void operator()(tuple<vector<Args>...>& t, size_t n) {}
+    };
+
+    template <typename... Args>
+    void reserve(tuple<vector<Args>...>& t, size_t n)
+    {
+        reserve_helper<sizeof...(Args), Args...>()(t, n);
+    }
+
+    template <size_t I, typename... Args>
+    struct emplace_back_helper
+    {
+        void operator()(tuple<vector<Args>...>& t, const tuple<Args...>& v)
+        {
+            get<I-1>(t).emplace_back(get<I-1>(v));
+            emplace_back_helper<I-1, Args...>()(t, v);
+        }
+
+        void operator()(tuple<vector<Args>...>& t, tuple<Args...>&& v)
+        {
+            get<I-1>(t).emplace_back(move(get<I-1>(v)));
+            emplace_back_helper<I-1, Args...>()(t, v);
+        }
+    };
+
+    template <typename... Args>
+    struct emplace_back_helper<1, Args...>
+    {
+        void operator()(tuple<vector<Args>...>& t, const tuple<Args...>& v)
+        {
+            get<0>(t).emplace_back(get<0>(v));
+        }
+
+        void operator()(tuple<vector<Args>...>& t, tuple<Args...>&& v)
+        {
+            get<0>(t).emplace_back(move(get<0>(v)));
+        }
+    };
+
+    template <typename... Args>
+    struct emplace_back_helper<0, Args...>
+    {
+        void operator()(tuple<vector<Args>...>& t, const tuple<Args...>& v) {}
+
+        void operator()(tuple<vector<Args>...>& t, tuple<Args...>&& v) {}
+    };
+
+    template <typename... Args>
+    void emplace_back(tuple<vector<Args>...>& t, const tuple<Args...>& v)
+    {
+        emplace_back_helper<sizeof...(Args), Args...>()(t, v);
+    }
+
+    template <typename... Args>
+    void emplace_back(tuple<vector<Args>...>& t, tuple<Args...>&& v)
+    {
+        emplace_back_helper<sizeof...(Args), Args...>()(t, move(v));
+    }
+
+}
+
 template <class T, class U>
 struct if_exists
 {
     typedef U type;
 };
 
-template <class T>
-class vararray
+template<typename T> class global_ptr
 {
-    friend void swap(vararray& v1, vararray& v2)
-    {
-        v1.swap(v2);
-    }
-
-    friend bool operator==(const vararray& lhs, const vararray& rhs)
-    {
-        return equal(lhs.begin(), lhs.end(), rhs.begin());
-    }
-
-    friend  bool operator!=(const vararray& lhs, const vararray& rhs)
-    {
-        return !equal(lhs.begin(), lhs.end(), rhs.begin());
-    }
-
-    friend  bool operator<(const vararray& lhs, const vararray& rhs)
-    {
-        return lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
-    }
-
-    friend  bool operator<=(const vararray& lhs, const vararray& rhs)
-    {
-        return !lexicographical_compare(rhs.begin(), rhs.end(), lhs.begin(), lhs.end());
-    }
-
-    friend  bool operator>(const vararray& lhs, const vararray& rhs)
-    {
-        return lexicographical_compare(rhs.begin(), rhs.end(), lhs.begin(), lhs.end());
-    }
-
-    friend  bool operator>=(const vararray& lhs, const vararray& rhs)
-    {
-        return !lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
-    }
+    private:
+        shared_ptr<T*> ptr;
 
     public:
-        typedef T value_type;
-        typedef T& reference;
-        typedef const T& const_reference;
-        typedef T* pointer;
-        typedef const T* const_pointer;
-        typedef T* iterator;
-        typedef const T* const_iterator;
-        typedef std::reverse_iterator<iterator> reverse_iterator;
-        typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
-        typedef ptrdiff_t difference_type;
-        typedef size_t size_type;
+        global_ptr() : ptr(new T*(NULL)) {}
 
-    protected:
-        pointer ptr;
-        size_type n;
-
-    public:
-        vararray()
-        : ptr(NULL), n(0) {}
-
-        explicit vararray(size_type n)
-        : ptr(NULL), n(n)
-        {
-            if (n > 0)
-            {
-                ptr = SAFE_MALLOC(T,n);
-                if (!is_pod<T>::value) fill(ptr, ptr+n, value_type());
-            }
-        }
-
-        vararray(size_type n, const value_type& val)
-        : ptr(NULL), n(n)
-        {
-            if (n > 0)
-            {
-                ptr = SAFE_MALLOC(T,n);
-                fill(ptr, ptr+n, val);
-            }
-        }
-
-        template <class RAIterator>
-        vararray(RAIterator first, RAIterator last)
-        : ptr(NULL), n(0)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(first < last);
-            #endif
-            n = last-first;
-            if (n > 0) ptr = SAFE_MALLOC(T,n);
-            for (size_t i = 0;first != last;i++,++first)
-            {
-                ptr[i] = *first;
-            }
-        }
-
-        vararray(const vararray& x)
-        : ptr(NULL), n(x.n)
-        {
-            if (n > 0)
-            {
-                ptr = SAFE_MALLOC(T,n);
-                copy(x.ptr, x.ptr+n, ptr);
-            }
-        }
-
-        ~vararray()
-        {
-            if (ptr != NULL) FREE(ptr);
-        }
-
-        vararray& operator=(const vararray& other)
-        {
-            if (ptr != NULL) FREE(ptr);
-            n = other.n;
-            if (n > 0)
-            {
-                ptr = SAFE_MALLOC(T,n);
-                copy(other.ptr, other.ptr+n, ptr);
-            }
-            return *this;
-        }
-
-        iterator begin() { return ptr; }
-
-        const_iterator begin() const { return ptr; }
-
-        iterator end()  { return ptr+n; }
-
-        const_iterator end() const  { return ptr+n; }
-
-        reverse_iterator rbegin()  { return reverse_iterator(ptr+n); }
-
-        const_reverse_iterator rbegin() const  { return const_reverse_iterator(ptr+n); }
-
-        reverse_iterator rend() { return reverse_iterator(ptr); }
-
-        const_reverse_iterator rend() const { return const_reverse_iterator(ptr); }
-
-        size_type size() const { return n; }
-
-        size_type max_size() const { return n; }
-
-        void resize(size_type n)
-        {
-            ptr = SAFE_REALLOC(T,ptr,n);
-            if (n > this->n && !is_pod<T>::value) fill(ptr+this->n, ptr+n, value_type());
-            this->n = n;
-        }
-
-        void resize(size_type n, value_type val)
-        {
-            ptr = SAFE_REALLOC(T,ptr,n);
-            if (n > this->n) fill(ptr+this->n, ptr+n, val);
-            this->n = n;
-        }
-
-        bool empty() const { return n > 0; }
-
-        reference operator[](size_type i) { return at(i); }
-
-        const_reference operator[](size_type i) const { return at(i); }
-
-        reference at(size_type i)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(i < n);
-            #endif
-            return ptr[i];
-        }
-
-        const_reference at(size_type i) const
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(i < n);
-            #endif
-            return ptr[i];
-        }
-
-        reference front() { return at(0); }
-
-        const_reference front() const { return at(0); }
-
-        reference back()
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(n > 0);
-            #endif
-            return at(n-1);
-        }
-
-        const_reference back() const
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(n > 0);
-            #endif
-            return at(n-1);
-        }
-
-        pointer data() { return ptr; }
-
-        const_pointer data() const { return ptr; }
-
-        template <class RAIterator>
-        void assign(RAIterator first, RAIterator last)
-        {
-            #ifdef _GLIBCXX_DEBUG
-            assert(first < last);
-            #endif
-            this->n = last-first;
-            ptr = SAFE_REALLOC(T,ptr,n);
-            for (size_type i = 0;first != last;i++,++first)
-            {
-                ptr[i] = *first;
-            }
-        }
-
-        void assign(size_type n, const value_type& val)
-        {
-            this->n = n;
-            ptr = SAFE_REALLOC(T,ptr,n);
-            fill(ptr, ptr+n, val);
-        }
-
-        void swap(vararray& other)
-        {
-            std::swap(ptr, other.ptr);
-            std::swap(n, other.n);
-        }
-
-        void clear()
-        {
-            if (ptr != NULL)
-            {
-                FREE(ptr);
-                ptr = NULL;
-            }
-            n = 0;
-        }
-};
-
-template<typename T>
-class global_ptr : public shared_ptr<T*>
-{
-    public:
-        global_ptr(const global_ptr& other) : shared_ptr<T*>(other) {}
-
-        global_ptr() : shared_ptr<T*>(new T*(NULL)) {}
-
-        global_ptr(T* ptr) : shared_ptr<T*>(new T*(ptr)) {}
+        global_ptr(T* ptr) : ptr(new T*(ptr)) {}
 
         ~global_ptr()
         {
-            if (this->unique() && *shared_ptr<T*>::get())
-            {
-                delete *shared_ptr<T*>::get();
-            }
+            if (unique() && get()) delete get();
         }
 
         global_ptr& operator=(const global_ptr& other)
         {
-            if (this->unique() && *shared_ptr<T*>::get())
-            {
-                delete *shared_ptr<T*>::get();
-            }
-            shared_ptr<T*>::operator=(other);
+            reset(const_cast<T*>(other.get()));
             return *this;
+        }
+
+        void swap(global_ptr& other)
+        {
+            ptr.swap(other.ptr);
+        }
+
+        friend void swap(global_ptr& p1, global_ptr& p2)
+        {
+            p1.swap(p2);
+        }
+
+        long use_count() const
+        {
+            return ptr.use_count();
+        }
+
+        bool unique() const
+        {
+            return ptr.unique();
         }
 
         void reset()
         {
-            if (*shared_ptr<T*>::get()) delete *shared_ptr<T*>::get();
-            *shared_ptr<T*>::get() = NULL;
+            if (get()) delete get();
+            *ptr == nullptr;
         }
 
         void reset(T* p)
         {
-            if (p == *shared_ptr<T*>::get()) return;
-            if (*shared_ptr<T*>::get()) delete *shared_ptr<T*>::get();
-            *shared_ptr<T*>::get() = p;
+            if (p == get()) return;
+            if (get()) delete get();
+            *ptr = p;
         }
 
         T* get()
         {
-            return *shared_ptr<T*>::get();
+            return *ptr;
         }
 
         const T* get() const
         {
-            return *shared_ptr<T*>::get();
+            return *ptr;
         }
 
         T& operator*()
         {
-            return **shared_ptr<T*>::get();
+            return *get();
         }
 
         const T& operator*() const
         {
-            return **shared_ptr<T*>::get();
+            return *get();
         }
 
         T* operator->()
         {
-            return *shared_ptr<T*>::get();
+            return get();
         }
 
         const T* operator->() const
         {
-            return *shared_ptr<T*>::get();
+            return get();
         }
 
         operator bool() const
         {
-            return *shared_ptr<T*>::get() != NULL;
+            return get();
         }
 };
 
-inline std::string strprintf(const char* fmt, ...)
+inline string strprintf(const char* fmt, ...)
 {
     va_list list;
 
@@ -1969,15 +448,15 @@ inline std::string strprintf(const char* fmt, ...)
     int n = vsnprintf(fake, 1, fmt, list);
     va_end(list);
 
-    std::vector<char> s(n+1);
+    vector<char> s(n);
     va_start(list, fmt);
-    vsnprintf(s.data(), n+1, fmt, list);
+    vsnprintf(s.data(), n, fmt, list);
     va_end(list);
 
-    return std::string(s.begin(), s.end());
+    return string(s.begin(), s.end());
 }
 
-template<typename T> std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
+template<typename T> ostream& operator<<(ostream& os, const vector<T>& v)
 {
     os << "[";
     if (!v.empty()) os << v[0];
@@ -1986,129 +465,9 @@ template<typename T> std::ostream& operator<<(std::ostream& os, const std::vecto
     return os;
 }
 
-template<typename T> std::vector<T> vec(const T& a)
+template<typename T> string str(const T& t)
 {
-    std::vector<T> v;
-    v.push_back(a);
-    return v;
-}
-
-template<typename T> std::vector<T> vec(const T& a, const T& b)
-{
-    std::vector<T> v;
-    v.push_back(a);
-    v.push_back(b);
-    return v;
-}
-
-template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c)
-{
-    std::vector<T> v;
-    v.push_back(a);
-    v.push_back(b);
-    v.push_back(c);
-    return v;
-}
-
-template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, const T& d)
-{
-    std::vector<T> v;
-    v.push_back(a);
-    v.push_back(b);
-    v.push_back(c);
-    v.push_back(d);
-    return v;
-}
-
-template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, const T& d, const T& e)
-{
-    std::vector<T> v;
-    v.push_back(a);
-    v.push_back(b);
-    v.push_back(c);
-    v.push_back(d);
-    v.push_back(e);
-    return v;
-}
-
-template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, const T& d, const T& e,
-                                        const T& f)
-{
-    std::vector<T> v;
-    v.push_back(a);
-    v.push_back(b);
-    v.push_back(c);
-    v.push_back(d);
-    v.push_back(e);
-    v.push_back(f);
-    return v;
-}
-
-template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, const T& d, const T& e,
-                                        const T& f, const T& g)
-{
-    std::vector<T> v;
-    v.push_back(a);
-    v.push_back(b);
-    v.push_back(c);
-    v.push_back(d);
-    v.push_back(e);
-    v.push_back(f);
-    v.push_back(g);
-    return v;
-}
-
-template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, const T& d, const T& e,
-                                        const T& f, const T& g, const T& h)
-{
-    std::vector<T> v;
-    v.push_back(a);
-    v.push_back(b);
-    v.push_back(c);
-    v.push_back(d);
-    v.push_back(e);
-    v.push_back(f);
-    v.push_back(g);
-    v.push_back(h);
-    return v;
-}
-
-template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, const T& d, const T& e,
-                                        const T& f, const T& g, const T& h, const T& i)
-{
-    std::vector<T> v;
-    v.push_back(a);
-    v.push_back(b);
-    v.push_back(c);
-    v.push_back(d);
-    v.push_back(e);
-    v.push_back(f);
-    v.push_back(g);
-    v.push_back(h);
-    v.push_back(i);
-    return v;
-}
-
-template<typename T> std::vector<T> vec(const T& a, const T& b, const T& c, const T& d, const T& e,
-                                        const T& f, const T& g, const T& h, const T& i, const T& j)
-{
-    std::vector<T> v;
-    v.push_back(a);
-    v.push_back(b);
-    v.push_back(c);
-    v.push_back(d);
-    v.push_back(e);
-    v.push_back(f);
-    v.push_back(g);
-    v.push_back(h);
-    v.push_back(i);
-    v.push_back(j);
-    return v;
-}
-
-template<typename T> std::string str(const T& t)
-{
-    std::ostringstream oss;
+    ostringstream oss;
     oss << t;
     return oss.str();
 }
@@ -2141,34 +500,101 @@ typename T::value_type min(const T& t)
     return v;
 }
 
-template <typename T, typename S>
-std::vector<std::pair<T,S> > zip(const std::vector<T>& t, const std::vector<S>& s)
+template <typename Func, typename... Args>
+void call(Func func, const tuple<Args...>& args)
 {
-    std::vector<std::pair<T,S> > z;
-    z.reserve(std::max(t.size(), s.size()));
+    detail::call_helper<Args...>(func, args, detail::static_range<sizeof...(Args)>());
+}
 
-    size_t i = 0;
-    for (;i < std::min(t.size(), s.size());i++)
+template <typename... Args>
+ostream& operator<<(ostream& os, const tuple<Args...>& t)
+{
+    os << '{';
+    detail::print_tuple_helper<sizeof...(Args), Args...>(os, t);
+    os << '}';
+    return os;
+}
+
+template <typename... Args>
+vector<tuple<Args...>> zip(const tuple<const vector<Args>&...>& v)
+{
+    vector<tuple<Args...>> t;
+    t.reserve(detail::min_size(v));
+
+    auto i = detail::cbegin(v);
+    for (;detail::not_end(i,v);detail::increment<Args...>(i))
     {
-        z.push_back(std::make_pair(t[i], s[i]));
+        call([&t](typename vector<Args>::const_iterator... args) {t.emplace_back(*args...); }, i);
     }
 
-    if (t.size() > s.size())
+    return t;
+}
+
+template <typename... Args>
+vector<tuple<Args...>> zip(const tuple<vector<Args>...>& v_)
+{
+    return zip(tuple<const vector<Args>&...>(v_));
+}
+
+template <typename... Args>
+vector<tuple<Args...>> zip(const vector<Args>&... v_)
+{
+    return zip(tuple<const vector<Args>&...>(v_...));
+}
+
+template <typename... Args>
+vector<tuple<Args...>> zip(const tuple<vector<Args>&&...>& v)
+{
+    vector<tuple<Args...>> t;
+    t.reserve(detail::min_size(v));
+
+    auto i = detail::cbegin(v);
+    for (;detail::not_end(i,v);detail::increment<Args...>(i))
     {
-        for (;i < t.size();i++)
-        {
-            z.push_back(std::make_pair(t[i], S()));
-        }
-    }
-    else if (s.size() > t.size())
-    {
-        for (;i < s.size();i++)
-        {
-            z.push_back(std::make_pair(T(), s[i]));
-        }
+        call([&t](typename vector<Args>::const_iterator... args) {t.emplace_back(move(*args)...); }, i);
     }
 
-    return z;
+    return t;
+}
+
+template <typename... Args>
+vector<tuple<Args...>> zip(tuple<vector<Args>...>&& v)
+{
+    return zip(tuple<vector<Args>&&...>(move(v)));
+}
+
+template <typename... Args>
+vector<tuple<Args...>> zip(vector<Args>&&... v)
+{
+    return zip(forward_as_tuple(move(v)...));
+}
+
+template <typename... Args>
+tuple<vector<Args>...> unzip(const vector<tuple<Args...>>& v)
+{
+    tuple<vector<Args>...> t;
+    detail::reserve(t, v.size());
+
+    for (auto i = v.begin();i != v.end();++i)
+    {
+        detail::emplace_back(t, *i);
+    }
+
+    return t;
+}
+
+template <typename... Args>
+tuple<vector<Args>...> unzip(vector<tuple<Args...>>&& v)
+{
+    tuple<vector<Args>...> t;
+    detail::reserve(t, v.size());
+
+    for (auto i = v.begin();i != v.end();++i)
+    {
+        detail::emplace_back(t, move(*i));
+    }
+
+    return t;
 }
 
 template <typename Container, typename Functor, typename=void>
@@ -2176,16 +602,16 @@ struct __erase
 {
     static void erase(Container& v, const Functor& f)
     {
-        v.erase(std::remove_if(v.begin(), v.end(), f), v.end());
+        v.erase(remove_if(v.begin(), v.end(), f), v.end());
     }
 };
 
 template <typename Container, typename T>
-struct __erase<Container, T, typename std::enable_if<std::is_same<typename Container::value_type,T>::value>::type>
+struct __erase<Container, T, typename enable_if<is_same<typename Container::value_type,T>::value>::type>
 {
     static void erase(Container& v, const T& e)
     {
-        v.erase(std::remove(v.begin(), v.end(), e), v.end());
+        v.erase(remove(v.begin(), v.end(), e), v.end());
     }
 };
 
@@ -2195,10 +621,10 @@ void erase(Container& v, const T_or_Functor& x)
     __erase<Container, T_or_Functor>::erase(v, x);
 }
 
-template <typename T> std::vector<T> range(T to)
+template <typename T> vector<T> range(T to)
 {
-    std::vector<T> r;
-    r.reserve((typename std::vector<T>::size_type)to);
+    vector<T> r;
+    r.reserve((typename vector<T>::size_type)to);
 
     for (T i = T();i < to;++i)
     {
@@ -2208,10 +634,10 @@ template <typename T> std::vector<T> range(T to)
     return r;
 }
 
-template <typename T> std::vector<T> range(T from, T to)
+template <typename T> vector<T> range(T from, T to)
 {
-    std::vector<T> r;
-    r.reserve((typename std::vector<T>::size_type)(to-from));
+    vector<T> r;
+    r.reserve((typename vector<T>::size_type)(to-from));
 
     for (T i = from;i < to;++i)
     {
@@ -2221,44 +647,42 @@ template <typename T> std::vector<T> range(T from, T to)
     return r;
 }
 
-template<typename T> std::vector<T> operator+(const std::vector<T>& v1, const std::vector<T>& v2)
+template<typename T> vector<T> operator+(const vector<T>& v1, const vector<T>& v2)
 {
-    using std::copy;
-    std::vector<T> r(v1.size() + v2.size());
+    vector<T> r(v1.size() + v2.size());
     copy(v1.begin(), v1.end(), r.begin());
     copy(v2.begin(), v2.end(), r.begin() + v1.size());
     return r;
 }
 
-template<typename T> std::vector<T> operator+(const std::vector<T>& v, const T& t)
+template<typename T> vector<T> operator+(const vector<T>& v, const T& t)
 {
-    using std::copy;
-    std::vector<T> r(v.size()+1);
+    vector<T> r(v.size()+1);
     copy(v.begin(), v.end(), r.begin());
     r[v.size()] = t;
     return r;
 }
 
-template<typename T> std::vector<T>& operator+=(std::vector<T>& v1, const std::vector<T>& v2)
+template<typename T> vector<T>& operator+=(vector<T>& v1, const vector<T>& v2)
 {
     v1.insert(v1.end(), v2.begin(), v2.end());
     return v1;
 }
 
-template<typename T> std::vector<T>& operator+=(std::vector<T>& v, const T& t)
+template<typename T> vector<T>& operator+=(vector<T>& v, const T& t)
 {
     v.insert(v.end(), t);
     return v;
 }
 
-template<typename T> std::vector<T> slice(const std::vector<T>& v, int e1, int e2)
+template<typename T> vector<T> slice(const vector<T>& v, int e1, int e2)
 {
-    return std::vector<T>(v.begin()+e1, v.begin()+e2);
+    return vector<T>(v.begin()+e1, v.begin()+e2);
 }
 
-template<typename T> std::vector<T> slice(const std::vector<T>& v, int e1)
+template<typename T> vector<T> slice(const vector<T>& v, int e1)
 {
-    return std::vector<T>(v.begin()+e1, v.end());
+    return vector<T>(v.begin()+e1, v.end());
 }
 
 template<class Pred1, class Pred2>
@@ -2307,12 +731,10 @@ binary_and<Pred1,Pred2> and1(Pred1 p1, Pred2 p2)
     return binary_and<Pred1,Pred2>(p1,p2);
 }
 
-template<typename T, class Predicate> std::vector<T>& filter(std::vector<T>& v, Predicate pred)
+template<typename T, class Predicate> T& filter(T& v, Predicate pred)
 {
-    typename std::vector<T>::iterator i1, i2;
-
-    i1 = v.begin();
-    for (i2 = v.begin();i2 != v.end();++i2)
+    auto i1 = v.begin();
+    for (auto i2 = v.begin();i2 != v.end();++i2)
     {
         if (pred(*i2))
         {
@@ -2325,44 +747,43 @@ template<typename T, class Predicate> std::vector<T>& filter(std::vector<T>& v, 
     return v;
 }
 
-template<typename T, typename U, class Functor> std::vector<U> apply(std::vector<T>& v, Functor f)
+template<typename T, class Functor> auto apply(T& v, Functor f)
+    -> vector<decltype(f(v.back()))>
 {
-    std::vector<U> v2();
-
-    typename std::vector<T>::const_iterator i;
-
-    for (i = v.begin();i != v.end();++i)
+    typedef decltype(f(v.back())) U;
+    vector<U> v2();
+    for (auto& i : v)
     {
-        v2.push_back(f(*i));
+        v2.emplace_back(f(i));
     }
-
     return v2;
 }
 
-template<typename T, class Predicate> std::vector<T> filter_copy(const std::vector<T>& v, Predicate pred)
+template<typename T, class Predicate> typename decay<T>::type filter_copy(const T& v, Predicate pred)
 {
-    typename std::vector<T> v2(v);
-    typename std::vector<T>::iterator i1;
-    typename std::vector<T>::const_iterator i2;
-
-    i1 = v2.begin();
-    for (i2 = v.begin();i2 != v.end();++i2)
+    typename decay<T>::type v2;
+    for (auto& i : v)
     {
-        if (pred(*i2))
-        {
-            *i1 = *i2;
-            ++i1;
-        }
+        if (pred(i)) v2.emplace_back(i);
     }
-
-    v2.resize(i1-v2.begin());
     return v2;
 }
 
-template<typename T> T sum(const std::vector<T>& v)
+template<typename T, class Predicate> typename decay<T>::type filter_copy(T&& v, Predicate pred)
 {
-    T s = T();
-    for (int i = 0;i < v.size();i++) s += v[i];
+    typename decay<T>::type v2;
+    for (auto& i : v)
+    {
+        if (pred(i)) v2.emplace_back(move(i));
+    }
+    return v2;
+}
+
+template<typename T> typename T::value_type sum(const T& v)
+{
+    typedef typename T::value_type U;
+    U s = U();
+    for (auto& i : v) s += i;
     return s;
 }
 
@@ -2371,26 +792,45 @@ template<typename T, typename U> bool contains(const T& v, const U& e)
     return find(v.begin(), v.end(), e) != v.end();
 }
 
+template<typename T> T& sort(T& v)
+{
+    sort(v.begin(), v.end());
+    return v;
+}
+
+template<typename T, typename Compare> T& sort(T& v, Compare comp)
+{
+    sort(v.begin(), v.end(), comp);
+    return v;
+}
+
+template<typename T> typename decay<T>::type sorted(T&& v)
+{
+    typename decay<T>::type v2(forward<T>(v));
+    sort(v2);
+    return v2;
+}
+
+template<typename T, typename Compare> typename decay<T>::type sorted(T&& v, Compare comp)
+{
+    typename decay<T>::type v2(forward<T>(v));
+    sort(v2, comp);
+    return v2;
+}
+
 template<typename T> T& uniq(T& v)
 {
-    typename T::iterator i1;
-
-    std::sort(v.begin(), v.end());
-    i1 = std::unique(v.begin(), v.end());
+    sort(v.begin(), v.end());
+    auto i1 = unique(v.begin(), v.end());
     v.resize(i1-v.begin());
 
     return v;
 }
 
-template<typename T> T uniq_copy(const T& v)
+template<typename T> typename decay<T>::type uniq_copy(T&& v)
 {
-    T v2(v);
-    typename T::iterator i1;
-
-    std::sort(v2.begin(), v2.end());
-    i1 = std::unique(v2.begin(), v2.end());
-    v2.resize(i1-v2.begin());
-
+    typename decay<T>::type v2(forward<T>(v));
+    uniq(v2);
     return v2;
 }
 
@@ -2399,14 +839,13 @@ template<typename T> T intersection(const T& v1, const T& v2)
     T v;
     T v3(v1);
     T v4(v2);
-    typename T::iterator end;
 
     v.resize(v1.size()+v2.size());
 
     sort(v3.begin(),v3.end());
     sort(v4.begin(),v4.end());
 
-    end = std::set_intersection(v3.begin(), v3.end(), v4.begin(), v4.end(), v.begin());
+    auto end = set_intersection(v3.begin(), v3.end(), v4.begin(), v4.end(), v.begin());
     v.resize(end-v.begin());
 
     return v;
@@ -2418,13 +857,13 @@ template<typename T> T intersection(const T& v1, const T& v2)
 template<typename T> T& exclude(T& v1, const T& v2)
 {
     T v3(v2);
-    typename T::iterator i1, i2, i3;
 
-    std::sort(v1.begin(), v1.end());
-    std::sort(v3.begin(), v3.end());
+    sort(v1.begin(), v1.end());
+    sort(v3.begin(), v3.end());
 
-    i1 = i2 = v1.begin();
-    i3 = v3.begin();
+    auto i1 = v1.begin();
+    auto i2 = v1.begin();
+    auto i3 = v3.begin();
     while (i1 != v1.end())
     {
         if (i3 == v3.end() || *i1 < *i3)
@@ -2450,26 +889,22 @@ template<typename T> T& exclude(T& v1, const T& v2)
 /*
  * Return elements from v1 that are not also in v2
  */
-template<typename T> T exclude_copy(const T& v1, const T& v2)
+template<typename T> typename decay<T>::type exclude_copy(T&& v1, const T& v2)
 {
-    T v3(v1);
-    return exclude(v3, v2);
+    typename decay<T>::type v3(forward<T>(v1));
+    exclude(v3, v2);
+    return v3;
 }
 
 template<typename T, typename U> T& mask(T& v, const U& mask)
 {
-    typename T::iterator i1;
-    typename T::const_iterator i2;
-    typename U::const_iterator i3;
-
-    i1 = v.begin();
-    i2 = v.begin();
-    i3 = mask.begin();
+    auto i1 = v.begin();
+    auto i2 = v.begin();
+    auto i3 = mask.begin();
     for (;i2 != v.end();++i2,++i3)
     {
         if (*i3)
         {
-            using std::swap;
             swap(*i1, *i2);
             ++i1;
         }
@@ -2479,67 +914,58 @@ template<typename T, typename U> T& mask(T& v, const U& mask)
     return v;
 }
 
-template<typename T, typename U> T mask_copy(const T& v, const U& mask)
+template<typename T, typename U> typename decay<T>::type mask_copy(const T& v, const U& mask)
 {
-    T v2(v);
-    typename T::iterator i1;
-    typename T::const_iterator i2;
-    typename U::const_iterator i3;
+    typename decay<T>::type v2;
 
-    i1 = v2.begin();
-    i2 = v.begin();
-    i3 = mask.begin();
-    for (;i2 != v.end();++i2,++i3)
+    auto i3 = mask.begin();
+    for (auto& i : v)
     {
-        if (*i3)
+        if (*i3++)
         {
-            *i1 = *i2;
-            ++i1;
+            v2.emplace_back(i);
         }
     }
 
-    v2.resize(i1-v2.begin());
     return v2;
 }
 
-template<typename T, typename U> bool compareFirst(std::pair<T,U> p1, std::pair<T,U> p2)
+template<typename T, typename U> typename decay<T>::type mask_copy(T&& v, const U& mask)
 {
-    return p1.first < p2.first;
-}
+    typename decay<T>::type v2;
 
-template<typename T, typename U> bool compareSecond(std::pair<T,U> p1, std::pair<T,U> p2)
-{
-    return p1.second < p2.second;
+    auto i3 = mask.begin();
+    for (auto& i : v)
+    {
+        if (*i3++)
+        {
+            v2.emplace_back(move(i));
+        }
+    }
+
+    return v2;
 }
 
 template<typename T>
-std::vector<T>& translate(std::vector<T>& s, const std::vector<T>& from, const std::vector<T>& to)
+T& translate(T& s, const T& from, const T& to)
 {
-    typename std::vector<T> fromSorted;
-    typename std::vector<T> toSorted;
-    typename std::vector< std::pair<T,T> > pairs;
+    assert(from.size() == to.size());
 
-    if (from.size() != to.size()) throw std::logic_error("from and to must be the same size");
+    //vector<T> fromSorted(from);
+    //vector<T> toSorted(to);
+    //cosort(from, to);
+    // not working?
 
-    for (typename std::vector<T>::const_iterator f = from.begin(), t = to.begin();f != from.end();++f, ++t)
+    T fromSorted, toSorted;
+    tie(fromSorted, toSorted) = unzip(sorted(zip(from, to)));
+
+    for (auto& l : s)
     {
-        pairs.push_back(std::make_pair(*f, *t));
-    }
-    std::sort(pairs.begin(), pairs.end(), compareFirst<T,T>);
-    for (typename std::vector< std::pair<T,T> >::const_iterator i = pairs.begin();i != pairs.end();++i)
-    {
-        fromSorted.push_back(i->first);
-        toSorted.push_back(i->second);
-    }
+        auto lb = lower_bound(fromSorted.begin(), fromSorted.end(), l);
 
-    for (typename std::vector<T>::iterator l = s.begin();l != s.end();++l)
-    {
-        typename std::vector<T>::const_iterator lb = std::lower_bound(fromSorted.begin(), fromSorted.end(), *l);
-
-        if (lb != fromSorted.end() && *lb == *l)
+        if (lb != fromSorted.end() && *lb == l)
         {
-            //cout << "from " << *l << " to " << to[lb - fromSorted.begin()] << endl;
-            *l = toSorted[lb - fromSorted.begin()];
+            l = toSorted[lb - fromSorted.begin()];
         }
     }
 
@@ -2547,19 +973,18 @@ std::vector<T>& translate(std::vector<T>& s, const std::vector<T>& from, const s
 }
 
 template<typename T>
-std::vector<T> translate_copy(const std::vector<T>& s, const std::vector<T>& from, const std::vector<T>& to)
+typename decay<T>::type translate_copy(T&& s, const T& from, const T& to)
 {
-    typename std::vector<T> s_(s);
+    typename decay<T>::type s_(forward<T>(s));
     translate(s_, from, to);
     return s_;
 }
 
-inline std::string& translate(std::string& s, const std::string& from, const std::string& to)
+inline string& translate(string& s, const string& from, const string& to)
 {
+    assert(from.size() == to.size());
+
     unsigned char trans[256];
-
-    if (from.size() != to.size()) throw std::logic_error("from and to must be the same size");
-
     if (s.size() < 256)
     {
         for (int i = 0;i < s.size();i++) trans[(unsigned char)s[i]] = s[i];
@@ -2570,40 +995,64 @@ inline std::string& translate(std::string& s, const std::string& from, const std
     }
 
     for (int i = 0;i < from.size();i++) trans[(unsigned char)from[i]] = to[i];
-    for (int i = 0;i < s.size();i++) s[i] = trans[(unsigned char)s[i]];
+    for (int i = 0;i <    s.size();i++) s[i] = trans[(unsigned char)s[i]];
 
     return s;
 }
 
-inline std::string translate_copy(const std::string& s, const std::string& from, const std::string& to)
+inline string translate_copy(string&& s, const string& from, const string& to)
 {
-    std::string s_(s);
+    string s_(move(s));
     translate(s_, from, to);
     return s_;
 }
 
-inline std::string toupper(const std::string& s)
+inline string translate_copy(const string& s, const string& from, const string& to)
 {
-    std::string S(s);
-    for (std::string::iterator C = S.begin();C != S.end();++C) *C = toupper(*C);
+    string s_(s);
+    translate(s_, from, to);
+    return s_;
+}
+
+inline string toupper(string&& s)
+{
+    string S(move(s));
+    for (auto& C : S) C = ::toupper(C);
     return S;
 }
 
-inline std::string tolower(const std::string& S)
+inline string tolower(string&& S)
 {
-    std::string s(S);
-    for (std::string::iterator c = s.begin();c != s.end();++c) *c = tolower(*c);
+    string s(move(S));
+    for (auto& c : s) c = ::tolower(c);
     return s;
 }
 
-inline float conj(float v) { return v; }
-inline double conj(double v) { return v; }
+inline string toupper(const string& s)
+{
+    string S(s);
+    for (auto& C : S) C = ::toupper(C);
+    return S;
+}
 
-inline float real(float v) { return v; }
-inline double real(double v) { return v; }
+inline string tolower(const string& S)
+{
+    string s(S);
+    for (auto& c : s) c = ::tolower(c);
+    return s;
+}
 
-inline float imag(float v) { return 0.0; }
-inline double imag(double v) { return 0.0; }
+inline       float conj(      float v) { return v; }
+inline      double conj(     double v) { return v; }
+inline long double conj(long double v) { return v; }
+
+inline       float real(      float v) { return v; }
+inline      double real(     double v) { return v; }
+inline long double real(long double v) { return v; }
+
+inline       float imag(      float v) { return 0.0f; }
+inline      double imag(     double v) { return 0.0; }
+inline long double imag(long double v) { return 0.0l; }
 
 template <typename T>
 struct real_type
@@ -2695,7 +1144,6 @@ class tensor
 
     friend void swap(tensor& a, tensor& b)
     {
-        using std::swap;
         swap(a.data_, b.data_);
         swap(a.len, b.len);
         swap(a.stride, b.stride);
@@ -2703,8 +1151,8 @@ class tensor
 
     protected:
         T* data_;
-        std::vector<int> len;
-        std::vector<size_t> stride;
+        vector<int> len;
+        vector<size_t> stride;
 
     public:
         enum Layout {COLUMN_MAJOR, ROW_MAJOR};
@@ -2715,10 +1163,10 @@ class tensor
             size_t num = 1;
             for (int i = 0;i < ndim;i++) num *= len[i];
             data_ = new T[num];
-            std::copy(other.data_, other.data_+num, data_);
+            copy(other.data_, other.data_+num, data_);
         }
 
-        explicit tensor(const std::vector<int>& len = std::vector<int>(ndim,0),
+        explicit tensor(const vector<int>& len = vector<int>(ndim,0),
                         const T& val = T(), Layout layout = COLUMN_MAJOR)
         : len(len), stride(ndim)
         {
@@ -2732,7 +1180,7 @@ class tensor
                     stride[i] = stride[i+1]*len[i+1];
                 }
                 data_ = new T[stride[0]*len[0]];
-                std::fill(data_, data_+stride[0]*len[0], val);
+                fill(data_, data_+stride[0]*len[0], val);
             }
             else
             {
@@ -2742,7 +1190,7 @@ class tensor
                     stride[i] = stride[i-1]*len[i-1];
                 }
                 data_ = new T[stride[ndim-1]*len[ndim-1]];
-                std::fill(data_, data_+stride[ndim-1]*len[ndim-1], val);
+                fill(data_, data_+stride[ndim-1]*len[ndim-1], val);
             }
         }
 
@@ -2751,7 +1199,7 @@ class tensor
             delete[] data_;
         }
 
-        void resize(const std::vector<int>& len, const T& val = T(), Layout layout = COLUMN_MAJOR)
+        void resize(const vector<int>& len, const T& val = T(), Layout layout = COLUMN_MAJOR)
         {
             delete[] data_;
             assert(len.size() == ndim);
@@ -2765,7 +1213,7 @@ class tensor
                     stride[i] = stride[i+1]*len[i+1];
                 }
                 data_ = new T[stride[0]*len[0]];
-                std::fill(data_, data_+stride[0]*len[0], val);
+                fill(data_, data_+stride[0]*len[0], val);
             }
             else
             {
@@ -2775,13 +1223,13 @@ class tensor
                     stride[i] = stride[i-1]*len[i-1];
                 }
                 data_ = new T[stride[ndim-1]*len[ndim-1]];
-                std::fill(data_, data_+stride[ndim-1]*len[ndim-1], val);
+                fill(data_, data_+stride[ndim-1]*len[ndim-1], val);
             }
         }
 
         void clear()
         {
-            resize(std::vector<int>(ndim, 0));
+            resize(vector<int>(ndim, 0));
         }
 
         tensor& operator=(tensor other)
@@ -2810,7 +1258,7 @@ class tensor
 
         operator const T*() const { return data_; }
 
-        const std::vector<int>& length() const { return len; }
+        const vector<int>& length() const { return len; }
 
         const int size() const
         {
@@ -2846,7 +1294,6 @@ class tensor<T,1>
 {
     friend void swap(tensor& a, tensor& b)
     {
-        using std::swap;
         swap(a.data_, b.data_);
         swap(a.len, b.len);
     }
@@ -2860,14 +1307,14 @@ class tensor<T,1>
         : len(other.len)
         {
             data_ = new T[len];
-            std::copy(other.data_, other.data_+len, data_);
+            copy(other.data_, other.data_+len, data_);
         }
 
         explicit tensor(int n = 0, const T& val = T())
         : len(n)
         {
             data_ = new T[len];
-            std::fill(data_, data_+len, val);
+            fill(data_, data_+len, val);
         }
 
         ~tensor()
@@ -2880,7 +1327,7 @@ class tensor<T,1>
             len = n;
             delete[] data_;
             data_ = new T[len];
-            std::fill(data_, data_+len, val);
+            fill(data_, data_+len, val);
         }
 
         void clear()
@@ -2990,11 +1437,11 @@ class matrix : public tensor<T,2>
         matrix() {}
 
         matrix(int m, int n, const T& val = T(), Layout layout = ROW_MAJOR)
-        : tensor<T,2>(vec(m,n), val, layout) {}
+        : tensor<T,2>({m,n}, val, layout) {}
 
         void resize(int m, int n, const T& val = T(), Layout layout = ROW_MAJOR)
         {
-            tensor<T,2>::resize(vec(m,n), val, layout);
+            tensor<T,2>::resize({m,n}, val, layout);
         }
 };
 
@@ -3197,8 +1644,8 @@ template <class key_iterator, class val_iterator>
 void cosort(key_iterator keys_begin, key_iterator keys_end,
             val_iterator vals_begin, val_iterator vals_end)
 {
-    coiterator<key_iterator,val_iterator> begin = coiterator<key_iterator,val_iterator>(keys_begin, vals_begin);
-    coiterator<key_iterator,val_iterator> end = coiterator<key_iterator,val_iterator>(keys_end, vals_end);
+    coiterator<key_iterator,val_iterator> begin(keys_begin, vals_begin);
+    coiterator<key_iterator,val_iterator> end  (keys_end  , vals_end  );
     sort(begin, end);
 }
 
@@ -3207,9 +1654,21 @@ void cosort(key_iterator keys_begin, key_iterator keys_end,
             val_iterator vals_begin, val_iterator vals_end,
             Comparator comp)
 {
-    coiterator<key_iterator,val_iterator> begin = coiterator<key_iterator,val_iterator>(keys_begin, vals_begin);
-    coiterator<key_iterator,val_iterator> end = coiterator<key_iterator,val_iterator>(keys_end, vals_end);
+    coiterator<key_iterator,val_iterator> begin(keys_begin, vals_begin);
+    coiterator<key_iterator,val_iterator> end  (keys_end  , vals_end  );
     sort(begin, end, cocomparator<key_iterator,val_iterator,Comparator>(comp));
+}
+
+template <class Keys, class Values>
+void cosort(Keys keys, Values values)
+{
+    cosort(keys.begin(), keys.end(), values.begin(), values.end());
+}
+
+template <class Keys, class Values, class Comparator>
+void cosort(Keys keys, Values values, Comparator comp)
+{
+    cosort(keys.begin(), keys.end(), values.begin(), values.end(), comp);
 }
 
 }

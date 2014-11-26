@@ -205,8 +205,8 @@ void AOMOIntegrals<T>::pqrs_integrals::sortInts(bool rles, size_t& nrs, vector<s
     for (size_t i = 1;i < nrs;i++) rsoff[i] = rsoff[i-1]+rscount[i-1];
     assert(rsoff[nrs-1]+rscount[nrs-1] == ints.size());
 
-    vararray<T> newints(ints.size());
-    vararray<idx4_t> newidxs(ints.size());
+    vector<T> newints(ints.size());
+    vector<idx4_t> newidxs(ints.size());
 
     for (size_t i = 0;i < ints.size();i++)
     {
@@ -260,8 +260,8 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
     PROFILE_STOP
 
     size_t nnewints = sum(recvcount);
-    vararray<T> newints(nnewints);
-    vararray<idx4_t> newidxs(nnewints);
+    vector<T> newints(nnewints);
+    vector<idx4_t> newidxs(nnewints);
 
     vector<int> realsendcount(nproc);
     vector<int> realrecvcount(nproc);
@@ -626,7 +626,7 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symt
                         }
                     }
 
-                    vararray<kv_pair> pairs(npair);
+                    vector<kv_pair> pairs(npair);
 
                     size_t pair = 0;
                     for (int s = 0;s < ns[irrs];s++)
@@ -765,7 +765,7 @@ size_t AOMOIntegrals<T>::abrs_integrals::getNumAB(idx2_t rs, std::vector<size_t>
 }
 
 template <typename T>
-T absmax(const vararray<T>& c)
+T absmax(const vector<T>& c)
 {
     //return c[iamax(c.size(), c.data(), 1)];
     return nrm2(c.size(), c.data(), 1);
@@ -793,10 +793,10 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     const vector<int>& nA = vrt.nalpha;
     const vector<int>& na = vrt.nbeta;
 
-    vector<int> nI_ = vec(sum(nI))+vector<int>(n-1,0);
-    vector<int> ni_ = vec(sum(ni))+vector<int>(n-1,0);
-    vector<int> nA_ = vec(sum(nA))+vector<int>(n-1,0);
-    vector<int> na_ = vec(sum(na))+vector<int>(n-1,0);
+    vector<int> nI_{sum(nI)}; nI_ += vector<int>(n-1,0);
+    vector<int> ni_{sum(ni)}; ni_ += vector<int>(n-1,0);
+    vector<int> nA_{sum(nA)}; nA_ += vector<int>(n-1,0);
+    vector<int> na_{sum(na)}; na_ += vector<int>(n-1,0);
 
     vector<vector<typename real_type<T>::type> >& Ea =
         this->template get<vector<vector<typename real_type<T>::type> > >("Ea");
@@ -813,25 +813,25 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     /*
     {
         vector<int> zero(n);
-        SymmetryBlockedTensor<T> Ea_occ("Ea_occ", arena, ints.group, 1, vec(nI), vec(NS), false);
-        SymmetryBlockedTensor<T> Eb_occ("Eb_occ", arena, ints.group, 1, vec(ni), vec(NS), false);
-        SymmetryBlockedTensor<T> Ea_vrt("Ea_vrt", arena, ints.group, 1, vec(nA), vec(NS), false);
-        SymmetryBlockedTensor<T> Eb_vrt("Eb_vrt", arena, ints.group, 1, vec(na), vec(NS), false);
+        SymmetryBlockedTensor<T> Ea_occ("Ea_occ", arena, ints.group, 1, {nI}, {NS}, false);
+        SymmetryBlockedTensor<T> Eb_occ("Eb_occ", arena, ints.group, 1, {ni}, {NS}, false);
+        SymmetryBlockedTensor<T> Ea_vrt("Ea_vrt", arena, ints.group, 1, {nA}, {NS}, false);
+        SymmetryBlockedTensor<T> Eb_vrt("Eb_vrt", arena, ints.group, 1, {na}, {NS}, false);
 
-        Ea_occ.slice(1.0, false, Ea, vec(zero), 0.0);
-        Ea_vrt.slice(1.0, false, Ea, vec(nI), 0.0);
-        Eb_occ.slice(1.0, false, Eb, vec(zero), 0.0);
-        Eb_vrt.slice(1.0, false, Eb, vec(ni), 0.0);
+        Ea_occ.slice(1.0, false, Ea, {zero}, 0.0);
+        Ea_vrt.slice(1.0, false, Ea, {nI}, 0.0);
+        Eb_occ.slice(1.0, false, Eb, {zero}, 0.0);
+        Eb_vrt.slice(1.0, false, Eb, {ni}, 0.0);
 
-        H.getIJ()(vec(0,1),vec(0,1))["II"] = Ea_occ["I"];
-        H.getIJ()(vec(0,0),vec(0,0))["ii"] = Eb_occ["i"];
-        H.getAB()(vec(1,0),vec(1,0))["AA"] = Ea_vrt["A"];
-        H.getAB()(vec(0,0),vec(0,0))["aa"] = Eb_vrt["a"];
+        H.getIJ()({0,1},{0,1})["II"] = Ea_occ["I"];
+        H.getIJ()({0,0},{0,0})["ii"] = Eb_occ["i"];
+        H.getAB()({1,0},{1,0})["AA"] = Ea_vrt["A"];
+        H.getAB()({0,0},{0,0})["aa"] = Eb_vrt["a"];
     }
     */
 
-    SymmetryBlockedTensor<T> ABIJ__("<AB|IJ>", arena, ints.group, 4, vec(nA,nA,nI,nI), vec(NS,NS,NS,NS), false);
-    SymmetryBlockedTensor<T> abij__("<ab|ij>", arena, ints.group, 4, vec(na,na,ni,ni), vec(NS,NS,NS,NS), false);
+    SymmetryBlockedTensor<T> ABIJ__("<AB|IJ>", arena, ints.group, 4, {nA,nA,nI,nI}, {NS,NS,NS,NS}, false);
+    SymmetryBlockedTensor<T> abij__("<ab|ij>", arena, ints.group, 4, {na,na,ni,ni}, {NS,NS,NS,NS}, false);
 
     vector<vector<T> > cA(n), ca(n), cI(n), ci(n);
 
@@ -840,7 +840,7 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
      */
     for (int i = 0;i < n;i++)
     {
-        vector<int> irreps = vec(i,i);
+        vector<int> irreps = {i,i};
         cA_.getAllData(irreps, cA[i]);
         assert(cA[i].size() == N[i]*nA[i]);
         ca_.getAllData(irreps, ca[i]);
@@ -910,7 +910,7 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals CDAB = RDAB.transform(A, nA, cA);
     //SHOWIT(CDAB);
     RDAB.free();
-    CDAB.transcribe(H.getABCD()(vec(2,0),vec(2,0)), true, true, NONE);
+    CDAB.transcribe(H.getABCD()({2,0},{2,0}), true, true, NONE);
     CDAB.free();
 
     /*
@@ -930,13 +930,13 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals CDab = RDab.transform(A, nA, cA);
     //SHOWIT(CDab);
     RDab.free();
-    CDab.transcribe(H.getABCD()(vec(1,0),vec(1,0)), false, false, NONE);
+    CDab.transcribe(H.getABCD()({1,0},{1,0}), false, false, NONE);
     CDab.free();
 
     abrs_integrals cdab = Rdab.transform(A, na, ca);
     //SHOWIT(cdab);
     Rdab.free();
-    cdab.transcribe(H.getABCD()(vec(0,0),vec(0,0)), true, true, NONE);
+    cdab.transcribe(H.getABCD()({0,0},{0,0}), true, true, NONE);
     cdab.free();
 
     /*
@@ -958,13 +958,13 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals BCAI = RCAI.transform(A, nA, cA);
     //SHOWIT(BCAI);
     RCAI.free();
-    BCAI.transcribe(H.getABCI()(vec(2,0),vec(1,1)), true, false, NONE);
+    BCAI.transcribe(H.getABCI()({2,0},{1,1}), true, false, NONE);
     BCAI.free();
 
     abrs_integrals bcAI = RcAI.transform(A, na, ca);
     //SHOWIT(bcAI);
     RcAI.free();
-    bcAI.transcribe(H.getABCI()(vec(1,0),vec(0,1)), false, false, PQ);
+    bcAI.transcribe(H.getABCI()({1,0},{0,1}), false, false, PQ);
     bcAI.free();
 
     abrs_integrals BJAI = RJAI.transform(A, nA, cA);
@@ -994,19 +994,19 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals BCai = RCai.transform(A, nA, cA);
     //SHOWIT(BCai);
     RCai.free();
-    BCai.transcribe(H.getABCI()(vec(1,0),vec(1,0)), false, false, NONE);
+    BCai.transcribe(H.getABCI()({1,0},{1,0}), false, false, NONE);
     BCai.free();
 
     abrs_integrals bcai = Rcai.transform(A, na, ca);
     //SHOWIT(bcai);
     Rcai.free();
-    bcai.transcribe(H.getABCI()(vec(0,0),vec(0,0)), true, false, NONE);
+    bcai.transcribe(H.getABCI()({0,0},{0,0}), true, false, NONE);
     bcai.free();
 
     abrs_integrals BJai = RJai.transform(A, nA, cA);
     //SHOWIT(BJai);
     RJai.free();
-    BJai.transcribe(H.getABIJ()(vec(1,0),vec(0,1)), false, false, NONE);
+    BJai.transcribe(H.getABIJ()({1,0},{0,1}), false, false, NONE);
     BJai.free();
 
     abrs_integrals bjai = Rjai.transform(A, na, ca);
@@ -1036,19 +1036,19 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals ABIJ = RBIJ.transform(A, nA, cA);
     //SHOWIT(ABIJ);
     RBIJ.free();
-    ABIJ.transcribe(H.getAIBJ()(vec(1,1),vec(1,1)), false, false, NONE);
+    ABIJ.transcribe(H.getAIBJ()({1,1},{1,1}), false, false, NONE);
     ABIJ.free();
 
     abrs_integrals abIJ = RbIJ.transform(A, na, ca);
     //SHOWIT(abIJ);
     RbIJ.free();
-    abIJ.transcribe(H.getAIBJ()(vec(0,1),vec(0,1)), false, false, NONE);
+    abIJ.transcribe(H.getAIBJ()({0,1},{0,1}), false, false, NONE);
     abIJ.free();
 
     abrs_integrals akIJ = RlIJ.transform(A, na, ca);
     //SHOWIT(akIJ);
     RlIJ.free();
-    akIJ.transcribe(H.getAIJK()(vec(0,1),vec(0,1)), false, false, RS);
+    akIJ.transcribe(H.getAIJK()({0,1},{0,1}), false, false, RS);
     akIJ.free();
 
     abrs_integrals AKIJ = RLIJ.transform(A, nA, cA);
@@ -1056,9 +1056,9 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals KLIJ = RLIJ.transform(A, nI, cI);
     //SHOWIT(KLIJ);
     RLIJ.free();
-    AKIJ.transcribe(H.getAIJK()(vec(1,1),vec(0,2)), false, true, NONE);
+    AKIJ.transcribe(H.getAIJK()({1,1},{0,2}), false, true, NONE);
     AKIJ.free();
-    KLIJ.transcribe(H.getIJKL()(vec(0,2),vec(0,2)), true, true, NONE);
+    KLIJ.transcribe(H.getIJKL()({0,2},{0,2}), true, true, NONE);
     KLIJ.free();
 
     /*
@@ -1082,13 +1082,13 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals ABij = RBij.transform(A, nA, cA);
     //SHOWIT(ABij);
     RBij.free();
-    ABij.transcribe(H.getAIBJ()(vec(1,0),vec(1,0)), false, false, NONE);
+    ABij.transcribe(H.getAIBJ()({1,0},{1,0}), false, false, NONE);
     ABij.free();
 
     abrs_integrals abij = Rbij.transform(A, na, ca);
     //SHOWIT(abij);
     Rbij.free();
-    abij.transcribe(H.getAIBJ()(vec(0,0),vec(0,0)), false, false, NONE);
+    abij.transcribe(H.getAIBJ()({0,0},{0,0}), false, false, NONE);
     abij.free();
 
     abrs_integrals AKij = RLij.transform(A, nA, cA);
@@ -1096,9 +1096,9 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals KLij = RLij.transform(A, nI, cI);
     //SHOWIT(KLij);
     RLij.free();
-    AKij.transcribe(H.getAIJK()(vec(1,0),vec(0,1)), false, false, NONE);
+    AKij.transcribe(H.getAIJK()({1,0},{0,1}), false, false, NONE);
     AKij.free();
-    KLij.transcribe(H.getIJKL()(vec(0,1),vec(0,1)), false, false, NONE);
+    KLij.transcribe(H.getIJKL()({0,1},{0,1}), false, false, NONE);
     KLij.free();
 
     abrs_integrals akij = Rlij.transform(A, na, ca);
@@ -1106,80 +1106,80 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     abrs_integrals klij = Rlij.transform(A, ni, ci);
     //SHOWIT(klij);
     Rlij.free();
-    akij.transcribe(H.getAIJK()(vec(0,0),vec(0,0)), false, true, NONE);
+    akij.transcribe(H.getAIJK()({0,0},{0,0}), false, true, NONE);
     akij.free();
-    klij.transcribe(H.getIJKL()(vec(0,0),vec(0,0)), true, true, NONE);
+    klij.transcribe(H.getIJKL()({0,0},{0,0}), true, true, NONE);
     klij.free();
 
     /*
      * Make <AI||BJ> and <ai||bj>
      */
-    H.getAIBJ()(vec(1,1),vec(1,1))["AIBJ"] -= ABIJ__["ABJI"];
-    H.getAIBJ()(vec(0,0),vec(0,0))["aibj"] -= abij__["abji"];
+    H.getAIBJ()({1,1},{1,1})["AIBJ"] -= ABIJ__["ABJI"];
+    H.getAIBJ()({0,0},{0,0})["aibj"] -= abij__["abji"];
 
     /*
      * Make <AB||IJ> and <ab||ij>
      */
-    H.getABIJ()(vec(2,0),vec(0,2))["ABIJ"] = 0.5*ABIJ__["ABIJ"];
-    H.getABIJ()(vec(0,0),vec(0,0))["abij"] = 0.5*abij__["abij"];
+    H.getABIJ()({2,0},{0,2})["ABIJ"] = 0.5*ABIJ__["ABIJ"];
+    H.getABIJ()({0,0},{0,0})["abij"] = 0.5*abij__["abij"];
 
     /*
      * Make <Ai|bJ> = -<Ab|Ji> and <aI|Bj> = -<Ba|Ij>
      */
-    H.getAIBJ()(vec(1,0),vec(0,1))["AibJ"] = -H.getABIJ()(vec(1,0),vec(0,1))["AbJi"];
-    H.getAIBJ()(vec(0,1),vec(1,0))["aIBj"] = -H.getABIJ()(vec(1,0),vec(0,1))["BaIj"];
+    H.getAIBJ()({1,0},{0,1})["AibJ"] = -H.getABIJ()({1,0},{0,1})["AbJi"];
+    H.getAIBJ()({0,1},{1,0})["aIBj"] = -H.getABIJ()({1,0},{0,1})["BaIj"];
 
     /*
      * Fill in pieces which are equal by Hermicity
      */
-    H.getIJAK()(vec(0,2),vec(1,1))["JKAI"] = H.getAIJK()(vec(1,1),vec(0,2))["AIJK"];
-    H.getIJAK()(vec(0,1),vec(1,0))["JkAi"] = H.getAIJK()(vec(1,0),vec(0,1))["AiJk"];
-    H.getIJAK()(vec(0,1),vec(0,1))["JkaI"] = H.getAIJK()(vec(0,1),vec(0,1))["aIJk"];
-    H.getIJAK()(vec(0,0),vec(0,0))["jkai"] = H.getAIJK()(vec(0,0),vec(0,0))["aijk"];
+    H.getIJAK()({0,2},{1,1})["JKAI"] = H.getAIJK()({1,1},{0,2})["AIJK"];
+    H.getIJAK()({0,1},{1,0})["JkAi"] = H.getAIJK()({1,0},{0,1})["AiJk"];
+    H.getIJAK()({0,1},{0,1})["JkaI"] = H.getAIJK()({0,1},{0,1})["aIJk"];
+    H.getIJAK()({0,0},{0,0})["jkai"] = H.getAIJK()({0,0},{0,0})["aijk"];
 
-    H.getAIBC()(vec(1,1),vec(2,0))["AIBC"] = H.getABCI()(vec(2,0),vec(1,1))["BCAI"];
-    H.getAIBC()(vec(1,0),vec(1,0))["AiBc"] = H.getABCI()(vec(1,0),vec(1,0))["BcAi"];
-    H.getAIBC()(vec(0,1),vec(1,0))["aIBc"] = H.getABCI()(vec(1,0),vec(0,1))["BcaI"];
-    H.getAIBC()(vec(0,0),vec(0,0))["aibc"] = H.getABCI()(vec(0,0),vec(0,0))["bcai"];
+    H.getAIBC()({1,1},{2,0})["AIBC"] = H.getABCI()({2,0},{1,1})["BCAI"];
+    H.getAIBC()({1,0},{1,0})["AiBc"] = H.getABCI()({1,0},{1,0})["BcAi"];
+    H.getAIBC()({0,1},{1,0})["aIBc"] = H.getABCI()({1,0},{0,1})["BcaI"];
+    H.getAIBC()({0,0},{0,0})["aibc"] = H.getABCI()({0,0},{0,0})["bcai"];
 
-    H.getIJAB()(vec(0,2),vec(2,0))["IJAB"] = H.getABIJ()(vec(2,0),vec(0,2))["ABIJ"];
-    H.getIJAB()(vec(0,1),vec(1,0))["IjAb"] = H.getABIJ()(vec(1,0),vec(0,1))["AbIj"];
-    H.getIJAB()(vec(0,0),vec(0,0))["ijab"] = H.getABIJ()(vec(0,0),vec(0,0))["abij"];
+    H.getIJAB()({0,2},{2,0})["IJAB"] = H.getABIJ()({2,0},{0,2})["ABIJ"];
+    H.getIJAB()({0,1},{1,0})["IjAb"] = H.getABIJ()({1,0},{0,1})["AbIj"];
+    H.getIJAB()({0,0},{0,0})["ijab"] = H.getABIJ()({0,0},{0,0})["abij"];
 
-    //this->log(arena) << "ABCD: " << setprecision(15) << H.getABCD()(vec(2,0),vec(2,0)).norm(2) << endl;
-    //this->log(arena) << "AbCd: " << setprecision(15) << H.getABCD()(vec(1,0),vec(1,0)).norm(2) << endl;
-    //this->log(arena) << "abcd: " << setprecision(15) << H.getABCD()(vec(0,0),vec(0,0)).norm(2) << endl;
-    //this->log(arena) << "ABCI: " << setprecision(15) << H.getABCI()(vec(2,0),vec(1,1)).norm(2) << endl;
-    //this->log(arena) << "AbCi: " << setprecision(15) << H.getABCI()(vec(1,0),vec(1,0)).norm(2) << endl;
-    //this->log(arena) << "AbcI: " << setprecision(15) << H.getABCI()(vec(1,0),vec(0,1)).norm(2) << endl;
-    //this->log(arena) << "abci: " << setprecision(15) << H.getABCI()(vec(0,0),vec(0,0)).norm(2) << endl;
-    //this->log(arena) << "AIBC: " << setprecision(15) << H.getAIBC()(vec(1,1),vec(2,0)).norm(2) << endl;
-    //this->log(arena) << "AiBc: " << setprecision(15) << H.getAIBC()(vec(1,0),vec(1,0)).norm(2) << endl;
-    //this->log(arena) << "aIBc: " << setprecision(15) << H.getAIBC()(vec(0,1),vec(1,0)).norm(2) << endl;
-    //this->log(arena) << "aibc: " << setprecision(15) << H.getAIBC()(vec(0,0),vec(0,0)).norm(2) << endl;
-    //this->log(arena) << "ABIJ: " << setprecision(15) << H.getABIJ()(vec(2,0),vec(0,2)).norm(2) << endl;
-    //this->log(arena) << "AbIj: " << setprecision(15) << H.getABIJ()(vec(1,0),vec(0,1)).norm(2) << endl;
-    //this->log(arena) << "abij: " << setprecision(15) << H.getABIJ()(vec(0,0),vec(0,0)).norm(2) << endl;
-    //this->log(arena) << "AIBJ: " << setprecision(15) << H.getAIBJ()(vec(1,1),vec(1,1)).norm(2) << endl;
-    //this->log(arena) << "AiBj: " << setprecision(15) << H.getAIBJ()(vec(1,0),vec(1,0)).norm(2) << endl;
-    //this->log(arena) << "aIbJ: " << setprecision(15) << H.getAIBJ()(vec(0,1),vec(0,1)).norm(2) << endl;
-    //this->log(arena) << "AibJ: " << setprecision(15) << H.getAIBJ()(vec(1,0),vec(0,1)).norm(2) << endl;
-    //this->log(arena) << "aIBj: " << setprecision(15) << H.getAIBJ()(vec(0,1),vec(1,0)).norm(2) << endl;
-    //this->log(arena) << "aibj: " << setprecision(15) << H.getAIBJ()(vec(0,0),vec(0,0)).norm(2) << endl;
-    //this->log(arena) << "IJAB: " << setprecision(15) << H.getIJAB()(vec(0,2),vec(2,0)).norm(2) << endl;
-    //this->log(arena) << "IjAb: " << setprecision(15) << H.getIJAB()(vec(0,1),vec(1,0)).norm(2) << endl;
-    //this->log(arena) << "ijab: " << setprecision(15) << H.getIJAB()(vec(0,0),vec(0,0)).norm(2) << endl;
-    //this->log(arena) << "AIJK: " << setprecision(15) << H.getAIJK()(vec(1,1),vec(0,2)).norm(2) << endl;
-    //this->log(arena) << "AiJk: " << setprecision(15) << H.getAIJK()(vec(1,0),vec(0,1)).norm(2) << endl;
-    //this->log(arena) << "aIJk: " << setprecision(15) << H.getAIJK()(vec(0,1),vec(0,1)).norm(2) << endl;
-    //this->log(arena) << "aijk: " << setprecision(15) << H.getAIJK()(vec(0,0),vec(0,0)).norm(2) << endl;
-    //this->log(arena) << "IJAK: " << setprecision(15) << H.getIJAK()(vec(0,2),vec(1,1)).norm(2) << endl;
-    //this->log(arena) << "IjAk: " << setprecision(15) << H.getIJAK()(vec(0,1),vec(1,0)).norm(2) << endl;
-    //this->log(arena) << "IjaK: " << setprecision(15) << H.getIJAK()(vec(0,1),vec(0,1)).norm(2) << endl;
-    //this->log(arena) << "ijak: " << setprecision(15) << H.getIJAK()(vec(0,0),vec(0,0)).norm(2) << endl;
-    //this->log(arena) << "IJKL: " << setprecision(15) << H.getIJKL()(vec(0,2),vec(0,2)).norm(2) << endl;
-    //this->log(arena) << "IjKl: " << setprecision(15) << H.getIJKL()(vec(0,1),vec(0,1)).norm(2) << endl;
-    //this->log(arena) << "ijkl: " << setprecision(15) << H.getIJKL()(vec(0,0),vec(0,0)).norm(2) << endl;
+    //this->log(arena) << "ABCD: " << setprecision(15) << H.getABCD()({2,0},{2,0}).norm(2) << endl;
+    //this->log(arena) << "AbCd: " << setprecision(15) << H.getABCD()({1,0},{1,0}).norm(2) << endl;
+    //this->log(arena) << "abcd: " << setprecision(15) << H.getABCD()({0,0},{0,0}).norm(2) << endl;
+    //this->log(arena) << "ABCI: " << setprecision(15) << H.getABCI()({2,0},{1,1}).norm(2) << endl;
+    //this->log(arena) << "AbCi: " << setprecision(15) << H.getABCI()({1,0},{1,0}).norm(2) << endl;
+    //this->log(arena) << "AbcI: " << setprecision(15) << H.getABCI()({1,0},{0,1}).norm(2) << endl;
+    //this->log(arena) << "abci: " << setprecision(15) << H.getABCI()({0,0},{0,0}).norm(2) << endl;
+    //this->log(arena) << "AIBC: " << setprecision(15) << H.getAIBC()({1,1},{2,0}).norm(2) << endl;
+    //this->log(arena) << "AiBc: " << setprecision(15) << H.getAIBC()({1,0},{1,0}).norm(2) << endl;
+    //this->log(arena) << "aIBc: " << setprecision(15) << H.getAIBC()({0,1},{1,0}).norm(2) << endl;
+    //this->log(arena) << "aibc: " << setprecision(15) << H.getAIBC()({0,0},{0,0}).norm(2) << endl;
+    //this->log(arena) << "ABIJ: " << setprecision(15) << H.getABIJ()({2,0},{0,2}).norm(2) << endl;
+    //this->log(arena) << "AbIj: " << setprecision(15) << H.getABIJ()({1,0},{0,1}).norm(2) << endl;
+    //this->log(arena) << "abij: " << setprecision(15) << H.getABIJ()({0,0},{0,0}).norm(2) << endl;
+    //this->log(arena) << "AIBJ: " << setprecision(15) << H.getAIBJ()({1,1},{1,1}).norm(2) << endl;
+    //this->log(arena) << "AiBj: " << setprecision(15) << H.getAIBJ()({1,0},{1,0}).norm(2) << endl;
+    //this->log(arena) << "aIbJ: " << setprecision(15) << H.getAIBJ()({0,1},{0,1}).norm(2) << endl;
+    //this->log(arena) << "AibJ: " << setprecision(15) << H.getAIBJ()({1,0},{0,1}).norm(2) << endl;
+    //this->log(arena) << "aIBj: " << setprecision(15) << H.getAIBJ()({0,1},{1,0}).norm(2) << endl;
+    //this->log(arena) << "aibj: " << setprecision(15) << H.getAIBJ()({0,0},{0,0}).norm(2) << endl;
+    //this->log(arena) << "IJAB: " << setprecision(15) << H.getIJAB()({0,2},{2,0}).norm(2) << endl;
+    //this->log(arena) << "IjAb: " << setprecision(15) << H.getIJAB()({0,1},{1,0}).norm(2) << endl;
+    //this->log(arena) << "ijab: " << setprecision(15) << H.getIJAB()({0,0},{0,0}).norm(2) << endl;
+    //this->log(arena) << "AIJK: " << setprecision(15) << H.getAIJK()({1,1},{0,2}).norm(2) << endl;
+    //this->log(arena) << "AiJk: " << setprecision(15) << H.getAIJK()({1,0},{0,1}).norm(2) << endl;
+    //this->log(arena) << "aIJk: " << setprecision(15) << H.getAIJK()({0,1},{0,1}).norm(2) << endl;
+    //this->log(arena) << "aijk: " << setprecision(15) << H.getAIJK()({0,0},{0,0}).norm(2) << endl;
+    //this->log(arena) << "IJAK: " << setprecision(15) << H.getIJAK()({0,2},{1,1}).norm(2) << endl;
+    //this->log(arena) << "IjAk: " << setprecision(15) << H.getIJAK()({0,1},{1,0}).norm(2) << endl;
+    //this->log(arena) << "IjaK: " << setprecision(15) << H.getIJAK()({0,1},{0,1}).norm(2) << endl;
+    //this->log(arena) << "ijak: " << setprecision(15) << H.getIJAK()({0,0},{0,0}).norm(2) << endl;
+    //this->log(arena) << "IJKL: " << setprecision(15) << H.getIJKL()({0,2},{0,2}).norm(2) << endl;
+    //this->log(arena) << "IjKl: " << setprecision(15) << H.getIJKL()({0,1},{0,1}).norm(2) << endl;
+    //this->log(arena) << "ijkl: " << setprecision(15) << H.getIJKL()({0,0},{0,0}).norm(2) << endl;
     ep.end();
 }
 

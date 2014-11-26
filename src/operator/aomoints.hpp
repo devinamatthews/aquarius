@@ -25,7 +25,7 @@
 #ifndef _AQUARIUS_OPERATOR_AOMOINTS_HPP_
 #define _AQUARIUS_OPERATOR_AOMOINTS_HPP_
 
-#include <valarray>
+#include <vector>
 
 #include "scf/aoscf.hpp"
 #include "integrals/2eints.hpp"
@@ -53,8 +53,8 @@ class AOMOIntegrals : public MOIntegrals<T>
         {
             const symmetry::PointGroup& group;
             std::vector<int> np, nq, nr, ns;
-            std::vararray<T> ints;
-            std::vararray<idx4_t> idxs;
+            std::vector<T> ints;
+            std::vector<idx4_t> idxs;
 
             /*
              * Read integrals in and break (pq|rs)=(rs|pq) symmetry
@@ -77,8 +77,8 @@ class AOMOIntegrals : public MOIntegrals<T>
         {
             const symmetry::PointGroup& group;
             std::vector<int> na, nb, nr, ns;
-            std::vararray<T> ints;
-            std::vararray<idx2_t> rs;
+            std::vector<T> ints;
+            std::vector<idx2_t> rs;
 
             abrs_integrals(const Arena& arena, const symmetry::PointGroup& group)
             : Distributed(arena), group(group) {}

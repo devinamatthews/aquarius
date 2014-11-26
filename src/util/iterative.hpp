@@ -50,6 +50,7 @@ class Iterative : public task::Task
         double convtol;
         int iter_;
         int maxiter;
+        int nsolution_;
 
         static ConvergenceType getConvType(const input::Config& config)
         {
@@ -123,6 +124,11 @@ class Iterative : public task::Task
             return conv_[i];
         }
 
+        int nsolution() const
+        {
+            return nsolution_;
+        }
+
         int iter() const
         {
             return iter_;
@@ -135,12 +141,14 @@ class Iterative : public task::Task
         : Task(type, name),
           convtol(config.get<double>("convergence")),
           maxiter(config.get<int>("max_iterations")),
+          nsolution_(0),
           convtype(getConvType(config)) {}
 
         virtual ~Iterative() {}
 
         void run(task::TaskDAG& dag, const Arena& arena, int nsolution = 1)
         {
+            nsolution_ = nsolution;
             energy_.resize(nsolution);
             conv_.resize(nsolution, std::numeric_limits<U>::max());
 

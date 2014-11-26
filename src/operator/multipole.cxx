@@ -43,7 +43,7 @@ Multipole<T>::Multipole(const std::string& name, const UHF<T>& uhf, int Lmin_, i
     const Molecule& m = uhf.getMolecule();
     vector<int> N = m.getNumOrbitals();
 
-    SymmetryBlockedTensor<T> ao(uhf.arena, m.getGroup(), 2, vec(N,N), vec(NS,NS), false);
+    SymmetryBlockedTensor<T> ao(uhf.arena, m.getGroup(), 2, {N,N}, {NS,NS}, false);
 
     int xyztot = 0;
     for (int L = Lmin;L <= Lmax;L++)

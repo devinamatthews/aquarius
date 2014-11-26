@@ -61,19 +61,19 @@ class OneElectronOperatorBase : public MOOperator,
 
         OneElectronOperatorBase(const std::string& name, const Arena& arena, const Space& occ, const Space& vrt)
         : MOOperator(arena, occ, vrt), tensor::CompositeTensor<Derived,tensor::SpinorbitalTensor<T>,T>(name),
-          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(1,0), std::vec(1,0)))),
-          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(0,1), std::vec(0,1)))),
-          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(1,0), std::vec(0,1)))),
-          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(name, arena, occ.group, std::vec(vrt, occ), std::vec(0,1), std::vec(1,0)))) {}
+          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(name, arena, occ.group, {vrt, occ}, {1,0}, {1,0}))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(name, arena, occ.group, {vrt, occ}, {0,1}, {0,1}))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(name, arena, occ.group, {vrt, occ}, {1,0}, {0,1}))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(name, arena, occ.group, {vrt, occ}, {0,1}, {1,0}))) {}
 
         OneElectronOperatorBase(const std::string& name, const MOSpace<T>& occ, const MOSpace<T>& vrt,
                                 const tensor::SymmetryBlockedTensor<T>& aoa,
                                 const tensor::SymmetryBlockedTensor<T>& aob)
         : MOOperator(occ.arena, occ, vrt), tensor::CompositeTensor<Derived,tensor::SpinorbitalTensor<T>,T>(name),
-          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(name, occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(1,0), std::vec(1,0)))),
-          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(name, occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(0,1), std::vec(0,1)))),
-          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(name, occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(1,0), std::vec(0,1)))),
-          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(name, occ.arena, occ.group, std::vec<Space>(vrt, occ), std::vec(0,1), std::vec(1,0))))
+          ab(this->addTensor(new tensor::SpinorbitalTensor<T>(name, occ.arena, occ.group, {vrt, occ}, {1,0}, {1,0}))),
+          ij(this->addTensor(new tensor::SpinorbitalTensor<T>(name, occ.arena, occ.group, {vrt, occ}, {0,1}, {0,1}))),
+          ai(this->addTensor(new tensor::SpinorbitalTensor<T>(name, occ.arena, occ.group, {vrt, occ}, {1,0}, {0,1}))),
+          ia(this->addTensor(new tensor::SpinorbitalTensor<T>(name, occ.arena, occ.group, {vrt, occ}, {0,1}, {1,0})))
         {
             const tensor::SymmetryBlockedTensor<T>& cA = vrt.Calpha;
             const tensor::SymmetryBlockedTensor<T>& ca = vrt.Cbeta;
@@ -86,18 +86,18 @@ class OneElectronOperatorBase : public MOOperator,
             const std::vector<int>& nA = vrt.nalpha;
             const std::vector<int>& na = vrt.nbeta;
 
-            std::vector<std::vector<int> > sizeAA = std::vec(nA, nA);
-            std::vector<std::vector<int> > sizeaa = std::vec(na, na);
-            std::vector<std::vector<int> > sizeAI = std::vec(nA, nI);
-            std::vector<std::vector<int> > sizeai = std::vec(na, ni);
-            std::vector<std::vector<int> > sizeII = std::vec(nI, nI);
-            std::vector<std::vector<int> > sizeii = std::vec(ni, ni);
-            std::vector<std::vector<int> > sizeAN = std::vec(nA, N);
-            std::vector<std::vector<int> > sizeaN = std::vec(na, N);
-            std::vector<std::vector<int> > sizeIN = std::vec(nI, N);
-            std::vector<std::vector<int> > sizeiN = std::vec(ni, N);
+            std::vector<std::vector<int> > sizeAA = {nA, nA};
+            std::vector<std::vector<int> > sizeaa = {na, na};
+            std::vector<std::vector<int> > sizeAI = {nA, nI};
+            std::vector<std::vector<int> > sizeai = {na, ni};
+            std::vector<std::vector<int> > sizeII = {nI, nI};
+            std::vector<std::vector<int> > sizeii = {ni, ni};
+            std::vector<std::vector<int> > sizeAN = {nA, N};
+            std::vector<std::vector<int> > sizeaN = {na, N};
+            std::vector<std::vector<int> > sizeIN = {nI, N};
+            std::vector<std::vector<int> > sizeiN = {ni, N};
 
-            std::vector<int> shapeNN = std::vec(NS, NS);
+            std::vector<int> shapeNN = {NS, NS};
 
             tensor::SymmetryBlockedTensor<T> Aq("Aq", this->arena, occ.group, 2, sizeAN, shapeNN, false);
             tensor::SymmetryBlockedTensor<T> aq("aq", this->arena, occ.group, 2, sizeaN, shapeNN, false);
@@ -109,17 +109,17 @@ class OneElectronOperatorBase : public MOOperator,
             Iq["Iq"] = cI["pI"]*aoa["pq"];
             iq["iq"] = ci["pi"]*aob["pq"];
 
-            ab(std::vec(1,0), std::vec(1,0))["AB"] = Aq["Aq"]*cA["qB"];
-            ab(std::vec(0,0), std::vec(0,0))["ab"] = aq["aq"]*ca["qb"];
+            ab({1,0}, {1,0})["AB"] = Aq["Aq"]*cA["qB"];
+            ab({0,0}, {0,0})["ab"] = aq["aq"]*ca["qb"];
 
-            ij(std::vec(0,1), std::vec(0,1))["IJ"] = Iq["Iq"]*cI["qJ"];
-            ij(std::vec(0,0), std::vec(0,0))["ij"] = iq["iq"]*ci["qj"];
+            ij({0,1}, {0,1})["IJ"] = Iq["Iq"]*cI["qJ"];
+            ij({0,0}, {0,0})["ij"] = iq["iq"]*ci["qj"];
 
-            ai(std::vec(1,0), std::vec(0,1))["AI"] = Aq["Aq"]*cI["qI"];
-            ai(std::vec(0,0), std::vec(0,0))["ai"] = aq["aq"]*ci["qi"];
+            ai({1,0}, {0,1})["AI"] = Aq["Aq"]*cI["qI"];
+            ai({0,0}, {0,0})["ai"] = aq["aq"]*ci["qi"];
 
-            ia(std::vec(0,1), std::vec(1,0))["IA"] = Iq["Iq"]*cA["qA"];
-            ia(std::vec(0,0), std::vec(0,0))["ia"] = iq["iq"]*ca["qa"];
+            ia({0,1}, {1,0})["IA"] = Iq["Iq"]*cA["qA"];
+            ia({0,0}, {0,0})["ia"] = iq["iq"]*ca["qa"];
         }
 
         template <typename otherDerived>

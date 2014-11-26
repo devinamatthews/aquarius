@@ -79,12 +79,12 @@ struct MOSpace : public Space, public Distributed
       Calpha(Calpha),
       Cbeta(Cbeta) {}
 
-    MOSpace(tensor::SymmetryBlockedTensor<T>* Calpha, tensor::SymmetryBlockedTensor<T>* Cbeta)
-    : Space(Calpha->getGroup(), Calpha->getLengths()[1], Cbeta->getLengths()[1]),
-      Distributed(Calpha->arena),
-      nao(Calpha->getLengths()[0]),
-      Calpha(Calpha),
-      Cbeta(Cbeta) {}
+    MOSpace(tensor::SymmetryBlockedTensor<T>&& Calpha, tensor::SymmetryBlockedTensor<T>&& Cbeta)
+    : Space(Calpha.getGroup(), Calpha.getLengths()[1], Cbeta.getLengths()[1]),
+      Distributed(Calpha.arena),
+      nao(Calpha.getLengths()[0]),
+      Calpha(std::move(Calpha)),
+      Cbeta(std::move(Cbeta)) {}
 };
 
 }

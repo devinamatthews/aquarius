@@ -132,7 +132,7 @@ void CFOUROneElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
                 pairs.push_back(tkv_pair<double>(q+p*N[0], ints[i]));
             }
 
-            tensor->writeRemoteData(vec(0,0), pairs);
+            tensor->writeRemoteData({0,0}, pairs);
         }
     }
 

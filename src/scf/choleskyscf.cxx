@@ -55,11 +55,11 @@ void CholeskyUHF<T>::run(TaskDAG& dag, const Arena& arena)
     int nalpha = molecule.getNumAlphaElectrons();
     int nbeta = molecule.getNumAlphaElectrons();
 
-    vector<int> shapeN = vec(NS);
-    vector<int> shapeNNN = vec(NS,NS,NS);
-    vector<vector<int> > sizer = vec(vec(chol.getRank()));
-    vector<vector<int> > sizenOr = vec(norb,vec(nalpha),vec(chol.getRank()));
-    vector<vector<int> > sizenor = vec(norb,vec(nbeta),vec(chol.getRank()));
+    vector<int> shapeN{NS};
+    vector<int> shapeNNN{NS,NS,NS};
+    vector<vector<int> > sizer{{chol.getRank()}};
+    vector<vector<int> > sizenOr{norb,{nalpha},{chol.getRank()}};
+    vector<vector<int> > sizenor{norb,{nbeta},{chol.getRank()}};
 
     this->puttmp("J", new SymmetryBlockedTensor<T>("J", arena, group, 1, sizer, shapeN, false));
     this->puttmp("JD", new SymmetryBlockedTensor<T>("JD", arena, group, 1, sizer, shapeN, false));
@@ -89,9 +89,9 @@ void CholeskyUHF<T>::buildFock()
     SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
 
     SymmetryBlockedTensor<T> Ca_occ("CI", this->template gettmp<SymmetryBlockedTensor<T> >("Ca"),
-                                    vec(vec(0),vec(0)), vec(norb,vec(nalpha)));
+                                    {{0},{0}}, {norb,{nalpha}});
     SymmetryBlockedTensor<T> Cb_occ("Ci", this->template gettmp<SymmetryBlockedTensor<T> >("Cb"),
-                                    vec(vec(0),vec(0)), vec(norb,vec(nbeta)));
+                                    {{0},{0}}, {norb,{nbeta}});
 
     SymmetryBlockedTensor<T>& J = this->template gettmp<SymmetryBlockedTensor<T> >("J");
     SymmetryBlockedTensor<T>& JD = this->template gettmp<SymmetryBlockedTensor<T> >("JD");
