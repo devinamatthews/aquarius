@@ -70,6 +70,8 @@ class Davidson : public task::Destructible
         std::tensor<dtype,4> s, e; // e will hold chc[k]
         std::vector<dtype> c;
         int nvec, maxextrap, nextrap; // number of energies, number of iterations
+        std::vector<T*> recent_result;
+        std::vector<T*> previous_results;
         std::vector<int> mode;
         std::vector<dtype> target;
         std::vector<dtype> previous;
@@ -88,6 +90,8 @@ class Davidson : public task::Destructible
             s.resize({nvec, maxextrap, nvec, maxextrap});
             e.resize({nvec, maxextrap, nvec, maxextrap});
             c.resize(maxextrap*nvec);
+
+            recent_result.resize(nvec, (T*)NULL);
 
             old_c.resize(maxextrap, std::vector<T*>(nvec, (T*)NULL));
             old_hc.resize(maxextrap, std::vector<T*>(nvec, (T*)NULL));
@@ -143,11 +147,22 @@ class Davidson : public task::Destructible
             }
         }
 
+        T* extract_result(int i)
+        {
+            return recent_result[i];
+        }
+
+        void add_new_previous_result(T* prev_res)
+        {
+            previous_results.push_back(prev_res);
+        }
+
         dtype extrapolate(T& c, T& hc, const op::Denominator<dtype>& D)
         {
             assert(nvec == 1);
             return extrapolate({&c}, {&hc}, D)[0];
         }
+
 
         std::vector<dtype> extrapolate(const std::vector<T*>& c, const std::vector<T*>& hc, const op::Denominator<dtype>& D)
         {
@@ -495,7 +510,15 @@ class Davidson : public task::Destructible
                  *
                  * This needs to be fixed, since right now the caller has no way
                  * of obtaining the solution!
+                 *
+                 * Fixed with the recent_result object and the extract_result function!
                  */
+
+                if (recent_result[j] == NULL) 
+                    recent_result[j] = new T(*c[j]);
+                else
+                    *recent_result[j] = *c[j];
+                
 
                 // now hc = A*x - mu*x = -r
 
@@ -569,6 +592,11 @@ class Davidson : public task::Destructible
                     if (k == j) continue;
                     dtype olap = scalar(conj(*c[j])*(*c[k]));
                     *c[j] -= olap*(*c[k]);
+                }
+
+                for (int i = 0; i < previous_results.size(); i++) {
+                    dtype olap = scalar(conj(*c[j])*(*previous_results[i]));
+                    *c[j] -= olap*(*previous_results[i]);
                 }
 
                 double norm = sqrt(std::abs(scalar(conj(*c[j])*(*c[j]))));

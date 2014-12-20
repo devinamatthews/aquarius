@@ -44,6 +44,8 @@ class EOMEECCSD : public Iterative<U>
 {
     protected:
         int nroot;
+        bool seq_multi_root;
+        int roots_done;
 
     public:
         EOMEECCSD(const std::string& name, const input::Config& config);

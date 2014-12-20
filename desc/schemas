@@ -178,6 +178,8 @@ lambdaccsd
 },
 eomeeccsd
 {
+    seq_multi_root?
+    bool false,
     nroot?
     int 0,
     convergence?

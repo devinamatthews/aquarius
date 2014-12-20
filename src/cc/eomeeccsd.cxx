@@ -37,7 +37,7 @@ using namespace aquarius::symmetry;
 
 template <typename U>
 EOMEECCSD<U>::EOMEECCSD(const std::string& name, const Config& config)
-: Iterative<U>("eomeeccsd", name, config), nroot(config.get<int>("nroot"))
+: Iterative<U>("eomeeccsd", name, config), nroot(config.get<int>("nroot")), seq_multi_root(config.get<bool>("seq_multi_root")), roots_done(0)
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("ccsd.T", "T"));
@@ -50,7 +50,16 @@ EOMEECCSD<U>::EOMEECCSD(const std::string& name, const Config& config)
     assert(nroot > 0);
     this->addProduct(Product("eomeeccsd.R", "R", reqs));
 
-    this->puttmp("Davidson", new Davidson<ExcitationOperator<U,2> >(config.get("davidson"), nroot));
+    if (seq_multi_root) {
+        for (int i = 0; i < nroot; i++)
+        {
+            string name = "Davidson" + str(i);
+            cout << "Creating " + name << endl;
+            this->puttmp(name, new Davidson<ExcitationOperator<U,2> >(config.get("davidson"), 1));
+        }
+    }
+    else
+        this->puttmp("Davidson", new Davidson<ExcitationOperator<U,2> >(config.get("davidson"), nroot));
 }
 
 template <typename U>
@@ -71,6 +80,8 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
     this->puttmp("XMI", new SpinorbitalTensor<U>("X(mi)", H.getIJ()));
     this->puttmp("XAE", new SpinorbitalTensor<U>("X(ae)", H.getAB()));
+
+    vector<ExcitationOperator<U,2>* > solutions;
 
     vector<tuple<int,U,int,int> > tda_sorted;
 
@@ -146,9 +157,28 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
             //    cout << i << setprecision(15) << " " << alphadata[i] << " " << betadata[i] << " " << alphadata[i]*betadata[i] << endl;
             //}
 
-        }
+            if (seq_multi_root) {
+                Iterative<U>::run(dag, arena, 1);
+                string name = "Davidson" + str(roots_done);
+                Davidson<ExcitationOperator<U,2> >& this_davidson =
+                    this->template gettmp<Davidson<ExcitationOperator<U,2> > >(name);
+                solutions.push_back(this_davidson.extract_result(0));
+                roots_done ++;
+                if (roots_done < nroot) {
+                    name = "Davidson" + str(roots_done);
+                    Davidson<ExcitationOperator<U,2> >& next_davidson =
+                        this->template gettmp<Davidson<ExcitationOperator<U,2> > >(name);
+                    for (int i = 0; i < solutions.size(); i++)
+                        next_davidson.add_new_previous_result(solutions[i]);
+                    Rs.clear();
+                    Zs.clear();
+                    this->conv() = std::numeric_limits<U>::max();
+                }
+            }
 
-        Iterative<U>::run(dag, arena, root_idx[i].size());
+        }
+        if (!seq_multi_root)
+            Iterative<U>::run(dag, arena, root_idx[i].size());
     }
 
     this->put("energy", new CTFTensor<U>("energy", arena, 1, {nroot}, {NS}, true));
@@ -178,8 +208,10 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     SpinorbitalTensor<U>& XAE = this->template gettmp<SpinorbitalTensor<U> >("XAE");
 
     Denominator<U>& D = this->template gettmp<Denominator<U> >("D");
-    Davidson<ExcitationOperator<U,2> >& davidson =
-        this->template gettmp<Davidson<ExcitationOperator<U,2> > >("Davidson");
+    string name = "Davidson";
+    if (seq_multi_root)
+        name += str(roots_done);
+    Davidson<ExcitationOperator<U,2> >& davidson = this->template gettmp<Davidson<ExcitationOperator<U,2> > >(name);
 
     vector<shared_ptr<ExcitationOperator<U,2>>>& Rs =
         this->template gettmp<vector<shared_ptr<ExcitationOperator<U,2>>>>("R");
