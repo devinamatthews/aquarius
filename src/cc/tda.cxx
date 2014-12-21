@@ -149,7 +149,9 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
         vector<U> w(ntot);
         heev('V','U',ntot,data.data(),ntot,w.data());
         TDAevals.push_back(w);
-        TDAevecs.push_back(vector<shared_ptr<SpinorbitalTensor<U> > >(ntot));
+        TDAevecs.emplace_back(ntot);
+
+        cout << w << endl;
 
         for (int root = 0;root < ntot;root++)
         {

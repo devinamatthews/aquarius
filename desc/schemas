@@ -67,15 +67,12 @@ aoscf
 },
 aomoints,
 choleskymoints,
-mp3
-{
-},
-mp4dq
-{
-},
-tda
-{
-},
+mp3,
+mp4dq,
+tda,
+ccsd(t-n),
+ccsd(tq-n),
+ccsdt(q-n),
 ccd
 {
     convergence?
@@ -156,7 +153,67 @@ ccsdt
             bool false
     }
 },
+ccsdtq
+{
+    convergence?
+        double 1e-9,
+    max_iterations?
+        int 150,
+    conv_type?
+        enum { MAXE, RMSE, MAE },
+    diis?
+    {
+        damping?
+            double 0.0,
+        start?
+            int 1,
+        order?
+            int 5,
+        jacobi?
+            bool false
+    }
+},
 lambdaccsd
+{
+    convergence?
+        double 1e-9,
+    max_iterations?
+        int 150,
+    conv_type?
+        enum { MAXE, RMSE, MAE },
+    diis?
+    {
+        damping?
+            double 0.0,
+        start?
+            int 1,
+        order?
+            int 5,
+        jacobi?
+            bool false
+    }
+},
+lambdaccsdt
+{
+    convergence?
+        double 1e-9,
+    max_iterations?
+        int 150,
+    conv_type?
+        enum { MAXE, RMSE, MAE },
+    diis?
+    {
+        damping?
+            double 0.0,
+        start?
+            int 1,
+        order?
+            int 5,
+        jacobi?
+            bool false
+    }
+},
+lambdaccsdtq
 {
     convergence?
         double 1e-9,

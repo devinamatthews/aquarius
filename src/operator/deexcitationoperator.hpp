@@ -49,7 +49,7 @@ class DeexcitationOperator
         const int spin;
 
     public:
-        DeexcitationOperator(const std::string& name, const Arena& arena, const Space& occ, const Space& vrt, int spin=0, int symmetry=AS)
+        DeexcitationOperator(const std::string& name, const Arena& arena, const Space& occ, const Space& vrt, int spin=0)
         : MOOperator(arena, occ, vrt),
           tensor::CompositeTensor< DeexcitationOperator<T,np,nh>,
            tensor::SpinorbitalTensor<T>, T >(name, std::max(np,nh)+1),
@@ -67,7 +67,7 @@ class DeexcitationOperator
         }
 
         DeexcitationOperator(const std::string& name, const Arena& arena, const Space& occ, const Space& vrt,
-                             const symmetry::Representation& rep, int spin=0, int symmetry=AS)
+                             const symmetry::Representation& rep, int spin=0)
         : MOOperator(arena, occ, vrt),
           tensor::CompositeTensor< DeexcitationOperator<T,np,nh>,
            tensor::SpinorbitalTensor<T>, T >(name, std::max(np,nh)+1),
@@ -84,15 +84,15 @@ class DeexcitationOperator
             }
         }
 
-        void weight(const Denominator<T>& d)
+        void weight(const Denominator<T>& d, double shift = 0)
         {
             std::vector<const std::vector<std::vector<T> >*> da{&d.getDA(), &d.getDI()};
             std::vector<const std::vector<std::vector<T> >*> db{&d.getDa(), &d.getDi()};
 
             for (int ex = 0;ex <= std::min(np,nh);ex++)
             {
-                if (ex== 0 && np == nh) continue;
-                tensors[ex+std::abs(np-nh)].tensor->weight(da, db);
+                if (ex == 0 && np == nh) continue;
+                tensors[ex+std::abs(np-nh)].tensor->weight(da, db, shift);
             }
         }
 

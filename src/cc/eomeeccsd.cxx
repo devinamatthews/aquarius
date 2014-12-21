@@ -113,42 +113,76 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     }
 
     this->puttmp("R", new vector<shared_ptr<ExcitationOperator<U,2>>>());
+    this->puttmp("V", new vector<shared_ptr<ExcitationOperator<U,2>>>());
     this->puttmp("Z", new vector<shared_ptr<ExcitationOperator<U,2>>>());
     vector<shared_ptr<ExcitationOperator<U,2>>>& Rs =
         this->template gettmp<vector<shared_ptr<ExcitationOperator<U,2>>>>("R");
+    vector<shared_ptr<ExcitationOperator<U,2>>>& Vs =
+        this->template gettmp<vector<shared_ptr<ExcitationOperator<U,2>>>>("V");
     vector<shared_ptr<ExcitationOperator<U,2>>>& Zs =
         this->template gettmp<vector<shared_ptr<ExcitationOperator<U,2>>>>("Z");
+    Davidson<ExcitationOperator<U,2> >& davidson =
+        this->template gettmp<Davidson<ExcitationOperator<U,2> > >("Davidson");
 
     for (int i = 0;i < nirrep;i++)
     {
+        Vs.clear();
         Rs.clear();
         Zs.clear();
 
-        cout << "irrep = " << i << endl;
+//#define MULTIROOT
+#ifdef MULTIROOT
+
         for (int j = 0;j < root_idx[i].size();j++)
         {
-            int root = root_idx[i][j];
-            cout << "root = " << root << endl;
+            Rs.emplace_back(new ExcitationOperator<U,2>("R", arena, occ, vrt, group.getIrrep(i)));
+            Zs.emplace_back(new ExcitationOperator<U,2>("Z", arena, occ, vrt, group.getIrrep(i)));
+            ExcitationOperator<U,2>& R = *Rs.back();
+            R(0) = 0;
+            R(1) = *TDAevecs[i][root_idx[i][j]];
+            R(2) = 0;
+
+        }
+
+        Iterative<U>::run(dag, arena, root_idx[i].size());
+
+        for (int j = 0;j < root_idx[i].size();j++)
+        {
+            if (this->isConverged(j))
+            {
+                Vs.emplace_back(new ExcitationOperator<U,2>("V", arena, occ, vrt, group.getIrrep(i)));
+                ExcitationOperator<U,2>& V = *Vs.back();
+                davidson.getSolution(j, V);
+                V /= sqrt(std::abs(scalar(conj(V)*V)));
+            }
+        }
+
+#else
+
+        for (int j = 0;j < root_idx[i].size();j++)
+        {
+            Rs.clear();
+            Zs.clear();
 
             Rs.emplace_back(new ExcitationOperator<U,2>("R", arena, occ, vrt, group.getIrrep(i)));
             Zs.emplace_back(new ExcitationOperator<U,2>("Z", arena, occ, vrt, group.getIrrep(i)));
             ExcitationOperator<U,2>& R = *Rs.back();
             R(0) = 0;
-            R(1) = *TDAevecs[i][root];
+            R(1) = *TDAevecs[i][root_idx[i][j]];
             R(2) = 0;
-            //cout << "R.norm(00) = " << R.norm(00) << endl;
 
-            //vector<U> alphadata;
-            //vector<U> betadata;
-            //R(1)({0,0},{0,0})({0,0}).getAllData(alphadata);
-            //R(1)({1,0},{0,1})({0,0}).getAllData(betadata);
-            //for (int i = 0; i < alphadata.size(); i++){
-            //    cout << i << setprecision(15) << " " << alphadata[i] << " " << betadata[i] << " " << alphadata[i]*betadata[i] << endl;
-            //}
+            Iterative<U>::run(dag, arena);
 
+            if (this->isConverged())
+            {
+                Vs.emplace_back(new ExcitationOperator<U,2>("V", arena, occ, vrt, group.getIrrep(i)));
+                ExcitationOperator<U,2>& V = *Vs.back();
+                davidson.getSolution(j, V);
+                V /= sqrt(std::abs(scalar(conj(V)*V)));
+            }
         }
 
-        Iterative<U>::run(dag, arena, root_idx[i].size());
+#endif
     }
 
     this->put("energy", new CTFTensor<U>("energy", arena, 1, {nroot}, {NS}, true));
@@ -183,6 +217,8 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
 
     vector<shared_ptr<ExcitationOperator<U,2>>>& Rs =
         this->template gettmp<vector<shared_ptr<ExcitationOperator<U,2>>>>("R");
+    vector<shared_ptr<ExcitationOperator<U,2>>>& Vs =
+        this->template gettmp<vector<shared_ptr<ExcitationOperator<U,2>>>>("V");
     vector<shared_ptr<ExcitationOperator<U,2>>>& Zs =
         this->template gettmp<vector<shared_ptr<ExcitationOperator<U,2>>>>("Z");
 
@@ -196,27 +232,34 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
         ExcitationOperator<U,2>& Z = *Zs[root];
         Z = 0;
 
+        for (auto& v : Vs)
+        {
+            const ExcitationOperator<U,2>& V = *v;
+            R -= scalar(conj(R)*V)*V;
+        }
+        R /= sqrt(std::abs(scalar(conj(R)*R)));
+
         //0.5*R(1)({0,0},{0,0})[  "ai"] += 0.5*R(1)({1,0},{0,1})[  "ai"];
         //    R(1)({1,0},{0,1})[  "ai"]  =     R(1)({0,0},{0,0})[  "ai"];
         //0.5*R(2)({1,0},{0,1})["abij"] += 0.5*R(2)({1,0},{0,1})["baji"];
         //0.5*R(2)({0,0},{0,0})["abij"] += 0.5*R(2)({2,0},{0,2})["abij"];
         //    R(2)({2,0},{0,2})["abij"]  =     R(2)({0,0},{0,0})["abij"];
 
-           XMI["mi"]  =     WMNEJ["nmei"]*R(1)[  "en"];
-           XMI["mi"] += 0.5*WMNEF["mnef"]*R(2)["efin"];
-           XAE["ae"]  =     WAMEF["amef"]*R(1)[  "fm"];
-           XAE["ae"] -= 0.5*WMNEF["mnef"]*R(2)["afmn"];
+         XMI[  "mi"]  =     WMNEJ["nmei"]*R(1)[  "en"];
+         XMI[  "mi"] += 0.5*WMNEF["mnef"]*R(2)["efin"];
+         XAE[  "ae"]  =     WAMEF["amef"]*R(1)[  "fm"];
+         XAE[  "ae"] -= 0.5*WMNEF["mnef"]*R(2)["afmn"];
 
-          cout << "Z.norm(00) = " << Z.norm(00) << endl;
-          Z(1)["ai"] +=       FAE[  "ae"]*R(1)[  "ei"];
-          cout << "Z.norm(00) = " << Z.norm(00) << endl;
-          Z(1)["ai"] -=       FMI[  "mi"]*R(1)[  "am"];
-          cout << "Z.norm(00) = " << Z.norm(00) << endl;
-          Z(1)["ai"] -=     WAMEI["amei"]*R(1)[  "em"];
-          cout << "Z.norm(00) = " << Z.norm(00) << endl;
-          Z(1)["ai"] +=       FME[  "me"]*R(2)["aeim"];
-          Z(1)["ai"] += 0.5*WAMEF["amef"]*R(2)["efim"];
-          Z(1)["ai"] -= 0.5*WMNEJ["mnei"]*R(2)["eamn"];
+        cout << "Z.norm(00) = " << Z.norm(00) << endl;
+        Z(1)[  "ai"] +=       FAE[  "ae"]*R(1)[  "ei"];
+        cout << "Z.norm(00) = " << Z.norm(00) << endl;
+        Z(1)[  "ai"] -=       FMI[  "mi"]*R(1)[  "am"];
+        cout << "Z.norm(00) = " << Z.norm(00) << endl;
+        Z(1)[  "ai"] -=     WAMEI["amei"]*R(1)[  "em"];
+        cout << "Z.norm(00) = " << Z.norm(00) << endl;
+        Z(1)[  "ai"] +=       FME[  "me"]*R(2)["aeim"];
+        Z(1)[  "ai"] += 0.5*WAMEF["amef"]*R(2)["efim"];
+        Z(1)[  "ai"] -= 0.5*WMNEJ["mnei"]*R(2)["eamn"];
 
         Z(2)["abij"] +=     WABEJ["abej"]*R(1)[  "ei"];
         Z(2)["abij"] -=     WAMIJ["amij"]*R(1)[  "bm"];

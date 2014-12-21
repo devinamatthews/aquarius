@@ -43,8 +43,8 @@ CCSDT<U>::CCSDT(const string& name, const Config& config)
     this->addProduct(Product("double", "convergence", reqs));
     this->addProduct(Product("double", "S2", reqs));
     this->addProduct(Product("double", "multiplicity", reqs));
-    this->addProduct(Product("ccsdtq.T", "T", reqs));
-    this->addProduct(Product("ccsdtq.Hbar", "Hbar", reqs));
+    this->addProduct(Product("ccsdt.T", "T", reqs));
+    this->addProduct(Product("ccsdt.Hbar", "Hbar", reqs));
 }
 
 template <typename U>

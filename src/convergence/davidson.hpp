@@ -73,6 +73,9 @@ class Davidson : public task::Destructible
         std::vector<int> mode;
         std::vector<dtype> target;
         std::vector<dtype> previous;
+        std::vector<int> root;
+        std::vector<typename std::complex_type<dtype>::type> l;
+        std::tensor<dtype,3> vr;
 
         enum {GUESS_OVERLAP, LOWEST_ENERGY, CLOSEST_ENERGY};
 
@@ -96,6 +99,10 @@ class Davidson : public task::Destructible
             {
                 guess[i] = new T(*guess[i]);
             }
+
+            root.resize(nvec);
+            l.resize(nvec*maxextrap);
+            vr.resize({nvec,maxextrap,nvec*maxextrap});
         }
 
     public:
@@ -309,8 +316,7 @@ class Davidson : public task::Destructible
             std::vector<dtype> beta(nvec*nextrap);
             std::tensor<dtype,4> tmp1({nvec,nextrap,nvec,nextrap});
             std::tensor<dtype,4> tmp2({nvec,nextrap,nvec,nextrap});
-            std::tensor<dtype,3> vr({nvec,nextrap,nvec*nextrap});
-            std::vector<typename std::complex_type<dtype>::type> l(nextrap*nvec); // Eigenvalues
+            std::tensor<dtype,3> tmp3({nvec,nextrap,nvec*nextrap});
 
             for (int m = 0;m < nextrap;m++)
             {
@@ -334,8 +340,19 @@ class Davidson : public task::Destructible
             //            vr.data(), nextrap*nvec);
             info = geev('N', 'V', nextrap*nvec, tmp1.data(), nextrap*nvec,
                         l.data(), NULL, 1,
-                        vr.data(), nextrap*nvec);
+                        tmp3.data(), nextrap*nvec);
             if (info != 0) throw std::runtime_error(std::strprintf("davidson: Info in ggev: %d", info));
+
+            for (int k = 0;k < nvec*nextrap;k++)
+            {
+                for (int j = 0;j < nextrap;j++)
+                {
+                    for (int i = 0;i < nvec;i++)
+                    {
+                        vr[i][j][k] = tmp3[i][j][k];
+                    }
+                }
+            }
 
             /*
              * Fix sign of eigenvectors
@@ -377,9 +394,10 @@ class Davidson : public task::Destructible
             /*
              * Assign eigenvalues (exclusively) to states by the selected criterion
              */
-            std::vector<int> bestevs(nvec, -1);
             for (int j = 0; j < nvec; j++)
             {
+                root[j] = -1;
+
                 dtype crit;
                 dtype mincrit = std::numeric_limits<dtype>::max();
 
@@ -390,7 +408,7 @@ class Davidson : public task::Destructible
                     bool found = false;
                     for (int k = 0;k < j;k++)
                     {
-                        if (bestevs[k] == i) found = true;
+                        if (root[k] == i) found = true;
                     }
                     if (found) continue;
 
@@ -413,20 +431,20 @@ class Davidson : public task::Destructible
                     if (crit < mincrit && std::abs(std::imag(l[i])) < 1e-12)
                     {
                         mincrit = crit;
-                        bestevs[j] = i;
+                        root[j] = i;
                     }
                 }
 
-                assert(bestevs[j] != -1);
+                assert(root[j] != -1);
 
                 if (nextrap > 1 && mode[j] != CLOSEST_ENERGY &&
-                    std::abs(previous[j]-std::real(l[bestevs[j]])) < 1e-6)
+                    std::abs(previous[j]-std::real(l[root[j]])) < 1e-6)
                 {
                     cout << "Locking root " << (j+1) << endl;
                     mode[j] = CLOSEST_ENERGY;
-                    target[j] = std::real(l[bestevs[j]]);
+                    target[j] = std::real(l[root[j]]);
                 }
-                previous[j] = std::real(l[bestevs[j]]);
+                previous[j] = std::real(l[root[j]]);
             }
 
             /*
@@ -444,8 +462,8 @@ class Davidson : public task::Destructible
                 {
                     for (int k = nvec-1;k >= 0;k--)
                     {
-                        *c [j] += (*old_c [i][k])*vr[k][i][bestevs[j]]; // weight each old c by its evec value
-                        *hc[j] += (*old_hc[i][k])*vr[k][i][bestevs[j]]; // same for old_hc. making the new state state
+                        *c [j] += (*old_c [i][k])*vr[k][i][root[j]]; // weight each old c by its evec value
+                        *hc[j] += (*old_hc[i][k])*vr[k][i][root[j]]; // same for old_hc. making the new state state
                     }
                 }
 
@@ -486,7 +504,7 @@ class Davidson : public task::Destructible
                 //     }
                 //     printf("Badness   H*c %d %15.12g\n", j+1, std::abs(values[19-4*j]));
                 // }
-                *hc[j] -= std::real(l[bestevs[j]])*(*c[j]);
+                *hc[j] -= std::real(l[root[j]])*(*c[j]);
                 // std::cout << setprecision(10) <<"Inf Norm hc = " << hc[j]->norm(00) << std::endl;
 
                 /*
@@ -517,7 +535,7 @@ class Davidson : public task::Destructible
                 //     }
                 //     printf("Badness     r %d %15.12g\n", j+1, std::abs(values[19-4*j]));
                 // }
-                c[j]->weight(D, std::real(l[bestevs[j]])); // Look into weight function
+                c[j]->weight(D, std::real(l[root[j]])); // Look into weight function
                 // std::cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << std::endl;
                 // printf("Norm d %d %15.12f\n", j+1, (*c[j])(1)({1,0},{0,1}).norm(2));
                 // {
@@ -597,9 +615,21 @@ class Davidson : public task::Destructible
 
             std::vector<dtype> myreturn(nvec);
             for (int i = 0; i < nvec; i++)
-                myreturn[i] = std::real(l[bestevs[i]]);
+                myreturn[i] = std::real(l[root[i]]);
 
             return myreturn;
+        }
+
+        void getSolution(int j, T& s)
+        {
+            s = 0;
+            for (int i = nextrap-1;i >= 0;i--)
+            {
+                for (int k = nvec-1;k >= 0;k--)
+                {
+                    s += (*old_c[i][k])*vr[k][i][root[j]];
+                }
+            }
         }
 };
 

@@ -173,7 +173,7 @@ class Iterative : public task::Task
                                       " energy = " << std::fixed << std::setprecision(ndigit) << energy_[i] <<
                                       ", convergence = " << std::scientific << std::setprecision(3) << conv_[i] << std::endl;
                     }
-                    else if (!isConverged(i))
+                    else
                     {
                         log(arena) << "Iteration " << iter_ <<
                                       " energy = " << std::fixed << std::setprecision(ndigit) << energy_[i] <<
