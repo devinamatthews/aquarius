@@ -150,7 +150,7 @@ class Iterative : public task::Task
         {
             nsolution_ = nsolution;
             energy_.resize(nsolution);
-            conv_.resize(nsolution, std::numeric_limits<U>::max());
+            conv_.assign(nsolution, std::numeric_limits<U>::max());
 
             for (iter_ = 1;iter_ <= maxiter && !isConverged();iter_++)
             {

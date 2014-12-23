@@ -235,24 +235,26 @@ lambdaccsdtq
 },
 eomeeccsd
 {
+    multiroot?
+        bool false,
     nroot?
-    int 0,
+        int 0,
     convergence?
-    double 1e-9,
+        double 1e-9,
     max_iterations?
-    int 150,
+        int 150,
     conv_type?
-    enum { MAXE, RMSE, MAE },
+        enum { MAXE, RMSE, MAE },
     davidson?
     {
-	damping?
-            double 0.0,
-	start?
-            int 1,
-	order?
-            int 500,
-	jacobi?
-            bool false
+    	damping?
+                double 0.0,
+    	start?
+                int 1,
+    	order?
+                int 500,
+    	jacobi?
+                bool false
     }
 },
 cholesky

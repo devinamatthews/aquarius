@@ -30,7 +30,10 @@
 #include <fstream>
 
 #include "mpi.h"
+
+#ifdef _OPENMP
 #include "omp.h"
+#endif
 
 #ifdef ELEMENTAL
 #include "elemental.hpp"

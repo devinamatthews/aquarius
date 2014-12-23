@@ -210,11 +210,6 @@ ostream& Task::error(const Arena& arena)
     return Logger::error(arena) << name << ": ";
 }
 
-void Task::addProduct(const Product& product)
-{
-    products.push_back(product);
-}
-
 bool Task::registerTask(const string& name, factory_func create)
 {
     tasks()[name] = create;

@@ -22,33 +22,40 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_CC_EOMEECCSD_HPP_
-#define _AQUARIUS_CC_EOMEECCSD_HPP_
+#ifndef _AQUARIUS_CC_LAMBDACCSDTQ_HPP_
+#define _AQUARIUS_CC_LAMBDACCSDTQ_HPP_
 
-#include "convergence/davidson.hpp"
-#include "util/iterative.hpp"
-#include "operator/2eoperator.hpp"
 #include "operator/st2eoperator.hpp"
+#include "operator/deexcitationoperator.hpp"
 #include "operator/excitationoperator.hpp"
-#include "operator/denominator.hpp"
-
-#include "ccsd.hpp"
+#include "convergence/diis.hpp"
+#include "util/iterative.hpp"
+#include "task/task.hpp"
 
 namespace aquarius
 {
 namespace cc
 {
 
+/*
+ * Solve the left-hand coupled cluster eigenvalue equation:
+ *
+ *               _
+ * <0|L|Phi><Phi|H    |Phi> = 0
+ *                open
+ *
+ *       _    -T   T       T
+ * where X = e  X e  = (X e )
+ *                           c
+ */
 template <typename U>
-class EOMEECCSD : public Iterative<U>
+class LambdaCCSDTQ : public Iterative<U>
 {
     protected:
-        input::Config davidson_config;
-        int nroot;
-        bool multiroot;
+        convergence::DIIS< op::DeexcitationOperator<U,4> > diis;
 
     public:
-        EOMEECCSD(const std::string& name, const input::Config& config);
+        LambdaCCSDTQ(const std::string& name, const input::Config& config);
 
         void run(task::TaskDAG& dag, const Arena& arena);
 

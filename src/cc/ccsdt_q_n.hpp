@@ -22,17 +22,17 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-#ifndef _AQUARIUS_CC_EOMEECCSD_HPP_
-#define _AQUARIUS_CC_EOMEECCSD_HPP_
+#ifndef _AQUARIUS_CC_CCSDT_Q_N_HPP_
+#define _AQUARIUS_CC_CCSDT_Q_N_HPP_
 
-#include "convergence/davidson.hpp"
+#include "task/task.hpp"
+#include "time/time.hpp"
 #include "util/iterative.hpp"
 #include "operator/2eoperator.hpp"
-#include "operator/st2eoperator.hpp"
 #include "operator/excitationoperator.hpp"
-#include "operator/denominator.hpp"
+#include "convergence/diis.hpp"
 
-#include "ccsd.hpp"
+#include "ccsdt.hpp"
 
 namespace aquarius
 {
@@ -40,19 +40,12 @@ namespace cc
 {
 
 template <typename U>
-class EOMEECCSD : public Iterative<U>
+class CCSDT_Q_N : public task::Task
 {
-    protected:
-        input::Config davidson_config;
-        int nroot;
-        bool multiroot;
-
     public:
-        EOMEECCSD(const std::string& name, const input::Config& config);
+        CCSDT_Q_N(const std::string& name, const input::Config& config);
 
         void run(task::TaskDAG& dag, const Arena& arena);
-
-        void iterate(const Arena& arena);
 };
 
 }
