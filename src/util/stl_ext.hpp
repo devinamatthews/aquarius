@@ -357,6 +357,10 @@ template<typename T> class global_ptr
     public:
         global_ptr() : ptr(new T*(NULL)) {}
 
+        global_ptr(const global_ptr&) = default;
+
+        global_ptr(global_ptr&&) = default;
+
         global_ptr(T* ptr) : ptr(new T*(ptr)) {}
 
         ~global_ptr()
@@ -364,11 +368,9 @@ template<typename T> class global_ptr
             if (unique() && get()) delete get();
         }
 
-        global_ptr& operator=(const global_ptr& other)
-        {
-            reset(const_cast<T*>(other.get()));
-            return *this;
-        }
+        global_ptr& operator=(const global_ptr& other) = default;
+
+        global_ptr& operator=(global_ptr&& other) = default;
 
         void swap(global_ptr& other)
         {
@@ -438,6 +440,645 @@ template<typename T> class global_ptr
             return get();
         }
 };
+
+namespace detail
+{
+
+template <typename vector_>
+class ptr_vector_
+{
+    private:
+        template <typename U>
+        class iterator_ : std::iterator<std::random_access_iterator_tag, U>
+        {
+            friend class ptr_vector_;
+
+            public:
+                using typename std::iterator<std::random_access_iterator_tag, U>::iterator_category;
+                using typename std::iterator<std::random_access_iterator_tag, U>::value_type;
+                using typename std::iterator<std::random_access_iterator_tag, U>::difference_type;
+                using typename std::iterator<std::random_access_iterator_tag, U>::pointer;
+                using typename std::iterator<std::random_access_iterator_tag, U>::reference;
+
+                iterator_() = default;
+
+                iterator_(const iterator_&) = default;
+
+                iterator_& operator=(const iterator_&) = default;
+
+                bool operator==(const iterator_& x)
+                {
+                    return it_ == x.it_;
+                }
+
+                bool operator!=(const iterator_& x)
+                {
+                    return it_ != x.it_;
+                }
+
+                reference operator*()
+                {
+                    return **it_;
+                }
+
+                pointer operator->()
+                {
+                    return it_->get();
+                }
+
+                iterator_& operator++()
+                {
+                    ++it_;
+                    return *this;
+                }
+
+                iterator_& operator--()
+                {
+                    --it_;
+                    return *this;
+                }
+
+                iterator_ operator++(int x)
+                {
+                    return iterator_(it_++);
+                }
+
+                iterator_ operator--(int x)
+                {
+                    return iterator_(it_--);
+                }
+
+                iterator_ operator+(difference_type n)
+                {
+                    return iterator_(it_+n);
+                }
+
+                iterator_ operator-(difference_type n)
+                {
+                    return iterator_(it_-n);
+                }
+
+                friend iterator_ operator+(difference_type n, const iterator_& x)
+                {
+                    return x+n;
+                }
+
+                bool operator<(const iterator_& x)
+                {
+                    return it_ < x.it_;
+                }
+
+                bool operator>(const iterator_& x)
+                {
+                    return it_ > x.it_;
+                }
+
+                bool operator<=(const iterator_& x)
+                {
+                    return it_ <= x.it_;
+                }
+
+                bool operator>=(const iterator_& x)
+                {
+                    return it_ >= x.it_;
+                }
+
+                iterator_& operator+=(difference_type n)
+                {
+                    it_ += n;
+                }
+
+                iterator_& operator-=(difference_type n)
+                {
+                    it_ -= n;
+                }
+
+                reference operator[](difference_type n)
+                {
+                    return *it_[n];
+                }
+
+                friend void swap(iterator_& a, iterator_& b)
+                {
+                    using std::swap;
+                    swap(a.it_, b.it_);
+                }
+
+            protected:
+                typedef typename conditional<is_const<U>::value,
+                                             typename vector_::const_iterator,
+                                             typename vector_::iterator>::type iterator_type;
+
+                iterator_(iterator_type it) : it_(it) {}
+
+                iterator_type it_;
+        };
+
+        template <typename U>
+        class const_iterator_ : iterator_<const U>
+        {
+            friend class ptr_vector_;
+
+            public:
+                const_iterator_() = default;
+
+                const_iterator_(const const_iterator_&) = default;
+
+                const_iterator_(const iterator_<U>& x)
+                : iterator_<const U>(x.it_) {}
+
+                const_iterator_& operator=(const const_iterator_&) = default;
+
+        };
+
+    public:
+        typedef typename vector_::value_type ptr_type;
+        typedef typename decay<decltype(*std::declval<ptr_type>())>::type value_type;
+        typedef value_type& reference;
+        typedef const value_type& const_reference;
+        typedef value_type* pointer;
+        typedef const value_type& const_pointer;
+        typedef iterator_<value_type> iterator;
+        typedef const_iterator_<value_type> const_iterator;
+        typedef std::reverse_iterator<iterator> reverse_iterator;
+        typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+        typedef typename iterator_traits<iterator>::difference_type difference_type;
+        typedef typename vector_::size_type size_type;
+
+        typedef typename vector_::iterator ptr_iterator;
+        typedef typename vector_::const_iterator const_ptr_iterator;
+        typedef typename vector_::reverse_iterator reverse_ptr_iterator;
+        typedef typename vector_::const_reverse_iterator const_reverse_ptr_iterator;
+
+        ptr_vector_() {}
+
+        explicit ptr_vector_(size_type n) : impl_(n) {}
+
+        ptr_vector_(size_type n, value_type&& val)
+        {
+            assign(n, forward<value_type>(val));
+        }
+
+        ptr_vector_(const ptr_vector_&) = delete;
+
+        ptr_vector_(ptr_vector_&&) = default;
+
+        ptr_vector_(initializer_list<value_type> il)
+        {
+            assign(il);
+        }
+
+        ptr_vector_(initializer_list<pointer> il)
+        {
+            assign(il);
+        }
+
+        ptr_vector_& operator=(const ptr_vector_&) = delete;
+
+        ptr_vector_& operator=(ptr_vector_&&) = default;
+
+        iterator begin()
+        {
+            return iterator(impl_.begin());
+        }
+
+        iterator end()
+        {
+            return iterator(impl_.end());
+        }
+
+        const_iterator begin() const
+        {
+            return const_iterator(impl_.begin());
+        }
+
+        const_iterator end() const
+        {
+            return const_iterator(impl_.end());
+        }
+
+        reverse_iterator rbegin()
+        {
+            return reverse_iterator(impl_.rbegin());
+        }
+
+        reverse_iterator rend()
+        {
+            return reverse_iterator(impl_.rend());
+        }
+
+        const_reverse_iterator rbegin() const
+        {
+            return const_reverse_iterator(impl_.rbegin());
+        }
+
+        const_reverse_iterator rend() const
+        {
+            return const_reverse_iterator(impl_.rend());
+        }
+
+        const_iterator cbegin() const
+        {
+            return const_iterator(impl_.begin());
+        }
+
+        const_iterator cend() const
+        {
+            return const_iterator(impl_.end());
+        }
+
+        const_reverse_iterator crbegin() const
+        {
+            return const_reverse_iterator(impl_.rbegin());
+        }
+
+        const_reverse_iterator crend() const
+        {
+            return const_reverse_iterator(impl_.rend());
+        }
+
+        ptr_iterator pbegin()
+        {
+            return impl_.begin();
+        }
+
+        ptr_iterator pend()
+        {
+            return impl_.end();
+        }
+
+        const_ptr_iterator pbegin() const
+        {
+            return impl_.begin();
+        }
+
+        const_ptr_iterator pend() const
+        {
+            return impl_.end();
+        }
+
+        reverse_ptr_iterator rpbegin()
+        {
+            return impl_.rbegin();
+        }
+
+        reverse_ptr_iterator rpend()
+        {
+            return impl_.rend();
+        }
+
+        const_reverse_ptr_iterator rpbegin() const
+        {
+            return impl_.rbegin();
+        }
+
+        const_reverse_ptr_iterator rpend() const
+        {
+            return impl_.rend();
+        }
+
+        const_ptr_iterator cpbegin() const
+        {
+            return impl_.begin();
+        }
+
+        const_ptr_iterator cpend() const
+        {
+            return impl_.end();
+        }
+
+        const_reverse_ptr_iterator crpbegin() const
+        {
+            return impl_.rbegin();
+        }
+
+        const_reverse_ptr_iterator crpend() const
+        {
+            return impl_.rend();
+        }
+
+        size_type size() const
+        {
+            return impl_.size();
+        }
+
+        size_type max_size() const
+        {
+            return impl_.max_size();
+        }
+
+        void resize(size_type n)
+        {
+            impl_.resize(n);
+        }
+
+        void resize(size_type n, const value_type& x)
+        {
+            if (n <= impl_.size())
+            {
+                impl_.resize(n);
+            }
+            else
+            {
+                impl_.reserve(n);
+
+                for (size_type i = impl_.size();i < n;i++)
+                {
+                    impl_.emplace_back(new value_type(x));
+                }
+            }
+        }
+
+        void resize(size_type n, value_type&& x)
+        {
+            if (n <= impl_.size())
+            {
+                impl_.resize(n);
+            }
+            else
+            {
+                impl_.reserve(n);
+
+                impl_.emplace_back(new value_type(move(x)));
+
+                for (size_type i = impl_.size();i < n;i++)
+                {
+                    impl_.emplace_back(new value_type(x));
+                }
+            }
+        }
+
+        size_type capacity() const
+        {
+            return impl_.capacity();
+        }
+
+        bool empty() const
+        {
+            return impl_.empty();
+        }
+
+        void reserve(size_type n)
+        {
+            impl_.reserve(n);
+        }
+
+        void shrink_to_fit()
+        {
+            impl_.shrink_to_fit();
+        }
+
+        reference operator[](size_type n)
+        {
+            return *impl_[n];
+        }
+
+        const_reference operator[](size_type n) const
+        {
+            return *impl_[n];
+        }
+
+        reference at(size_type n)
+        {
+            return *impl_.at(n);
+        }
+
+        const reference at(size_type n) const
+        {
+            return *impl_.at(n);
+        }
+
+        ptr_type& ptr(size_type n)
+        {
+            return impl_.at(n);
+        }
+
+        const ptr_type& ptr(size_type n) const
+        {
+            return impl_.at(n);
+        }
+
+        reference front()
+        {
+            return *impl_.front();
+        }
+
+        reference back()
+        {
+            return *impl_.back();
+        }
+
+        const_reference front() const
+        {
+            return *impl_.front();
+        }
+
+        const_reference back() const
+        {
+            return *impl_.back();
+        }
+
+        void assign(size_type n, value_type&& val)
+        {
+            impl_.clear();
+            resize(n, forward<value_type>(val));
+        }
+
+        void assign(ptr_vector_&& x)
+        {
+            *this = forward<ptr_vector_>(x);
+        }
+
+        void assign(initializer_list<value_type> il)
+        {
+            impl_.clear();
+            impl_.reserve(il.size());
+
+            for (auto& val : il)
+            {
+                impl_.emplace_back(new value_type(val));
+            }
+        }
+
+        void assign(initializer_list<pointer> il)
+        {
+            impl_.clear();
+            impl_.reserve(il.size());
+
+            for (auto& ptr : il)
+            {
+                impl_.emplace_back(ptr);
+            }
+        }
+
+        void push_back(value_type&& x)
+        {
+            impl_.emplace_back(new value_type(forward<value_type>(x)));
+        }
+
+        void pop_back()
+        {
+            impl_.pop_back();
+        }
+
+        iterator insert(const_iterator position, value_type&& val)
+        {
+            impl_.emplace(position.it_, new value_type(forward<value_type>(val)));
+        }
+
+        iterator insert(const_iterator position, size_type n, value_type&& val)
+        {
+            impl_.reserve(impl_.size()+n);
+            auto middle = impl_.end();
+            impl_.resize(impl_.size()+n, forward<value_type>(val));
+            rotate(impl_.begin(), middle, impl_.end());
+        }
+
+        iterator insert(const_iterator position, initializer_list<value_type> il)
+        {
+            impl_.reserve(impl_.size()+il.size());
+            auto middle = impl_.end();
+
+            for (auto& val : il)
+            {
+                impl_.emplace_back(new value_type(val));
+            }
+
+            rotate(impl_.begin(), middle, impl_.end());
+        }
+
+        iterator insert(const_iterator position, initializer_list<pointer> il)
+        {
+            impl_.reserve(impl_.size()+il.size());
+            auto middle = impl_.end();
+
+            for (auto& ptr : il)
+            {
+                impl_.emplace_back(ptr);
+            }
+
+            rotate(impl_.begin(), middle, impl_.end());
+        }
+
+        iterator erase(const_iterator position)
+        {
+            return iterator(impl_.erase(position.it_));
+        }
+
+        iterator erase(const_iterator first, const_iterator last)
+        {
+            return iterator(impl_.erase(first.it_, last.it_));
+        }
+
+        void swap(ptr_vector_& x)
+        {
+            impl_.swap(x.impl_);
+        }
+
+        void clear()
+        {
+            impl_.clear();
+        }
+
+        template <typename... Args>
+        void emplace(const_iterator position, Args&&... args)
+        {
+            impl_.emplace(position.it_, new value_type(forward<Args>(args)...));
+        }
+
+        template <typename... Args>
+        void emplace_back(Args&&... args)
+        {
+            impl_.emplace_back(new value_type(forward<Args>(args)...));
+        }
+
+        friend bool operator==(const ptr_vector_& lhs, const ptr_vector_& rhs)
+        {
+            if (lhs.size() != rhs.size()) return false;
+            return equal(lhs.begin(), lhs.end(), rhs.begin());
+        }
+
+        friend bool operator!=(const ptr_vector_& lhs, const ptr_vector_& rhs)
+        {
+            return !(lhs == rhs);
+        }
+
+        friend bool operator<(const ptr_vector_& lhs, const ptr_vector_& rhs)
+        {
+            return lexicographical_compare(lhs.begin(), lhs.end(),
+                                           rhs.begin(), rhs.end());
+        }
+
+        friend bool operator>(const ptr_vector_& lhs, const ptr_vector_& rhs)
+        {
+            return rhs < lhs;
+        }
+
+        friend bool operator<=(const ptr_vector_& lhs, const ptr_vector_& rhs)
+        {
+            return !(rhs < lhs);
+        }
+
+        friend bool operator>=(const ptr_vector_& lhs, const ptr_vector_& rhs)
+        {
+            return !(lhs < rhs);
+        }
+
+        friend void swap(ptr_vector_& a, ptr_vector_& b)
+        {
+            a.swap(b);
+        }
+
+    private:
+        vector_ impl_;
+};
+
+}
+
+template <typename T>
+using ptr_vector = detail::ptr_vector_<vector<T*>>;
+
+template <typename T>
+using unique_vector = detail::ptr_vector_<vector<unique_ptr<T>>>;
+
+template <typename T>
+using shared_vector = detail::ptr_vector_<vector<shared_ptr<T>>>;
+
+template <typename T>
+using global_vector = detail::ptr_vector_<vector<global_ptr<T>>>;
+
+namespace detail
+{
+
+template <size_t N, typename T, typename... Ts>
+struct vec_helper
+{
+    vec_helper(vector<typename decay<T>::type>& v, T&& t, Ts&&... ts)
+    {
+        v.push_back(forward<T>(t));
+        vec_helper<N-1, Ts...>(v, forward<Ts>(ts)...);
+    }
+};
+
+template <typename T>
+struct vec_helper<1, T>
+{
+    vec_helper(vector<typename decay<T>::type>& v, T&& t)
+    {
+        v.push_back(forward<T>(t));
+    }
+};
+
+}
+
+template <typename T, typename... Ts>
+vector<typename decay<T>::type> vec(T&& t, Ts&&... ts)
+{
+    vector<typename decay<T>::type> v;
+    v.reserve(1+sizeof...(Ts));
+    detail::vec_helper<1+sizeof...(Ts), T, Ts...>(v, forward<T>(t), forward<Ts>(ts)...);
+    return v;
+}
 
 inline string strprintf(const char* fmt, ...)
 {
@@ -751,7 +1392,7 @@ template<typename T, class Functor> auto apply(T& v, Functor f)
     -> vector<decltype(f(v.back()))>
 {
     typedef decltype(f(v.back())) U;
-    vector<U> v2();
+    vector<U> v2;
     for (auto& i : v)
     {
         v2.emplace_back(f(i));
@@ -1445,79 +2086,18 @@ class matrix : public tensor<T,2>
         }
 };
 
-template <class T, class U>
-struct doublet
+namespace detail
 {
-    T first;
-    U second;
-
-    doublet(T first, U second) : first(first), second(second) {}
-
-    friend void swap(doublet<T,U> first, doublet<T,U> second)
-    {
-        swap(first.first, second.first);
-        swap(first.second, second.second);
-    }
-
-    template <typename T_, typename U_>
-    doublet(doublet<T_,U_> other)
-    : first(other.first), second(other.second) {}
-
-    template <typename T_, typename U_>
-    doublet<T,U>& operator=(const doublet<T_,U_>& other)
-    {
-        first = other.first;
-        second = other.second;
-        return *this;
-    }
-
-    doublet<T,U>& operator=(const doublet<T,U>& other)
-    {
-        first = other.first;
-        second = other.second;
-        return *this;
-    }
-
-    bool operator==(const doublet<T,U>& other) const
-    {
-        return first == other.first;
-    }
-
-    bool operator!=(const doublet<T,U>& other) const
-    {
-        return first != other.first;
-    }
-
-    bool operator<(const doublet<T,U>& other) const
-    {
-        return first < other.first;
-    }
-
-    bool operator>(const doublet<T,U>& other) const
-    {
-        return first > other.first;
-    }
-
-    bool operator<=(const doublet<T,U>& other) const
-    {
-        return first <= other.first;
-    }
-
-    bool operator>=(const doublet<T,U>& other) const
-    {
-        return first >= other.first;
-    }
-};
 
 template <class T, class U>
 class coiterator : public iterator<random_access_iterator_tag,
-                                   doublet<typename iterator_traits<T>::value_type,
-                                           typename iterator_traits<U>::value_type>,
+                                   tuple<typename iterator_traits<T>::value_type,
+                                         typename iterator_traits<U>::value_type>,
                                    ptrdiff_t,
-                                   doublet<typename iterator_traits<T>::pointer,
-                                           typename iterator_traits<U>::pointer>,
-                                   doublet<typename iterator_traits<T>::reference,
-                                           typename iterator_traits<U>::reference> >
+                                   tuple<typename iterator_traits<T>::value_type*,
+                                         typename iterator_traits<U>::value_type*>,
+                                   tuple<typename iterator_traits<T>::value_type&&,
+                                         typename iterator_traits<U>::value_type&&> >
 {
     T it_T;
     U it_U;
@@ -1557,12 +2137,12 @@ class coiterator : public iterator<random_access_iterator_tag,
 
         typename coiterator<T,U>::reference operator*()
         {
-            return typename coiterator<T,U>::reference(*it_T,*it_U);
+            return typename coiterator<T,U>::reference(move(*it_T),move(*it_U));
         }
 
         typename coiterator<T,U>::reference operator[](ptrdiff_t n)
         {
-            return typename coiterator<T,U>::reference(it_T[n],it_U[n]);
+            return typename coiterator<T,U>::reference(move(it_T[n]),move(it_U[n]));
         }
 
         coiterator<T,U>& operator++()
@@ -1640,12 +2220,24 @@ class cocomparator
         }
 };
 
+}
+
+template <typename T1, typename T2>
+typename enable_if<(!is_const<T1>::value &&
+                    !is_const<T2>::value &&
+                     is_same<typename decay<T1>::type,
+                             typename decay<T2>::type>::value)>::type
+swap(T1&& a, T2&& b)
+{
+    swap(a, b);
+}
+
 template <class key_iterator, class val_iterator>
 void cosort(key_iterator keys_begin, key_iterator keys_end,
             val_iterator vals_begin, val_iterator vals_end)
 {
-    coiterator<key_iterator,val_iterator> begin(keys_begin, vals_begin);
-    coiterator<key_iterator,val_iterator> end  (keys_end  , vals_end  );
+    detail::coiterator<key_iterator,val_iterator> begin(keys_begin, vals_begin);
+    detail::coiterator<key_iterator,val_iterator> end  (keys_end  , vals_end  );
     sort(begin, end);
 }
 
@@ -1654,9 +2246,9 @@ void cosort(key_iterator keys_begin, key_iterator keys_end,
             val_iterator vals_begin, val_iterator vals_end,
             Comparator comp)
 {
-    coiterator<key_iterator,val_iterator> begin(keys_begin, vals_begin);
-    coiterator<key_iterator,val_iterator> end  (keys_end  , vals_end  );
-    sort(begin, end, cocomparator<key_iterator,val_iterator,Comparator>(comp));
+    detail::coiterator<key_iterator,val_iterator> begin(keys_begin, vals_begin);
+    detail::coiterator<key_iterator,val_iterator> end  (keys_end  , vals_end  );
+    sort(begin, end, detail::cocomparator<key_iterator,val_iterator,Comparator>(comp));
 }
 
 template <class Keys, class Values>

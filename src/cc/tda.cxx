@@ -67,11 +67,8 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
     const PointGroup& group = molecule.getGroup();
     int nirrep = group.getNumIrreps();
 
-    put("TDAevecs", new vector<vector<shared_ptr<SpinorbitalTensor<U> > > >);
-    put("TDAevals", new vector<vector<U> >);
-    vector<vector<shared_ptr<SpinorbitalTensor<U> > > >& TDAevecs =
-        get<vector<vector<shared_ptr<SpinorbitalTensor<U> > > > >("TDAevecs");
-    vector<vector<U> >& TDAevals = get<vector<vector<U> > >("TDAevals");
+    auto& TDAevecs = put("TDAevecs", new vector<unique_vector<SpinorbitalTensor<U>>>(nirrep));
+    auto& TDAevals = put("TDAevals", new vector<vector<U>>(nirrep));
 
     for (int R = 0;R < nirrep;R++)
     {
@@ -146,15 +143,15 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
             }
         }
 
-        vector<U> w(ntot);
-        heev('V','U',ntot,data.data(),ntot,w.data());
-        TDAevals.push_back(w);
-        TDAevecs.push_back(vector<shared_ptr<SpinorbitalTensor<U> > >(ntot));
+        TDAevals[R].resize(ntot);
+        heev('V','U',ntot,data.data(),ntot,TDAevals[R].data());
+
+        cout << TDAevals[R] << endl;
 
         for (int root = 0;root < ntot;root++)
         {
-            TDAevecs[R][root].reset(new SpinorbitalTensor<U>("R", arena, occ.group, irr_R, {vrt, occ}, {1,0}, {0,1}));
-            SpinorbitalTensor<U>& evec = *TDAevecs[R][root];
+            TDAevecs[R].emplace_back("R", arena, occ.group, irr_R, vec(vrt, occ), vec(1,0), vec(0,1));
+            SpinorbitalTensor<U>& evec = TDAevecs[R][root];
 
             int offai = 0;
             for (int spin_ai = 1;spin_ai >= 0;spin_ai--)
@@ -185,8 +182,8 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
             }
         }
 
-        cosort(TDAevals[R].begin(), TDAevals[R].end(),
-               TDAevecs[R].begin(), TDAevecs[R].end());
+        cosort(TDAevals[R].begin() , TDAevals[R].end(),
+               TDAevecs[R].pbegin(), TDAevecs[R].pend());
     }
 }
 

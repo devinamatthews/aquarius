@@ -53,22 +53,20 @@ void LambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& vrt = H.vrt;
 
     this->put   (  "L", new DeexcitationOperator<U,2>("L", arena, occ, vrt));
-    this->puttmp(  "D", new Denominator<U>(H));
+    this->puttmp(  "D", new Denominator         <U  >(H));
     this->puttmp(  "Z", new DeexcitationOperator<U,2>("Z", arena, occ, vrt));
-    this->puttmp("GIM", new SpinorbitalTensor<U>("G(im)", H.getIJ()));
-    this->puttmp("GEA", new SpinorbitalTensor<U>("G(ea)", H.getAB()));
+    this->puttmp("GIM", new SpinorbitalTensor   <U  >("G(im)", H.getIJ()));
+    this->puttmp("GEA", new SpinorbitalTensor   <U  >("G(ea)", H.getAB()));
 
-    ExcitationOperator<U,2>& T = this->template get<ExcitationOperator<U,2> >("T");
-    DeexcitationOperator<U,2>& L = this->template get<DeexcitationOperator<U,2> >("L");
-    DeexcitationOperator<U,2>& Z = this->template gettmp<DeexcitationOperator<U,2> >("Z");
-    Denominator<U>& D = this->template gettmp<Denominator<U> >("D");
+    ExcitationOperator  <U,2>& T = this->template get   <ExcitationOperator  <U,2>>("T");
+    DeexcitationOperator<U,2>& L = this->template get   <DeexcitationOperator<U,2>>("L");
+    DeexcitationOperator<U,2>& Z = this->template gettmp<DeexcitationOperator<U,2>>("Z");
+    Denominator         <U  >& D = this->template gettmp<Denominator         <U  >>("D");
 
     Z(0) = 0;
     L(0) = 1;
-    L(1) = H.getIA();
-    L(2) = H.getIJAB();
-
-    L.weight(D);
+    L(1)[  "ia"] = T(1)[  "ai"];
+    L(2)["ijab"] = T(2)["abij"];
 
     Iterative<U>::run(dag, arena);
 
@@ -93,30 +91,40 @@ void LambdaCCSD<U>::iterate(const Arena& arena)
     const SpinorbitalTensor<U>& WAMIJ = H.getAIJK();
     const SpinorbitalTensor<U>& WAMEI = H.getAIBJ();
 
-    ExcitationOperator<U,2>& T = this->template get<ExcitationOperator<U,2> >("T");
-    DeexcitationOperator<U,2>& L = this->template get<DeexcitationOperator<U,2> >("L");
-    Denominator<U>& D = this->template gettmp<Denominator<U> >("D");
-    DeexcitationOperator<U,2>& Z = this->template gettmp<DeexcitationOperator<U,2> >("Z");
+    ExcitationOperator  <U,2>& T = this->template get   <ExcitationOperator  <U,2>>("T");
+    DeexcitationOperator<U,2>& L = this->template get   <DeexcitationOperator<U,2>>("L");
+    Denominator         <U  >& D = this->template gettmp<Denominator         <U  >>("D");
+    DeexcitationOperator<U,2>& Z = this->template gettmp<DeexcitationOperator<U,2>>("Z");
 
-    SpinorbitalTensor<U>& GIM = this->template gettmp<SpinorbitalTensor<U> >("GIM");
-    SpinorbitalTensor<U>& GEA = this->template gettmp<SpinorbitalTensor<U> >("GEA");
+    SpinorbitalTensor<U>& GIM = this->template gettmp<SpinorbitalTensor<U>>("GIM");
+    SpinorbitalTensor<U>& GEA = this->template gettmp<SpinorbitalTensor<U>>("GEA");
 
-       GIM["mn"]  =  0.5*T(2)["efno"]*L(2)["moef"];
-       GEA["ef"]  = -0.5*T(2)["egmn"]*L(2)["mnfg"];
+    /***************************************************************************
+     *
+     * Intermediates for Lambda-CCSD
+     */
+    GIM["mn"]  =  0.5*T(2)["efno"]*L(2)["moef"];
+    GEA["ef"]  = -0.5*T(2)["egmn"]*L(2)["mnfg"];
+    /*
+     **************************************************************************/
 
-      Z(1)["ia"]  =       FME[  "ia"];
-      Z(1)["ia"] +=       FAE[  "ea"]*L(1)[  "ie"];
-      Z(1)["ia"] -=       FMI[  "im"]*L(1)[  "ma"];
-      Z(1)["ia"] -=     WAMEI["eiam"]*L(1)[  "me"];
-      Z(1)["ia"] += 0.5*WABEJ["efam"]*L(2)["imef"];
-      Z(1)["ia"] -= 0.5*WAMIJ["eimn"]*L(2)["mnea"];
-      Z(1)["ia"] -=     WMNEJ["inam"]* GIM[  "mn"];
-      Z(1)["ia"] -=     WAMEF["fiea"]* GEA[  "ef"];
+    /***************************************************************************
+     *
+     * Lambda-CCSD iteration
+     */
+    Z(1)[  "ia"]  =       FME[  "ia"];
+    Z(1)[  "ia"] +=       FAE[  "ea"]*L(1)[  "ie"];
+    Z(1)[  "ia"] -=       FMI[  "im"]*L(1)[  "ma"];
+    Z(1)[  "ia"] -=     WAMEI["eiam"]*L(1)[  "me"];
+    Z(1)[  "ia"] += 0.5*WABEJ["efam"]*L(2)["imef"];
+    Z(1)[  "ia"] -= 0.5*WAMIJ["eimn"]*L(2)["mnea"];
+    Z(1)[  "ia"] -=     WMNEJ["inam"]* GIM[  "mn"];
+    Z(1)[  "ia"] -=     WAMEF["fiea"]* GEA[  "ef"];
 
     Z(2)["ijab"]  =     WMNEF["ijab"];
     Z(2)["ijab"] +=       FME[  "ia"]*L(1)[  "jb"];
     Z(2)["ijab"] +=     WAMEF["ejab"]*L(1)[  "ie"];
-    Z(2)["ijab"] -=     WMNEJ["jibm"]*L(1)[  "ma"];
+    Z(2)["ijab"] -=     WMNEJ["ijam"]*L(1)[  "mb"];
     Z(2)["ijab"] +=       FAE[  "ea"]*L(2)["ijeb"];
     Z(2)["ijab"] -=       FMI[  "im"]*L(2)["mjab"];
     Z(2)["ijab"] += 0.5*WABEF["efab"]*L(2)["ijef"];
@@ -124,11 +132,13 @@ void LambdaCCSD<U>::iterate(const Arena& arena)
     Z(2)["ijab"] +=     WAMEI["eiam"]*L(2)["mjbe"];
     Z(2)["ijab"] -=     WMNEF["mjab"]* GIM[  "im"];
     Z(2)["ijab"] +=     WMNEF["ijeb"]* GEA[  "ea"];
+    /*
+     **************************************************************************/
 
     Z.weight(D);
     L += Z;
 
-    this->energy() = real(scalar(conj(WMNEF)*L(2)));
+    this->energy() = 0.25*real(scalar(conj(WMNEF)*L(2)));
     this->conv() = Z.norm(00);
 
     diis.extrapolate(L, Z);

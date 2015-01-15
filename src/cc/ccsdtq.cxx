@@ -290,11 +290,11 @@ void CCSDTQ<U>::iterate(const Arena& arena)
      */
       WABEJ[  "abej"] -=       FME[  "me"]*T(2)[    "abmj"];
 
-    WABCEJK["abcejk"]  =     WABEF["abef"]*T(2)[    "fcjk"];
+    WABCEJK["abcejk"]  = 0.5*WABEF["abef"]*T(2)[    "fcjk"];
     WABCEJK["abcejk"] -= 0.5*VMNEF["mnef"]*T(4)["abcfmjkn"];
 
     WABMIJK["abmijk"]  =     WAMEI["amek"]*T(2)[    "ebij"];
-    WABMIJK["abmijk"] -=     WMNIJ["mnkj"]*T(2)[    "abin"];
+    WABMIJK["abmijk"] -= 0.5*WMNIJ["mnkj"]*T(2)[    "abin"];
     WABMIJK["abmijk"] += 0.5*WAMEF["amef"]*T(3)[  "befjik"];
     WABMIJK["abmijk"] += 0.5*VMNEF["mnef"]*T(4)["abefijkn"];
 
@@ -302,8 +302,8 @@ void CCSDTQ<U>::iterate(const Arena& arena)
     WAMNIJK["amnijk"] += 0.5*VMNEF["mnef"]*T(3)[  "aefijk"];
 
     WABMEJI["abmeji"]  =     WAMEF["amef"]*T(2)[    "bfji"];
-    WABMEJI["abmeji"] -=     WMNEJ["mnei"]*T(2)[    "abmj"];
-    WABMEJI["abmeji"] +=     VMNEF["mnef"]*T(3)[  "abfnji"];
+    WABMEJI["abmeji"] -=     WMNEJ["nmei"]*T(2)[    "abnj"];
+    WABMEJI["abmeji"] += 0.5*VMNEF["mnef"]*T(3)[  "abfnji"];
     /*
      *************************************************************************/
 
@@ -322,7 +322,7 @@ void CCSDTQ<U>::iterate(const Arena& arena)
     Z(4)["abcdijkl"] +=       WABEJ[  "abej"]*T(3)[  "ecdikl"];
     Z(4)["abcdijkl"] -=       WAMIJ[  "amij"]*T(3)[  "bcdmkl"];
     Z(4)["abcdijkl"] += 0.5*WAMNIJK["amnijk"]*T(3)[  "bcdmnl"];
-    Z(4)["abcdijkl"] +=     WABMEJI["abmeji"]*T(3)[  "ecdkml"];
+    Z(4)["abcdijkl"] -=     WABMEJI["abmeji"]*T(3)[  "ecdmkl"];
     Z(4)["abcdijkl"] +=         FAE[    "ae"]*T(4)["ebcdijkl"];
     Z(4)["abcdijkl"] -=         FMI[    "mi"]*T(4)["abcdmjkl"];
     Z(4)["abcdijkl"] +=   0.5*WABEF[  "abef"]*T(4)["efcdijkl"];

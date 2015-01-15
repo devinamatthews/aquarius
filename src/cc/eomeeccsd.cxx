@@ -37,34 +37,23 @@ using namespace aquarius::symmetry;
 
 template <typename U>
 EOMEECCSD<U>::EOMEECCSD(const std::string& name, const Config& config)
-: Iterative<U>("eomeeccsd", name, config), nroot(config.get<int>("nroot")), seq_multi_root(config.get<bool>("seq_multi_root")), roots_done(0)
+: Iterative<U>("eomeeccsd", name, config), davidson_config(config.get("davidson").clone()),
+  nroot(config.get<int>("nroot")), multiroot(config.get<bool>("multiroot"))
 {
     vector<Requirement> reqs;
-    reqs.push_back(Requirement("ccsd.T", "T"));
-    reqs.push_back(Requirement("ccsd.Hbar", "Hbar"));
-    reqs.push_back(Requirement("tda.TDAevals", "TDAevals"));
-    reqs.push_back(Requirement("tda.TDAevecs", "TDAevecs"));
-    this->addProduct(Product("eomeeccsd.energy", "energy", reqs));
-    this->addProduct(Product("eomeeccsd.convergence", "convergence", reqs));
-
-    assert(nroot > 0);
-    this->addProduct(Product("eomeeccsd.R", "R", reqs));
-
-    if (seq_multi_root) {
-        for (int i = 0; i < nroot; i++)
-        {
-            string name = "Davidson" + str(i);
-            this->puttmp(name, new Davidson<ExcitationOperator<U,2> >(config.get("davidson"), 1));
-        }
-    }
-    else
-        this->puttmp("Davidson", new Davidson<ExcitationOperator<U,2> >(config.get("davidson"), nroot));
+    reqs.emplace_back("ccsd.T", "T");
+    reqs.emplace_back("ccsd.Hbar", "Hbar");
+    reqs.emplace_back("tda.TDAevals", "TDAevals");
+    reqs.emplace_back("tda.TDAevecs", "TDAevecs");
+    this->addProduct("eomeeccsd.energy", "energy", reqs);
+    this->addProduct("eomeeccsd.convergence", "convergence", reqs);
+    this->addProduct("eomeeccsd.R", "R", reqs);
 }
 
 template <typename U>
 void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
+    auto& H = this->template get<STTwoElectronOperator<U>>("Hbar");
 
     const PointGroup& group = H.getABIJ().getGroup();
     int nirrep = group.getNumIrreps();
@@ -73,14 +62,11 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     const Space& vrt = H.vrt;
 
     this->puttmp("D", new Denominator<U>(H));
-    vector<vector<shared_ptr<SpinorbitalTensor<U> > > >& TDAevecs =
-        this->template get<vector<vector<shared_ptr<SpinorbitalTensor<U> > > > >("TDAevecs");
-    vector<vector<U> >& TDAevals = this->template get<vector<vector<U> > >("TDAevals");
+    auto& TDAevecs = this->template get<vector<unique_vector<SpinorbitalTensor<U>>>>("TDAevecs");
+    auto& TDAevals = this->template get<vector<vector<U>>>("TDAevals");
 
     this->puttmp("XMI", new SpinorbitalTensor<U>("X(mi)", H.getIJ()));
     this->puttmp("XAE", new SpinorbitalTensor<U>("X(ae)", H.getAB()));
-
-    vector<ExcitationOperator<U,2>* > solutions;
 
     vector<tuple<int,U,int,int> > tda_sorted;
 
@@ -91,11 +77,10 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
         for (int j = 0;j < TDAevals[i].size();j++)
         {
-            if (scalar((*TDAevecs[i][j])({1,0},{0,1})*(*TDAevecs[i][j])({0,0},{0,0})) < 0)
-            {
+            if (scalar(TDAevecs[i][j]({1,0},{0,1})*TDAevecs[i][j]({0,0},{0,0})) < 0)
                 spin[j] = 1;
+            else
                 nsinglet++;
-            }
         }
 
         tda_sorted += zip(spin,
@@ -115,69 +100,79 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     // }
 
     nsinglet = min(nsinglet, nroot);
-    vector<vector<int> > root_idx(nirrep);
+    vector<vector<int>> root_idx(nirrep);
 
     for (int i = 0;i < nsinglet;i++)
     {
         root_idx[get<2>(tda_sorted[i])].push_back(get<3>(tda_sorted[i]));
     }
 
-    this->puttmp("R", new vector<shared_ptr<ExcitationOperator<U,2>>>());
-    this->puttmp("Z", new vector<shared_ptr<ExcitationOperator<U,2>>>());
-    vector<shared_ptr<ExcitationOperator<U,2>>>& Rs =
-        this->template gettmp<vector<shared_ptr<ExcitationOperator<U,2>>>>("R");
-    vector<shared_ptr<ExcitationOperator<U,2>>>& Zs =
-        this->template gettmp<vector<shared_ptr<ExcitationOperator<U,2>>>>("Z");
+    auto& Rs = this->puttmp("R", new unique_vector<ExcitationOperator<U,2>>());
+    auto& Vs = this->puttmp("V", new unique_vector<ExcitationOperator<U,2>>());
+    auto& Zs = this->puttmp("Z", new unique_vector<ExcitationOperator<U,2>>());
 
     for (int i = 0;i < nirrep;i++)
     {
+        Vs.clear();
         Rs.clear();
         Zs.clear();
 
-        cout << "irrep = " << i << endl;
-        for (int j = 0;j < root_idx[i].size();j++)
+        if (multiroot)
         {
-            int root = root_idx[i][j];
-            cout << "root = " << root << endl;
-
-            Rs.emplace_back(new ExcitationOperator<U,2>("R", arena, occ, vrt, group.getIrrep(i)));
-            Zs.emplace_back(new ExcitationOperator<U,2>("Z", arena, occ, vrt, group.getIrrep(i)));
-            ExcitationOperator<U,2>& R = *Rs.back();
-            R(0) = 0;
-            R(1) = *TDAevecs[i][root];
-            R(2) = 0;
-            //cout << "R.norm(00) = " << R.norm(00) << endl;
-
-            //vector<U> alphadata;
-            //vector<U> betadata;
-            //R(1)({0,0},{0,0})({0,0}).getAllData(alphadata);
-            //R(1)({1,0},{0,1})({0,0}).getAllData(betadata);
-            //for (int i = 0; i < alphadata.size(); i++){
-            //    cout << i << setprecision(15) << " " << alphadata[i] << " " << betadata[i] << " " << alphadata[i]*betadata[i] << endl;
-            //}
-
-            if (seq_multi_root) {
-                Iterative<U>::run(dag, arena, 1);
-                string name = "Davidson" + str(roots_done);
-                Davidson<ExcitationOperator<U,2> >& this_davidson =
-                    this->template gettmp<Davidson<ExcitationOperator<U,2> > >(name);
-                solutions.push_back(this_davidson.extract_result(0));
-                roots_done ++;
-                if (roots_done < nroot) {
-                    name = "Davidson" + str(roots_done);
-                    Davidson<ExcitationOperator<U,2> >& next_davidson =
-                        this->template gettmp<Davidson<ExcitationOperator<U,2> > >(name);
-                    for (int i = 0; i < solutions.size(); i++)
-                        next_davidson.add_new_previous_result(solutions[i]);
-                    Rs.clear();
-                    Zs.clear();
-                    this->conv() = std::numeric_limits<U>::max();
-                }
+            for (int j = 0;j < root_idx[i].size();j++)
+            {
+                Rs.emplace_back("R", arena, occ, vrt, group.getIrrep(i));
+                Zs.emplace_back("Z", arena, occ, vrt, group.getIrrep(i));
+                ExcitationOperator<U,2>& R = Rs.back();
+                R(0) = 0;
+                R(1) = TDAevecs[i][root_idx[i][j]];
+                R(2) = 0;
             }
 
-        }
-        if (!seq_multi_root)
+            auto& davidson = this->puttmp("Davidson",
+                new Davidson<ExcitationOperator<U,2> >(davidson_config, (int)root_idx[i].size()));
+
             Iterative<U>::run(dag, arena, root_idx[i].size());
+
+            for (int j = 0;j < root_idx[i].size();j++)
+            {
+                if (this->isConverged(j))
+                {
+                    Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
+                    ExcitationOperator<U,2>& V = Vs.back();
+                    davidson.getSolution(j, V);
+                    V /= sqrt(std::abs(scalar(conj(V)*V)));
+                }
+            }
+        }
+        else
+        {
+            for (int j = 0;j < root_idx[i].size();j++)
+            {
+                Rs.clear();
+                Zs.clear();
+
+                Rs.emplace_back("R", arena, occ, vrt, group.getIrrep(i));
+                Zs.emplace_back("Z", arena, occ, vrt, group.getIrrep(i));
+                ExcitationOperator<U,2>& R = Rs.back();
+                R(0) = 0;
+                R(1) = TDAevecs[i][root_idx[i][j]];
+                R(2) = 0;
+
+                auto& davidson = this->puttmp("Davidson",
+                    new Davidson<ExcitationOperator<U,2> >(davidson_config));
+
+                Iterative<U>::run(dag, arena);
+
+                if (this->isConverged())
+                {
+                    Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
+                    ExcitationOperator<U,2>& V = Vs.back();
+                    davidson.getSolution(0, V);
+                    V /= sqrt(std::abs(scalar(conj(V)*V)));
+                }
+            }
+        }
     }
 
     this->put("energy", new CTFTensor<U>("energy", arena, 1, {nroot}, {NS}, true));
@@ -187,7 +182,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 template <typename U>
 void EOMEECCSD<U>::iterate(const Arena& arena)
 {
-    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
+    auto& H = this->template get<STTwoElectronOperator<U> >("Hbar");
 
     const SpinorbitalTensor<U>&   FME =   H.getIA();
     const SpinorbitalTensor<U>&   FAE =   H.getAB();
@@ -201,53 +196,42 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     const SpinorbitalTensor<U>& WAMIJ = H.getAIJK();
     const SpinorbitalTensor<U>& WAMEI = H.getAIBJ();
 
-    const ExcitationOperator<U,2>& T = this->template get<ExcitationOperator<U,2> >("T");
+    auto& T = this->template get<ExcitationOperator<U,2> >("T");
 
-    SpinorbitalTensor<U>& XMI = this->template gettmp<SpinorbitalTensor<U> >("XMI");
-    SpinorbitalTensor<U>& XAE = this->template gettmp<SpinorbitalTensor<U> >("XAE");
+    auto& XMI = this->template gettmp<SpinorbitalTensor<U> >("XMI");
+    auto& XAE = this->template gettmp<SpinorbitalTensor<U> >("XAE");
 
-    Denominator<U>& D = this->template gettmp<Denominator<U> >("D");
-    string name = "Davidson";
-    if (seq_multi_root)
-        name += str(roots_done);
-    Davidson<ExcitationOperator<U,2> >& davidson = this->template gettmp<Davidson<ExcitationOperator<U,2> > >(name);
+    auto& D = this->template gettmp<Denominator<U> >("D");
+    auto& davidson = this->template gettmp<Davidson<ExcitationOperator<U,2>>>("Davidson");
 
-    vector<shared_ptr<ExcitationOperator<U,2>>>& Rs =
-        this->template gettmp<vector<shared_ptr<ExcitationOperator<U,2>>>>("R");
-    vector<shared_ptr<ExcitationOperator<U,2>>>& Zs =
-        this->template gettmp<vector<shared_ptr<ExcitationOperator<U,2>>>>("Z");
-
-    vector<ExcitationOperator<U,2>*> Rextrap;
-    vector<ExcitationOperator<U,2>*> Zextrap;
+    auto& Rs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("R");
+    auto& Zs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("Z");
+    auto& Vs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("V");
 
     for (int root = 0;root < this->nsolution();root++)
     {
         // cout << "am I here?" << endl;
-        ExcitationOperator<U,2>& R = *Rs[root];
-        ExcitationOperator<U,2>& Z = *Zs[root];
+        ExcitationOperator<U,2>& R = Rs[root];
+        ExcitationOperator<U,2>& Z = Zs[root];
         Z = 0;
 
-        //0.5*R(1)({0,0},{0,0})[  "ai"] += 0.5*R(1)({1,0},{0,1})[  "ai"];
-        //    R(1)({1,0},{0,1})[  "ai"]  =     R(1)({0,0},{0,0})[  "ai"];
-        //0.5*R(2)({1,0},{0,1})["abij"] += 0.5*R(2)({1,0},{0,1})["baji"];
-        //0.5*R(2)({0,0},{0,0})["abij"] += 0.5*R(2)({2,0},{0,2})["abij"];
-        //    R(2)({2,0},{0,2})["abij"]  =     R(2)({0,0},{0,0})["abij"];
+        for (auto& V : Vs)
+        {
+            R -= scalar(conj(R)*V)*V;
+        }
+        R /= sqrt(std::abs(scalar(conj(R)*R)));
 
-           XMI["mi"]  =     WMNEJ["nmei"]*R(1)[  "en"];
-           XMI["mi"] += 0.5*WMNEF["mnef"]*R(2)["efin"];
-           XAE["ae"]  =     WAMEF["amef"]*R(1)[  "fm"];
-           XAE["ae"] -= 0.5*WMNEF["mnef"]*R(2)["afmn"];
+         XMI[  "mi"]  =     WMNEJ["nmei"]*R(1)[  "en"];
+         XMI[  "mi"] += 0.5*WMNEF["mnef"]*R(2)["efin"];
+         XAE[  "ae"]  =     WAMEF["amef"]*R(1)[  "fm"];
+         XAE[  "ae"] -= 0.5*WMNEF["mnef"]*R(2)["afmn"];
 
-          cout << "Z.norm(00) = " << Z.norm(00) << endl;
-          Z(1)["ai"] +=       FAE[  "ae"]*R(1)[  "ei"];
-          cout << "Z.norm(00) = " << Z.norm(00) << endl;
-          Z(1)["ai"] -=       FMI[  "mi"]*R(1)[  "am"];
-          cout << "Z.norm(00) = " << Z.norm(00) << endl;
-          Z(1)["ai"] -=     WAMEI["amei"]*R(1)[  "em"];
-          cout << "Z.norm(00) = " << Z.norm(00) << endl;
-          Z(1)["ai"] +=       FME[  "me"]*R(2)["aeim"];
-          Z(1)["ai"] += 0.5*WAMEF["amef"]*R(2)["efim"];
-          Z(1)["ai"] -= 0.5*WMNEJ["mnei"]*R(2)["eamn"];
+        Z(1)[  "ai"] +=       FAE[  "ae"]*R(1)[  "ei"];
+        Z(1)[  "ai"] -=       FMI[  "mi"]*R(1)[  "am"];
+        Z(1)[  "ai"] -=     WAMEI["amei"]*R(1)[  "em"];
+        Z(1)[  "ai"] +=       FME[  "me"]*R(2)["aeim"];
+        Z(1)[  "ai"] += 0.5*WAMEF["amef"]*R(2)["efim"];
+        Z(1)[  "ai"] -= 0.5*WMNEJ["mnei"]*R(2)["eamn"];
 
         Z(2)["abij"] +=     WABEJ["abej"]*R(1)[  "ei"];
         Z(2)["abij"] -=     WAMIJ["amij"]*R(1)[  "bm"];
@@ -264,17 +248,14 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
         //0.5*Z(2)({1,0},{0,1})["abij"] += 0.5*Z(2)({1,0},{0,1})["baji"];
         //0.5*Z(2)({0,0},{0,0})["abij"] += 0.5*Z(2)({2,0},{0,2})["abij"];
         //    Z(2)({2,0},{0,2})["abij"]  =     Z(2)({0,0},{0,0})["abij"];
-
-        Rextrap.push_back(&R);
-        Zextrap.push_back(&Z);
     }
 
-    vector<U> energies = davidson.extrapolate(Rextrap, Zextrap, D);
+    vector<U> energies = davidson.extrapolate(Rs, Zs, D);
 
     for (int i = 0;i < this->nsolution();i++)
     {
         this->energy(i) = energies[i];
-        this->conv(i) = Zs[i]->norm(00);
+        this->conv(i) = Zs[i].norm(00);
     }
 }
 

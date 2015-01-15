@@ -24,6 +24,8 @@
 
 #include "spinorbital_tensor.hpp"
 
+bool doit = false;
+
 using namespace std;
 using namespace aquarius;
 using namespace aquarius::op;
@@ -423,14 +425,12 @@ void SpinorbitalTensor<T>::SpinCase::construct(SpinorbitalTensor<T>& t,
     {
         for (int a = 0;a < alpha_out[s];a++)
         {
-            //len[i++] = vec(std::sum(t.spaces[s].nalpha))+vector<int>(t.group.getNumIrreps()-1, 0);
             len[i++] = t.spaces[s].nalpha;
         }
         if (i > 0) sym[i-1] = NS;
 
         for (int b = 0;b < t.nout[s]-alpha_out[s];b++)
         {
-            //len[i++] = vec(std::sum(t.spaces[s].nbeta))+vector<int>(t.group.getNumIrreps()-1, 0);
             len[i++] = t.spaces[s].nbeta;
         }
         if (i > 0) sym[i-1] = NS;
@@ -440,14 +440,12 @@ void SpinorbitalTensor<T>::SpinCase::construct(SpinorbitalTensor<T>& t,
     {
         for (int a = 0;a < alpha_in[s];a++)
         {
-            //len[i++] = vec(std::sum(t.spaces[s].nalpha))+vector<int>(t.group.getNumIrreps()-1, 0);
             len[i++] = t.spaces[s].nalpha;
         }
         if (i > 0) sym[i-1] = NS;
 
         for (int b = 0;b < t.nin[s]-alpha_in[s];b++)
         {
-            //len[i++] = vec(std::sum(t.spaces[s].nbeta))+vector<int>(t.group.getNumIrreps()-1, 0);
             len[i++] = t.spaces[s].nbeta;
         }
         if (i > 0) sym[i-1] = NS;
@@ -790,13 +788,14 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
             const SymmetryBlockedTensor<T>& tensor_A = A(alpha_out_A, alpha_in_A);
             const SymmetryBlockedTensor<T>& tensor_B = B(alpha_out_B, alpha_in_B);
 
-            /*
+            if (doit)
+            {
                 cout << alpha << " " << beta[sc] << " " << *t << endl;
                 cout <<    tensor_A.getSymmetry() << " " <<   alpha_out_A << " " <<   alpha_in_A << endl;
                 cout <<    tensor_B.getSymmetry() << " " <<   alpha_out_B << " " <<   alpha_in_B << endl;
                 cout << scC.tensor->getSymmetry() << " " << scC.alpha_out << " " << scC.alpha_in << endl;
                 cout << idx_A__ << " " << idx_B__ << " " << idx_C__ << endl;
-            */
+            }
 
             scC.tensor->mult(alpha*diagFactor, conja, tensor_A, idx_A__,
                                                conjb, tensor_B, idx_B__,

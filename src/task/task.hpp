@@ -206,9 +206,10 @@ class Product
 
         bool isUsed() const { return *used; }
 
-        template <typename T> void put(T* resource)
+        template <typename T> T& put(T* resource)
         {
             data.reset(new Resource<T>(resource));
+            return *resource;
         }
 
         template <typename T> T& get()
@@ -240,21 +241,29 @@ class Task
 
         static std::map<std::string,factory_func>& tasks();
 
-        void addProduct(const Product& product);
+        void addProduct(Product&& product)
+        {
+            products.push_back(std::forward<Product>(product));
+        }
 
-        template <typename T> void puttmp(const std::string& name, T* resource)
+        template <typename... Args>
+        void addProduct(Args&&... args)
+        {
+            products.emplace_back(std::forward<Args>(args)...);
+        }
+
+        template <typename T> T& puttmp(const std::string& name, T* resource)
         {
             for (std::vector<Product>::iterator i = temporaries.begin();i != temporaries.end();++i)
             {
                 if (i->getName() == name)
                 {
-                    i->put(resource);
-                    return;
+                    return i->put(resource);
                 }
             }
 
             temporaries.push_back(Product("temporary", name));
-            temporaries.back().put(resource);
+            return temporaries.back().put(resource);
         }
 
         template <typename T> T& gettmp(const std::string& name)
@@ -299,9 +308,9 @@ class Task
 
         static const input::Schema& getSchema(const std::string& name);
 
-        template <typename T> void put(const std::string& name, T* resource)
+        template <typename T> T& put(const std::string& name, T* resource)
         {
-            getProduct(name).put(resource);
+            return getProduct(name).put(resource);
         }
 
         template <typename T> T& get(const std::string& name)
