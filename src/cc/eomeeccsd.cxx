@@ -54,7 +54,6 @@ EOMEECCSD<U>::EOMEECCSD(const std::string& name, const Config& config)
         for (int i = 0; i < nroot; i++)
         {
             string name = "Davidson" + str(i);
-            cout << "Creating " + name << endl;
             this->puttmp(name, new Davidson<ExcitationOperator<U,2> >(config.get("davidson"), 1));
         }
     }
