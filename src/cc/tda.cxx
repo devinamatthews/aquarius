@@ -48,10 +48,12 @@ TDA<U>::TDA(const std::string& name, const Config& config)
 template <typename U>
 void TDA<U>::run(TaskDAG& dag, const Arena& arena)
 {
+    cout << "test1" << endl;
     TwoElectronOperator<U>& W = get<TwoElectronOperator<U> >("H");
     const Space& occ = W.occ;
     const Space& vrt = W.vrt;
 
+    cout << "test2" << endl;
     SpinorbitalTensor<U> Hguess("Hguess", W.getAIBJ());
     Hguess = 0;
 
@@ -59,10 +61,14 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
     SpinorbitalTensor<U>& FIJ = W.getIJ();
     SpinorbitalTensor<U>& WAIBJ = W.getAIBJ();
 
+    cout << "test3" << endl;
+
     Hguess["aiaj"] -= FIJ["ij"];
     Hguess["aibi"] += FAB["ab"];
     Hguess["aibj"] -= WAIBJ["aibj"];
 
+
+    cout << "test4" << endl;
     const Molecule& molecule = get<Molecule>("molecule");
     const PointGroup& group = molecule.getGroup();
     int nirrep = group.getNumIrreps();
@@ -70,6 +76,7 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
     auto& TDAevecs = put("TDAevecs", new vector<unique_vector<SpinorbitalTensor<U>>>(nirrep));
     auto& TDAevals = put("TDAevals", new vector<vector<U>>(nirrep));
 
+    cout << "test5" << endl;
     for (int R = 0;R < nirrep;R++)
     {
         const Representation& irr_R = group.getIrrep(R);
@@ -89,6 +96,7 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
             assert(i < nirrep-1 || count == nirrep);
         }
 
+        cout << "test6" << endl;
         vector<U> data(ntot*ntot);
 
         int offbj = 0;
@@ -119,6 +127,7 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                                 int nai = (spin_ai == 1 ? vrt.nalpha[a] : vrt.nbeta[a])*
                                           (spin_ai == 1 ? occ.nalpha[i] : occ.nbeta[i]);
 
+                                cout << "test7" << endl;
                                 CTFTensor<U>& this_tensor = Hguess({spin_ai,spin_bj},{spin_bj,spin_ai})({a,j,b,i});
                                 CTFTensor<U> trans_tensor("trans_tensor", arena, 4, {vrt.nalpha[a],occ.nalpha[i],vrt.nbeta[b],occ.nbeta[j]}, {NS,NS,NS,NS}, true);
                                 trans_tensor["ajbi"] = this_tensor["aibj"];
@@ -143,12 +152,12 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
             }
         }
 
-        cout << "test1" << endl;
+        cout << "test8" << endl;
 
         TDAevals[R].resize(ntot);
         heev('V','U',ntot,data.data(),ntot,TDAevals[R].data());
 
-        cout << "test2" << endl;
+        cout << "test9" << endl;
 
         cout << TDAevals[R] << endl;
 
