@@ -143,8 +143,12 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
             }
         }
 
+        cout << "test1" << endl;
+
         TDAevals[R].resize(ntot);
         heev('V','U',ntot,data.data(),ntot,TDAevals[R].data());
+
+        cout << "test2" << endl;
 
         cout << TDAevals[R] << endl;
 
