@@ -48,29 +48,35 @@ TDA<U>::TDA(const std::string& name, const Config& config)
 template <typename U>
 void TDA<U>::run(TaskDAG& dag, const Arena& arena)
 {
+    cout << "test1" << endl;
     TwoElectronOperator<U>& W = get<TwoElectronOperator<U> >("H");
     const Space& occ = W.occ;
     const Space& vrt = W.vrt;
 
+    cout << "test2" << endl;
     SpinorbitalTensor<U> Hguess("Hguess", W.getAIBJ());
     Hguess = 0;
 
+    cout << "test3" << endl;
     SpinorbitalTensor<U>& FAB = W.getAB();
     SpinorbitalTensor<U>& FIJ = W.getIJ();
     SpinorbitalTensor<U>& WAIBJ = W.getAIBJ();
 
+    cout << "test4" << endl;
     Hguess["aiaj"] -= FIJ["ij"];
     Hguess["aibi"] += FAB["ab"];
     Hguess["aibj"] -= WAIBJ["aibj"];
 
-
+    cout << "test5" << endl;
     const Molecule& molecule = get<Molecule>("molecule");
     const PointGroup& group = molecule.getGroup();
     int nirrep = group.getNumIrreps();
 
+    cout << "test6" << endl;
     auto& TDAevecs = put("TDAevecs", new vector<unique_vector<SpinorbitalTensor<U>>>(nirrep));
     auto& TDAevals = put("TDAevals", new vector<vector<U>>(nirrep));
 
+    cout << "test7" << endl;
     for (int R = 0;R < nirrep;R++)
     {
         const Representation& irr_R = group.getIrrep(R);
@@ -120,16 +126,16 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                                 int nai = (spin_ai == 1 ? vrt.nalpha[a] : vrt.nbeta[a])*
                                           (spin_ai == 1 ? occ.nalpha[i] : occ.nbeta[i]);
 
-                                cout << "test1" << endl;
+                                cout << "test11" << endl;
                                 CTFTensor<U>& this_tensor = Hguess({spin_ai,spin_bj},{spin_bj,spin_ai})({a,j,b,i});
-                                cout << "test2" << endl;
+                                cout << "test12" << endl;
                                 CTFTensor<U> trans_tensor("trans_tensor", arena, 4, {vrt.nalpha[a],occ.nalpha[i],vrt.nbeta[b],occ.nbeta[j]}, {NS,NS,NS,NS}, true);
-                                cout << "test3" << endl;
+                                cout << "test13" << endl;
                                 trans_tensor["ajbi"] = this_tensor["aibj"];
-                                cout << "test4" << endl;
+                                cout << "test14" << endl;
                                 vector<U> tempdata;
                                 trans_tensor.getAllData(tempdata);
-                                cout << "test5" << endl;
+                                cout << "test15" << endl;
                                 assert(tempdata.size() == nai*nbj);
                                 for (int bj = 0, aibj = 0;bj < nbj;bj++)
                                 {
@@ -138,23 +144,23 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                                         data[offai+ai+(offbj+bj)*ntot] = tempdata[aibj];
                                     }
                                 }
-                                cout << "test6" << endl;
+                                cout << "test16" << endl;
                                 offai += nai;
                             }
                         }
                     }
-                    cout << "test7" << endl;
+                    cout << "test17" << endl;
                     offbj += nbj;
                 }
             }
         }
 
-        cout << "test8" << endl;
+        cout << "test18" << endl;
 
         TDAevals[R].resize(ntot);
         heev('V','U',ntot,data.data(),ntot,TDAevals[R].data());
 
-        cout << "test9" << endl;
+        cout << "test19" << endl;
 
         cout << TDAevals[R] << endl;
 
@@ -184,7 +190,10 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                             pairs[ai].d = data[offai+ai+root*ntot];
                         }
 
-                        evec({spin_ai,0},{0,spin_ai})({a,i}).writeRemoteData(pairs);
+                        if (arena.rank == 0)
+                            evec({spin_ai,0},{0,spin_ai})({a,i}).writeRemoteData(pairs);
+                        else
+                            evec({spin_ai,0},{0,spin_ai})({a,i}).writeRemoteData();
 
                         offai += nai;
                     }
