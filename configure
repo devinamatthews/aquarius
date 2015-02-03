@@ -158,7 +158,7 @@ function defaultflags
         intel)
             if [ "x$AR"       = "x" ]; then AR='xiar -crs'; fi
             if [ "x$CFLAGS"   = "x" ]; then CFLAGS='-openmp -std=c99'; fi
-            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-openmp -D__STDC_LIMIT_MACROS -Drestrict='; fi
+            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-openmp -std=c++0x -D__STDC_LIMIT_MACROS -Drestrict='; fi
             if [ "x$DEPS"     = "x" ]; then DEPS='-MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po'; fi
             if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
             if [ "x$WARN"     = "x" ]; then WARN='-Wall'; fi
@@ -190,7 +190,7 @@ function defaultflags
         gnu)
             if [ "x$AR"       = "x" ]; then AR='ar -crs'; fi
             if [ "x$CFLAGS"   = "x" ]; then CFLAGS='-fopenmp -std=c99'; fi
-            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-fopenmp -D__STDC_LIMIT_MACROS -Drestrict='; fi
+            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-fopenmp -std=c++0x -D__STDC_LIMIT_MACROS -Drestrict='; fi
             if [ "x$DEPS"     = "x" ]; then DEPS='-MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po'; fi
             if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
             if [ "x$WARN"     = "x" ]; then WARN='-Wall -Wno-comment -Wno-sign-compare'; fi
