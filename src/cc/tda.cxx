@@ -58,14 +58,18 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
     Hguess = 0;
 
     cout << "test3" << endl;
-    SpinorbitalTensor<U>& FAB = W.getAB();
-    SpinorbitalTensor<U>& FIJ = W.getIJ();
-    SpinorbitalTensor<U>& WAIBJ = W.getAIBJ();
+    const SpinorbitalTensor<U>& FAB = W.getAB();
+    const SpinorbitalTensor<U>& FIJ = W.getIJ();
+    const SpinorbitalTensor<U>& WAIBJ = W.getAIBJ();
 
-    cout << "test4" << endl;
-    Hguess["aiaj"] -= FIJ["ij"];
+    // cout << "test4" << endl;
+    // Hguess["aiaj"] -= FIJ["ij"];
+    cout << "test4.1" << endl;
     Hguess["aibi"] += FAB["ab"];
+    cout << "test4.2" << endl;
     Hguess["aibj"] -= WAIBJ["aibj"];
+    cout << "test4.3" << endl;
+    Hguess["aiaj"] -= FIJ["ij"];
 
     cout << "test5" << endl;
     const Molecule& molecule = get<Molecule>("molecule");
@@ -162,7 +166,12 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
 
         cout << "test19" << endl;
 
-        cout << TDAevals[R] << endl;
+        if (arena.rank == 0) {
+            cout << TDAevals[R] << endl;
+            cout << "I'm rank 0. " << TDAevals[R][0] << endl;
+        }
+        else
+            cout << "I'm not rank 0. " << TDAevals[R][0] << endl;
 
         for (int root = 0;root < ntot;root++)
         {
