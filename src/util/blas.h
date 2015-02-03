@@ -141,8 +141,8 @@ void FFUNC(ctbsv,CTBSV)(const char* uplo, const char* trans, const char* diag,  
 void FFUNC(ctpsv,CTPSV)(const char* uplo, const char* trans, const char* diag,                   const integer* n,                                                              const scomplex* ap,                           scomplex* x, const integer* incx);
 void FFUNC(cgeru,CGERU)(                                                       const integer* m, const integer* n,                                       const scomplex* alpha, const scomplex* x, const integer* incx, const scomplex* y, const integer* incy, scomplex* a, const integer* lda);
 void FFUNC(cgerc,CGERC)(                                                       const integer* m, const integer* n,                                       const scomplex* alpha, const scomplex* x, const integer* incx, const scomplex* y, const integer* incy, scomplex* a, const integer* lda);
-void FFUNC(cher,CHER)  (const char* uplo,                                                        const integer* n,                                       const scomplex* alpha, const scomplex* x, const integer* incx,                                         scomplex* a, const integer* lda);
-void FFUNC(chpr,CHPR)  (const char* uplo,                                                        const integer* n,                                       const scomplex* alpha, const scomplex* x, const integer* incx,                                         scomplex* ap);
+void FFUNC(cher,CHER)  (const char* uplo,                                                        const integer* n,                                       const    float* alpha, const scomplex* x, const integer* incx,                                         scomplex* a, const integer* lda);
+void FFUNC(chpr,CHPR)  (const char* uplo,                                                        const integer* n,                                       const    float* alpha, const scomplex* x, const integer* incx,                                         scomplex* ap);
 void FFUNC(cher2,CHER2)(const char* uplo,                                                        const integer* n,                                       const scomplex* alpha, const scomplex* x, const integer* incx, const scomplex* y, const integer* incy, scomplex* a, const integer* lda);
 void FFUNC(chpr2,CHPR2)(const char* uplo,                                                        const integer* n,                                       const scomplex* alpha, const scomplex* x, const integer* incx, const scomplex* y, const integer* incy, scomplex* ap);
 
@@ -159,8 +159,8 @@ void FFUNC(ztbsv,ZTBSV)(const char* uplo, const char* trans, const char* diag,  
 void FFUNC(ztpsv,ZTPSV)(const char* uplo, const char* trans, const char* diag,                   const integer* n,                                                              const dcomplex* ap,                           dcomplex* x, const integer* incx);
 void FFUNC(zgerc,ZGERC)(                                                       const integer* m, const integer* n,                                       const dcomplex* alpha, const dcomplex* x, const integer* incx, const dcomplex* y, const integer* incy, dcomplex* a, const integer* lda);
 void FFUNC(zgeru,ZGERU)(                                                       const integer* m, const integer* n,                                       const dcomplex* alpha, const dcomplex* x, const integer* incx, const dcomplex* y, const integer* incy, dcomplex* a, const integer* lda);
-void FFUNC(zher,ZHER)  (const char* uplo,                                                        const integer* n,                                       const dcomplex* alpha, const dcomplex* x, const integer* incx,                                         dcomplex* a, const integer* lda);
-void FFUNC(zhpr,ZHPR)  (const char* uplo,                                                        const integer* n,                                       const dcomplex* alpha, const dcomplex* x, const integer* incx,                                         dcomplex* ap);
+void FFUNC(zher,ZHER)  (const char* uplo,                                                        const integer* n,                                       const   double* alpha, const dcomplex* x, const integer* incx,                                         dcomplex* a, const integer* lda);
+void FFUNC(zhpr,ZHPR)  (const char* uplo,                                                        const integer* n,                                       const   double* alpha, const dcomplex* x, const integer* incx,                                         dcomplex* ap);
 void FFUNC(zher2,ZHER2)(const char* uplo,                                                        const integer* n,                                       const dcomplex* alpha, const dcomplex* x, const integer* incx, const dcomplex* y, const integer* incy, dcomplex* a, const integer* lda);
 void FFUNC(zhpr2,ZHPR2)(const char* uplo,                                                        const integer* n,                                       const dcomplex* alpha, const dcomplex* x, const integer* incx, const dcomplex* y, const integer* incy, dcomplex* ap);
 
@@ -187,8 +187,8 @@ void FFUNC(cgemm,CGEMM)  (                                    const char* transa
 void FFUNC(chemm,CHEMM)  (const char* side, const char* uplo,                                                           const integer* m, const integer* n,                   const scomplex* alpha, const scomplex* a, const integer* lda, const scomplex* b, const integer* ldb, const scomplex* beta, scomplex* c, const integer* ldc);
 void FFUNC(csyrk,CSYRK)  (                  const char* uplo, const char* trans,                                                          const integer* n, const integer* k, const scomplex* alpha, const scomplex* a, const integer* lda,                                        const scomplex* beta, scomplex* c, const integer* ldc);
 void FFUNC(csyr2k,CSYR2K)(                  const char* uplo, const char* trans,                                                          const integer* n, const integer* k, const scomplex* alpha, const scomplex* a, const integer* lda, const scomplex* b, const integer* ldb, const scomplex* beta, scomplex* c, const integer* ldc);
-void FFUNC(cherk,CHERK)  (                  const char* uplo, const char* trans,                                                          const integer* n, const integer* k, const scomplex* alpha, const scomplex* a, const integer* lda,                                        const scomplex* beta, scomplex* c, const integer* ldc);
-void FFUNC(cher2k,CHER2K)(                  const char* uplo, const char* trans,                                                          const integer* n, const integer* k, const scomplex* alpha, const scomplex* a, const integer* lda, const scomplex* b, const integer* ldb, const scomplex* beta, scomplex* c, const integer* ldc);
+void FFUNC(cherk,CHERK)  (                  const char* uplo, const char* trans,                                                          const integer* n, const integer* k, const    float* alpha, const scomplex* a, const integer* lda,                                        const    float* beta, scomplex* c, const integer* ldc);
+void FFUNC(cher2k,CHER2K)(                  const char* uplo, const char* trans,                                                          const integer* n, const integer* k, const scomplex* alpha, const scomplex* a, const integer* lda, const scomplex* b, const integer* ldb, const    float* beta, scomplex* c, const integer* ldc);
 void FFUNC(ctrmm,CTRMM)  (const char* side, const char* uplo, const char* transa,                     const char* diag, const integer* m, const integer* n,                   const scomplex* alpha, const scomplex* a, const integer* lda,       scomplex* b, const integer* ldb);
 void FFUNC(ctrsm,CTRSM)  (const char* side, const char* uplo, const char* transa,                     const char* diag, const integer* m, const integer* n,                   const scomplex* alpha, const scomplex* a, const integer* lda,       scomplex* b, const integer* ldb);
 
@@ -196,8 +196,8 @@ void FFUNC(zgemm,ZGEMM)  (                                    const char* transa
 void FFUNC(zhemm,ZHEMM)  (const char* side, const char* uplo,                                                           const integer* m, const integer* n,                   const dcomplex* alpha, const dcomplex* a, const integer* lda, const dcomplex* b, const integer* ldb, const dcomplex* beta, dcomplex* c, const integer* ldc);
 void FFUNC(zsyrk,ZSYRK)  (                  const char* uplo, const char* trans,                                                          const integer* n, const integer* k, const dcomplex* alpha, const dcomplex* a, const integer* lda,                                        const dcomplex* beta, dcomplex* c, const integer* ldc);
 void FFUNC(zsyr2k,ZSYR2K)(                  const char* uplo, const char* trans,                                                          const integer* n, const integer* k, const dcomplex* alpha, const dcomplex* a, const integer* lda, const dcomplex* b, const integer* ldb, const dcomplex* beta, dcomplex* c, const integer* ldc);
-void FFUNC(zherk,ZHERK)  (                  const char* uplo, const char* trans,                                                          const integer* n, const integer* k, const dcomplex* alpha, const dcomplex* a, const integer* lda,                                        const dcomplex* beta, dcomplex* c, const integer* ldc);
-void FFUNC(zher2k,ZHER2K)(                  const char* uplo, const char* trans,                                                          const integer* n, const integer* k, const dcomplex* alpha, const dcomplex* a, const integer* lda, const dcomplex* b, const integer* ldb, const dcomplex* beta, dcomplex* c, const integer* ldc);
+void FFUNC(zherk,ZHERK)  (                  const char* uplo, const char* trans,                                                          const integer* n, const integer* k, const   double* alpha, const dcomplex* a, const integer* lda,                                        const   double* beta, dcomplex* c, const integer* ldc);
+void FFUNC(zher2k,ZHER2K)(                  const char* uplo, const char* trans,                                                          const integer* n, const integer* k, const dcomplex* alpha, const dcomplex* a, const integer* lda, const dcomplex* b, const integer* ldb, const   double* beta, dcomplex* c, const integer* ldc);
 void FFUNC(ztrmm,ZTRMM)  (const char* side, const char* uplo, const char* transa,                     const char* diag, const integer* m, const integer* n,                   const dcomplex* alpha, const dcomplex* a, const integer* lda,       dcomplex* b, const integer* ldb);
 void FFUNC(ztrsm,ZTRSM)  (const char* side, const char* uplo, const char* transa,                     const char* diag, const integer* m, const integer* n,                   const dcomplex* alpha, const dcomplex* a, const integer* lda,       dcomplex* b, const integer* ldb);
 
@@ -817,14 +817,14 @@ static inline void c_cgerc(const integer m, const integer n,
 }
 
 static inline void c_cher (const char uplo, const integer n,
-                           const scomplex alpha, const scomplex* x, const integer incx,
+                           const float alpha, const scomplex* x, const integer incx,
                                                        scomplex* a, const integer lda)
 {
     FFUNC(cher,CHER)(&uplo, &n, &alpha, x, &incx, a, &lda);
 }
 
 static inline void c_chpr (const char uplo, const integer n,
-                           const scomplex alpha, const scomplex* x, const integer incx,
+                           const float alpha, const scomplex* x, const integer incx,
                                                        scomplex* ap)
 {
     FFUNC(chpr,CHPR)(&uplo, &n, &alpha, x, &incx, ap);
@@ -946,14 +946,14 @@ static inline void c_zgerc(const integer m, const integer n,
 }
 
 static inline void c_zher (const char uplo, const integer n,
-                           const dcomplex alpha, const dcomplex* x, const integer incx,
+                           const double alpha, const dcomplex* x, const integer incx,
                                                        dcomplex* a, const integer lda)
 {
     FFUNC(zher,ZHER)(&uplo, &n, &alpha, x, &incx, a, &lda);
 }
 
 static inline void c_zhpr (const char uplo, const integer n,
-                           const dcomplex alpha, const dcomplex* x, const integer incx,
+                           const double alpha, const dcomplex* x, const integer incx,
                                                        dcomplex* ap)
 {
     FFUNC(zhpr,ZHPR)(&uplo, &n, &alpha, x, &incx, ap);
@@ -1119,8 +1119,8 @@ static inline void c_csyr2k(const char uplo, const char trans,
 
 static inline void c_cherk (const char uplo, const char trans,
                             const integer n, const integer k,
-                            const scomplex alpha, const scomplex* a, const integer lda,
-                            const scomplex  beta,       scomplex* c, const integer ldc)
+                            const float alpha, const scomplex* a, const integer lda,
+                            const float  beta,       scomplex* c, const integer ldc)
 {
     FFUNC(cherk,CHERK)(&uplo, &trans, &n, &k, &alpha, a, &lda, &beta, c, &ldc);
 }
@@ -1129,7 +1129,7 @@ static inline void c_cher2k(const char uplo, const char trans,
                             const integer n, const integer k,
                             const scomplex alpha, const scomplex* a, const integer lda,
                                                   const scomplex* b, const integer ldb,
-                            const scomplex  beta,       scomplex* c, const integer ldc)
+                            const    float  beta,       scomplex* c, const integer ldc)
 {
     FFUNC(cher2k,CHER2K)(&uplo, &trans, &n, &k, &alpha, a, &lda, b, &ldb, &beta, c, &ldc);
 }
@@ -1187,8 +1187,8 @@ static inline void c_zsyr2k(const char uplo, const char trans,
 
 static inline void c_zherk (const char uplo, const char trans,
                             const integer n, const integer k,
-                            const dcomplex alpha, const dcomplex* a, const integer lda,
-                            const dcomplex  beta,       dcomplex* c, const integer ldc)
+                            const double alpha, const dcomplex* a, const integer lda,
+                            const double  beta,       dcomplex* c, const integer ldc)
 {
     FFUNC(zherk,ZHERK)(&uplo, &trans, &n, &k, &alpha, a, &lda, &beta, c, &ldc);
 }
@@ -1197,7 +1197,7 @@ static inline void c_zher2k(const char uplo, const char trans,
                             const integer n, const integer k,
                             const dcomplex alpha, const dcomplex* a, const integer lda,
                                                   const dcomplex* b, const integer ldb,
-                            const dcomplex  beta,       dcomplex* c, const integer ldc)
+                            const   double  beta,       dcomplex* c, const integer ldc)
 {
     FFUNC(zher2k,ZHER2K)(&uplo, &trans, &n, &k, &alpha, a, &lda, b, &ldb, &beta, c, &ldc);
 }
@@ -2096,14 +2096,14 @@ inline void her(const char uplo, const integer n,
 }
 
 inline void her(const char uplo, const integer n,
-                const scomplex alpha, const scomplex* x, const integer incx,
+                const float alpha, const scomplex* x, const integer incx,
                                             scomplex* a, const integer lda)
 {
     cher(uplo, n, alpha, x, incx, a, lda);
 }
 
 inline void her(const char uplo, const integer n,
-                const dcomplex alpha, const dcomplex* x, const integer incx,
+                const double alpha, const dcomplex* x, const integer incx,
                                             dcomplex* a, const integer lda)
 {
     zher(uplo, n, alpha, x, incx, a, lda);
@@ -2124,14 +2124,14 @@ inline void hpr(const char uplo, const integer n,
 }
 
 inline void hpr(const char uplo, const integer n,
-                const scomplex alpha, const scomplex* x, const integer incx,
+                const float alpha, const scomplex* x, const integer incx,
                                             scomplex* ap)
 {
     chpr(uplo, n, alpha, x, incx, ap);
 }
 
 inline void hpr(const char uplo, const integer n,
-                const dcomplex alpha, const dcomplex* x, const integer incx,
+                const double alpha, const dcomplex* x, const integer incx,
                                             dcomplex* ap)
 {
     zhpr(uplo, n, alpha, x, incx, ap);
@@ -2327,16 +2327,16 @@ inline void herk(const char uplo, const char trans,
 
 inline void herk(const char uplo, const char trans,
                  const integer n, const integer k,
-                 const scomplex alpha, const scomplex* a, const integer lda,
-                 const scomplex  beta,       scomplex* c, const integer ldc)
+                 const float alpha, const scomplex* a, const integer lda,
+                 const float  beta,       scomplex* c, const integer ldc)
 {
     cherk(uplo, trans, n, k, alpha, a, lda, beta, c, ldc);
 }
 
 inline void herk(const char uplo, const char trans,
                  const integer n, const integer k,
-                 const dcomplex alpha, const dcomplex* a, const integer lda,
-                 const dcomplex  beta,       dcomplex* c, const integer ldc)
+                 const double alpha, const dcomplex* a, const integer lda,
+                 const double  beta,       dcomplex* c, const integer ldc)
 {
     zherk(uplo, trans, n, k, alpha, a, lda, beta, c, ldc);
 }
@@ -2399,7 +2399,7 @@ inline void her2k(const char uplo, const char trans,
                   const integer n, const integer k,
                   const scomplex alpha, const scomplex* a, const integer lda,
                                         const scomplex* b, const integer ldb,
-                  const scomplex  beta,       scomplex* c, const integer ldc)
+                  const    float  beta,       scomplex* c, const integer ldc)
 {
     cher2k(uplo, trans, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 }
@@ -2408,7 +2408,7 @@ inline void her2k(const char uplo, const char trans,
                   const integer n, const integer k,
                   const dcomplex alpha, const dcomplex* a, const integer lda,
                                         const dcomplex* b, const integer ldb,
-                  const dcomplex  beta,       dcomplex* c, const integer ldc)
+                  const   double  beta,       dcomplex* c, const integer ldc)
 {
     zher2k(uplo, trans, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
 }
