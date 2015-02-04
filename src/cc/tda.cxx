@@ -48,13 +48,17 @@ TDA<U>::TDA(const std::string& name, const Config& config)
 template <typename U>
 void TDA<U>::run(TaskDAG& dag, const Arena& arena)
 {
+    const Molecule& molecule = get<Molecule>("molecule");
+    const PointGroup& group = molecule.getGroup();
+    int nirrep = group.getNumIrreps();
+
     cout << "test1" << endl;
     TwoElectronOperator<U>& W = get<TwoElectronOperator<U> >("H");
     const Space& occ = W.occ;
     const Space& vrt = W.vrt;
 
     cout << "test2" << endl;
-    SpinorbitalTensor<U> Hguess("Hguess", W.getAIBJ());
+    SpinorbitalTensor<U> Hguess("Hguess", arena, group, {vrt,occ}, {1,1}, {1,1});
     Hguess = 0;
 
     cout << "test3" << endl;
@@ -65,16 +69,13 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
     // cout << "test4" << endl;
     // Hguess["aiaj"] -= FIJ["ij"];
     cout << "test4.1" << endl;
-    Hguess["aibi"] += FAB["ab"];
+    Hguess["aibi"]  = FAB["ab"];
     cout << "test4.2" << endl;
     Hguess["aibj"] -= WAIBJ["aibj"];
     cout << "test4.3" << endl;
     Hguess["aiaj"] -= FIJ["ij"];
 
     cout << "test5" << endl;
-    const Molecule& molecule = get<Molecule>("molecule");
-    const PointGroup& group = molecule.getGroup();
-    int nirrep = group.getNumIrreps();
 
     cout << "test6" << endl;
     auto& TDAevecs = put("TDAevecs", new vector<unique_vector<SpinorbitalTensor<U>>>(nirrep));
@@ -103,7 +104,7 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
         vector<U> data(ntot*ntot);
 
         int offbj = 0;
-        for (int spin_bj = 1;spin_bj >= 0;spin_bj--)
+        for (int spin_bj : {1,0})
         {
             for (int j = 0;j < nirrep;j++)
             {
@@ -117,7 +118,7 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                               (spin_bj == 1 ? occ.nalpha[j] : occ.nbeta[j]);
 
                     int offai = 0;
-                    for (int spin_ai = 1;spin_ai >= 0;spin_ai--)
+                    for (int spin_ai : {1,0})
                     {
                         for (int i = 0;i < nirrep;i++)
                         {
@@ -166,12 +167,19 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
 
         cout << "test19" << endl;
 
-        if (arena.rank == 0) {
+        cout << fixed << setprecision(5);
+        if (arena.rank == 0)
+        {
             cout << TDAevals[R] << endl;
             cout << "I'm rank 0. " << TDAevals[R][0] << endl;
+            arena.Barrier();
         }
         else
+        {
+            arena.Barrier();
+            cout << TDAevals[R] << endl;
             cout << "I'm not rank 0. " << TDAevals[R][0] << endl;
+        }
 
         for (int root = 0;root < ntot;root++)
         {

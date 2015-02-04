@@ -381,7 +381,6 @@ void TaskDAG::satisfyRemainingRequirements(const Arena& world)
                         }
                     }
                 }
-                cout << r1.isFulfilled() << endl;
                 if (!r1.isFulfilled())
                     Logger::error(world)<<"Could not fulfil requirement " << r1.getName() << " of task " << t1.first->getName() << endl;
             }
