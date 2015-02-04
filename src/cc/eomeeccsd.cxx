@@ -38,7 +38,7 @@ using namespace aquarius::symmetry;
 template <typename U>
 EOMEECCSD<U>::EOMEECCSD(const std::string& name, const Config& config)
 : Iterative<U>("eomeeccsd", name, config), davidson_config(config.get("davidson").clone()),
-  nroot(config.get<int>("nroot")), multiroot(config.get<bool>("multiroot"))
+  nroot(config.get<int>("nroot")), ntriplet(config.get<int>("ntriplet")), multiroot(config.get<bool>("multiroot"))
 {
     vector<Requirement> reqs;
     reqs.emplace_back("ccsd.T", "T");
@@ -68,44 +68,72 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     this->puttmp("XMI", new SpinorbitalTensor<U>("X(mi)", H.getIJ()));
     this->puttmp("XAE", new SpinorbitalTensor<U>("X(ae)", H.getAB()));
 
-    vector<tuple<int,U,int,int> > tda_sorted;
+    vector<tuple<U,int,int,int> > tda_sorted;
 
-    int nsinglet = 0;
+    int tot_singlet = 0;
+    int tot_triplet = 0;
     for (int i = 0;i < nirrep;i++)
     {
         vector<int> spin(TDAevals[i].size());
 
         for (int j = 0;j < TDAevals[i].size();j++)
         {
-            if (scalar(TDAevecs[i][j]({1,0},{0,1})*TDAevecs[i][j]({0,0},{0,0})) < 0)
+            if (scalar(TDAevecs[i][j]({1,0},{0,1})*TDAevecs[i][j]({0,0},{0,0})) < 0) {
                 spin[j] = 1;
+                tot_triplet++;
+            }
             else
-                nsinglet++;
+                tot_singlet++;
         }
 
-        tda_sorted += zip(spin,
-                          TDAevals[i],
+        tda_sorted += zip(TDAevals[i],
+                          spin,
                           vector<int>(TDAevals[i].size(), i),
                           range<int>(TDAevals[i].size()));
     }
 
-    // for (int i = 0; i < tda_sorted.size(); i++) {
-    //     cout << "tda_sorted[i] = " << tda_sorted[i].first << " " << tda_sorted[i].second.first << " " << tda_sorted[i].second.second << endl;
-    // }
-
     sort(tda_sorted);
 
-    // for (int i = 0; i < tda_sorted.size(); i++) {
-    //     cout << "tda_sorted[i] = " << tda_sorted[i].first << " " << tda_sorted[i].second.first << " " << tda_sorted[i].second.second << endl;
-    // }
-
-    nsinglet = min(nsinglet, nroot);
+    ntriplet = min(ntriplet, tot_triplet);
+    int nsinglet = min(tot_singlet, nroot-ntriplet);
+    assert (nsinglet + ntriplet == nroot);
+    int singlets_taken = 0;
+    int triplets_taken = 0;
+    int index = 0;
     vector<vector<int>> root_idx(nirrep);
 
-    for (int i = 0;i < nsinglet;i++)
+    while (singlets_taken + triplets_taken < nroot)
     {
-        root_idx[get<2>(tda_sorted[i])].push_back(get<3>(tda_sorted[i]));
+        bool take_root = false;
+        int this_spin = get<1>(tda_sorted[index]);
+        if (this_spin == 0 and singlets_taken < nsinglet)
+        {
+            singlets_taken++;
+            take_root = true;
+        }
+        if (this_spin == 1 and triplets_taken < ntriplet)
+        {
+            triplets_taken++;
+            take_root = true;
+        }
+        if (take_root)
+        {
+            root_idx[get<2>(tda_sorted[index])].push_back(get<3>(tda_sorted[index]));
+            if (arena.rank == 0)
+                cout << "Took root " << index << " with spin " << this_spin << endl;
+        }
+        index++;
     }
+
+    // for (int i = 0;i < nsinglet;i++)
+    // {
+    //     root_idx[get<2>(tda_sorted[i])].push_back(get<3>(tda_sorted[i]));
+    // }
+
+    // for (int i = 0;i < ntriplet;i++)
+    // {
+    //     root_idx[get<2>(tda_sorted[i+totsinglet])].push_back(get<3>(tda_sorted[i+totsinglet]));
+    // }
 
     auto& Rs = this->puttmp("R", new unique_vector<ExcitationOperator<U,2>>());
     auto& Vs = this->puttmp("V", new unique_vector<ExcitationOperator<U,2>>());
@@ -210,7 +238,6 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
 
     for (int root = 0;root < this->nsolution();root++)
     {
-        // cout << "am I here?" << endl;
         ExcitationOperator<U,2>& R = Rs[root];
         ExcitationOperator<U,2>& Z = Zs[root];
         Z = 0;
