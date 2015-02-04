@@ -255,7 +255,7 @@ void Molecule::initGeometry(const Config& config, vector<AtomCartSpec>& cartpos)
             else if (a.angleFrom != -1)
             {
                 posb = cartpos[a.distanceFrom].pos;
-                pos[2] = posb[2] + a.distance*cos(rad*a.angle);
+                pos[2] = posb[2] - a.distance*cos(rad*a.angle);
                 pos[1] = a.distance*sin(rad*a.angle);
             }
             else if (a.distanceFrom != -1)

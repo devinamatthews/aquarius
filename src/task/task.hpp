@@ -220,9 +220,11 @@ class Product
 
         bool exists() const { return data; }
 
-        void addRequirement(const Requirement& req);
+        void addRequirement(Requirement&& req);
 
         void addRequirements(const std::vector<Requirement>& reqs);
+
+        void addRequirements(std::vector<Requirement>&& reqs);
 
         std::vector<Requirement>& getRequirements() { return *requirements; }
 };
