@@ -45,6 +45,7 @@ CCSD_T_N<U>::CCSD_T_N(const string& name, const Config& config)
     this->addProduct(Product("double", "E(3)", reqs));
     this->addProduct(Product("double", "E(4)", reqs));
     this->addProduct(Product("double", "E(5)", reqs));
+    this->addProduct(Product("double", "E(6)", reqs));
 }
 
 template <typename U>
@@ -80,21 +81,25 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     ExcitationOperator<U,3> T_2("T^(2)", arena, occ, vrt);
     ExcitationOperator<U,3> T_3("T^(3)", arena, occ, vrt);
     ExcitationOperator<U,3> T_4("T^(4)", arena, occ, vrt);
+    ExcitationOperator<U,3> T_5("T^(5)", arena, occ, vrt);
 
     DeexcitationOperator<U,3> L_1("L^(1)", arena, occ, vrt);
     DeexcitationOperator<U,3> L_2("L^(2)", arena, occ, vrt);
     DeexcitationOperator<U,3> L_3("L^(3)", arena, occ, vrt);
     DeexcitationOperator<U,3> L_4("L^(4)", arena, occ, vrt);
+    DeexcitationOperator<U,3> L_5("L^(5)", arena, occ, vrt);
 
     ExcitationOperator<U,3> DT_1("DT^(1)", arena, occ, vrt);
     ExcitationOperator<U,3> DT_2("DT^(2)", arena, occ, vrt);
     ExcitationOperator<U,3> DT_3("DT^(3)", arena, occ, vrt);
     ExcitationOperator<U,3> DT_4("DT^(4)", arena, occ, vrt);
+    ExcitationOperator<U,3> DT_5("DT^(5)", arena, occ, vrt);
 
     DeexcitationOperator<U,3> DL_1("DL^(1)", arena, occ, vrt);
     DeexcitationOperator<U,3> DL_2("DL^(2)", arena, occ, vrt);
     DeexcitationOperator<U,3> DL_3("DL^(3)", arena, occ, vrt);
     DeexcitationOperator<U,3> DL_4("DL^(4)", arena, occ, vrt);
+    DeexcitationOperator<U,3> DL_5("DL^(5)", arena, occ, vrt);
 
     SpinorbitalTensor<U> WTWABEJ(WABEJ);
     WTWABEJ["abej"] += FME["me"]*T(2)["abmj"];
@@ -114,10 +119,21 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     SpinorbitalTensor<U> WAMEF_2(WAMEF);
 
     SpinorbitalTensor<U> FME_3(FME);
+    SpinorbitalTensor<U> FMI_3(FMI);
+    SpinorbitalTensor<U> FAE_3(FAE);
+    SpinorbitalTensor<U> WAMEI_3(WAMEI);
+    SpinorbitalTensor<U> WMNIJ_3(WMNIJ);
+    SpinorbitalTensor<U> WABEF_3(WABEF);
     SpinorbitalTensor<U> WABEJ_3(WABEJ);
     SpinorbitalTensor<U> WAMIJ_3(WAMIJ);
     SpinorbitalTensor<U> WMNEJ_3(WMNEJ);
     SpinorbitalTensor<U> WAMEF_3(WAMEF);
+
+    SpinorbitalTensor<U> FME_4(FME);
+    SpinorbitalTensor<U> WABEJ_4(WABEJ);
+    SpinorbitalTensor<U> WAMIJ_4(WAMIJ);
+    SpinorbitalTensor<U> WMNEJ_4(WMNEJ);
+    SpinorbitalTensor<U> WAMEF_4(WAMEF);
 
     SpinorbitalTensor<U> DIJ_1(FMI);
     SpinorbitalTensor<U> DAB_1(FAE);
@@ -147,14 +163,23 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     SpinorbitalTensor<U> GIJAK_3(WMNEJ);
     SpinorbitalTensor<U> GAIBC_3(WAMEF);
 
+    SpinorbitalTensor<U> GIJAK_4(WMNEJ);
+    SpinorbitalTensor<U> GAIBC_4(WAMEF);
+
     SpinorbitalTensor<U> Tau(T(2));
     SpinorbitalTensor<U> DIJ(FMI);
     SpinorbitalTensor<U> DAB(FAE);
     SpinorbitalTensor<U> FTWMI_2(FMI);
     SpinorbitalTensor<U> FTWAE_2(FAE);
+    SpinorbitalTensor<U> FTWMI_3(FMI);
+    SpinorbitalTensor<U> FTWAE_3(FAE);
     SpinorbitalTensor<U> WTWAMEI_2(WAMEI);
     SpinorbitalTensor<U> WTWABEJ_2(WABEJ);
     SpinorbitalTensor<U> WTWAMIJ_2(WAMIJ);
+    SpinorbitalTensor<U> WTWABEJ_3(WABEJ);
+    SpinorbitalTensor<U> WTWAMIJ_3(WAMIJ);
+    SpinorbitalTensor<U> WTWABEJ_4(WABEJ);
+    SpinorbitalTensor<U> WTWAMIJ_4(WAMIJ);
     ExcitationOperator<U,3> Z("Z", arena, occ, vrt);
 
     /***************************************************************************
@@ -209,6 +234,7 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
       FAE_2[    "ae"]  =  -0.5*WMNEF["mnef"]*T_2(2)[  "afmn"];
       FAE_2[    "ae"] +=       WAMEF["amef"]*T_2(1)[    "fm"];
 
+    WAMIJ_2 = 0.0;
     WAMIJ_2[  "amij"]  =       WMNEJ["nmej"]*T_2(2)[  "aein"];
     WAMIJ_2[  "amij"] +=   0.5*WAMEF["amef"]*T_2(2)[  "efij"];
     WAMIJ_2[  "amij"] -=       WMNIJ["nmij"]*T_2(1)[    "an"];
@@ -216,21 +242,12 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     WAMIJ_2[  "amij"] +=   0.5*WMNEF["mnef"]*T_2(3)["aefijn"];
     WAMIJ_2[  "amij"] +=       FME_2[  "me"]*  T(2)[  "aeij"];
 
+    WABEJ_2 = 0.0;
     WABEJ_2[  "abej"]  =       WAMEF["amef"]*T_2(2)[  "fbmj"];
     WABEJ_2[  "abej"] +=   0.5*WMNEJ["mnej"]*T_2(2)[  "abmn"];
     WABEJ_2[  "abej"] +=       WABEF["abef"]*T_2(1)[    "fj"];
     WABEJ_2[  "abej"] -=       WAMEI["amej"]*T_2(1)[    "bm"];
     WABEJ_2[  "abej"] -=   0.5*WMNEF["mnef"]*T_2(3)["afbmnj"];
-
-    WAMEI_2[  "amei"]  =       WMNEF["mnef"]*T_2(2)[  "afni"];
-    WAMEI_2[  "amei"] +=       WAMEF["amef"]*T_2(1)[    "fi"];
-    WAMEI_2[  "amei"] -=       WMNEJ["nmei"]*T_2(1)[    "an"];
-
-    WMNIJ_2[  "mnij"]  =   0.5*WMNEF["mnef"]*T_2(2)[  "efij"];
-    WMNIJ_2[  "mnij"] +=       WMNEJ["mnej"]*T_2(1)[    "ei"];
-
-    WABEF_2[  "abef"]  =   0.5*WMNEF["mnef"]*T_2(2)[  "abmn"];
-    WABEF_2[  "abef"] -=       WAMEF["amef"]*T_2(1)[    "bm"];
 
     DT_3(1)[    "ai"]  =         FAE[  "ae"]*T_2(1)[    "ei"];
     DT_3(1)[    "ai"] -=         FMI[  "mi"]*T_2(1)[    "am"];
@@ -278,7 +295,23 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
       FMI_2[    "mi"] +=         FME[  "me"]*T_2(1)[    "ei"];
       FAE_2[    "ae"] -=         FME[  "me"]*T_2(1)[    "am"];
 
+    WAMEI_2[  "amei"]  =       WMNEF["mnef"]*T_2(2)[  "afni"];
+    WAMEI_2[  "amei"] +=       WAMEF["amef"]*T_2(1)[    "fi"];
+    WAMEI_2[  "amei"] -=       WMNEJ["nmei"]*T_2(1)[    "an"];
+
+    WMNIJ_2[  "mnij"]  =   0.5*WMNEF["mnef"]*T_2(2)[  "efij"];
+    WMNIJ_2[  "mnij"] +=       WMNEJ["mnej"]*T_2(1)[    "ei"];
+
+    WABEF_2[  "abef"]  =   0.5*WMNEF["mnef"]*T_2(2)[  "abmn"];
+    WABEF_2[  "abef"] -=       WAMEF["amef"]*T_2(1)[    "bm"];
+
       FME_3[    "me"]  =       WMNEF["mnef"]*T_3(1)[    "fn"];
+
+      FMI_3[    "mi"]  =   0.5*WMNEF["mnef"]*T_3(2)[  "efin"];
+      FMI_3[    "mi"] +=       WMNEJ["nmfi"]*T_3(1)[    "fn"];
+
+      FAE_3[    "ae"]  =  -0.5*WMNEF["mnef"]*T_3(2)[  "afmn"];
+      FAE_3[    "ae"] +=       WAMEF["amef"]*T_3(1)[    "fm"];
 
     WAMIJ_3[  "amij"]  =       WMNEJ["nmej"]*T_3(2)[  "aein"];
     WAMIJ_3[  "amij"] +=   0.5*WAMEF["amef"]*T_3(2)[  "efij"];
@@ -292,6 +325,30 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     WABEJ_3[  "abej"] +=       WABEF["abef"]*T_3(1)[    "fj"];
     WABEJ_3[  "abej"] -=       WAMEI["amej"]*T_3(1)[    "bm"];
     WABEJ_3[  "abej"] -=   0.5*WMNEF["mnef"]*T_3(3)["afbmnj"];
+
+    DT_4(1)[    "ai"]  =         FAE[  "ae"]*T_3(1)[    "ei"];
+    DT_4(1)[    "ai"] -=         FMI[  "mi"]*T_3(1)[    "am"];
+    DT_4(1)[    "ai"] -=       WAMEI["amei"]*T_3(1)[    "em"];
+    DT_4(1)[    "ai"] +=         FME[  "me"]*T_3(2)[  "aeim"];
+    DT_4(1)[    "ai"] +=   0.5*WAMEF["amef"]*T_3(2)[  "efim"];
+    DT_4(1)[    "ai"] -=   0.5*WMNEJ["mnei"]*T_3(2)[  "eamn"];
+    DT_4(1)[    "ai"] +=  0.25*WMNEF["mnef"]*T_3(3)["aefimn"];
+
+    DT_4(2)[  "abij"]  =       FAE_3[  "af"]*  T(2)[  "fbij"];
+    DT_4(2)[  "abij"] -=       FMI_3[  "ni"]*  T(2)[  "abnj"];
+    DT_4(2)[  "abij"] +=       FME_2[  "me"]*T_1(3)["abeijm"];
+    DT_4(2)[  "abij"] +=     WABEJ_1["abej"]*T_2(1)[    "ei"];
+    DT_4(2)[  "abij"] -=     WAMIJ_1["amij"]*T_2(1)[    "bm"];
+    DT_4(2)[  "abij"] +=       WABEJ["abej"]*T_3(1)[    "ei"];
+    DT_4(2)[  "abij"] -=       WAMIJ["amij"]*T_3(1)[    "bm"];
+    DT_4(2)[  "abij"] +=         FAE[  "af"]*T_3(2)[  "fbij"];
+    DT_4(2)[  "abij"] -=         FMI[  "ni"]*T_3(2)[  "abnj"];
+    DT_4(2)[  "abij"] +=   0.5*WABEF["abef"]*T_3(2)[  "efij"];
+    DT_4(2)[  "abij"] +=   0.5*WMNIJ["mnij"]*T_3(2)[  "abmn"];
+    DT_4(2)[  "abij"] +=       WAMEI["amei"]*T_3(2)[  "ebjm"];
+    DT_4(2)[  "abij"] +=   0.5*WAMEF["bmef"]*T_3(3)["aefijm"];
+    DT_4(2)[  "abij"] -=   0.5*WMNEJ["mnej"]*T_3(3)["abeinm"];
+    DT_4(2)[  "abij"] +=         FME[  "me"]*T_3(3)["abeijm"];
 
     DT_4(3)["abcijk"]  =     WABEJ_3["bcek"]*  T(2)[  "aeij"];
     DT_4(3)["abcijk"] -=     WAMIJ_3["bmjk"]*  T(2)[  "acim"];
@@ -315,17 +372,96 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
 
     /***************************************************************************
      *
-     * Complete W^(2) and W^(3)
+     * T^(5)
      *
      **************************************************************************/
 
-    WMNEJ_2["mnej"]  =  WMNEF["mnef"]*T_2(1)[  "fj"];
-    WAMEF_2["amef"]  = -WMNEF["nmef"]*T_2(1)[  "an"];
-    WABEJ_2["abej"] -=  FME_2[  "me"]*  T(2)["abmj"];
+          Tau[  "abij"]  =  0.5*T_2(1)[  "ai"]*T_2(1)[    "bj"];
+
+      WMNEJ_2[  "mnej"]  =       WMNEF["mnef"]*T_2(1)[    "fj"];
+      WAMEF_2[  "amef"]  =      -WMNEF["nmef"]*T_2(1)[    "an"];
+      WABEJ_2[  "abej"] -=       FME_2[  "me"]*  T(2)[  "abmj"];
+
+    WTWAMIJ_2 = WAMIJ_2;
+    WTWAMIJ_2[  "amij"] +=         FME[  "me"]*T_2(2)[  "aeij"];
+
+    FTWMI_3 = FMI_3;
+    FTWAE_3 = FAE_3;
+
+        FMI_3[    "mi"] +=         FME[  "me"]*T_3(1)[    "ei"];
+        FAE_3[    "ae"] -=         FME[  "me"]*T_3(1)[    "am"];
+
+      WAMEI_3[  "amei"]  =       WMNEF["mnef"]*T_3(2)[  "afni"];
+      WAMEI_3[  "amei"] +=       WAMEF["amef"]*T_3(1)[    "fi"];
+      WAMEI_3[  "amei"] -=       WMNEJ["nmei"]*T_3(1)[    "an"];
+
+      WMNIJ_3[  "mnij"]  =   0.5*WMNEF["mnef"]*T_3(2)[  "efij"];
+      WMNIJ_3[  "mnij"] +=       WMNEJ["mnej"]*T_3(1)[    "ei"];
+
+      WABEF_3[  "abef"]  =   0.5*WMNEF["mnef"]*T_3(2)[  "abmn"];
+      WABEF_3[  "abef"] -=       WAMEF["amef"]*T_3(1)[    "bm"];
+
+        FME_4[    "me"]  =       WMNEF["mnef"]*T_4(1)[    "fn"];
+
+      WAMIJ_4[  "amij"]  =       WMNEJ["nmej"]*T_4(2)[  "aein"];
+      WAMIJ_4[  "amij"] +=   0.5*WAMEF["amef"]*T_4(2)[  "efij"];
+      WAMIJ_4[  "amij"] -=       WMNIJ["nmij"]*T_4(1)[    "an"];
+      WAMIJ_4[  "amij"] +=       WAMEI["amej"]*T_4(1)[    "ei"];
+      WAMIJ_4[  "amij"] +=   0.5*WMNEF["mnef"]*T_4(3)["aefijn"];
+      WAMIJ_4[  "amij"] +=       FME_4[  "me"]*  T(2)[  "aeij"];
+      WAMIJ_4[  "amij"] -=     WMNIJ_2["nmij"]*T_2(1)[    "an"];
+      WAMIJ_4[  "amij"] +=     WMNEJ_2["nmej"]*T_2(2)[  "aein"];
+      WAMIJ_4[  "amij"] +=   0.5*WAMEF["amef"]*   Tau[  "efij"];
+
+      WABEJ_4[  "abej"]  =       WAMEF["amef"]*T_4(2)[  "fbmj"];
+      WABEJ_4[  "abej"] +=   0.5*WMNEJ["mnej"]*T_4(2)[  "abmn"];
+      WABEJ_4[  "abej"] +=       WABEF["abef"]*T_4(1)[    "fj"];
+      WABEJ_4[  "abej"] -=       WAMEI["amej"]*T_4(1)[    "bm"];
+      WABEJ_4[  "abej"] -=   0.5*WMNEF["mnef"]*T_4(3)["afbmnj"];
+      WABEJ_4[  "abej"] +=     WABEF_2["abef"]*T_2(1)[    "fj"];
+      WABEJ_4[  "abej"] +=     WAMEF_2["amef"]*T_2(2)[  "fbmj"];
+      WABEJ_4[  "abej"] +=   0.5*WMNEJ["mnej"]*   Tau[  "abmn"];
+
+      DT_5(3)["abcijk"]  =     WABEJ_4["bcek"]*  T(2)[  "aeij"];
+      DT_5(3)["abcijk"] -=     WAMIJ_4["bmjk"]*  T(2)[  "acim"];
+      DT_5(3)["abcijk"] +=       FAE_3[  "ce"]*T_1(3)["abeijk"];
+      DT_5(3)["abcijk"] -=       FMI_3[  "mk"]*T_1(3)["abcijm"];
+      DT_5(3)["abcijk"] += 0.5*WABEF_3["abef"]*T_1(3)["efcijk"];
+      DT_5(3)["abcijk"] += 0.5*WMNIJ_3["mnij"]*T_1(3)["abcmnk"];
+      DT_5(3)["abcijk"] +=     WAMEI_3["amei"]*T_1(3)["ebcjmk"];
+      DT_5(3)["abcijk"] +=     WABEJ_2["bcek"]*T_2(2)[  "aeij"];
+      DT_5(3)["abcijk"] -=   WTWAMIJ_2["bmjk"]*T_2(2)[  "acim"];
+      DT_5(3)["abcijk"] +=       FAE_2[  "ce"]*T_2(3)["abeijk"];
+      DT_5(3)["abcijk"] -=       FMI_2[  "mk"]*T_2(3)["abcijm"];
+      DT_5(3)["abcijk"] += 0.5*WABEF_2["abef"]*T_2(3)["efcijk"];
+      DT_5(3)["abcijk"] += 0.5*WMNIJ_2["mnij"]*T_2(3)["abcmnk"];
+      DT_5(3)["abcijk"] +=     WAMEI_2["amei"]*T_2(3)["ebcjmk"];
+      DT_5(3)["abcijk"] +=     WABEJ_1["bcek"]*T_3(2)[  "aeij"];
+      DT_5(3)["abcijk"] -=     WAMIJ_1["bmjk"]*T_3(2)[  "acim"];
+      DT_5(3)["abcijk"] +=       WABEJ["bcek"]*T_4(2)[  "aeij"];
+      DT_5(3)["abcijk"] -=       WAMIJ["bmjk"]*T_4(2)[  "acim"];
+      DT_5(3)["abcijk"] +=         FAE[  "ce"]*T_4(3)["abeijk"];
+      DT_5(3)["abcijk"] -=         FMI[  "mk"]*T_4(3)["abcijm"];
+      DT_5(3)["abcijk"] +=   0.5*WABEF["abef"]*T_4(3)["efcijk"];
+      DT_5(3)["abcijk"] +=   0.5*WMNIJ["mnij"]*T_4(3)["abcmnk"];
+      DT_5(3)["abcijk"] +=       WAMEI["amei"]*T_4(3)["ebcjmk"];
+
+    T_5 = DT_5;
+    T_5.weight(D);
+
+    /***************************************************************************
+     *
+     * Complete W^(3) and W^(4)
+     *
+     **************************************************************************/
 
     WMNEJ_3["mnej"]  =  WMNEF["mnef"]*T_3(1)[  "fj"];
     WAMEF_3["amef"]  = -WMNEF["nmef"]*T_3(1)[  "an"];
     WABEJ_3["abej"] -=  FME_3[  "me"]*  T(2)["abmj"];
+
+    WMNEJ_4["mnej"]  =  WMNEF["mnef"]*T_4(1)[  "fj"];
+    WAMEF_4["amef"]  = -WMNEF["nmef"]*T_4(1)[  "an"];
+    WABEJ_4["abej"] -=  FME_4[  "me"]*  T(2)["abmj"];
 
     /***************************************************************************
      *
@@ -491,34 +627,178 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
      *
      **************************************************************************/
 
-    GIJAK_3[  "ijak"]  =  (1.0/ 2.0)*   T(2)[  "efkm"]* L_3(3)["ijmaef"];
-    GIJAK_3[  "ijak"] +=  (1.0/ 2.0)* T_2(2)[  "efkm"]* L_1(3)["ijmaef"];
+    GIJAK_3[  "ijak"]  =  (1.0/ 2.0)*     T(2)[  "efkm"]* L_3(3)["ijmaef"];
+    GIJAK_3[  "ijak"] +=  (1.0/ 2.0)*   T_2(2)[  "efkm"]* L_1(3)["ijmaef"];
 
-    GAIBC_3[  "aibc"]  = -(1.0/ 2.0)*   T(2)[  "aemn"]* L_3(3)["minbce"];
-    GAIBC_3[  "aibc"] -=  (1.0/ 2.0)* T_2(2)[  "aemn"]* L_1(3)["minbce"];
+    GAIBC_3[  "aibc"]  = -(1.0/ 2.0)*   T_2(2)[  "aemn"]* L_1(3)["minbce"];
 
-    DL_4(3)["ijkabc"]  =               FME_3[    "ia"]*   L(2)[  "jkbc"];
-    DL_4(3)["ijkabc"] +=             WAMEF_3[  "ekbc"]*   L(2)[  "ijae"];
-    DL_4(3)["ijkabc"] -=             WMNEJ_3[  "ijam"]*   L(2)[  "mkbc"];
-    DL_4(3)["ijkabc"] +=               FAE_2[    "ea"]* L_1(3)["ijkebc"];
-    DL_4(3)["ijkabc"] -=               FMI_2[    "im"]* L_1(3)["mjkabc"];
-    DL_4(3)["ijkabc"] +=  (1.0/ 2.0)*WABEF_2[  "efab"]* L_1(3)["ijkefc"];
-    DL_4(3)["ijkabc"] +=  (1.0/ 2.0)*WMNIJ_2[  "ijmn"]* L_1(3)["mnkabc"];
-    DL_4(3)["ijkabc"] +=             WAMEI_2[  "eiam"]* L_1(3)["mjkbec"];
-    DL_4(3)["ijkabc"] +=               WMNEF[  "ijab"]* L_3(1)[    "kc"];
-    DL_4(3)["ijkabc"] +=                 FME[    "ia"]* L_3(2)[  "jkbc"];
-    DL_4(3)["ijkabc"] +=               WAMEF[  "ekbc"]* L_3(2)[  "ijae"];
-    DL_4(3)["ijkabc"] -=               WMNEJ[  "ijam"]* L_3(2)[  "mkbc"];
-    DL_4(3)["ijkabc"] +=               WMNEF[  "ijae"]*GAIBC_3[  "ekbc"];
-    DL_4(3)["ijkabc"] -=               WMNEF[  "mkbc"]*GIJAK_3[  "ijam"];
-    DL_4(3)["ijkabc"] +=                 FAE[    "ea"]* L_3(3)["ijkebc"];
-    DL_4(3)["ijkabc"] -=                 FMI[    "im"]* L_3(3)["mjkabc"];
-    DL_4(3)["ijkabc"] +=  (1.0/ 2.0)*  WABEF[  "efab"]* L_3(3)["ijkefc"];
-    DL_4(3)["ijkabc"] +=  (1.0/ 2.0)*  WMNIJ[  "ijmn"]* L_3(3)["mnkabc"];
-    DL_4(3)["ijkabc"] +=               WAMEI[  "eiam"]* L_3(3)["mjkbec"];
+    DTWIJ_3[    "ij"]  =  (1.0/12.0)*   T_1(3)["efgjmn"]* L_2(3)["imnefg"];
+    DTWIJ_3[    "ij"] +=  (1.0/12.0)*   T_2(3)["efgjmn"]* L_1(3)["imnefg"];
+    DTWIJ_3[    "ij"] +=  (1.0/ 2.0)*   T_3(2)[  "efjm"]*   L(2)[  "imef"];
+
+    DTWAB_3[    "ab"]  = -(1.0/12.0)*   T_1(3)["aefmno"]* L_2(3)["mnobef"];
+    DTWAB_3[    "ab"] -=  (1.0/12.0)*   T_2(3)["aefmno"]* L_1(3)["mnobef"];
+    DTWAB_3[    "ab"] -=  (1.0/ 2.0)*   T_3(2)[  "aemn"]*   L(2)[  "mnbe"];
+
+      DIJ_3 = DTWIJ_3;
+      DIJ_3[    "ij"] +=  (1.0/ 2.0)*     T(2)[  "efjm"]* L_3(2)[  "imef"];
+
+      DAB_3 = DTWAB_3;
+      DAB_3[    "ab"] -=  (1.0/ 2.0)*     T(2)[  "aemn"]* L_3(2)[  "mnbe"];
+
+      DAI_3[    "ai"]  =  (1.0/ 4.0)*   T_3(3)["efamni"]*   L(2)[  "mnef"];
+      DAI_3[    "ai"] +=  (1.0/ 4.0)*   T_1(3)["efamni"]* L_2(2)[  "mnef"];
+      DAI_3[    "ai"] +=                T_3(1)[    "ei"]*    DAB[    "ae"];
+      DAI_3[    "ai"] -=                T_3(1)[    "am"]*    DIJ[    "mi"];
+      DAI_3[    "ai"] -=  (1.0/ 2.0)*     T(2)[  "eamn"]*GIJAK_3[  "mnei"];
+      DAI_3[    "ai"] +=  (1.0/ 2.0)*     T(2)[  "efim"]*GAIBC_3[  "amef"];
+
+    GAIBC_3[  "aibc"] -=  (1.0/ 2.0)*     T(2)[  "aemn"]* L_3(3)["minbce"];
+
+    GABCD_3[  "abcd"]  =  (1.0/ 6.0)*   T_2(3)["abemno"]* L_1(3)["mnocde"];
+    GABCD_3[  "abcd"] +=  (1.0/ 6.0)*   T_1(3)["abemno"]* L_2(3)["mnocde"];
+
+    GAIBJ_3[  "aibj"]  = -(1.0/ 4.0)*   T_2(3)["aefjmn"]* L_1(3)["imnbef"];
+    GAIBJ_3[  "aibj"] -=  (1.0/ 4.0)*   T_1(3)["aefjmn"]* L_2(3)["imnbef"];
+
+    GIJKL_3[  "ijkl"]  =  (1.0/ 6.0)*   T_2(3)["efgklm"]* L_1(3)["ijmefg"];
+    GIJKL_3[  "ijkl"] +=  (1.0/ 6.0)*   T_1(3)["efgklm"]* L_2(3)["ijmefg"];
+
+    DL_4(1)[    "ia"]  =                 FME_3[    "ia"];
+    DL_4(1)[    "ia"] +=                 FAE_3[    "ea"]*   L(1)[    "ie"];
+    DL_4(1)[    "ia"] -=                 FMI_3[    "im"]*   L(1)[    "ma"];
+    DL_4(1)[    "ia"] -=               WAMEI_3[  "eiam"]*   L(1)[    "me"];
+    DL_4(1)[    "ia"] +=  (1.0/ 2.0)*  WABEJ_3[  "efam"]*   L(2)[  "imef"];
+    DL_4(1)[    "ia"] -=  (1.0/ 2.0)*  WAMIJ_3[  "eimn"]*   L(2)[  "mnea"];
+    DL_4(1)[    "ia"] -=  (1.0/ 2.0)*  WABEF_2[  "efga"]*GAIBC_1[  "gief"];
+    DL_4(1)[    "ia"] +=               WAMEI_2[  "eifm"]*GAIBC_1[  "fmea"];
+    DL_4(1)[    "ia"] -=               WAMEI_2[  "eman"]*GIJAK_1[  "inem"];
+    DL_4(1)[    "ia"] +=  (1.0/ 2.0)*  WMNIJ_2[  "imno"]*GIJAK_1[  "noam"];
+    DL_4(1)[    "ia"] +=  (1.0/ 2.0)*  WABEJ_1[  "efam"]* L_2(2)[  "imef"];
+    DL_4(1)[    "ia"] -=  (1.0/ 2.0)*  WAMIJ_1[  "eimn"]* L_2(2)[  "mnea"];
+    DL_4(1)[    "ia"] +=                   FME[    "ie"]*DTWAB_3[    "ea"];
+    DL_4(1)[    "ia"] -=                   FME[    "ma"]*DTWIJ_3[    "im"];
+    DL_4(1)[    "ia"] -=                 WMNEJ[  "inam"]*  DIJ_3[    "mn"];
+    DL_4(1)[    "ia"] -=                 WAMEF[  "fiea"]*  DAB_3[    "ef"];
+    DL_4(1)[    "ia"] +=                 WMNEF[  "miea"]*  DAI_3[    "em"];
+    DL_4(1)[    "ia"] -=  (1.0/ 2.0)*    WABEF[  "efga"]*GAIBC_3[  "gief"];
+    DL_4(1)[    "ia"] +=                 WAMEI[  "eifm"]*GAIBC_3[  "fmea"];
+    DL_4(1)[    "ia"] -=                 WAMEI[  "eman"]*GIJAK_3[  "inem"];
+    DL_4(1)[    "ia"] +=  (1.0/ 2.0)*    WMNIJ[  "imno"]*GIJAK_3[  "noam"];
+    DL_4(1)[    "ia"] -=  (1.0/ 2.0)*    WAMEF[  "gief"]*GABCD_3[  "efga"];
+    DL_4(1)[    "ia"] +=                 WAMEF[  "fmea"]*GAIBJ_3[  "eifm"];
+    DL_4(1)[    "ia"] -=                 WMNEJ[  "inem"]*GAIBJ_3[  "eman"];
+    DL_4(1)[    "ia"] +=  (1.0/ 2.0)*    WMNEJ[  "noam"]*GIJKL_3[  "imno"];
+    DL_4(1)[    "ia"] +=                   FAE[    "ea"]* L_3(1)[    "ie"];
+    DL_4(1)[    "ia"] -=                   FMI[    "im"]* L_3(1)[    "ma"];
+    DL_4(1)[    "ia"] -=                 WAMEI[  "eiam"]* L_3(1)[    "me"];
+    DL_4(1)[    "ia"] +=  (1.0/ 2.0)*    WABEJ[  "efam"]* L_3(2)[  "imef"];
+    DL_4(1)[    "ia"] -=  (1.0/ 2.0)*    WAMIJ[  "einm"]* L_3(2)[  "mnae"];
+
+    DL_4(2)[  "ijab"]  =                 FME_3[    "ia"]*   L(1)[    "jb"];
+    DL_4(2)[  "ijab"] +=               WAMEF_3[  "ejab"]*   L(1)[    "ie"];
+    DL_4(2)[  "ijab"] -=               WMNEJ_3[  "ijam"]*   L(1)[    "mb"];
+    DL_4(2)[  "ijab"] +=                 FAE_3[    "ea"]*   L(2)[  "ijeb"];
+    DL_4(2)[  "ijab"] -=                 FMI_3[    "im"]*   L(2)[  "mjab"];
+    DL_4(2)[  "ijab"] +=  (1.0/ 2.0)*  WABEF_3[  "efab"]*   L(2)[  "ijef"];
+    DL_4(2)[  "ijab"] +=  (1.0/ 2.0)*  WMNIJ_3[  "ijmn"]*   L(2)[  "mnab"];
+    DL_4(2)[  "ijab"] +=               WAMEI_3[  "eiam"]*   L(2)[  "mjbe"];
+    DL_4(2)[  "ijab"] -=               WAMEF_2[  "fiae"]*GAIBC_1[  "ejbf"];
+    DL_4(2)[  "ijab"] -=               WMNEJ_2[  "ijem"]*GAIBC_1[  "emab"];
+    DL_4(2)[  "ijab"] -=               WAMEF_2[  "emab"]*GIJAK_1[  "ijem"];
+    DL_4(2)[  "ijab"] -=               WMNEJ_2[  "niam"]*GIJAK_1[  "mjbn"];
+    DL_4(2)[  "ijab"] +=  (1.0/ 2.0)*  WABEJ_2[  "efbm"]* L_1(3)["ijmaef"];
+    DL_4(2)[  "ijab"] -=  (1.0/ 2.0)*WTWAMIJ_2[  "ejnm"]* L_1(3)["imnabe"];
+    DL_4(2)[  "ijab"] +=  (1.0/ 2.0)*  WABEJ_1[  "efbm"]* L_2(3)["ijmaef"];
+    DL_4(2)[  "ijab"] -=  (1.0/ 2.0)*  WAMIJ_1[  "ejnm"]* L_2(3)["imnabe"];
+    DL_4(2)[  "ijab"] -=                 WMNEF[  "mjab"]*  DIJ_3[    "im"];
+    DL_4(2)[  "ijab"] +=                 WMNEF[  "ijeb"]*  DAB_3[    "ea"];
+    DL_4(2)[  "ijab"] +=  (1.0/ 2.0)*    WMNEF[  "ijef"]*GABCD_3[  "efab"];
+    DL_4(2)[  "ijab"] +=                 WMNEF[  "imea"]*GAIBJ_3[  "ejbm"];
+    DL_4(2)[  "ijab"] +=  (1.0/ 2.0)*    WMNEF[  "mnab"]*GIJKL_3[  "ijmn"];
+    DL_4(2)[  "ijab"] -=                   FME[    "mb"]*GIJAK_3[  "ijam"];
+    DL_4(2)[  "ijab"] -=                 WAMEF[  "fiae"]*GAIBC_3[  "ejbf"];
+    DL_4(2)[  "ijab"] -=                 WMNEJ[  "ijem"]*GAIBC_3[  "emab"];
+    DL_4(2)[  "ijab"] -=                 WAMEF[  "emab"]*GIJAK_3[  "ijem"];
+    DL_4(2)[  "ijab"] -=                 WMNEJ[  "niam"]*GIJAK_3[  "mjbn"];
+    DL_4(2)[  "ijab"] +=                   FME[    "ia"]* L_3(1)[    "jb"];
+    DL_4(2)[  "ijab"] +=                 WAMEF[  "ejab"]* L_3(1)[    "ie"];
+    DL_4(2)[  "ijab"] -=                 WMNEJ[  "ijam"]* L_3(1)[    "mb"];
+    DL_4(2)[  "ijab"] +=                   FAE[    "ea"]* L_3(2)[  "ijeb"];
+    DL_4(2)[  "ijab"] -=                   FMI[    "im"]* L_3(2)[  "mjab"];
+    DL_4(2)[  "ijab"] +=  (1.0/ 2.0)*    WABEF[  "efab"]* L_3(2)[  "ijef"];
+    DL_4(2)[  "ijab"] +=  (1.0/ 2.0)*    WMNIJ[  "ijmn"]* L_3(2)[  "mnab"];
+    DL_4(2)[  "ijab"] +=                 WAMEI[  "eiam"]* L_3(2)[  "mjbe"];
+    DL_4(2)[  "ijab"] +=  (1.0/ 2.0)*  WTWABEJ[  "efbm"]* L_3(3)["ijmaef"];
+    DL_4(2)[  "ijab"] -=  (1.0/ 2.0)*    WAMIJ[  "ejnm"]* L_3(3)["imnabe"];
+
+    DL_4(3)["ijkabc"]  =                 FME_3[    "ia"]*   L(2)[  "jkbc"];
+    DL_4(3)["ijkabc"] +=               WAMEF_3[  "ekbc"]*   L(2)[  "ijae"];
+    DL_4(3)["ijkabc"] -=               WMNEJ_3[  "ijam"]*   L(2)[  "mkbc"];
+    DL_4(3)["ijkabc"] +=                 FAE_2[    "ea"]* L_1(3)["ijkebc"];
+    DL_4(3)["ijkabc"] -=                 FMI_2[    "im"]* L_1(3)["mjkabc"];
+    DL_4(3)["ijkabc"] +=  (1.0/ 2.0)*  WABEF_2[  "efab"]* L_1(3)["ijkefc"];
+    DL_4(3)["ijkabc"] +=  (1.0/ 2.0)*  WMNIJ_2[  "ijmn"]* L_1(3)["mnkabc"];
+    DL_4(3)["ijkabc"] +=               WAMEI_2[  "eiam"]* L_1(3)["mjkbec"];
+    DL_4(3)["ijkabc"] +=                 WMNEF[  "ijab"]* L_3(1)[    "kc"];
+    DL_4(3)["ijkabc"] +=                   FME[    "ia"]* L_3(2)[  "jkbc"];
+    DL_4(3)["ijkabc"] +=                 WAMEF[  "ekbc"]* L_3(2)[  "ijae"];
+    DL_4(3)["ijkabc"] -=                 WMNEJ[  "ijam"]* L_3(2)[  "mkbc"];
+    DL_4(3)["ijkabc"] +=                 WMNEF[  "ijae"]*GAIBC_3[  "ekbc"];
+    DL_4(3)["ijkabc"] -=                 WMNEF[  "mkbc"]*GIJAK_3[  "ijam"];
+    DL_4(3)["ijkabc"] +=                   FAE[    "ea"]* L_3(3)["ijkebc"];
+    DL_4(3)["ijkabc"] -=                   FMI[    "im"]* L_3(3)["mjkabc"];
+    DL_4(3)["ijkabc"] +=  (1.0/ 2.0)*    WABEF[  "efab"]* L_3(3)["ijkefc"];
+    DL_4(3)["ijkabc"] +=  (1.0/ 2.0)*    WMNIJ[  "ijmn"]* L_3(3)["mnkabc"];
+    DL_4(3)["ijkabc"] +=                 WAMEI[  "eiam"]* L_3(3)["mjkbec"];
 
     L_4 = DL_4;
     L_4.weight(D);
+
+    /***************************************************************************
+     *
+     * L^(4)
+     *
+     **************************************************************************/
+
+    GIJAK_4[  "ijak"]  =  (1.0/ 2.0)*     T(2)[  "efkm"]* L_4(3)["ijmaef"];
+    GIJAK_4[  "ijak"] +=  (1.0/ 2.0)*   T_2(2)[  "efkm"]* L_2(3)["ijmaef"];
+    GIJAK_4[  "ijak"] +=  (1.0/ 2.0)*   T_3(2)[  "efkm"]* L_1(3)["ijmaef"];
+
+    GAIBC_4[  "aibc"]  = -(1.0/ 2.0)*   T_3(2)[  "aemn"]* L_1(3)["minbce"];
+    GAIBC_4[  "aibc"] -=  (1.0/ 2.0)*   T_2(2)[  "aemn"]* L_2(3)["minbce"];
+    GAIBC_4[  "aibc"] -=  (1.0/ 2.0)*     T(2)[  "aemn"]* L_4(3)["minbce"];
+
+    DL_5(3)["ijkabc"]  =                 FME_4[    "ia"]*   L(2)[  "jkbc"];
+    DL_5(3)["ijkabc"] +=               WAMEF_4[  "ekbc"]*   L(2)[  "ijae"];
+    DL_5(3)["ijkabc"] -=               WMNEJ_4[  "ijam"]*   L(2)[  "mkbc"];
+    DL_5(3)["ijkabc"] +=                 FAE_3[    "ea"]* L_1(3)["ijkebc"];
+    DL_5(3)["ijkabc"] -=                 FMI_3[    "im"]* L_1(3)["mjkabc"];
+    DL_5(3)["ijkabc"] +=  (1.0/ 2.0)*  WABEF_3[  "efab"]* L_1(3)["ijkefc"];
+    DL_5(3)["ijkabc"] +=  (1.0/ 2.0)*  WMNIJ_3[  "ijmn"]* L_1(3)["mnkabc"];
+    DL_5(3)["ijkabc"] +=               WAMEI_3[  "eiam"]* L_1(3)["mjkbec"];
+    DL_5(3)["ijkabc"] +=                 FME_2[    "ia"]* L_2(2)[  "jkbc"];
+    DL_5(3)["ijkabc"] +=               WAMEF_2[  "ekbc"]* L_2(2)[  "ijae"];
+    DL_5(3)["ijkabc"] -=               WMNEJ_2[  "ijam"]* L_2(2)[  "mkbc"];
+    DL_5(3)["ijkabc"] +=                 FAE_2[    "ea"]* L_2(3)["ijkebc"];
+    DL_5(3)["ijkabc"] -=                 FMI_2[    "im"]* L_2(3)["mjkabc"];
+    DL_5(3)["ijkabc"] +=  (1.0/ 2.0)*  WABEF_2[  "efab"]* L_2(3)["ijkefc"];
+    DL_5(3)["ijkabc"] +=  (1.0/ 2.0)*  WMNIJ_2[  "ijmn"]* L_2(3)["mnkabc"];
+    DL_5(3)["ijkabc"] +=               WAMEI_2[  "eiam"]* L_2(3)["mjkbec"];
+    DL_5(3)["ijkabc"] +=                 WMNEF[  "ijab"]* L_4(1)[    "kc"];
+    DL_5(3)["ijkabc"] +=                   FME[    "ia"]* L_4(2)[  "jkbc"];
+    DL_5(3)["ijkabc"] +=                 WAMEF[  "ekbc"]* L_4(2)[  "ijae"];
+    DL_5(3)["ijkabc"] -=                 WMNEJ[  "ijam"]* L_4(2)[  "mkbc"];
+    DL_5(3)["ijkabc"] +=                 WMNEF[  "ijae"]*GAIBC_4[  "ekbc"];
+    DL_5(3)["ijkabc"] -=                 WMNEF[  "mkbc"]*GIJAK_4[  "ijam"];
+    DL_5(3)["ijkabc"] +=                   FAE[    "ea"]* L_4(3)["ijkebc"];
+    DL_5(3)["ijkabc"] -=                   FMI[    "im"]* L_4(3)["mjkabc"];
+    DL_5(3)["ijkabc"] +=  (1.0/ 2.0)*    WABEF[  "efab"]* L_4(3)["ijkefc"];
+    DL_5(3)["ijkabc"] +=  (1.0/ 2.0)*    WMNIJ[  "ijmn"]* L_4(3)["mnkabc"];
+    DL_5(3)["ijkabc"] +=                 WAMEI[  "eiam"]* L_4(3)["mjkbec"];
+
+    L_5 = DL_5;
+    L_5.weight(D);
 
     /***************************************************************************
      *           _
@@ -543,6 +823,18 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     Z(2)["abij"] -= 0.5*WMNEJ_3["nmej"]*T_1(3)["abeimn"];
 
     U E0113 = 0.25*scalar(L(2)["mnef"]*Z(2)["efmn"]);
+
+    /***************************************************************************
+     *           _
+     * <0|(1+L)[[H,T^(1)],T^(4)]|0>
+     *
+     **************************************************************************/
+
+    Z(2)["abij"]  =       FME_4[  "me"]*T_1(3)["eabmij"];
+    Z(2)["abij"] += 0.5*WAMEF_4["bmef"]*T_1(3)["aefijm"];
+    Z(2)["abij"] -= 0.5*WMNEJ_4["nmej"]*T_1(3)["abeimn"];
+
+    U E0114 = 0.25*scalar(L(2)["mnef"]*Z(2)["efmn"]);
 
     /***************************************************************************
      *               _
@@ -584,6 +876,45 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
 
     /***************************************************************************
      *           _
+     * <0|(1+L)[[H,T^(2)],T^(3)]|0>
+     *
+     **************************************************************************/
+
+          Tau["abij"]  =      T_2(1)[  "ai"]*T_3(1)[    "bj"];
+
+    WTWAMIJ_3["amij"]  =       FME_3[  "me"]*  T(2)[  "aeij"];
+    WTWAMIJ_3["amij"] +=   0.5*WMNEF["mnef"]*T_3(3)["aefijn"];
+
+    WTWABEJ_3["abej"]  =      -FME_3[  "me"]*  T(2)[  "abmj"];
+    WTWABEJ_3["abej"] -=   0.5*WMNEF["mnef"]*T_3(3)["afbmnj"];
+
+         Z(1)[  "ai"]  =     FTWAE_3[  "ae"]*T_2(1)[    "ei"];
+         Z(1)[  "ai"] -=     FTWMI_3[  "mi"]*T_2(1)[    "am"];
+         Z(1)[  "ai"] +=       FME_3[  "me"]*T_2(2)[  "eami"];
+         Z(1)[  "ai"] +=       FAE_2[  "ae"]*T_3(1)[    "ei"];
+         Z(1)[  "ai"] -=       FMI_2[  "mi"]*T_3(1)[    "am"];
+         Z(1)[  "ai"] +=       FME_2[  "me"]*T_3(2)[  "eami"];
+
+         Z(2)["abij"]  =   WTWABEJ_3["abej"]*T_2(1)[    "ei"];
+         Z(2)["abij"] -=   WTWAMIJ_3["amij"]*T_2(1)[    "bm"];
+         Z(2)["abij"] +=       FAE_3[  "ae"]*T_2(2)[  "ebij"];
+         Z(2)["abij"] -=       FMI_3[  "mi"]*T_2(2)[  "abmj"];
+         Z(2)["abij"] +=       FME_3[  "me"]*T_2(3)["eabmij"];
+         Z(2)["abij"] +=     WABEJ_2["abej"]*T_3(1)[    "ei"];
+         Z(2)["abij"] -=     WAMIJ_2["amij"]*T_3(1)[    "bm"];
+         Z(2)["abij"] +=       FAE_2[  "ae"]*T_3(2)[  "ebij"];
+         Z(2)["abij"] -=       FMI_2[  "mi"]*T_3(2)[  "abmj"];
+         Z(2)["abij"] += 0.5*WABEF_2["abef"]*T_3(2)[  "efij"];
+         Z(2)["abij"] += 0.5*WMNIJ_2["mnij"]*T_3(2)[  "abmn"];
+         Z(2)["abij"] +=     WAMEI_2["amei"]*T_3(2)[  "ebjm"];
+         Z(2)["abij"] +=       FME_2[  "me"]*T_3(3)["eabmij"];
+
+    U E0123 =      scalar( L(1)[  "me"]*Z(1)[  "em"]) +
+              0.25*scalar( L(2)["mnef"]*Z(2)["efmn"]) +
+              0.25*scalar(WMNEF["mnef"]* Tau["efmn"]);
+
+    /***************************************************************************
+     *           _
      * <0|L^(1)[[H,T^(1)],T^(2)]|0>
      *
      **************************************************************************/
@@ -597,6 +928,74 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     Z(3)["abcijk"] +=     WAMEI_2["amei"]*T_1(3)["becmjk"];
 
     U E1112 = (1.0/36.0)*scalar(L_1(3)["mnoefg"]*Z(3)["efgmno"]);
+
+    /***************************************************************************
+     *           _
+     * <0|L^(1)[[H,T^(1)],T^(3)]|0>
+     *
+     **************************************************************************/
+
+    Z(3)["abcijk"]  =     WABEJ_1["bcek"]*T_3(2)[  "aeij"];
+    Z(3)["abcijk"] -=     WAMIJ_1["bmjk"]*T_3(2)[  "acim"];
+    Z(3)["abcijk"] +=       FAE_3[  "ae"]*T_1(3)["ebcijk"];
+    Z(3)["abcijk"] -=       FMI_3[  "mi"]*T_1(3)["abcmjk"];
+    Z(3)["abcijk"] += 0.5*WABEF_3["abef"]*T_1(3)["efcijk"];
+    Z(3)["abcijk"] += 0.5*WMNIJ_3["mnij"]*T_1(3)["abcmnk"];
+    Z(3)["abcijk"] +=     WAMEI_3["amei"]*T_1(3)["becmjk"];
+
+    U E1113 = (1.0/36.0)*scalar(L_1(3)["mnoefg"]*Z(3)["efgmno"]);
+
+    /***************************************************************************
+     *               _
+     * 1/2 <0|L^(1)[[H,T^(2)],T^(2)]|0>
+     *
+     **************************************************************************/
+
+          Tau[  "abij"]  =  0.5*T_2(1)[  "ai"]*T_2(1)[    "bj"];
+
+    WTWAMIJ_2 = WAMIJ_2;
+    WTWAMIJ_2[  "amij"] +=         FME[  "me"]*T_2(2)[  "aeij"];
+
+    WTWAMIJ_4[  "amij"]  =     WMNEJ_2["nmej"]*T_2(2)[  "aein"];
+    WTWAMIJ_4[  "amij"] +=   0.5*WAMEF["amef"]*   Tau[  "efij"];
+    WTWAMIJ_4[  "amij"] -=     WMNIJ_2["nmij"]*T_2(1)[    "an"];
+
+    WTWABEJ_4[  "abej"]  =     WAMEF_2["amef"]*T_2(2)[  "fbmj"];
+    WTWABEJ_4[  "abej"] +=   0.5*WMNEJ["mnej"]*   Tau[  "abmn"];
+    WTWABEJ_4[  "abej"] +=     WABEF_2["abef"]*T_2(1)[    "fj"];
+
+         Z(3)["abcijk"]  =   WTWABEJ_4["bcek"]*  T(2)[  "aeij"];
+         Z(3)["abcijk"] -=   WTWAMIJ_4["bmjk"]*  T(2)[  "acim"];
+         Z(3)["abcijk"] +=     WABEJ_2["bcek"]*T_2(2)[  "aeij"];
+         Z(3)["abcijk"] -=   WTWAMIJ_2["bmjk"]*T_2(2)[  "acim"];
+         Z(3)["abcijk"] +=       FAE_2[  "ce"]*T_2(3)["abeijk"];
+         Z(3)["abcijk"] -=       FMI_2[  "mk"]*T_2(3)["abcijm"];
+         Z(3)["abcijk"] += 0.5*WABEF_2["abef"]*T_2(3)["efcijk"];
+         Z(3)["abcijk"] += 0.5*WMNIJ_2["mnij"]*T_2(3)["abcmnk"];
+         Z(3)["abcijk"] +=     WAMEI_2["amei"]*T_2(3)["ebcjmk"];
+
+    U E1122 = (1.0/36.0)*scalar(L_1(3)["mnoefg"]*Z(3)["efgmno"]);
+
+    /***************************************************************************
+     *           _
+     * <0|L^(2)[[H,T^(1)],T^(2)]|0>
+     *
+     **************************************************************************/
+
+    Z(2)[  "abij"]  =       FME_2[  "me"]*T_1(3)["eabmij"];
+    Z(2)[  "abij"] += 0.5*WAMEF_2["bmef"]*T_1(3)["aefijm"];
+    Z(2)[  "abij"] -= 0.5*WMNEJ_2["nmej"]*T_1(3)["abeimn"];
+
+    Z(3)["abcijk"]  =     WABEJ_1["bcek"]*T_2(2)[  "aeij"];
+    Z(3)["abcijk"] -=     WAMIJ_1["bmjk"]*T_2(2)[  "acim"];
+    Z(3)["abcijk"] +=       FAE_2[  "ae"]*T_1(3)["ebcijk"];
+    Z(3)["abcijk"] -=       FMI_2[  "mi"]*T_1(3)["abcmjk"];
+    Z(3)["abcijk"] += 0.5*WABEF_2["abef"]*T_1(3)["efcijk"];
+    Z(3)["abcijk"] += 0.5*WMNIJ_2["mnij"]*T_1(3)["abcmnk"];
+    Z(3)["abcijk"] +=     WAMEI_2["amei"]*T_1(3)["becmjk"];
+
+    U E2112 = (1.0/ 4.0)*scalar(L_2(2)[  "mnef"]*Z(2)[  "efmn"])+
+              (1.0/36.0)*scalar(L_2(3)["mnoefg"]*Z(3)["efgmno"]);
 
     /***************************************************************************
      *
@@ -692,15 +1091,67 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
 
     U E5 = E203 + E1112 + E0122;
 
+    /***************************************************************************
+     *
+     * CCSD(T-6)
+     *
+     **************************************************************************/
+
+    U E501 =  (1.0/36.0)*scalar(L_5(3)["mnoefg"]*DT_1(3)["efgmno"]);
+    U E402 =  (1.0/ 1.0)*scalar(L_4(1)[    "me"]*DT_2(1)[    "em"])
+             +(1.0/ 4.0)*scalar(L_4(2)[  "mnef"]*DT_2(2)[  "efmn"])
+             +(1.0/36.0)*scalar(L_4(3)["mnoefg"]*DT_2(3)["efgmno"]);
+    U E303 =  (1.0/ 1.0)*scalar(L_3(1)[    "me"]*DT_3(1)[    "em"])
+             +(1.0/ 4.0)*scalar(L_3(2)[  "mnef"]*DT_3(2)[  "efmn"])
+             +(1.0/36.0)*scalar(L_3(3)["mnoefg"]*DT_3(3)["efgmno"]);
+    U E204 =  (1.0/ 1.0)*scalar(L_2(1)[    "me"]*DT_4(1)[    "em"])
+             +(1.0/ 4.0)*scalar(L_2(2)[  "mnef"]*DT_4(2)[  "efmn"])
+             +(1.0/36.0)*scalar(L_2(3)["mnoefg"]*DT_4(3)["efgmno"]);
+    U E105 =  (1.0/36.0)*scalar(L_1(3)["mnoefg"]*DT_5(3)["efgmno"]);
+
+    printf("E501: %18.15f\n", E501);
+    printf("E402: %18.15f\n", E402);
+    printf("E303: %18.15f\n", E303);
+    printf("E204: %18.15f\n", E204);
+    printf("E105: %18.15f\n", E105);
+    printf("\n");
+
+    printf("E0114: %18.15f\n", E0114);
+    printf("E0123: %18.15f\n", E0123);
+    printf("E1113: %18.15f\n", E1113);
+    printf("E1122: %18.15f\n", E1122);
+    printf("E2112: %18.15f\n", E2112);
+    printf("\n");
+
+    printf("E501:                   %18.15f\n", E501);
+    printf("E402+E0114+E1113+E2112: %18.15f\n", E402+E0114+E1113+E2112);
+    printf("\n");
+
+    printf("E402:                     %18.15f\n", E402);
+    printf("E303+E0123+2*E1122+E2112: %18.15f\n", E303+E0123+2*E1122+E2112);
+    printf("\n");
+
+    printf("E303:                   %18.15f\n", E303);
+    printf("E204+E0123+E1113-E2112: %18.15f\n", E204+E0123+E1113-E2112);
+    printf("\n");
+
+    printf("E204:                   %18.15f\n", E204);
+    printf("E105+E0114-E1113-E1122: %18.15f\n", E105+E0114-E1113-E1122);
+    printf("\n");
+
+    U E6 = E204 + E1122 + E1113 + E0123;
+
     printf("CCSD(T-2): %18.15f\n", E2);
     printf("CCSD(T-3): %18.15f\n", E3);
     printf("CCSD(T-4): %18.15f\n", E4);
     printf("CCSD(T-5): %18.15f\n", E5);
+    printf("CCSD(T-6): %18.15f\n", E6);
 
     this->put("E(2)", new U(E2));
     this->put("E(3)", new U(E3));
     this->put("E(4)", new U(E4));
     this->put("E(5)", new U(E5));
+    this->put("E(6)", new U(E6));
 }
 
 INSTANTIATE_SPECIALIZATIONS(CCSD_T_N);
