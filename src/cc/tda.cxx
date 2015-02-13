@@ -52,36 +52,24 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
     const PointGroup& group = molecule.getGroup();
     int nirrep = group.getNumIrreps();
 
-    cout << "test1" << endl;
     TwoElectronOperator<U>& W = get<TwoElectronOperator<U> >("H");
     const Space& occ = W.occ;
     const Space& vrt = W.vrt;
 
-    cout << "test2" << endl;
     SpinorbitalTensor<U> Hguess("Hguess", arena, group, {vrt,occ}, {1,1}, {1,1});
     Hguess = 0;
 
-    cout << "test3" << endl;
     const SpinorbitalTensor<U>& FAB = W.getAB();
     const SpinorbitalTensor<U>& FIJ = W.getIJ();
     const SpinorbitalTensor<U>& WAIBJ = W.getAIBJ();
 
-    // cout << "test4" << endl;
-    // Hguess["aiaj"] -= FIJ["ij"];
-    cout << "test4.1" << endl;
     Hguess["aibi"]  = FAB["ab"];
-    cout << "test4.2" << endl;
     Hguess["aibj"] -= WAIBJ["aibj"];
-    cout << "test4.3" << endl;
     Hguess["aiaj"] -= FIJ["ij"];
 
-    cout << "test5" << endl;
-
-    cout << "test6" << endl;
     auto& TDAevecs = put("TDAevecs", new vector<unique_vector<SpinorbitalTensor<U>>>(nirrep));
     auto& TDAevals = put("TDAevals", new vector<vector<U>>(nirrep));
 
-    cout << "test7" << endl;
     for (int R = 0;R < nirrep;R++)
     {
         const Representation& irr_R = group.getIrrep(R);
@@ -131,16 +119,11 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                                 int nai = (spin_ai == 1 ? vrt.nalpha[a] : vrt.nbeta[a])*
                                           (spin_ai == 1 ? occ.nalpha[i] : occ.nbeta[i]);
 
-                                cout << "test11" << endl;
                                 CTFTensor<U>& this_tensor = Hguess({spin_ai,spin_bj},{spin_bj,spin_ai})({a,j,b,i});
-                                cout << "test12" << endl;
                                 CTFTensor<U> trans_tensor("trans_tensor", arena, 4, {vrt.nalpha[a],occ.nalpha[i],vrt.nbeta[b],occ.nbeta[j]}, {NS,NS,NS,NS}, true);
-                                cout << "test13" << endl;
                                 trans_tensor["ajbi"] = this_tensor["aibj"];
-                                cout << "test14" << endl;
                                 vector<U> tempdata;
                                 trans_tensor.getAllData(tempdata);
-                                cout << "test15" << endl;
                                 assert(tempdata.size() == nai*nbj);
                                 for (int bj = 0, aibj = 0;bj < nbj;bj++)
                                 {
@@ -149,37 +132,32 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                                         data[offai+ai+(offbj+bj)*ntot] = tempdata[aibj];
                                     }
                                 }
-                                cout << "test16" << endl;
                                 offai += nai;
                             }
                         }
                     }
-                    cout << "test17" << endl;
                     offbj += nbj;
                 }
             }
         }
 
-        cout << "test18" << endl;
-
         TDAevals[R].resize(ntot);
         heev('V','U',ntot,data.data(),ntot,TDAevals[R].data());
 
-        cout << "test19" << endl;
-
-        cout << fixed << setprecision(5);
-        if (arena.rank == 0)
-        {
-            cout << TDAevals[R] << endl;
-            cout << "I'm rank 0. " << TDAevals[R][0] << endl;
-            arena.Barrier();
-        }
-        else
-        {
-            arena.Barrier();
-            cout << TDAevals[R] << endl;
-            cout << "I'm not rank 0. " << TDAevals[R][0] << endl;
-        }
+        // cout << fixed << setprecision(5);
+        // if (arena.rank == 0)
+        // {
+        //     cout << TDAevals[R] << endl;
+        //     cout << "I'm rank 0. " << TDAevals[R][0] << endl;
+        //     arena.Barrier();
+        // }
+        // else
+        // {
+        //     arena.Barrier();
+        //     cout << TDAevals[R] << endl;
+        //     cout << "I'm not rank 0. " << TDAevals[R][0] << endl;
+        // }
+        arena.Barrier();
 
         for (int root = 0;root < ntot;root++)
         {

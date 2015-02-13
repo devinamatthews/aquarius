@@ -45,6 +45,7 @@ class EOMEECCSD : public Iterative<U>
     protected:
         input::Config davidson_config;
         int nroot;
+        int ntriplet;
         bool multiroot;
 
     public:
