@@ -110,32 +110,59 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
         if (arena.rank == 0)
             cout << "test 7" << endl;
 
+        if (arena.rank == 0)
+            cout << "ntot = " << ntot << endl;
+
         vector<U> data(ntot*ntot);
+
+        if (arena.rank == 0)
+            cout << "test 8" << endl;
 
         int offbj = 0;
         for (int spin_bj : {1,0})
         {
+            if (arena.rank == 0)
+                cout << "test 8.1" << endl;
             for (int j = 0;j < nirrep;j++)
             {
+                if (arena.rank == 0)
+                    cout << "test 8.2" << endl;
                 const Representation& irr_j = group.getIrrep(j);
                 for (int b = 0;b < nirrep;b++)
                 {
+                    if (arena.rank == 0)
+                        cout << "test 8.3" << endl;
                     const Representation& irr_b = group.getIrrep(b);
                     if (!(irr_b*irr_j*irr_R).isTotallySymmetric()) continue;
+
+                    if (arena.rank == 0)
+                        cout << "test 8.4" << endl;
 
                     int nbj = (spin_bj == 1 ? vrt.nalpha[b] : vrt.nbeta[b])*
                               (spin_bj == 1 ? occ.nalpha[j] : occ.nbeta[j]);
 
+                    if (arena.rank == 0)
+                        cout << "test 8.5" << endl;
+
                     int offai = 0;
                     for (int spin_ai : {1,0})
                     {
+                        if (arena.rank == 0)
+                            cout << "test 8.6" << endl;
                         for (int i = 0;i < nirrep;i++)
                         {
+                            if (arena.rank == 0)
+                                cout << "test 8.7" << endl;
                             const Representation& irr_i = group.getIrrep(i);
                             for (int a = 0;a < nirrep;a++)
                             {
+                                if (arena.rank == 0)
+                                    cout << "test 8.8" << endl;
                                 const Representation& irr_a = group.getIrrep(a);
                                 if (!(irr_a*irr_i*irr_R).isTotallySymmetric()) continue;
+
+                                if (arena.rank == 0)
+                                    cout << "test 8.9" << endl;
 
                                 int nai = (spin_ai == 1 ? vrt.nalpha[a] : vrt.nbeta[a])*
                                           (spin_ai == 1 ? occ.nalpha[i] : occ.nbeta[i]);
