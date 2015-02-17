@@ -52,23 +52,41 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
     const PointGroup& group = molecule.getGroup();
     int nirrep = group.getNumIrreps();
 
+    if (arena.rank == 0)
+        cout << "test 1" << endl;
+
     TwoElectronOperator<U>& W = get<TwoElectronOperator<U> >("H");
     const Space& occ = W.occ;
     const Space& vrt = W.vrt;
 
+    if (arena.rank == 0)
+        cout << "test 2" << endl;
+
     SpinorbitalTensor<U> Hguess("Hguess", arena, group, {vrt,occ}, {1,1}, {1,1});
     Hguess = 0;
+
+    if (arena.rank == 0)
+        cout << "test 3" << endl;
 
     const SpinorbitalTensor<U>& FAB = W.getAB();
     const SpinorbitalTensor<U>& FIJ = W.getIJ();
     const SpinorbitalTensor<U>& WAIBJ = W.getAIBJ();
 
+    if (arena.rank == 0)
+        cout << "test 4" << endl;
+
     Hguess["aibi"]  = FAB["ab"];
     Hguess["aibj"] -= WAIBJ["aibj"];
     Hguess["aiaj"] -= FIJ["ij"];
 
+    if (arena.rank == 0)
+        cout << "test 5" << endl;
+
     auto& TDAevecs = put("TDAevecs", new vector<unique_vector<SpinorbitalTensor<U>>>(nirrep));
     auto& TDAevals = put("TDAevals", new vector<vector<U>>(nirrep));
+
+    if (arena.rank == 0)
+        cout << "test 6" << endl;
 
     for (int R = 0;R < nirrep;R++)
     {
@@ -88,6 +106,9 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
             }
             assert(i < nirrep-1 || count == nirrep);
         }
+
+        if (arena.rank == 0)
+            cout << "test 7" << endl;
 
         vector<U> data(ntot*ntot);
 
@@ -119,11 +140,21 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                                 int nai = (spin_ai == 1 ? vrt.nalpha[a] : vrt.nbeta[a])*
                                           (spin_ai == 1 ? occ.nalpha[i] : occ.nbeta[i]);
 
+                                if (arena.rank == 0)
+                                    cout << "test 9" << endl;
                                 CTFTensor<U>& this_tensor = Hguess({spin_ai,spin_bj},{spin_bj,spin_ai})({a,j,b,i});
+                                if (arena.rank == 0)
+                                    cout << "test 10" << endl;
                                 CTFTensor<U> trans_tensor("trans_tensor", arena, 4, {vrt.nalpha[a],occ.nalpha[i],vrt.nbeta[b],occ.nbeta[j]}, {NS,NS,NS,NS}, true);
+                                if (arena.rank == 0)
+                                    cout << "test 11" << endl;
                                 trans_tensor["ajbi"] = this_tensor["aibj"];
+                                if (arena.rank == 0)
+                                    cout << "test 12" << endl;
                                 vector<U> tempdata;
                                 trans_tensor.getAllData(tempdata);
+                                if (arena.rank == 0)
+                                    cout << "test 13" << endl;
                                 assert(tempdata.size() == nai*nbj);
                                 for (int bj = 0, aibj = 0;bj < nbj;bj++)
                                 {
@@ -133,16 +164,26 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                                     }
                                 }
                                 offai += nai;
+                                if (arena.rank == 0)
+                                    cout << "test 14" << endl;
                             }
                         }
                     }
                     offbj += nbj;
+                    if (arena.rank == 0)
+                        cout << "test 15" << endl;
                 }
             }
         }
 
+        if (arena.rank == 0)
+            cout << "test 16" << endl;
+
         TDAevals[R].resize(ntot);
         heev('V','U',ntot,data.data(),ntot,TDAevals[R].data());
+
+        if (arena.rank == 0)
+            cout << "test 17" << endl;
 
         // cout << fixed << setprecision(5);
         // if (arena.rank == 0)
@@ -163,6 +204,9 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
         {
             TDAevecs[R].emplace_back("R", arena, occ.group, irr_R, vec(vrt, occ), vec(1,0), vec(0,1));
             SpinorbitalTensor<U>& evec = TDAevecs[R][root];
+
+            if (arena.rank == 0)
+                cout << "test 18" << endl;
 
             int offai = 0;
             for (int spin_ai = 1;spin_ai >= 0;spin_ai--)
@@ -186,6 +230,9 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                         }
 
                         if (arena.rank == 0)
+                            cout << "test 19" << endl;
+
+                        if (arena.rank == 0)
                             evec({spin_ai,0},{0,spin_ai})({a,i}).writeRemoteData(pairs);
                         else
                             evec({spin_ai,0},{0,spin_ai})({a,i}).writeRemoteData();
@@ -195,6 +242,9 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                 }
             }
         }
+
+        if (arena.rank == 0)
+            cout << "test 20" << endl;
 
         cosort(TDAevals[R].begin() , TDAevals[R].end(),
                TDAevecs[R].pbegin(), TDAevecs[R].pend());
