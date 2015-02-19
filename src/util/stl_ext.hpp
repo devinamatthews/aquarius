@@ -1592,13 +1592,13 @@ T& translate(T& s, const T& from, const T& to)
 {
     assert(from.size() == to.size());
 
-    //vector<T> fromSorted(from);
-    //vector<T> toSorted(to);
-    //cosort(from, to);
+    T fromSorted(from);
+    T toSorted(to);
+    cosort(fromSorted, toSorted);
     // not working?
 
-    T fromSorted, toSorted;
-    tie(fromSorted, toSorted) = unzip(sorted(zip(from, to)));
+    // T fromSorted, toSorted;
+    // tie(fromSorted, toSorted) = unzip(sorted(zip(from, to)));
 
     for (auto& l : s)
     {
