@@ -188,12 +188,12 @@ MoleculeTask::MoleculeTask(const std::string& name, const input::Config& config)
 
 void MoleculeTask::run(task::TaskDAG& dag, const Arena& arena)
 {
-    put("molecule", new Molecule(config));
+    put("molecule", new Molecule(config, arena));
 }
 
 REGISTER_TASK(MoleculeTask,"molecule");
 
-Molecule::Molecule(const Config& config)
+Molecule::Molecule(const Config& config, const Arena& arena)
 {
     nelec = -config.get<int>("charge");
     multiplicity = config.get<int>("multiplicity");
@@ -203,24 +203,28 @@ Molecule::Molecule(const Config& config)
     initSymmetry(config, cartpos);
     initBasis(config, cartpos);
 
-    printf("\nMolecular Geometry:\n\n");
-    for (vector<Atom>::iterator it = atoms.begin();it != atoms.end();++it)
+
+    if (arena.rank == 0) 
     {
-        for (vector<vec3>::const_iterator pos = it->getCenter().getCenters().begin();
-             pos != it->getCenter().getCenters().end();++pos)
-            printf("%3s % 20.15f % 20.15f % 20.15f\n", it->getCenter().getElement().getSymbol().c_str(),
-                    (*pos)[0], (*pos)[1], (*pos)[2]);
+        printf("\nMolecular Geometry:\n\n");
+        for (vector<Atom>::iterator it = atoms.begin();it != atoms.end();++it)
+        {
+            for (vector<vec3>::const_iterator pos = it->getCenter().getCenters().begin();
+                 pos != it->getCenter().getCenters().end();++pos)
+                printf("%3s % 20.15f % 20.15f % 20.15f\n", it->getCenter().getElement().getSymbol().c_str(),
+                        (*pos)[0], (*pos)[1], (*pos)[2]);
+        }
+        cout << endl;
+
+        if ((nelec+multiplicity)%2 != 1 || multiplicity > nelec+1)
+            throw logic_error("incompatible number of electrons and spin multiplicity");
+
+        printf("Rotation constants (MHz): %15.6f %15.6f %15.6f\n", 29979.246*rota[0], 29979.246*rota[1], 29979.246*rota[2]);
+        cout << "The molecular point group is " << group->getName() << endl;
+        cout << "There are " << norb << " atomic orbitals by irrep\n";
+        cout << "There are " << getNumAlphaElectrons() << " alpha and "
+                             << getNumBetaElectrons() << " beta electrons\n\n";
     }
-    cout << endl;
-
-    if ((nelec+multiplicity)%2 != 1 || multiplicity > nelec+1)
-        throw logic_error("incompatible number of electrons and spin multiplicity");
-
-    printf("Rotation constants (MHz): %15.6f %15.6f %15.6f\n", 29979.246*rota[0], 29979.246*rota[1], 29979.246*rota[2]);
-    cout << "The molecular point group is " << group->getName() << endl;
-    cout << "There are " << norb << " atomic orbitals by irrep\n";
-    cout << "There are " << getNumAlphaElectrons() << " alpha and "
-                         << getNumBetaElectrons() << " beta electrons\n\n";
 }
 
 void Molecule::initGeometry(const Config& config, vector<AtomCartSpec>& cartpos)

@@ -160,7 +160,7 @@ class Molecule
         void initBasis(const input::Config& config, const std::vector<AtomCartSpec>& cartpos);
 
     public:
-        Molecule(const Config& config);
+        Molecule(const Config& config, const Arena& arena);
 
         void print(task::Printer& p) const {}
 
