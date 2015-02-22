@@ -25,6 +25,10 @@
 #include "tda.hpp"
 #include "util/lapack.h"
 
+#ifdef ELEMENTAL
+using namespace El;
+#endif
+
 using namespace std;
 using namespace aquarius;
 using namespace aquarius::op;
@@ -88,6 +92,174 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
             }
             assert(i < nirrep-1 || count == nirrep);
         }
+
+        #ifdef ELEMENTAL
+
+        DistMatrix<U> H_elem(ntot, ntot);
+        DistMatrix<U> C_elem(ntot, ntot);
+        DistMatrix<U,VC,STAR> C_local;
+        DistMatrix<U> E_elem;
+        DistMatrix<U,STAR,STAR> E_local;
+
+        int offbj = 0;
+        for (int spin_bj : {1,0})
+        {
+            for (int j = 0;j < nirrep;j++)
+            {
+                const Representation& irr_j = group.getIrrep(j);
+                for (int b = 0;b < nirrep;b++)
+                {
+                    const Representation& irr_b = group.getIrrep(b);
+                    if (!(irr_b*irr_j*irr_R).isTotallySymmetric()) continue;
+
+                    int nb = (spin_bj == 1 ? vrt.nalpha[b] : vrt.nbeta[b]);
+                    int nj = (spin_bj == 1 ? occ.nalpha[j] : occ.nbeta[j]);
+                    int nbj = nb*nj;
+
+                    int offai = 0;
+                    for (int spin_ai : {1,0})
+                    {
+                        for (int i = 0;i < nirrep;i++)
+                        {
+                            const Representation& irr_i = group.getIrrep(i);
+                            for (int a = 0;a < nirrep;a++)
+                            {
+                                const Representation& irr_a = group.getIrrep(a);
+                                if (!(irr_a*irr_i*irr_R).isTotallySymmetric()) continue;
+
+                                int na = (spin_ai == 1 ? vrt.nalpha[a] : vrt.nbeta[a]);
+                                int ni = (spin_ai == 1 ? occ.nalpha[i] : occ.nbeta[i]);
+                                int nai = na*ni;
+
+                                int cshift = H_elem.ColShift();
+                                int rshift = H_elem.RowShift();
+                                int cstride = H_elem.ColStride();
+                                int rstride = H_elem.RowStride();
+
+                                int ishift0 = offai%cstride;
+                                int iloc0 = offai/cstride;
+                                if (ishift0 > cshift) iloc0++;
+
+                                int ishift1 = (offai+nai)%cstride;
+                                int iloc1 = (offai+nai)/cstride;
+                                if (ishift1 > cshift) iloc1++;
+
+                                int jshift0 = offbj%rstride;
+                                int jloc0 = offbj/rstride;
+                                if (jshift0 > rshift) jloc0++;
+
+                                int jshift1 = (offbj+nai)%rstride;
+                                int jloc1 = (offbj+nai)/rstride;
+                                if (jshift1 > rshift) jloc1++;
+
+                                vector<tkv_pair<U>> pairs;
+
+                                for (int iloc = iloc0;iloc < iloc1;iloc++)
+                                {
+                                    key aidx = (iloc-offai)%na;
+                                    key iidx = (iloc-offai)/na;
+                                    for (int jloc = jloc0;jloc < jloc1;jloc++)
+                                    {
+                                        key bidx = (jloc-offbj)%nb;
+                                        key jidx = (jloc-offbj)/nb;
+
+                                        assert(aidx >= 0 && aidx < na);
+                                        assert(bidx >= 0 && bidx < nb);
+                                        assert(iidx >= 0 && iidx < ni);
+                                        assert(jidx >= 0 && jidx < nj);
+                                        key k = ((iidx*nb+bidx)*nj+jidx)*na+aidx;
+                                        pairs.emplace_back(k, 0);
+                                    }
+                                }
+
+                                Hguess({spin_ai,spin_bj},{spin_bj,spin_ai})({a,j,b,i}).getRemoteData(pairs);
+
+                                for (auto p : pairs)
+                                {
+                                    key k = p.k;
+                                    int aidx = k%na;
+                                    k /= na;
+                                    int jidx = k%nj;
+                                    k /= nj;
+                                    int bidx = k%nb;
+                                    k /= nb;
+                                    int iidx = k;
+
+                                    int iloc = aidx+iidx*na+offai;
+                                    int jloc = bidx+jidx*nb+offbj;
+
+                                    assert(aidx >= 0 && aidx < na);
+                                    assert(bidx >= 0 && bidx < nb);
+                                    assert(iidx >= 0 && iidx < ni);
+                                    assert(jidx >= 0 && jidx < nj);
+                                    H_elem.SetLocal(iloc, jloc, p.d);
+                                }
+
+                                offai += nai;
+                            }
+                        }
+                    }
+                    offbj += nbj;
+                }
+            }
+        }
+
+        HermitianEig(UPPER, H_elem, E_elem, C_elem);
+
+        E_local = E_elem;
+        C_local = C_elem;
+
+        for (int root = 0;root < ntot;root++)
+        {
+            TDAevals[R].push_back(E_local.GetLocal(root, 0));
+            TDAevecs[R].emplace_back("R", arena, occ.group, irr_R, vec(vrt, occ), vec(1,0), vec(0,1));
+            SpinorbitalTensor<U>& evec = TDAevecs[R][root];
+
+            vector<tkv_pair<U>> pairs;
+            pairs.reserve(ntot);
+
+            int offai = 0;
+            for (int spin_ai : {1,0})
+            {
+                for (int i = 0;i < nirrep;i++)
+                {
+                    const Representation& irr_i = group.getIrrep(i);
+                    for (int a = 0;a < nirrep;a++)
+                    {
+                        const Representation& irr_a = group.getIrrep(a);
+                        if (!(irr_a*irr_i*irr_R).isTotallySymmetric()) continue;
+
+                        int nai = (spin_ai == 1 ? vrt.nalpha[a] : vrt.nbeta[a])*
+                                  (spin_ai == 1 ? occ.nalpha[i] : occ.nbeta[i]);
+
+                        int cshift = C_local.ColShift();
+                        int cstride = C_local.ColStride();
+
+                        int shift0 = offai%cstride;
+                        int loc0 = offai/cstride;
+                        if (shift0 > cshift) loc0++;
+
+                        int shift1 = (offai+nai)%cstride;
+                        int loc1 = (offai+nai)/cstride;
+                        if (shift1 > cshift) loc1++;
+
+                        vector<tkv_pair<U>> pairs;
+
+                        for (int loc = loc0;loc < loc1;loc++)
+                        {
+                            int gloc = loc*cstride+cshift-offai;
+                            pairs.emplace_back(gloc, C_local.GetLocal(loc, root));
+                        }
+
+                        evec({spin_ai,0},{0,spin_ai})({a,i}).writeRemoteData(pairs);
+
+                        offai += nai;
+                    }
+                }
+            }
+        }
+
+        #else
 
         vector<U> data(ntot*ntot);
 
@@ -195,6 +367,8 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                 }
             }
         }
+
+        #endif
 
         cosort(TDAevals[R].begin() , TDAevals[R].end(),
                TDAevecs[R].pbegin(), TDAevecs[R].pend());

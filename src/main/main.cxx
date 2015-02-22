@@ -39,10 +39,11 @@ using namespace aquarius::task;
 
 int main(int argc, char **argv)
 {
+    #ifdef ELEMENTAL
+    El::Initialize(argc, argv);
+    #else
     MPI::Init(argc, argv);
-#ifdef ELEMENTAL
-    elem::Initialize(argc, argv);
-#endif
+    #endif
 
     if (getenv("OMP_NUM_THREADS") == NULL)
     {
@@ -103,10 +104,11 @@ int main(int argc, char **argv)
     }
     while (false);
 
-#ifdef ELEMENTAL
-    elem::Finalize();
-#endif
+    #ifdef ELEMENTAL
+    El::Finalize();
+    #else
     MPI::Finalize();
+    #endif
 
     return status;
 }

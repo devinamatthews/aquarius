@@ -30,9 +30,9 @@
 #include "fortran.h"
 #include "blas.h"
 
-#define AXBX 1
-#define ABX 2
-#define BAX 3
+enum {AXBX=1,
+       ABX=2,
+       BAX=3};
 
 #ifdef __cplusplus
 extern "C"

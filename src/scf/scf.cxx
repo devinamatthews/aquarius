@@ -25,6 +25,10 @@
 #include "scf.hpp"
 #include "util/stl_ext.hpp"
 
+#ifdef ELEMENTAL
+using namespace El;
+#endif
+
 using namespace std;
 using namespace aquarius;
 using namespace aquarius::scf;
@@ -302,32 +306,35 @@ void UHF<T>::calcSMinusHalf()
         vector<int> irreps(2,i);
         vector<typename real_type<T>::type> E(norb[i]);
 
-        #ifdef USE_ELEMENTAL
+        #ifdef ELEMENTAL
+
+        DistMatrix<T> S_elem(norb[i], norb[i]);
+        vector<tkv_pair<T>> pairs;
 
         int cshift = S_elem.ColShift();
         int rshift = S_elem.RowShift();
         int cstride = S_elem.ColStride();
         int rstride = S_elem.RowStride();
-        for (int i = 0;i < S_elem.LocalHeight();i++)
+        for (int k = 0;k < S_elem.LocalHeight();k++)
         {
             for (int j = 0;j < S_elem.LocalWidth();j++)
             {
-                int c = cshift+i*cstride;
+                int c = cshift+k*cstride;
                 int r = rshift+j*rstride;
 
-                pairs.push_back(tkv_pair<T>(r*norb+c,0));
+                pairs.emplace_back(r*norb[i]+c, 0);
             }
         }
 
-        S->getRemoteData(pairs.size(), pairs.data());
+        S.getRemoteData(irreps, pairs);
 
         for (int p = 0;p < pairs.size();p++)
         {
-            int r = pairs[p].k/norb;
-            int c = pairs[p].k-norb*r;
-            int i = (c-cshift)/cstride;
+            int r = pairs[p].k/norb[i];
+            int c = pairs[p].k-norb[i]*r;
+            int k = (c-cshift)/cstride;
             int j = (r-rshift)/rstride;
-            S_elem.SetLocal(i, j, pairs[p].d);
+            S_elem.SetLocal(k, j, pairs[p].d);
         }
 
         DistMatrix<T> Smhalf_elem(S_elem);
@@ -336,15 +343,15 @@ void UHF<T>::calcSMinusHalf()
 
         for (int p = 0;p < pairs.size();p++)
         {
-            int r = pairs[p].k/norb;
-            int c = pairs[p].k-norb*r;
+            int r = pairs[p].k/norb[i];
+            int c = pairs[p].k-norb[i]*r;
             if (r > c) swap(r,c);
-            int i = (c-cshift)/cstride;
+            int k = (c-cshift)/cstride;
             int j = (r-rshift)/rstride;
-            pairs[p].d = Smhalf_elem.GetLocal(i, j);
+            pairs[p].d = Smhalf_elem.GetLocal(k, j);
         }
 
-        Smhalf->writeRemoteData(pairs.size(), pairs.data());
+        Smhalf.writeRemoteData(irreps, pairs);
 
         #else
 
@@ -410,118 +417,81 @@ void UHF<T>::diagonalizeFock()
         //printmatrix(norb[i], norb[i], vals.data(), 6, 3, 108);
     }
 
-    #ifdef USE_ELEMENTAL
-
-    int cshift = S_elem.ColShift();
-    int rshift = S_elem.RowShift();
-    int cstride = S_elem.ColStride();
-    int rstride = S_elem.RowStride();
-    for (int i = 0;i < F_elem.LocalHeight();i++)
-    {
-        for (int j = 0;j < F_elem.LocalWidth();j++)
-        {
-            int c = cshift+i*cstride;
-            int r = rshift+j*rstride;
-
-            pairs.push_back(kv_pair(r*norb+c,0));
-        }
-    }
-
-    Fa->getRemoteData(pairs.size(), pairs.data());
-
-    for (int p = 0;p < pairs.size();p++)
-    {
-        int r = pairs[p].k/norb;
-        int c = pairs[p].k-norb*r;
-        int i = (c-cshift)/cstride;
-        int j = (r-rshift)/rstride;
-        F_elem.SetLocal(i, j, pairs[p].d);
-    }
-
-    {
-        DistMatrix<T> S_tmp(S_elem);
-        HermitianGenDefiniteEig(AXBX, LOWER, F_elem, S_tmp, E_elem, C_elem);
-        SortEig(E_elem, C_elem);
-
-        DistMatrix<T,STAR,STAR> E_local(E_elem);
-        for (int i = 0;i < norb;i++) Ea[i] = E_local.GetLocal(i,0);
-
-        vector< tkv_pair<T> > pairs_occ;
-        vector< tkv_pair<T> > pairs_vrt;
-
-        for (int i = 0;i < C_elem.LocalHeight();i++)
-        {
-            for (int j = 0;j < C_elem.LocalWidth();j++)
-            {
-                int c = cshift+i*cstride;
-                int r = rshift+j*rstride;
-
-                if (r < nalpha)
-                {
-                    pairs_occ.push_back(tkv_pair<T>(r*norb+c, C_elem.GetLocal(i,j)));
-                }
-                else
-                {
-                    pairs_vrt.push_back(tkv_pair<T>((r-nalpha)*norb+c, C_elem.GetLocal(i,j)));
-                }
-            }
-        }
-
-        Ca_occ->writeRemoteData(pairs_occ.size(), pairs_occ.data());
-        Ca_vrt->writeRemoteData(pairs_vrt.size(), pairs_vrt.data());
-    }
-
-    Fb->getRemoteData(pairs.size(), pairs.data());
-
-    for (int p = 0;p < pairs.size();p++)
-    {
-        int r = pairs[p].k/norb;
-        int c = pairs[p].k-norb*r;
-        int i = (c-cshift)/cstride;
-        int j = (r-rshift)/rstride;
-        F_elem.SetLocal(i, j, pairs[p].d);
-    }
-
-    {
-        DistMatrix<T> S_tmp(S_elem);
-        HermitianGenDefiniteEig(AXBX, LOWER, F_elem, S_tmp, E_elem, C_elem);
-        SortEig(E_elem, C_elem);
-
-        DistMatrix<T,STAR,STAR> E_local(E_elem);
-        for (int i = 0;i < norb;i++) Eb[i] = E_local.GetLocal(i,0);
-
-        vector< tkv_pair<T> > pairs_occ;
-        vector< tkv_pair<T> > pairs_vrt;
-
-        for (int i = 0;i < C_elem.LocalHeight();i++)
-        {
-            for (int j = 0;j < C_elem.LocalWidth();j++)
-            {
-                int c = cshift+i*cstride;
-                int r = rshift+j*rstride;
-
-                if (r < nbeta)
-                {
-                    pairs_occ.push_back(tkv_pair<T>(r*norb+c, C_elem.GetLocal(i,j)));
-                }
-                else
-                {
-                    pairs_vrt.push_back(tkv_pair<T>((r-nbeta)*norb+c, C_elem.GetLocal(i,j)));
-                }
-            }
-        }
-
-        Cb_occ->writeRemoteData(pairs_occ.size(), pairs_occ.data());
-        Cb_vrt->writeRemoteData(pairs_vrt.size(), pairs_vrt.data());
-    }
-
-    #else
-
     for (int i = 0;i < molecule.getGroup().getNumIrreps();i++)
     {
         if (norb[i] == 0) continue;
 
         vector<int> irreps(2,i);
+
+        #ifdef ELEMENTAL
+
+        vector<tkv_pair<T>> pairs;
+
+        DistMatrix<T> S_elem(norb[i], norb[i]);
+        DistMatrix<T> F_elem(norb[i], norb[i]);
+        DistMatrix<T> C_elem(norb[i], norb[i]);
+        DistMatrix<T> S_tmp(norb[i], norb[i]);
+        DistMatrix<T> E_elem;
+        DistMatrix<T,STAR,STAR> E_local;
+
+        int cshift = S_elem.ColShift();
+        int rshift = S_elem.RowShift();
+        int cstride = S_elem.ColStride();
+        int rstride = S_elem.RowStride();
+        for (int k = 0;k < S_elem.LocalHeight();k++)
+        {
+            for (int j = 0;j < S_elem.LocalWidth();j++)
+            {
+                int c = cshift+k*cstride;
+                int r = rshift+j*rstride;
+                pairs.emplace_back(r*norb[i]+c, 0);
+            }
+        }
+
+        S.getRemoteData(irreps, pairs);
+        for (int p = 0;p < pairs.size();p++)
+        {
+            int r = pairs[p].k/norb[i];
+            int c = pairs[p].k-norb[i]*r;
+            int k = (c-cshift)/cstride;
+            int j = (r-rshift)/rstride;
+            S_elem.SetLocal(k, j, pairs[p].d);
+        }
+
+        for (int spin : {0,1})
+        {
+            SymmetryBlockedTensor<T>& F = (spin == 0 ? Fa : Fb);
+            SymmetryBlockedTensor<T>& C = (spin == 0 ? Ca : Cb);
+
+            F.getRemoteData(irreps, pairs);
+            for (int p = 0;p < pairs.size();p++)
+            {
+                int r = pairs[p].k/norb[i];
+                int c = pairs[p].k-norb[i]*r;
+                int k = (c-cshift)/cstride;
+                int j = (r-rshift)/rstride;
+                F_elem.SetLocal(k, j, pairs[p].d);
+            }
+
+            S_tmp = S_elem;
+            HermitianGenDefEig(El::AXBX, LOWER, F_elem, S_tmp, E_elem, C_elem);
+
+            E_local = E_elem;
+            for (int j = 0;j < norb[i];j++) E_alpha[i][j] = E_local.GetLocal(j,0);
+
+            for (int p = 0;p < pairs.size();p++)
+            {
+                int r = pairs[p].k/norb[i];
+                int c = pairs[p].k-norb[i]*r;
+                int k = (c-cshift)/cstride;
+                int j = (r-rshift)/rstride;
+                pairs[p].d = C_elem.GetLocal(k, j);
+            }
+
+            C.writeRemoteData(irreps, pairs);
+        }
+
+        #else
 
         if (S.arena.rank == 0)
         {
@@ -604,9 +574,9 @@ void UHF<T>::diagonalizeFock()
             S.arena.Bcast(E_beta[i], 0);
             Cb.writeRemoteData(irreps);
         }
-    }
 
-    #endif
+        #endif
+    }
 
     vector<pair<typename real_type<T>::type,int> > E_alpha_sorted;
     vector<pair<typename real_type<T>::type,int> > E_beta_sorted;

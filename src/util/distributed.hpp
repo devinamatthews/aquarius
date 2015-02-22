@@ -36,7 +36,7 @@
 #endif
 
 #ifdef ELEMENTAL
-#include "elemental.hpp"
+#include "El.hpp"
 #endif
 
 #include "ctf.hpp"
