@@ -136,37 +136,38 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
                                 int cstride = H_elem.ColStride();
                                 int rstride = H_elem.RowStride();
 
-                                int ishift0 = offai%cstride;
-                                int iloc0 = offai/cstride;
-                                if (ishift0 > cshift) iloc0++;
+                                int ishift0 = cshift-offai%cstride;
+                                if (ishift0 < 0) ishift0 += cstride;
+                                int iloc0   = offai+ishift0;
 
-                                int ishift1 = (offai+nai)%cstride;
-                                int iloc1 = (offai+nai)/cstride;
-                                if (ishift1 > cshift) iloc1++;
+                                int ishift1 = cshift-(offai+nai)%cstride;
+                                if (ishift1 < 0) ishift1 += cstride;
+                                int iloc1   = (offai+nai)+ishift1;
 
-                                int jshift0 = offbj%rstride;
-                                int jloc0 = offbj/rstride;
-                                if (jshift0 > rshift) jloc0++;
+                                int jshift0 = rshift-offbj%rstride;
+                                if (jshift0 < 0) jshift0 += rstride;
+                                int jloc0   = offbj+jshift0;
 
-                                int jshift1 = (offbj+nai)%rstride;
-                                int jloc1 = (offbj+nai)/rstride;
-                                if (jshift1 > rshift) jloc1++;
+                                int jshift1 = rshift-(offbj+nai)%rstride;
+                                if (jshift1 < 0) jshift1 += rstride;
+                                int jloc1   = (offbj+nai)+jshift1;
 
                                 vector<tkv_pair<U>> pairs;
 
-                                for (int iloc = iloc0;iloc < iloc1;iloc++)
+                                for (int iloc = iloc0;iloc < iloc1;iloc += cstride)
                                 {
                                     key aidx = (iloc-offai)%na;
                                     key iidx = (iloc-offai)/na;
-                                    for (int jloc = jloc0;jloc < jloc1;jloc++)
+                                    assert(aidx >= 0 && aidx < na);
+                                    assert(iidx >= 0 && iidx < ni);
+
+                                    for (int jloc = jloc0;jloc < jloc1;jloc += rstride)
                                     {
                                         key bidx = (jloc-offbj)%nb;
                                         key jidx = (jloc-offbj)/nb;
-
-                                        assert(aidx >= 0 && aidx < na);
                                         assert(bidx >= 0 && bidx < nb);
-                                        assert(iidx >= 0 && iidx < ni);
                                         assert(jidx >= 0 && jidx < nj);
+
                                         key k = ((iidx*nb+bidx)*nj+jidx)*na+aidx;
                                         pairs.emplace_back(k, 0);
                                     }
@@ -187,6 +188,10 @@ void TDA<U>::run(TaskDAG& dag, const Arena& arena)
 
                                     int iloc = aidx+iidx*na+offai;
                                     int jloc = bidx+jidx*nb+offbj;
+                                    assert(iloc%cstride == cshift);
+                                    assert(jloc%rstride == rshift);
+                                    iloc /= cstride;
+                                    jloc /= rstride;
 
                                     assert(aidx >= 0 && aidx < na);
                                     assert(bidx >= 0 && bidx < nb);

@@ -426,21 +426,21 @@ class IndexedTensor
 
         IndexedTensor<Derived,T>& operator=(const T val)
         {
-            Derived tensor(tensor_, val);
+            Derived tensor("alpha", tensor_, val);
             *this = tensor[""];
             return *this;
         }
 
         IndexedTensor<Derived,T>& operator+=(const T val)
         {
-            Derived tensor(tensor_, val);
+            Derived tensor("alpha", tensor_, val);
             *this += tensor[""];
             return *this;
         }
 
         IndexedTensor<Derived,T>& operator-=(const T val)
         {
-            Derived tensor(tensor_, val);
+            Derived tensor("alpha", tensor_, val);
             *this -= tensor[""];
             return *this;
         }

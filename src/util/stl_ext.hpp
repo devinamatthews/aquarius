@@ -1592,13 +1592,15 @@ T& translate(T& s, const T& from, const T& to)
 {
     assert(from.size() == to.size());
 
-    T fromSorted(from);
-    T toSorted(to);
-    cosort(fromSorted, toSorted);
-    // not working?
+    T fromSorted2(from);
+    T toSorted2(to);
+    cosort(fromSorted2, toSorted2);
 
-    // T fromSorted, toSorted;
-    // tie(fromSorted, toSorted) = unzip(sorted(zip(from, to)));
+    T fromSorted, toSorted;
+    tie(fromSorted, toSorted) = unzip(sorted(zip(from, to)));
+
+    assert(fromSorted2 == fromSorted);
+    assert(toSorted2 == toSorted);
 
     for (auto& l : s)
     {
@@ -2090,14 +2092,200 @@ namespace detail
 {
 
 template <class T, class U>
+struct doublet
+{
+    T first;
+    U second;
+
+    doublet(const T& first, const U& second) : first(first), second(second) {}
+
+    friend void swap(doublet& first, doublet& second)
+    {
+        swap(first.first, second.first);
+        swap(first.second, second.second);
+    }
+
+    friend void swap(doublet&& first, doublet&& second)
+    {
+        swap(first.first, second.first);
+        swap(first.second, second.second);
+    }
+
+    doublet(const doublet<T&,U&>& other)
+    : first(other.first), second(other.second) {}
+
+    doublet(doublet<T&,U&>&& other)
+    : first(move(other.first)), second(move(other.second)) {}
+
+    doublet(const doublet<T,U>& other)
+    : first(other.first), second(other.second) {}
+
+    doublet(doublet<T,U>&& other)
+    : first(move(other.first)), second(move(other.second)) {}
+
+    doublet& operator=(const doublet<T&,U&>& other)
+    {
+        first = other.first;
+        second = other.second;
+        return *this;
+    }
+
+    doublet& operator=(doublet<T&,U&>&& other)
+    {
+        first = move(other.first);
+        second = move(other.second);
+        return *this;
+    }
+
+    doublet& operator=(const doublet<T,U>& other)
+    {
+        first = other.first;
+        second = other.second;
+        return *this;
+    }
+
+    doublet& operator=(doublet<T,U>&& other)
+    {
+        first = move(other.first);
+        second = move(other.second);
+        return *this;
+    }
+
+    bool operator==(const doublet& other) const
+    {
+        return first == other.first;
+    }
+
+    bool operator!=(const doublet& other) const
+    {
+        return first != other.first;
+    }
+
+    bool operator<(const doublet<T,U>& other) const
+    {
+        return first < other.first;
+    }
+
+    bool operator>(const doublet<T,U>& other) const
+    {
+        return first > other.first;
+    }
+
+    bool operator<=(const doublet<T,U>& other) const
+    {
+        return first <= other.first;
+    }
+
+    bool operator>=(const doublet<T,U>& other) const
+    {
+        return first >= other.first;
+    }
+};
+
+template <class T, class U>
+struct doublet<T&,U&>
+{
+    T& first;
+    U& second;
+
+    doublet(T& first, U& second) : first(first), second(second) {}
+
+    friend void swap(doublet& first, doublet& second)
+    {
+        swap(first.first, second.first);
+        swap(first.second, second.second);
+    }
+
+    friend void swap(doublet&& first, doublet&& second)
+    {
+        swap(first.first, second.first);
+        swap(first.second, second.second);
+    }
+
+    doublet(doublet<T&,U&>& other)
+    : first(other.first), second(other.second) {}
+
+    doublet(doublet<T&,U&>&& other)
+    : first(other.first), second(other.second) {}
+
+    doublet(doublet<T,U>& other)
+    : first(other.first), second(other.second) {}
+
+    doublet& operator=(const doublet<T&,U&>& other)
+    {
+        first = other.first;
+        second = other.second;
+        return *this;
+    }
+
+    doublet& operator=(doublet<T&,U&>&& other)
+    {
+        first = move(other.first);
+        second = move(other.second);
+        return *this;
+    }
+
+    doublet& operator=(const doublet<T,U>& other)
+    {
+        first = other.first;
+        second = other.second;
+        return *this;
+    }
+
+    doublet& operator=(doublet<T,U>&& other)
+    {
+        first = move(other.first);
+        second = move(other.second);
+        return *this;
+    }
+
+    bool operator==(const doublet& other) const
+    {
+        return first == other.first;
+    }
+
+    bool operator!=(const doublet& other) const
+    {
+        return first != other.first;
+    }
+
+    bool operator<(const doublet<T,U>& other) const
+    {
+        return first < other.first;
+    }
+
+    bool operator>(const doublet<T,U>& other) const
+    {
+        return first > other.first;
+    }
+
+    bool operator<=(const doublet<T,U>& other) const
+    {
+        return first <= other.first;
+    }
+
+    bool operator>=(const doublet<T,U>& other) const
+    {
+        return first >= other.first;
+    }
+};
+
+template <class T, class U>
 class coiterator : public iterator<random_access_iterator_tag,
-                                   tuple<typename iterator_traits<T>::value_type,
-                                         typename iterator_traits<U>::value_type>,
-                                   ptrdiff_t,
-                                   tuple<typename iterator_traits<T>::value_type*,
-                                         typename iterator_traits<U>::value_type*>,
-                                   tuple<typename iterator_traits<T>::value_type&&,
-                                         typename iterator_traits<U>::value_type&&> >
+tuple<typename iterator_traits<T>::value_type,
+        typename iterator_traits<U>::value_type>,
+ptrdiff_t,
+tuple<typename iterator_traits<T>::value_type*,
+        typename iterator_traits<U>::value_type*>,
+tuple<typename iterator_traits<T>::value_type&&,
+        typename iterator_traits<U>::value_type&&> >
+//doublet<typename iterator_traits<T>::value_type,
+//        typename iterator_traits<U>::value_type>,
+//ptrdiff_t,
+//doublet<typename iterator_traits<T>::pointer,
+//        typename iterator_traits<U>::pointer>,
+//doublet<typename iterator_traits<T>::reference,
+//        typename iterator_traits<U>::reference> >
 {
     T it_T;
     U it_U;
@@ -2105,100 +2293,100 @@ class coiterator : public iterator<random_access_iterator_tag,
     public:
         coiterator(const T& it_T, const U& it_U) : it_T(it_T), it_U(it_U) {}
 
-        bool operator==(const coiterator<T,U>& other) const
+        bool operator==(const coiterator& other) const
         {
             return it_T == other.it_T;
         }
 
-        bool operator!=(const coiterator<T,U>& other) const
+        bool operator!=(const coiterator& other) const
         {
             return it_T != other.it_T;
         }
 
-        bool operator<(const coiterator<T,U>& other) const
+        bool operator<(const coiterator& other) const
         {
             return it_T < other.it_T;
         }
 
-        bool operator>(const coiterator<T,U>& other) const
+        bool operator>(const coiterator& other) const
         {
             return it_T > other.it_T;
         }
 
-        bool operator<=(const coiterator<T,U>& other) const
+        bool operator<=(const coiterator& other) const
         {
             return it_T <= other.it_T;
         }
 
-        bool operator>=(const coiterator<T,U>& other) const
+        bool operator>=(const coiterator& other) const
         {
             return it_T >= other.it_T;
         }
 
-        typename coiterator<T,U>::reference operator*()
+        typename coiterator::reference operator*()
         {
-            return typename coiterator<T,U>::reference(move(*it_T),move(*it_U));
+            return typename coiterator::reference(move(*it_T),move(*it_U));
         }
 
-        typename coiterator<T,U>::reference operator[](ptrdiff_t n)
+        typename coiterator::reference operator[](ptrdiff_t n)
         {
-            return typename coiterator<T,U>::reference(move(it_T[n]),move(it_U[n]));
+            return typename coiterator::reference(move(it_T[n]),move(it_U[n]));
         }
 
-        coiterator<T,U>& operator++()
+        coiterator& operator++()
         {
             ++it_T;
             ++it_U;
             return *this;
         }
 
-        coiterator<T,U>& operator--()
+        coiterator& operator--()
         {
             --it_T;
             --it_U;
             return *this;
         }
 
-        coiterator<T,U> operator++(int x)
+        coiterator operator++(int x)
         {
-            return coiterator<T,U>(it_T++, it_U++);
+            return coiterator(it_T++, it_U++);
         }
 
-        coiterator<T,U> operator--(int x)
+        coiterator operator--(int x)
         {
-            return coiterator<T,U>(it_T--, it_U--);
+            return coiterator(it_T--, it_U--);
         }
 
-        coiterator<T,U>& operator+=(ptrdiff_t n)
+        coiterator& operator+=(ptrdiff_t n)
         {
             it_T += n;
             it_U += n;
             return *this;
         }
 
-        coiterator<T,U>& operator-=(ptrdiff_t n)
+        coiterator& operator-=(ptrdiff_t n)
         {
             it_T -= n;
             it_U -= n;
             return *this;
         }
 
-        coiterator<T,U> operator+(ptrdiff_t n) const
+        coiterator operator+(ptrdiff_t n) const
         {
-            return coiterator<T,U>(it_T+n, it_U+n);
+            return coiterator(it_T+n, it_U+n);
         }
 
-        friend coiterator<T,U> operator+(ptrdiff_t n, const coiterator<T,U>& other)
+        friend coiterator operator+(ptrdiff_t n, const coiterator& other)
         {
-            return coiterator<T,U>(other.it_T+n, other.it_U+n);
+            return coiterator(other.it_T+n, other.it_U+n);
         }
 
-        coiterator<T,U> operator-(ptrdiff_t n) const
+        coiterator operator-(ptrdiff_t n) const
         {
-            return coiterator<T,U>(it_T-n, it_U-n);
+            return coiterator(it_T-n, it_U-n);
         }
 
-        ptrdiff_t operator-(const coiterator<T,U>& other) const
+        ptrdiff_t operator-(const coiterator& other) const
         {
             return it_T-other.it_T;
         }
@@ -2252,13 +2440,13 @@ void cosort(key_iterator keys_begin, key_iterator keys_end,
 }
 
 template <class Keys, class Values>
-void cosort(Keys keys, Values values)
+void cosort(Keys& keys, Values& values)
 {
     cosort(keys.begin(), keys.end(), values.begin(), values.end());
 }
 
 template <class Keys, class Values, class Comparator>
-void cosort(Keys keys, Values values, Comparator comp)
+void cosort(Keys& keys, Values& values, Comparator comp)
 {
     cosort(keys.begin(), keys.end(), values.begin(), values.end(), comp);
 }
