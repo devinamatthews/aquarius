@@ -165,8 +165,8 @@ double CCSD<U>::getProjectedS2(const MOSpace<U>& occ, const MOSpace<U>& vrt,
     int nA = vrt.nalpha;
     int na = vrt.nbeta;
 
-    vector<int> shapeNN = vec(NS,NS);
-    vector<int> shapeNNNN = vec(NS,NS,NS,NS);
+    vector<int> shapeNN = vec((int)NS,(int)NS);
+    vector<int> shapeNNNN = vec((int)NS,(int)NS,(int)NS,(int)NS);
     vector<int> sizeAI = vec(nA,nI);
     vector<int> sizeAi = vec(nA,ni);
     vector<int> sizeaI = vec(na,nI);

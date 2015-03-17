@@ -97,7 +97,7 @@ class OneElectronOperatorBase : public MOOperator,
             std::vector<std::vector<int> > sizeIN = std::vec(nI, N);
             std::vector<std::vector<int> > sizeiN = std::vec(ni, N);
 
-            std::vector<int> shapeNN = std::vec(NS, NS);
+            std::vector<int> shapeNN = std::vec((int)NS, (int)NS);
 
             tensor::SymmetryBlockedTensor<T> Aq("Aq", this->arena, occ.group, 2, sizeAN, shapeNN, false);
             tensor::SymmetryBlockedTensor<T> aq("aq", this->arena, occ.group, 2, sizeaN, shapeNN, false);

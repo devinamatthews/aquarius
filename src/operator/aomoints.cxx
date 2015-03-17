@@ -805,8 +805,8 @@ void AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     vector<int> nA_ = vec(sum(nA))+vector<int>(n-1,0);
     vector<int> na_ = vec(sum(na))+vector<int>(n-1,0);
 
-    SymmetryBlockedTensor<T> ABIJ__("<AB|IJ>", arena, ints.group, 4, vec(nA,nA,nI,nI), vec(NS,NS,NS,NS), false);
-    SymmetryBlockedTensor<T> abij__("<ab|ij>", arena, ints.group, 4, vec(na,na,ni,ni), vec(NS,NS,NS,NS), false);
+    SymmetryBlockedTensor<T> ABIJ__("<AB|IJ>", arena, ints.group, 4, vec(nA,nA,nI,nI), vec((int)NS,(int)NS,(int)NS,(int)NS), false);
+    SymmetryBlockedTensor<T> abij__("<ab|ij>", arena, ints.group, 4, vec(na,na,ni,ni), vec((int)NS,(int)NS,(int)NS,(int)NS), false);
 
     vector<vector<T> > cA(n), ca(n), cI(n), ci(n);
 

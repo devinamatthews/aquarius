@@ -68,7 +68,7 @@ void UHF<T>::run(TaskDAG& dag, const Arena& arena)
 
     energy = molecule.getNuclearRepulsion();
 
-    vector<int> shapeNN = vec(NS,NS);
+    vector<int> shapeNN = vec((int)NS,(int)NS);
     vector<vector<int> > sizenn = vec(norb,norb);
 
     put("Fa", new SymmetryBlockedTensor<T>("Fa", arena, group, 2, sizenn, shapeNN, false));
@@ -234,8 +234,8 @@ void UHF<T>::calcS2()
     SymmetryBlockedTensor<T> Cb_occ("Ci", gettmp<SymmetryBlockedTensor<T> >("Cb"),
                                     vec(zero,zero), vec(norb,occ_beta));
 
-    SymmetryBlockedTensor<T> Delta("Delta", S.arena, group, 2, vec(vec(nalpha),vec(nbeta)), vec(NS,NS), false);
-    SymmetryBlockedTensor<T> tmp("tmp", S.arena, group, 2, vec(vec(nalpha),norb), vec(NS,NS), false);
+    SymmetryBlockedTensor<T> Delta("Delta", S.arena, group, 2, vec(vec(nalpha),vec(nbeta)), vec((int)NS,(int)NS), false);
+    SymmetryBlockedTensor<T> tmp("tmp", S.arena, group, 2, vec(vec(nalpha),norb), vec((int)NS,(int)NS), false);
 
     int ndiff = abs(nalpha-nbeta);
     int nmin = min(nalpha, nbeta);

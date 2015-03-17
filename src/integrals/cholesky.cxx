@@ -61,7 +61,7 @@ void CholeskyIntegrals<T>::test()
 {
     const PointGroup& group = molecule.getGroup();
     SymmetryBlockedTensor<T> LD("LD", this->arena, group, 3, vec(vec(nfunc),vec(nfunc),vec(rank)), vec(SY,NS,NS), false);
-    SymmetryBlockedTensor<T> ints("V", this->arena, group, 4, vec(vec(nfunc),vec(nfunc),vec(nfunc),vec(nfunc)), vec(NS,NS,NS,NS), false);
+    SymmetryBlockedTensor<T> ints("V", this->arena, group, 4, vec(vec(nfunc),vec(nfunc),vec(nfunc),vec(nfunc)), vec((int)NS,(int)NS,(int)NS,(int)NS), false);
 
     LD["pqJ"] = (*L)["pqJ"]*(*D)["J"];
     ints["pqrs"] = (*L)["pqJ"]*LD["rsJ"];
@@ -275,7 +275,7 @@ void CholeskyIntegrals<T>::decompose()
 
     const PointGroup& group = molecule.getGroup();
 
-    this->D = new SymmetryBlockedTensor<T>("D", this->arena, group, 1, vec(vec(nvec)), vec(NS), false);
+    this->D = new SymmetryBlockedTensor<T>("D", this->arena, group, 1, vec(vec(nvec)), vec((int)NS), false);
     this->L = new SymmetryBlockedTensor<T>("L", this->arena, group, 3, vec(vec(nfunc),vec(nfunc),vec(nvec)), vec(SY,NS,NS), false);
 
     if (rank == 0)

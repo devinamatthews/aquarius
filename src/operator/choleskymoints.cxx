@@ -78,7 +78,7 @@ void CholeskyMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     vector<vector<int> > sizeAIR = vec(nA, nI, vec(R));
     vector<vector<int> > sizeaiR = vec(na, ni, vec(R));
 
-    vector<int> shapeNNN = vec(NS, NS, NS);
+    vector<int> shapeNNN = vec((int)NS,(int)NS,(int)NS);
 
     SymmetryBlockedTensor<T> LIJ("LIJ", arena, group, 3, sizeIIR, shapeNNN, false);
     SymmetryBlockedTensor<T> Lij("Lij", arena, group, 3, sizeiiR, shapeNNN, false);

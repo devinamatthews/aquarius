@@ -55,8 +55,8 @@ void CholeskyUHF<T>::run(TaskDAG& dag, const Arena& arena)
     int nalpha = molecule.getNumAlphaElectrons();
     int nbeta = molecule.getNumAlphaElectrons();
 
-    vector<int> shapeN = vec(NS);
-    vector<int> shapeNNN = vec(NS,NS,NS);
+    vector<int> shapeN = vec((int)NS);
+    vector<int> shapeNNN = vec((int)NS,(int)NS,(int)NS);
     vector<vector<int> > sizer = vec(vec(chol.getRank()));
     vector<vector<int> > sizenOr = vec(norb,vec(nalpha),vec(chol.getRank()));
     vector<vector<int> > sizenor = vec(norb,vec(nbeta),vec(chol.getRank()));
