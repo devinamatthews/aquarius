@@ -1,43 +1,20 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #include "eomeeccsd.hpp"
-#include "util/lapack.h"
 
-using namespace std;
-using namespace aquarius;
 using namespace aquarius::op;
-using namespace aquarius::cc;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
 using namespace aquarius::task;
 using namespace aquarius::convergence;
 using namespace aquarius::symmetry;
 
+namespace aquarius
+{
+namespace cc
+{
+
 template <typename U>
-EOMEECCSD<U>::EOMEECCSD(const std::string& name, const Config& config)
-: Iterative<U>("eomeeccsd", name, config), davidson_config(config.get("davidson").clone()),
+EOMEECCSD<U>::EOMEECCSD(const string& name, Config& config)
+: Iterative<U>(name, config), davidson_config(config.get("davidson")),
   nroot(config.get<int>("nroot")), ntriplet(config.get<int>("ntriplet")), multiroot(config.get<bool>("multiroot"))
 {
     vector<Requirement> reqs;
@@ -51,7 +28,7 @@ EOMEECCSD<U>::EOMEECCSD(const std::string& name, const Config& config)
 }
 
 template <typename U>
-void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
+bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 {
     auto& H = this->template get<STTwoElectronOperator<U>>("Hbar");
 
@@ -89,7 +66,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
         tda_sorted += zip(TDAevals[i],
                           spin,
                           vector<int>(TDAevals[i].size(), i),
-                          range<int>(TDAevals[i].size()));
+                          vector<int>(range<int>(TDAevals[i].size())));
     }
 
     sort(tda_sorted);
@@ -169,7 +146,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                     Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
                     ExcitationOperator<U,2>& V = Vs.back();
                     davidson.getSolution(j, V);
-                    V /= sqrt(std::abs(scalar(conj(V)*V)));
+                    V /= sqrt(abs(scalar(conj(V)*V)));
                 }
             }
         }
@@ -197,7 +174,7 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                     Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
                     ExcitationOperator<U,2>& V = Vs.back();
                     davidson.getSolution(0, V);
-                    V /= sqrt(std::abs(scalar(conj(V)*V)));
+                    V /= sqrt(abs(scalar(conj(V)*V)));
                 }
             }
         }
@@ -205,6 +182,8 @@ void EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
     this->put("energy", new CTFTensor<U>("energy", arena, 1, {nroot}, {NS}, true));
     this->put("convergence", new U(this->conv()));
+
+    return true;
 }
 
 template <typename U>
@@ -246,7 +225,7 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
         {
             R -= scalar(conj(R)*V)*V;
         }
-        R /= sqrt(std::abs(scalar(conj(R)*R)));
+        R /= sqrt(abs(scalar(conj(R)*R)));
 
          XMI[  "mi"]  =     WMNEJ["nmei"]*R(1)[  "en"];
          XMI[  "mi"] += 0.5*WMNEF["mnef"]*R(2)["efin"];
@@ -286,5 +265,36 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     }
 }
 
-INSTANTIATE_SPECIALIZATIONS(EOMEECCSD);
-REGISTER_TASK(EOMEECCSD<double>, "eomeeccsd");
+}
+}
+
+static const char* spec = R"(
+
+multiroot?
+    bool false,
+nroot?
+    int 0,
+ntriplet?
+int 0,
+convergence?
+    double 1e-9,
+max_iterations?
+    int 150,
+conv_type?
+    enum { MAXE, RMSE, MAE },
+davidson?
+{
+    damping?
+            double 0.0,
+    start?
+            int 1,
+    order?
+            int 500,
+    jacobi?
+            bool false
+}
+
+)";
+
+INSTANTIATE_SPECIALIZATIONS(aquarius::cc::EOMEECCSD);
+REGISTER_TASK(aquarius::cc::EOMEECCSD<double>, "eomeeccsd",spec);

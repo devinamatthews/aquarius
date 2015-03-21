@@ -1,31 +1,8 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_OPERATOR_EXCITATIONOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_EXCITATIONOPERATOR_HPP_
 
-#include "util/stl_ext.hpp"
+#include "util/global.hpp"
+
 #include "tensor/composite_tensor.hpp"
 #include "tensor/spinorbital_tensor.hpp"
 
@@ -50,50 +27,50 @@ class ExcitationOperator
         const int spin;
 
     public:
-        ExcitationOperator(const std::string& name, const Arena& arena, const Space& occ, const Space& vrt, int spin=0)
+        ExcitationOperator(const string& name, const Arena& arena, const Space& occ, const Space& vrt, int spin=0)
         : MOOperator(arena, occ, vrt),
           tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
-           tensor::SpinorbitalTensor<T>, T >(name, std::max(np,nh)+1),
+           tensor::SpinorbitalTensor<T>, T >(name, max(np,nh)+1),
           spin(spin)
         {
-            for (int ex = 0;ex <= std::min(np,nh);ex++)
+            for (int ex = 0;ex <= min(np,nh);ex++)
             {
                 int nv = ex+(np > nh ? np-nh : 0);
                 int no = ex+(nh > np ? nh-np : 0);
 
-                tensors[ex+std::abs(np-nh)].isAlloced = true;
-                tensors[ex+std::abs(np-nh)].tensor =
+                tensors[ex+abs(np-nh)].isAlloced = true;
+                tensors[ex+abs(np-nh)].tensor =
                     new tensor::SpinorbitalTensor<T>(name, arena, occ.group, {vrt,occ}, {nv,0}, {0,no}, spin);
             }
         }
 
-        ExcitationOperator(const std::string& name, const Arena& arena, const Space& occ, const Space& vrt,
+        ExcitationOperator(const string& name, const Arena& arena, const Space& occ, const Space& vrt,
                            const symmetry::Representation& rep, int spin=0)
         : MOOperator(arena, occ, vrt),
           tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
-           tensor::SpinorbitalTensor<T>, T >(name, std::max(np,nh)+1),
+           tensor::SpinorbitalTensor<T>, T >(name, max(np,nh)+1),
           spin(spin)
         {
-            for (int ex = 0;ex <= std::min(np,nh);ex++)
+            for (int ex = 0;ex <= min(np,nh);ex++)
             {
                 int nv = ex+(np > nh ? np-nh : 0);
                 int no = ex+(nh > np ? nh-np : 0);
 
-                tensors[ex+std::abs(np-nh)].isAlloced = true;
-                tensors[ex+std::abs(np-nh)].tensor =
+                tensors[ex+abs(np-nh)].isAlloced = true;
+                tensors[ex+abs(np-nh)].tensor =
                     new tensor::SpinorbitalTensor<T>(name, arena, occ.group, rep, {vrt,occ}, {nv,0}, {0,no}, spin);
             }
         }
 
         void weight(const Denominator<T>& d, double shift = 0)
         {
-            std::vector<const std::vector<std::vector<T> >*> da{&d.getDA(), &d.getDI()};
-            std::vector<const std::vector<std::vector<T> >*> db{&d.getDa(), &d.getDi()};
+            vector<const vector<vector<T> >*> da{&d.getDA(), &d.getDI()};
+            vector<const vector<vector<T> >*> db{&d.getDa(), &d.getDi()};
 
-            for (int ex = 0;ex <= std::min(np,nh);ex++)
+            for (int ex = 0;ex <= min(np,nh);ex++)
             {
                 if (ex== 0 && np == nh) continue;
-                tensors[ex+std::abs(np-nh)].tensor->weight(da, db, shift);
+                tensors[ex+abs(np-nh)].tensor->weight(da, db, shift);
             }
         }
 
@@ -101,9 +78,9 @@ class ExcitationOperator
         {
             T s = (T)0;
 
-            for (int i = 0;i <= std::min(np,nh);i++)
+            for (int i = 0;i <= min(np,nh);i++)
             {
-                s += (*this)(i).dot(conja, A(i), conjb)/(T)factorial(i)/(T)factorial(i+std::abs(np-nh));
+                s += (*this)(i).dot(conja, A(i), conjb)/(T)factorial(i)/(T)factorial(i+abs(np-nh));
             }
 
             return s;
@@ -112,13 +89,13 @@ class ExcitationOperator
         /*
          * Return the largest p-norm of the constituent operators
          */
-        typename std::real_type<T>::type norm(int p) const
+        typename real_type<T>::type norm(int p) const
         {
-            typename std::real_type<T>::type nrm = 0;
+            typename real_type<T>::type nrm = 0;
 
-            for (int i = 0;i <= std::min(np,nh);i++)
+            for (int i = 0;i <= min(np,nh);i++)
             {
-                nrm = std::max(nrm,(*this)(i).norm(p));
+                nrm = max(nrm,(*this)(i).norm(p));
             }
 
             return nrm;

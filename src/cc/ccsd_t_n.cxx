@@ -1,40 +1,19 @@
-/* Copyright (c) 2014, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #include "ccsd_t_n.hpp"
 
-using namespace std;
 using namespace aquarius::op;
-using namespace aquarius::cc;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
 using namespace aquarius::task;
 using namespace aquarius::time;
 
+namespace aquarius
+{
+namespace cc
+{
+
 template <typename U>
-CCSD_T_N<U>::CCSD_T_N(const string& name, const Config& config)
-: Task("ccsd(t-n)", name)
+CCSD_T_N<U>::CCSD_T_N(const string& name, Config& config)
+: Task(name, config)
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("moints", "H"));
@@ -49,7 +28,7 @@ CCSD_T_N<U>::CCSD_T_N(const string& name, const Config& config)
 }
 
 template <typename U>
-void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
+bool CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
 {
     const TwoElectronOperator<U>& H = this->template get<TwoElectronOperator<U>>("H");
     const STTwoElectronOperator<U>& Hbar = this->template get<STTwoElectronOperator<U>>("Hbar");
@@ -234,7 +213,6 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
       FAE_2[    "ae"]  =  -0.5*WMNEF["mnef"]*T_2(2)[  "afmn"];
       FAE_2[    "ae"] +=       WAMEF["amef"]*T_2(1)[    "fm"];
 
-    WAMIJ_2 = 0.0;
     WAMIJ_2[  "amij"]  =       WMNEJ["nmej"]*T_2(2)[  "aein"];
     WAMIJ_2[  "amij"] +=   0.5*WAMEF["amef"]*T_2(2)[  "efij"];
     WAMIJ_2[  "amij"] -=       WMNIJ["nmij"]*T_2(1)[    "an"];
@@ -242,7 +220,6 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     WAMIJ_2[  "amij"] +=   0.5*WMNEF["mnef"]*T_2(3)["aefijn"];
     WAMIJ_2[  "amij"] +=       FME_2[  "me"]*  T(2)[  "aeij"];
 
-    WABEJ_2 = 0.0;
     WABEJ_2[  "abej"]  =       WAMEF["amef"]*T_2(2)[  "fbmj"];
     WABEJ_2[  "abej"] +=   0.5*WMNEJ["mnej"]*T_2(2)[  "abmn"];
     WABEJ_2[  "abej"] +=       WABEF["abef"]*T_2(1)[    "fj"];
@@ -1152,7 +1129,12 @@ void CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     this->put("E(4)", new U(E4));
     this->put("E(5)", new U(E5));
     this->put("E(6)", new U(E6));
+
+    return true;
 }
 
-INSTANTIATE_SPECIALIZATIONS(CCSD_T_N);
-REGISTER_TASK(CCSD_T_N<double>,"ccsd(t-n)");
+}
+}
+
+INSTANTIATE_SPECIALIZATIONS(aquarius::cc::CCSD_T_N);
+REGISTER_TASK(aquarius::cc::CCSD_T_N<double>,"ccsd(t-n)");

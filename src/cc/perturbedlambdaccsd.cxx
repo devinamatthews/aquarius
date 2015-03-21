@@ -1,39 +1,18 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #include "perturbedlambdaccsd.hpp"
 
-using namespace std;
 using namespace aquarius::op;
-using namespace aquarius::cc;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
 using namespace aquarius::task;
 
+namespace aquarius
+{
+namespace cc
+{
+
 template <typename U>
-PerturbedLambdaCCSD<U>::PerturbedLambdaCCSD(const std::string& name, const Config& config)
-: Iterative<U>("perturbedlambdaccsd", name, config), diis(config.get("diis"))
+PerturbedLambdaCCSD<U>::PerturbedLambdaCCSD(const string& name, Config& config)
+: Iterative<U>(name, config), diis(config.get("diis"))
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("ccsd.L", "L"));
@@ -45,7 +24,7 @@ PerturbedLambdaCCSD<U>::PerturbedLambdaCCSD(const std::string& name, const Confi
 }
 
 template <typename U>
-void PerturbedLambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
+bool PerturbedLambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
 {
     const PerturbedSTTwoElectronOperator<U>& A = this->template get<PerturbedSTTwoElectronOperator<U> >("A");
     const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
@@ -86,6 +65,8 @@ void PerturbedLambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
     Iterative<U>::run(dag, arena);
 
     this->put("convergence", new U(this->conv()));
+
+    return true;
 }
 
 template <typename U>
@@ -109,5 +90,8 @@ void PerturbedLambdaCCSD<U>::iterate(const Arena& arena)
     diis.extrapolate(LA, Z);
 }
 
-INSTANTIATE_SPECIALIZATIONS(PerturbedLambdaCCSD);
-REGISTER_TASK(PerturbedLambdaCCSD<double>, "perturbedlambdaccsd");
+}
+}
+
+INSTANTIATE_SPECIALIZATIONS(aquarius::cc::PerturbedLambdaCCSD);
+REGISTER_TASK(aquarius::cc::PerturbedLambdaCCSD<double>, "perturbedlambdaccsd");

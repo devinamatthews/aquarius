@@ -1,39 +1,15 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_INTEGRALS_CHOLESKY_HPP_
 #define _AQUARIUS_INTEGRALS_CHOLESKY_HPP_
 
-#include "2eints.hpp"
+#include "util/global.hpp"
 
 #include "tensor/symblocked_tensor.hpp"
 #include "tensor/dense_tensor.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
-#include "util/util.h"
-#include "util/blas.h"
 #include "task/task.hpp"
+
+#include "2eints.hpp"
 
 namespace aquarius
 {
@@ -41,7 +17,7 @@ namespace integrals
 {
 
 template <typename T>
-class CholeskyIntegrals : public task::Destructible, public Distributed
+class CholeskyIntegrals : public Distributed
 {
     public:
         const input::Molecule& molecule;
@@ -68,19 +44,17 @@ class CholeskyIntegrals : public task::Destructible, public Distributed
 
         const Context& ctx;
         int nvec;
-        std::vector<Shell> shells;
+        vector<Shell> shells;
         T delta;
         T cond;
-        tensor::SymmetryBlockedTensor<T>* L;
-        tensor::SymmetryBlockedTensor<T>* D;
+        unique_ptr<tensor::SymmetryBlockedTensor<T>> L;
+        unique_ptr<tensor::SymmetryBlockedTensor<T>> D;
         int ndiag;
         int nfunc;
         int nblock;
 
     public:
-        CholeskyIntegrals(const Arena& arena, const Context& ctx, const input::Config& config, const input::Molecule& molecule);
-
-        ~CholeskyIntegrals();
+        CholeskyIntegrals(const Arena& arena, const Context& ctx, input::Config& config, const input::Molecule& molecule);
 
         void test();
 
@@ -113,7 +87,7 @@ class CholeskyIntegrals : public task::Destructible, public Distributed
          * perform a modified Cholesky decomposition (LDL^T) on a matrix subblock
          *
          * block_size       - size of the block to update
-         * L                - Cholesky std::vectors for the block, dimensions L[block_size][>rank]
+         * L                - Cholesky vectors for the block, dimensions L[block_size][>rank]
          * D                - the diagonal factor of the decomposition, dimensions D[>rank]
          * diag             - diagonal elements of the residual matrix for the block and other accounting information,
          *                    dimensions diag[block_size]

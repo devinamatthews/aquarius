@@ -1,34 +1,4 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
-#include <algorithm>
-#include <iostream>
-#include <climits>
-
 #include "autocc.hpp"
-
-using namespace std;
 
 namespace aquarius
 {
@@ -62,8 +32,8 @@ bool BasicManifoldGenerator::generator_next(Manifold& left, Manifold& right)
 bool ProductManifoldGenerator::generator_next(Manifold& left, Manifold& right)
 {
     _one.nh[0] = 1;
-    _max.np[0] = INT_MAX-1;
-    _max.nh[0] = INT_MAX-1;
+    _max.np[0] = numeric_limits<int>::max()-1;
+    _max.nh[0] = numeric_limits<int>::max()-1;
 
     _ldone = false;
     for (_l.np[0] = leftMin.np[0];_l.np[0] <= leftMax.np[0] && !_ldone;_l.np[0]++)
@@ -92,10 +62,10 @@ bool ProductManifoldGenerator::generator_next(Manifold& left, Manifold& right)
                     _rdone = true;
 
                     cdone = false;
-                    for (c.np[0] = 0;c.np[0] < INT_MAX && !cdone;c.np[0]++)
+                    for (c.np[0] = 0;c.np[0] < numeric_limits<int>::max() && !cdone;c.np[0]++)
                     {
                         chdone = false;
-                        for (c.nh[0] = 0;c.nh[0] < INT_MAX && !cdone && !chdone;c.nh[0]++)
+                        for (c.nh[0] = 0;c.nh[0] < numeric_limits<int>::max() && !cdone && !chdone;c.nh[0]++)
                         {
                             if ((!op.flags&CONNECTED) && !(c.np[0]+c.nh[0] == 0))
                             {

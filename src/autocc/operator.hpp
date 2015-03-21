@@ -1,33 +1,7 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_AUTOCC_OPERATOR_HPP_
 #define _AQUARIUS_AUTOCC_OPERATOR_HPP_
 
-#include <vector>
-#include <string>
-#include <climits>
+#include "util/global.hpp"
 
 #include "diagram.hpp"
 #include "fraction.hpp"
@@ -84,13 +58,13 @@ class Operator
         static void canonicalize(Term& t);
 };
 
-BasicOperator& operator<<(BasicOperator& op, std::string term);
+BasicOperator& operator<<(BasicOperator& op, string term);
 
 class BasicOperator : public Operator
 {
     friend class BasicManifoldGenerator;
 
-    friend BasicOperator& operator<<(BasicOperator& op, std::string term)
+    friend BasicOperator& operator<<(BasicOperator& op, string term)
     {
         Term t(Diagram::SPINORBITAL, term);
         Operator::canonicalize(t);
@@ -99,7 +73,7 @@ class BasicOperator : public Operator
     }
 
     protected:
-        std::vector<Term> terms;
+        vector<Term> terms;
 
         void canonicalize();
 
@@ -108,11 +82,11 @@ class BasicOperator : public Operator
 
         BasicOperator(const Diagram& diagram);
 
-        BasicOperator(const std::string& term);
+        BasicOperator(const string& term);
 
         BasicOperator(const Term& term);
 
-        BasicOperator(const std::vector<Term>& terms);
+        BasicOperator(const vector<Term>& terms);
 
         virtual Diagram resolve(Manifold& left, Manifold& right) const;
 
@@ -207,12 +181,12 @@ class OperatorProduct : public Operator
                 const Term& term;
                 const Side side;
 
-                std::vector< std::vector<Line> > pindices;
-                std::vector< std::vector<Line> > hindices;
-                std::vector<int> which_bin_p;
-                std::vector<int> which_bin_h;
-                std::vector<int> how_many_p;
-                std::vector<int> how_many_h;
+                vector< vector<Line> > pindices;
+                vector< vector<Line> > hindices;
+                vector<int> which_bin_p;
+                vector<int> which_bin_h;
+                vector<int> how_many_p;
+                vector<int> how_many_h;
                 bool pdone, hdone, valid;
                 int pi, hi, idx;
 

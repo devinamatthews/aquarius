@@ -40,7 +40,7 @@ EOF
 		
 		$CC $DEFS $INCLUDES $CPPFLAGS $OPT $WARN $CFLAGS .test.c $LDFLAGS $1 > /dev/null 2>&1
 		if [ -x a.out ]; then
-			FNAME='$(LOWER_NO_UNDERSCORE)'
+			FNAME='LOWER_NO_UNDERSCORE'
 			status=0
   	fi
 	fi
@@ -59,7 +59,7 @@ EOF
 		
 		$CC $DEFS $INCLUDES $CPPFLAGS $OPT $WARN $CFLAGS .test.c $LDFLAGS $1 > /dev/null 2>&1
 		if [ -x a.out ]; then
-			FNAME='$(LOWER_UNDERSCORE)'
+			FNAME='LOWER_UNDERSCORE'
 			status=0
 		fi
 	fi
@@ -78,7 +78,7 @@ EOF
 		
 		$CC $DEFS $INCLUDES $CPPFLAGS $OPT $WARN $CFLAGS .test.c $LDFLAGS $1 > /dev/null 2>&1
 		if [ -x a.out ]; then
-			FNAME='$(UPPER_NO_UNDERSCORE)'
+			FNAME='UPPER_NO_UNDERSCORE'
 			status=0
 		fi
 	fi
@@ -97,7 +97,7 @@ EOF
 		
 		$CC $DEFS $INCLUDES $CPPFLAGS $OPT $WARN $CFLAGS .test.c $LDFLAGS $1 > /dev/null 2>&1
 		if [ -x a.out ]; then
-			FNAME='$(UPPER_UNDERSCORE)'
+			FNAME='UPPER_UNDERSCORE'
 			status=0
 		fi
 	fi
@@ -158,9 +158,9 @@ function defaultflags
         intel)
             if [ "x$AR"       = "x" ]; then AR='xiar -crs'; fi
             if [ "x$CFLAGS"   = "x" ]; then CFLAGS='-openmp -std=c99'; fi
-            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-openmp -std=c++0x -D__STDC_LIMIT_MACROS -Drestrict='; fi
+            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-openmp -std=c++0x -restrict'; fi
             if [ "x$DEPS"     = "x" ]; then DEPS='-MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po'; fi
-            if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
+            if [ "x$DEFS"     = "x" ]; then DEFS=''; fi
             if [ "x$WARN"     = "x" ]; then WARN='-Wall'; fi
             if [ "x$OPT"      = "x" ]; then OPT=''; fi
             PASS_TO_LINKER='-Wl,'
@@ -190,11 +190,11 @@ function defaultflags
         gnu)
             if [ "x$AR"       = "x" ]; then AR='ar -crs'; fi
             if [ "x$CFLAGS"   = "x" ]; then CFLAGS='-fopenmp -std=c99'; fi
-            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-fopenmp -std=c++0x -D__STDC_LIMIT_MACROS -Drestrict='; fi
+            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-fopenmp -std=c++0x -Drestrict=__restrict__'; fi
             if [ "x$DEPS"     = "x" ]; then DEPS='-MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po'; fi
-            if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
+            if [ "x$DEFS"     = "x" ]; then DEFS=''; fi
             if [ "x$WARN"     = "x" ]; then WARN='-Wall -Wno-comment -Wno-sign-compare'; fi
-            if [ "x$OPT"      = "x" ]; then OPT='-g -O3'; fi
+            if [ "x$OPT"      = "x" ]; then OPT='-O3'; fi
             PASS_TO_LINKER='-Wl,'
             ;;
         *)
@@ -203,11 +203,11 @@ function defaultflags
             echo
             if [ "x$AR"       = "x" ]; then AR='ar -crs'; fi
             if [ "x$CFLAGS"   = "x" ]; then CFLAGS='-fopenmp -std=c99'; fi
-            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-fopenmp -D__STDC_LIMIT_MACROS -Drestrict='; fi
+            if [ "x$CXXFLAGS" = "x" ]; then CXXFLAGS='-fopenmp -std=c++0x -Drestrict='; fi
             if [ "x$DEPS"     = "x" ]; then DEPS='-MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po'; fi
-            if [ "x$DEFS"     = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L'; fi
+            if [ "x$DEFS"     = "x" ]; then DEFS=''; fi
             if [ "x$WARN"     = "x" ]; then WARN='-Wall'; fi
-            if [ "x$OPT"      = "x" ]; then OPT='-g -O2'; fi
+            if [ "x$OPT"      = "x" ]; then OPT='-O2'; fi
             PASS_TO_LINKER='-Wl,'
             ;;
     esac
@@ -516,11 +516,30 @@ CFLAGS      = $CFLAGS
 CXX         = $CXX
 CXXFLAGS    = $CXXFLAGS
 
-FORTRAN_INTEGER_SIZE=$((blasbits/8))
-F77_NAME = $FNAME
-F90_NAME = $FNAME
-
 DEPSTYPE    = $depstype
+
+EOF
+
+cat > config.h <<EOF
+#ifndef _AQUARIUS_CONFIG_H_
+#define _AQUARIUS_CONFIG_H_
+
+#define _POSIX_C_SOURCE 200112L
+
+#define LOWER_NO_UNDERSCORE 1
+#define LOWER_UNDERSCORE 2
+#define UPPER_NO_UNDERSCORE 3
+#define UPPER_UNDERSCORE 4
+
+#define FORTRAN_INTEGER_SIZE $((blasbits/8))
+
+#define F77_NAME $FNAME
+
+#define F90_NAME $FNAME
+
+#define TOPDIR "$srcdir"
+
+#endif
 
 EOF
 
@@ -533,7 +552,7 @@ if [[ "$(cd $topdir ; pwd)" != "$(cd $srcdir ; pwd)" ]]; then
         ln -s $srcdir/rules.mk rules.mk
     fi
     for dir in src src/integrals src/autocc src/time src/input \
-               src/memory src/tensor src/util src/cc src/scf src/task \
+               src/tensor src/cc src/scf src/task \
                src/operator src/symmetry src/main; do
         mkdir -p $dir
         if [[ ! -f $dir/Makefile ]]; then

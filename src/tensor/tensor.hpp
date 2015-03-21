@@ -1,38 +1,7 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice,This list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice,This list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_TENSOR_HPP_
 #define _AQUARIUS_TENSOR_HPP_
 
-#include <stdexcept>
-#include <iostream>
-#include <string>
-#include <string.h>
-
-#include "util/stl_ext.hpp"
-#include "util/util.h"
-#include "util/blas.h"
+#include "util/global.hpp"
 
 namespace aquarius
 {
@@ -80,9 +49,9 @@ class Tensor
 {
     public:
         typedef T dtype;
-        const std::string name;
+        const string name;
         
-        Tensor(const std::string& name) : name(name) {}
+        Tensor(const string& name) : name(name) {}
 
         virtual ~Tensor() {}
 
@@ -189,7 +158,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename std::if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator=(cvDerived& other)
         {
@@ -197,7 +166,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename std::if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator+=(cvDerived& other)
         {
@@ -205,7 +174,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename std::if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator-=(cvDerived& other)
         {
@@ -213,7 +182,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename std::if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator*=(cvDerived& other)
         {
@@ -221,7 +190,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename std::if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator/=(cvDerived& other)
         {
@@ -354,7 +323,7 @@ class Tensor
             return ScaledTensor<const Derived,T>(t.getDerived(), (T)1, true);
         }
 
-        template <typename cvDerived> typename std::if_exists<typename cvDerived::dtype, TensorMult<Derived,T> >::type
+        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, TensorMult<Derived,T> >::type
         //ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
         operator*(const cvDerived& other) const
         {
@@ -362,7 +331,7 @@ class Tensor
                                          ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
         }
 
-        template <typename cvDerived> typename std::if_exists<typename cvDerived::dtype, TensorDiv<Derived,T> >::type
+        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, TensorDiv<Derived,T> >::type
         //ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorDiv<Derived,T>))
         operator/(const cvDerived& other) const
         {
@@ -696,7 +665,7 @@ class ScaledTensor
 };
 
 template <class Derived1, class Derived2, class T>
-//typename std::enable_if<std::is_same<const Derived1, const Derived2>::value,TensorMult<Derived1,T> >::type
+//typename enable_if<is_same<const Derived1, const Derived2>::value,TensorMult<Derived1,T> >::type
 TensorMult<Derived1,T>
 operator*(const Derived1& t1, const ScaledTensor<Derived2,T>& t2)
 {
@@ -704,7 +673,7 @@ operator*(const Derived1& t1, const ScaledTensor<Derived2,T>& t2)
 }
 
 template <class Derived1, class Derived2, class T>
-//typename std::enable_if<std::is_same<const Derived1, const Derived2>::value,TensorDiv<Derived1,T> >::type
+//typename enable_if<is_same<const Derived1, const Derived2>::value,TensorDiv<Derived1,T> >::type
 TensorDiv<Derived1,T>
 operator/(const Derived1& t1, const ScaledTensor<Derived2,T>& t2)
 {
@@ -889,7 +858,7 @@ class TensorDiv
         }
 };
 
-class TensorError : public std::exception
+class TensorError : public exception
 {
     public:
         virtual const char* what() const throw() = 0;

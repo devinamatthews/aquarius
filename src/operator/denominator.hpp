@@ -1,31 +1,7 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_OPERATOR_DENOMINATOR_HPP_
 #define _AQUARIUS_OPERATOR_DENOMINATOR_HPP_
 
-#include <vector>
+#include "util/global.hpp"
 
 #include "1eoperator.hpp"
 #include "mooperator.hpp"
@@ -39,7 +15,7 @@ template <typename T>
 class Denominator : public op::MOOperator
 {
     protected:
-        std::vector<std::vector<T> > dA, da, dI, di;
+        vector<vector<T> > dA, da, dI, di;
 
     public:
         template <typename Derived>
@@ -60,7 +36,7 @@ class Denominator : public op::MOOperator
                 dI[j].resize(occ.nalpha[j]);
                 di[j].resize(occ.nbeta[j]);
 
-                std::vector<int> irreps(2,j);
+                vector<int> irreps(2,j);
 
                 if (arena.rank == 0)
                 {
@@ -70,28 +46,28 @@ class Denominator : public op::MOOperator
                     int ni = di[j].size();
 
                     {
-                        std::vector<tkv_pair<T> > pairs(nA);
+                        vector<tkv_pair<T> > pairs(nA);
                         for (int i = 0;i < nA;i++) pairs[i].k = i+i*nA;
                         F.getAB()({1,0},{1,0}).getRemoteData(irreps, pairs);
                         for (int i = 0;i < nA;i++) dA[j][pairs[i].k/nA] = -pairs[i].d;
                     }
 
                     {
-                        std::vector<tkv_pair<T> > pairs(na);
+                        vector<tkv_pair<T> > pairs(na);
                         for (int i = 0;i < na;i++) pairs[i].k = i+i*na;
                         F.getAB()({0,0},{0,0}).getRemoteData(irreps, pairs);
                         for (int i = 0;i < na;i++) da[j][pairs[i].k/na] = -pairs[i].d;
                     }
 
                     {
-                        std::vector<tkv_pair<T> > pairs(nI);
+                        vector<tkv_pair<T> > pairs(nI);
                         for (int i = 0;i < nI;i++) pairs[i].k = i+i*nI;
                         F.getIJ()({0,1},{0,1}).getRemoteData(irreps, pairs);
                         for (int i = 0;i < nI;i++) dI[j][pairs[i].k/nI] = pairs[i].d;
                     }
 
                     {
-                        std::vector<tkv_pair<T> > pairs(ni);
+                        vector<tkv_pair<T> > pairs(ni);
                         for (int i = 0;i < ni;i++) pairs[i].k = i+i*ni;
                         F.getIJ()({0,0},{0,0}).getRemoteData(irreps, pairs);
                         for (int i = 0;i < ni;i++) di[j][pairs[i].k/ni] = pairs[i].d;
@@ -112,10 +88,10 @@ class Denominator : public op::MOOperator
             }
         }
 
-        const std::vector<std::vector<T> >& getDA() const { return dA; }
-        const std::vector<std::vector<T> >& getDa() const { return da; }
-        const std::vector<std::vector<T> >& getDI() const { return dI; }
-        const std::vector<std::vector<T> >& getDi() const { return di; }
+        const vector<vector<T> >& getDA() const { return dA; }
+        const vector<vector<T> >& getDa() const { return da; }
+        const vector<vector<T> >& getDI() const { return dI; }
+        const vector<vector<T> >& getDi() const { return di; }
 };
 
 }

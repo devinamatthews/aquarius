@@ -1,29 +1,7 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must reRin the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documenRtion and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANRBILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENRL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DAR, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_OPERATOR_PERTURBEDST2EOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_PERTURBEDST2EOPERATOR_HPP_
+
+#include "util/global.hpp"
 
 #include "2eoperator.hpp"
 #include "st2eoperator.hpp"
@@ -47,7 +25,7 @@ class PerturbedSTTwoElectronOperator : public STTwoElectronOperator<U>
 
     public:
         template <int N>
-        PerturbedSTTwoElectronOperator(const std::string& name, const STTwoElectronOperator<U>& X, const OneElectronOperator<U>& XA,
+        PerturbedSTTwoElectronOperator(const string& name, const STTwoElectronOperator<U>& X, const OneElectronOperator<U>& XA,
                                        const ExcitationOperator<U,N>& T, const ExcitationOperator<U,N>& TA)
         : STTwoElectronOperator<U>(name, XA, T), X(X), TA(TA)
         {
@@ -116,7 +94,7 @@ class PerturbedSTTwoElectronOperator : public STTwoElectronOperator<U>
         }
 
         template <int N>
-        PerturbedSTTwoElectronOperator(const std::string& name, const STTwoElectronOperator<U>& X, const TwoElectronOperator<U>& XA,
+        PerturbedSTTwoElectronOperator(const string& name, const STTwoElectronOperator<U>& X, const TwoElectronOperator<U>& XA,
                                        const ExcitationOperator<U,N>& T, const ExcitationOperator<U,N>& TA)
         : STTwoElectronOperator<U>(name, XA, T), X(X), TA(TA)
         {

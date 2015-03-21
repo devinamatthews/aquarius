@@ -1,55 +1,11 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_TENSOR_CTF_TENSOR_HPP_
 #define _AQUARIUS_TENSOR_CTF_TENSOR_HPP_
 
-#include <ostream>
-#include <iostream>
-#include <vector>
-#include <cstdio>
-#include <stdint.h>
-#include <cstring>
-#include <cassert>
-#include <string>
-#include <algorithm>
-#include <cfloat>
+#include "util/global.hpp"
 
-#include "ctf.hpp"
-
-#include "memory/memory.h"
-#include "util/distributed.hpp"
-#include "util/stl_ext.hpp"
 #include "task/task.hpp"
 
-#include "util.h"
 #include "indexable_tensor.hpp"
-
-namespace std
-{
-    template <typename T> struct is_pod<tkv_pair<T> > { static const bool value = true; };
-}
 
 namespace aquarius
 {
@@ -63,9 +19,9 @@ class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public Distributed
 
     protected:
         tCTF_Tensor<T>* dt;
-        std::vector<int> len;
-        std::vector<int> sym;
-        static std::map<const tCTF_World<T>*,std::pair<int,CTFTensor<T>*> > scalars;
+        vector<int> len;
+        vector<int> sym;
+        static map<const tCTF_World<T>*,pair<int,CTFTensor<T>*> > scalars;
 
         void allocate();
 
@@ -77,29 +33,104 @@ class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public Distributed
 
         CTFTensor<T>& scalar() const;
 
-    public:
-        CTFTensor(const std::string& name, const Arena& arena, T scalar = (T)0);
+        static void first_packed_indices(int ndim, const int* len, const int* sym, int* idx)
+        {
+            int i;
 
-        CTFTensor(const std::string& name, const CTFTensor<T>& A, T scalar);
+            if (ndim > 0) idx[0] = 0;
+            for (i = 0;i < ndim - 1;i++)
+            {
+                switch (sym[i])
+                {
+                    case AS:
+                    case SH:
+                        idx[i+1] = idx[i] + 1;
+                        break;
+                    case SY:
+                        idx[i+1] = idx[i];
+                        break;
+                    case NS:
+                        idx[i+1] = 0;
+                        break;
+                }
+            }
+        }
+
+        static bool next_packed_indices(int ndim, const int* len, const int* sym, int* idx)
+        {
+            int i;
+
+            for (i = 0;i < ndim;i++)
+            {
+                if (i == ndim - 1)
+                {
+                    if (idx[i] >= len[i]-1)
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        idx[i]++;
+                        break;
+                    }
+                }
+                else
+                {
+                    if ((sym[i] == SY && idx[i] >= idx[i+1]) ||
+                        ((sym[i] == AS || sym[i] == SH) && idx[i] >= idx[i+1]-1) ||
+                        (idx[i] >= len[i]-1))
+                    {
+                        if (i == 0)
+                        {
+                            idx[i] = 0;
+                        }
+                        else if (sym[i-1] == NS)
+                        {
+                            idx[i] = 0;
+                        }
+                        else if (sym[i-1] == SY)
+                        {
+                            idx[i] = idx[i-1];
+                        }
+                        else // AS and SH
+                        {
+                            idx[i] = idx[i-1] + 1;
+                        }
+                    }
+                    else
+                    {
+                        idx[i]++;
+                        break;
+                    }
+                }
+            }
+
+            return (ndim > 0 ? true : false);
+        }
+
+    public:
+        CTFTensor(const string& name, const Arena& arena, T scalar = (T)0);
+
+        CTFTensor(const string& name, const CTFTensor<T>& A, T scalar);
 
         CTFTensor(const CTFTensor<T>& A, bool copy=true, bool zero=false);
 
-        CTFTensor(const std::string& name, const CTFTensor<T>& A, bool copy=true, bool zero=false);
+        CTFTensor(const string& name, const CTFTensor<T>& A, bool copy=true, bool zero=false);
 
-        CTFTensor(const std::string& name, CTFTensor<T>* A);
+        CTFTensor(const string& name, CTFTensor<T>* A);
 
-        CTFTensor(const std::string& name, const CTFTensor<T>& A, const std::vector<int>& start_A, const std::vector<int>& len_A);
+        CTFTensor(const string& name, const CTFTensor<T>& A, const vector<int>& start_A, const vector<int>& len_A);
 
-        CTFTensor(const std::string& name, const Arena& arena, int ndim, const std::vector<int>& len, const std::vector<int>& sym,
+        CTFTensor(const string& name, const Arena& arena, int ndim, const vector<int>& len, const vector<int>& sym,
                    bool zero=true);
 
         ~CTFTensor();
 
-        void resize(int ndim, const std::vector<int>& len, const std::vector<int>& sym, bool zero);
+        void resize(int ndim, const vector<int>& len, const vector<int>& sym, bool zero);
 
-        const std::vector<int>& getLengths() const { return len; }
+        const vector<int>& getLengths() const { return len; }
 
-        const std::vector<int>& getSymmetry() const { return sym; }
+        const vector<int>& getSymmetry() const { return sym; }
 
         T* getRawData(int64_t& size);
 
@@ -152,7 +183,7 @@ class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public Distributed
         void getAllData(Container& vals) const
         {
             int64_t npair;
-            if (this->rank == 0)
+            if (this->arena.rank == 0)
             {
                 getAllData(vals, 0);
                 npair = vals.size();
@@ -162,14 +193,14 @@ class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public Distributed
                 getAllData(0);
             }
             this->arena.Bcast(&npair, 1, 0);
-            if (this->rank != 0) vals.resize(npair);
+            if (this->arena.rank != 0) vals.resize(npair);
             this->arena.Bcast(vals, 0);
         }
 
         template <typename Container>
         void getAllData(Container& vals, int rank) const
         {
-            assert(this->rank == rank);
+            assert(this->arena.rank == rank);
 
             for (int i = 0;i < ndim;i++)
             {
@@ -180,8 +211,8 @@ class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public Distributed
                 }
             }
 
-            std::vector<tkv_pair<T> > pairs;
-            std::vector<int> idx(ndim, 0);
+            vector<tkv_pair<T> > pairs;
+            vector<int> idx(ndim, 0);
 
             first_packed_indices(ndim, len.data(), sym.data(), idx.data());
 
@@ -216,41 +247,41 @@ class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public Distributed
         }
 
         void slice(T alpha, bool conja, const CTFTensor<T>& A,
-                   const std::vector<int>& start_A, T beta);
+                   const vector<int>& start_A, T beta);
 
         void slice(T alpha, bool conja, const CTFTensor<T>& A,
-                   T beta, const std::vector<int>& start_B);
+                   T beta, const vector<int>& start_B);
 
-        void slice(T alpha, bool conja, const CTFTensor<T>& A, const std::vector<int>& start_A,
-                   T  beta,                                     const std::vector<int>& start_B,
-                                                                const std::vector<int>& len);
+        void slice(T alpha, bool conja, const CTFTensor<T>& A, const vector<int>& start_A,
+                   T  beta,                                     const vector<int>& start_B,
+                                                                const vector<int>& len);
 
         void div(T alpha, bool conja, const CTFTensor<T>& A,
                           bool conjb, const CTFTensor<T>& B, T beta);
 
         void invert(T alpha, bool conja, const CTFTensor<T>& A, T beta);
 
-        void weight(const std::vector<const std::vector<T>*>& d, double shift = 0);
+        void weight(const vector<const vector<T>*>& d, double shift = 0);
 
         void print(FILE* fp, double cutoff = -1.0) const;
 
         void compare(FILE* fp, const CTFTensor<T>& other, double cutoff = 0.0) const;
 
-        typename std::real_type<T>::type norm(int p) const;
+        typename real_type<T>::type norm(int p) const;
 
-        void mult(T alpha, bool conja, const CTFTensor<T>& A, const std::string& idx_A,
-                           bool conjb, const CTFTensor<T>& B, const std::string& idx_B,
-                  T  beta,                                     const std::string& idx_C);
+        void mult(T alpha, bool conja, const CTFTensor<T>& A, const string& idx_A,
+                           bool conjb, const CTFTensor<T>& B, const string& idx_B,
+                  T  beta,                                     const string& idx_C);
 
         void sum(T alpha, T beta);
 
-        void sum(T alpha, bool conja, const CTFTensor<T>& A, const std::string& idx_A,
-                 T  beta,                                     const std::string& idx_B);
+        void sum(T alpha, bool conja, const CTFTensor<T>& A, const string& idx_A,
+                 T  beta,                                     const string& idx_B);
 
-        void scale(T alpha, const std::string& idx_A);
+        void scale(T alpha, const string& idx_A);
 
-        T dot(bool conja, const CTFTensor<T>& A, const std::string& idx_A,
-              bool conjb,                         const std::string& idx_B) const;
+        T dot(bool conja, const CTFTensor<T>& A, const string& idx_A,
+              bool conjb,                         const string& idx_B) const;
 };
 
 }

@@ -1,36 +1,7 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_AUTOCC_LINE_HPP_
 #define _AQUARIUS_AUTOCC_LINE_HPP_
 
-#include <ostream>
-#include <string>
-#include <vector>
-#include <stdint.h>
-#include <cctype>
-#include <map>
+#include "util/global.hpp"
 
 namespace aquarius
 {
@@ -40,13 +11,13 @@ namespace autocc
 class Manifold;
 class Line;
 
-std::ostream& operator<<(std::ostream& out, const std::vector<Line>& v);
-std::ostream& operator<<(std::ostream& out, const Line& l);
+ostream& operator<<(ostream& out, const vector<Line>& v);
+ostream& operator<<(ostream& out, const Line& l);
 
 class Manifold
 {
     public:
-        std::map<int,int> np, nh;
+        map<int,int> np, nh;
 
         Manifold& operator+=(const Manifold& other);
 
@@ -85,7 +56,7 @@ class Line
 
         Line() : index(0) {}
 
-        Line(const std::string& label);
+        Line(const string& label);
 
         //Line(char label);
 
@@ -93,7 +64,7 @@ class Line
 
         Line(int index, char type, int occupancy, int spin);
 
-        static std::vector<Line> parse(const std::string& s);
+        static vector<Line> parse(const string& s);
 
         Line& operator=(const Line& line)
         {
@@ -218,27 +189,27 @@ class Line
         }
 };
 
-struct isAlpha : std::unary_function<Line,bool>
+struct isAlpha : unary_function<Line,bool>
 {
     bool operator()(const Line& line) const { return line.isAlpha(); }
 };
 
-struct isBeta : std::unary_function<Line,bool>
+struct isBeta : unary_function<Line,bool>
 {
     bool operator()(const Line& line) const { return line.isBeta(); }
 };
 
-struct isOccupied : std::unary_function<Line,bool>
+struct isOccupied : unary_function<Line,bool>
 {
     bool operator()(const Line& line) const { return line.isOccupied(); }
 };
 
-struct isVirtual : std::unary_function<Line,bool>
+struct isVirtual : unary_function<Line,bool>
 {
     bool operator()(const Line& line) const { return line.isVirtual(); }
 };
 
-class isSpin : public std::unary_function<Line,bool>
+class isSpin : public unary_function<Line,bool>
 {
     protected:
         int spin;
@@ -249,7 +220,7 @@ class isSpin : public std::unary_function<Line,bool>
         bool operator()(const Line& line) const { return line.getSpin() == spin; }
 };
 
-class isOccupancy : public std::unary_function<Line,bool>
+class isOccupancy : public unary_function<Line,bool>
 {
     protected:
         int occupancy;
@@ -260,7 +231,7 @@ class isOccupancy : public std::unary_function<Line,bool>
         bool operator()(const Line& line) const { return line.getOccupancy() == occupancy; }
 };
 
-class isType : public std::unary_function<Line,bool>
+class isType : public unary_function<Line,bool>
 {
     protected:
         int type;

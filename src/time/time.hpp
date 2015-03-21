@@ -1,41 +1,7 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_TIME_HPP_
 #define _AQUARIUS_TIME_HPP_
 
-#include <string>
-#include <stdint.h>
-#include <ctime>
-#include <vector>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-#include "util/stl_ext.hpp"
-#include "util/distributed.hpp"
+#include "util/global.hpp"
 
 #ifdef PROFILE
 
@@ -137,18 +103,18 @@ void do_flops(int64_t flops);
 class Timer : public Interval
 {
     protected:
-        static std::vector<Timer> timers;
+        static vector<Timer> timers;
 
-        std::string name;
+        string name;
         int64_t count;
         CTF_Flop_Counter ctfflops;
 
-        Timer(const std::string& name) : name(name), count(0) {}
+        Timer(const string& name) : name(name), count(0) {}
 
     public:
         Timer() : name(), count(0) {}
 
-        static Timer& timer(const std::string& name);
+        static Timer& timer(const string& name);
 
         void start()
         {

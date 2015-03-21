@@ -1,39 +1,8 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
-#include "util/math_ext.h"
-
 #include "molecule.hpp"
+
+#include "util/math_ext.hpp"
 #include "basis.hpp"
 
-#include <map>
-#include <string>
-#include <stdexcept>
-#include <cmath>
-
-using namespace std;
-using namespace aquarius;
 using namespace aquarius::integrals;
 using namespace aquarius::symmetry;
 using namespace aquarius::input;
@@ -75,62 +44,45 @@ struct AtomCartSpec : AtomSpec
 template<>
 class Config::Extractor<AtomZmatSpec>
 {
-    friend class Config::Extractor<AtomCartSpec>;
-
     protected:
-        static std::string nextSpec(Config::node_t*& c)
+        static bool nextSpec(shared_list<Node>::iterator& i, shared_list<Node>::iterator end)
         {
-            for (;c && (c->data == "basis_set" || c->data == "truncation");c = c->next);
-
-            if (c)
-            {
-                std::string s = c->data;
-                c = c->next;
-                return s;
-            }
-
-            return "";
+            for (;i != end && (i->data == "basis_set" || i->data == "truncation");++i);
+            return (i != end);
         }
 
     public:
-        static AtomZmatSpec extract(node_t* node, int which = 0)
+        static AtomZmatSpec extract(Node& node, int which = 0)
         {
             AtomZmatSpec s;
-            node_t *c;
-            std::string str;
 
+            Node* c;
             if ((c = resolve(node,"basis_set"))) s.basisSet = c->data;
             if ((c = resolve(node,"truncation"))) s.truncation = c->data;
 
-            c = node->children;
+            auto i = node.children.begin();
+            auto e = node.children.end();
 
-            str = nextSpec(c);
-            if (str == "") throw BadValueError(path(node));
-            s.symbol = str;
+            if (!nextSpec(i, e)) throw BadValueError(node.fullName());
+            s.symbol = i->data; ++i;
 
-            str = nextSpec(c);
-            if (str == "") return s;
-            s.distanceFrom = Parser<int>::parse(str)-1;
+            if (!nextSpec(i, e)) return s;
+            s.distanceFrom = Parser<int>::parse(i->data)-1; ++i;
 
-            str = nextSpec(c);
-            if (str == "") throw BadValueError(path(node));
-            s.distance = Parser<double>::parse(str);
+            if (!nextSpec(i, e)) throw BadValueError(node.fullName());
+            s.distance = Parser<double>::parse(i->data); ++i;
 
-            str = nextSpec(c);
-            if (str == "") return s;
-            s.angleFrom = Parser<int>::parse(str)-1;
+            if (!nextSpec(i, e)) return s;
+            s.angleFrom = Parser<int>::parse(i->data)-1; ++i;
 
-            str = nextSpec(c);
-            if (str == "") throw BadValueError(path(node));
-            s.angle = Parser<double>::parse(str);
+            if (!nextSpec(i, e)) throw BadValueError(node.fullName());
+            s.angle = Parser<double>::parse(i->data); ++i;
 
-            str = nextSpec(c);
-            if (str == "") return s;
-            s.dihedralFrom = Parser<int>::parse(str)-1;
+            if (!nextSpec(i, e)) return s;
+            s.dihedralFrom = Parser<int>::parse(i->data)-1; ++i;
 
-            str = nextSpec(c);
-            if (str == "") throw BadValueError(path(node));
-            s.dihedral = Parser<double>::parse(str);
+            if (!nextSpec(i, e)) throw BadValueError(node.fullName());
+            s.dihedral = Parser<double>::parse(i->data);
 
             return s;
         }
@@ -139,61 +91,57 @@ class Config::Extractor<AtomZmatSpec>
 template<>
 class Config::Extractor<AtomCartSpec>
 {
-    public:
-        static AtomCartSpec extract(node_t* node, int which = 0)
+    protected:
+        static bool nextSpec(shared_list<Node>::iterator& i, shared_list<Node>::iterator end)
         {
-            std::string (*nextSpec)(Config::node_t*& c) = Config::Extractor<AtomZmatSpec>::nextSpec;
-            AtomCartSpec s;
-            node_t *c;
-            std::string str;
+            for (;i != end && (i->data == "basis_set" || i->data == "truncation");++i);
+            return (i != end);
+        }
 
+    public:
+        static AtomCartSpec extract(Node& node, int which = 0)
+        {
+            AtomCartSpec s;
+
+            Node* c;
             if ((c = resolve(node,"basis_set"))) s.basisSet = c->data;
             if ((c = resolve(node,"truncation"))) s.truncation = c->data;
 
-            c = node->children;
+            auto i = node.children.begin();
+            auto e = node.children.end();
 
-            str = nextSpec(c);
-            if (str == "") throw BadValueError(path(node));
-            s.symbol = str;
+            if (!nextSpec(i, e)) throw BadValueError(node.fullName());
+            s.symbol = i->data; ++i;
 
-            str = nextSpec(c);
-            if (str == "") throw BadValueError(path(node));
-            s.pos[0] = Parser<double>::parse(str);
+            if (!nextSpec(i, e)) throw BadValueError(node.fullName());
+            s.pos[0] = Parser<double>::parse(i->data); ++i;
 
-            str = nextSpec(c);
-            if (str == "") throw BadValueError(path(node));
-            s.pos[1] = Parser<double>::parse(str);
+            if (!nextSpec(i, e)) throw BadValueError(node.fullName());
+            s.pos[1] = Parser<double>::parse(i->data); ++i;
 
-            str = nextSpec(c);
-            if (str == "") throw BadValueError(path(node));
-            s.pos[2] = Parser<double>::parse(str);
+            if (!nextSpec(i, e)) throw BadValueError(node.fullName());
+            s.pos[2] = Parser<double>::parse(i->data); ++i;
 
-            str = nextSpec(c);
-            if (str != "")
-                s.charge_from_input = Parser<double>::parse(str);
+            if (nextSpec(i, e))
+                s.charge_from_input = Parser<double>::parse(i->data);
 
             return s;
         }
 };
 
-}
-}
-
-
-MoleculeTask::MoleculeTask(const std::string& name, const input::Config& config)
-: Task("molecule", name), config(config)
+MoleculeTask::MoleculeTask(const string& name, input::Config& config)
+: Task(name, config), config(config)
 {
     addProduct(Product("molecule", "molecule"));
 }
 
-void MoleculeTask::run(task::TaskDAG& dag, const Arena& arena)
+bool MoleculeTask::run(task::TaskDAG& dag, const Arena& arena)
 {
     put("molecule", new Molecule(config, arena));
+    return true;
 }
 
-REGISTER_TASK(MoleculeTask,"molecule");
-
-Molecule::Molecule(const Config& config, const Arena& arena)
+Molecule::Molecule(Config& config, const Arena& arena)
 {
     nelec = -config.get<int>("charge");
     multiplicity = config.get<int>("multiplicity");
@@ -227,7 +175,7 @@ Molecule::Molecule(const Config& config, const Arena& arena)
     }
 }
 
-void Molecule::initGeometry(const Config& config, vector<AtomCartSpec>& cartpos)
+void Molecule::initGeometry(Config& config, vector<AtomCartSpec>& cartpos)
 {
     bool angstrom = (config.get<string>("units") == "angstrom");
     bool zmat = (config.get<string>("coords") == "internal");
@@ -335,7 +283,7 @@ bool Molecule::isSymmetric(const vector<AtomCartSpec>& cartpos, const mat3x3& op
     return true;
 }
 
-void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
+void Molecule::initSymmetry(Config& config, vector<AtomCartSpec>& cartpos)
 {
     mat3x3 I;
 
@@ -1285,7 +1233,7 @@ void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
     }
 }
 
-void Molecule::initBasis(const Config& config, const vector<AtomCartSpec>& cartpos)
+void Molecule::initBasis(Config& config, const vector<AtomCartSpec>& cartpos)
 {
     bool contaminants = config.get<bool>("basis.contaminants");
     bool spherical = config.get<bool>("basis.spherical");
@@ -1375,3 +1323,55 @@ Molecule::const_shell_iterator Molecule::getShellsEnd() const
 {
     return const_shell_iterator(const_cast<Molecule&>(*this).getShellsEnd());
 }
+
+}
+}
+
+static const char* spec = R"(
+
+angstrom2bohr?
+    double 1.88972612456506198632428439,
+units?
+    enum { angstrom, bohr },
+coords?
+    enum { internal, cartesian },
+multiplicity?
+    int 1,
+charge?
+    int 0,
+subgroup?
+    enum
+    {
+        C1, full,
+        Cs, Ci, C2, C2v, C2h, D2, D2h,
+        C3, C4, C5, C6, C3v, C4v, C5v, C6v,
+        C3h, C4h, C5h, C6h, D3, D4, D5, D6,
+        D3h, D4h, D5h, D6h, S4, S6, Td, Oh, Ih
+    },
+atom+
+{
+    basis_set? string,
+    truncation? string,
+    # ZMAT specification, e.g. H 2 R 1 A
+    # or xyz position
+    *+
+},
+basis?
+{
+    contaminants?
+        bool false,
+    spherical?
+        bool true,
+    basis_set? string,
+    truncation*
+    {
+        # elements affected, e.g. H-Ne
+        *,
+        # same format as molecule.atom.truncation
+        *
+    }
+}
+
+)";
+
+REGISTER_TASK(aquarius::input::MoleculeTask,"molecule",spec);

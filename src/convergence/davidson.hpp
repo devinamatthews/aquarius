@@ -1,42 +1,11 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_DAVIDSON_HPP_
 #define _AQUARIUS_DAVIDSON_HPP_
 
-#include "util/stl_ext.hpp"
+#include "util/global.hpp"
+
 #include "input/config.hpp"
-#include "util/lapack.h"
-#include "util/util.h"
 #include "task/task.hpp"
 #include "operator/denominator.hpp"
-
-#include <vector>
-#include <cassert>
-#include <algorithm>
-#include <cfloat>
-#include <limits>
 
 namespace aquarius
 {
@@ -48,7 +17,7 @@ namespace
 
 template <typename T> bool absGreaterThan(const T& a, const T& b)
 {
-    return std::abs(a) > std::abs(b);
+    return abs(a) > abs(b);
 }
 
 }
@@ -63,19 +32,19 @@ class Davidson : public task::Destructible
 
     protected:
         typedef typename T::dtype dtype;
-        std::vector< std::unique_vector<T> > old_c; // hold all R[k][i] where i is over nvec and k is over maxextrap
-        std::vector< std::unique_vector<T> > old_hc; // hold all H*R[i] = Z[i] at every iteration aka Z[k][i]
-        std::unique_vector<T> guess;
-        std::tensor<dtype,3> guess_overlap;
-        std::tensor<dtype,4> s, e; // e will hold chc[k]
-        std::vector<dtype> c;
+        vector<unique_vector<T>> old_c; // hold all R[k][i] where i is over nvec and k is over maxextrap
+        vector<unique_vector<T>> old_hc; // hold all H*R[i] = Z[i] at every iteration aka Z[k][i]
+        unique_vector<T> guess;
+        marray<dtype,3> guess_overlap;
+        marray<dtype,4> s, e; // e will hold chc[k]
+        vector<dtype> c;
         int nvec, maxextrap, nextrap; // number of energies, number of iterations
-        std::vector<int> mode;
-        std::vector<dtype> target;
-        std::vector<dtype> previous;
-        std::vector<int> root;
-        std::vector<typename std::complex_type<dtype>::type> l;
-        std::tensor<dtype,3> vr;
+        vector<int> mode;
+        vector<dtype> target;
+        vector<dtype> previous;
+        vector<int> root;
+        vector<typename complex_type<dtype>::type> l;
+        marray<dtype,3> vr;
 
         enum {GUESS_OVERLAP, LOWEST_ENERGY, CLOSEST_ENERGY};
 
@@ -109,16 +78,16 @@ class Davidson : public task::Destructible
         : nvec(1), mode(1,CLOSEST_ENERGY), target(1,target), previous(1)
         { init(config); }
 
-        Davidson(const input::Config& config, std::vector<dtype>&& target)
+        Davidson(const input::Config& config, vector<dtype>&& target)
         : nvec(target.size()), mode(target.size(),CLOSEST_ENERGY),
-          target(std::forward<std::vector<dtype>>(target)), previous(target.size())
+          target(forward<vector<dtype>>(target)), previous(target.size())
         { init(config); }
 
         Davidson(const input::Config& config, T&& guess)
-        : guess(1,std::forward<T>(guess)), nvec(1), mode(1,GUESS_OVERLAP), target(1), previous(1)
+        : guess(1,forward<T>(guess)), nvec(1), mode(1,GUESS_OVERLAP), target(1), previous(1)
         { init(config); }
 
-        Davidson(const input::Config& config, std::unique_vector<T>&& guess)
+        Davidson(const input::Config& config, unique_vector<T>&& guess)
         : guess(move(guess)), nvec(guess.size()), mode(guess.size(),GUESS_OVERLAP),
           target(guess.size()), previous(guess.size())
         { init(config); }
@@ -150,16 +119,14 @@ class Davidson : public task::Destructible
         dtype extrapolate(T& c, T& hc, const op::Denominator<dtype>& D)
         {
             assert(nvec == 1);
-            return extrapolate(std::ptr_vector<T>{&c}, std::ptr_vector<T>{&hc}, D)[0];
+            return extrapolate(ptr_vector<T>{&c}, ptr_vector<T>{&hc}, D)[0];
         }
 
         template <typename c_container, typename hc_container>
-        std::vector<dtype> extrapolate(c_container& c, hc_container& hc, const op::Denominator<dtype>& D)
+        vector<dtype> extrapolate(c_container&& c, hc_container&& hc, const op::Denominator<dtype>& D)
         {
-            using namespace std;
-
-            // std::cout << setprecision(10) <<"Inf Norm hc = " << hc[0]->norm(00) << std::endl;
-            // std::cout << setprecision(10) <<"Inf Norm c = " << c[0]->norm(00) << std::endl;
+            // cout << setprecision(10) <<"Inf Norm hc = " << hc[0]->norm(00) << endl;
+            // cout << setprecision(10) <<"Inf Norm c = " << c[0]->norm(00) << endl;
 
             assert(nvec == c.size() && nvec == hc.size());
 
@@ -171,7 +138,7 @@ class Davidson : public task::Destructible
              */
             for (int i = 0;i < nvec;i++)
             {
-                double norm = sqrt(std::abs(scalar(conj(c[i])*c[i])));
+                double norm = sqrt(abs(scalar(conj(c[i])*c[i])));
 
                 c[i] /= norm;
                 hc[i] /= norm;
@@ -234,7 +201,7 @@ class Davidson : public task::Destructible
                     //    vector<int64_t> keys = range<int64_t>(5*19);
                     //    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
                     //           absGreaterThan<dtype>);
-                    //    //printf("Badness old c %d %d %d %15.12g\n", i+1, i+1, nextrap+1, std::abs(values[19-4*i]));
+                    //    //printf("Badness old c %d %d %d %15.12g\n", i+1, i+1, nextrap+1, abs(values[19-4*i]));
                     //}
                 }
             }
@@ -258,7 +225,7 @@ class Davidson : public task::Destructible
                     //    vector<int64_t> keys = range<int64_t>(5*19);
                     //    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
                     //           absGreaterThan<dtype>);
-                    //    //printf("Badness old hc %d %d %d %15.12g\n", i+1, i+1, nextrap+1, std::abs(values[19-4*i]));
+                    //    //printf("Badness old hc %d %d %d %15.12g\n", i+1, i+1, nextrap+1, abs(values[19-4*i]));
                     //}
                 }
             }
@@ -283,7 +250,7 @@ class Davidson : public task::Destructible
                 {
                     for (int j = 0;j < nvec;j++)
                     {
-                        guess_overlap[i][nextrap][j] = std::abs(scalar(conj(c[i])*guess[j]));
+                        guess_overlap[i][nextrap][j] = abs(scalar(conj(c[i])*guess[j]));
                     }
                 }
 
@@ -312,10 +279,10 @@ class Davidson : public task::Destructible
              * Diagonalize the subspace matrix to obtain approximate solutions
              */
             int info;
-            std::vector<dtype> beta(nvec*nextrap);
-            std::tensor<dtype,4> tmp1({nvec,nextrap,nvec,nextrap});
-            std::tensor<dtype,4> tmp2({nvec,nextrap,nvec,nextrap});
-            std::tensor<dtype,3> tmp3({nvec,nextrap,nvec*nextrap});
+            vector<dtype> beta(nvec*nextrap);
+            marray<dtype,4> tmp1({nvec,nextrap,nvec,nextrap});
+            marray<dtype,4> tmp2({nvec,nextrap,nvec,nextrap});
+            marray<dtype,3> tmp3({nvec,nextrap,nvec*nextrap});
 
             for (int m = 0;m < nextrap;m++)
             {
@@ -340,7 +307,7 @@ class Davidson : public task::Destructible
             info = geev('N', 'V', nextrap*nvec, tmp1.data(), nextrap*nvec,
                         l.data(), NULL, 1,
                         tmp3.data(), nextrap*nvec);
-            if (info != 0) throw std::runtime_error(std::strprintf("davidson: Info in ggev: %d", info));
+            if (info != 0) throw runtime_error(strprintf("davidson: Info in ggev: %d", info));
 
             for (int k = 0;k < nvec*nextrap;k++)
             {
@@ -359,15 +326,15 @@ class Davidson : public task::Destructible
             for (int i = 0;i < nextrap*nvec;i++)
             {
                 //l[i] /= beta[i];
-                // printf("%15.12f\n", std::real(l[i]));
+                // printf("%15.12f\n", real(l[i]));
 
                 for (int m = 0;m < nextrap;m++)
                 {
                     for (int k = 0;k < nvec;k++)
                     {
-                        if (std::abs(vr[k][m][i]) > 1e-10)
+                        if (abs(vr[k][m][i]) > 1e-10)
                         {
-                            if (std::real(vr[k][m][i]) < 0)
+                            if (real(vr[k][m][i]) < 0)
                             {
                                 scal(nextrap*nvec, -1, &vr[0][0][i], 1);
                             }
@@ -378,14 +345,14 @@ class Davidson : public task::Destructible
                 }
             }
 
-            // std::cout << "evec check:" << std::endl;
+            // cout << "evec check:" << endl;
             //  for (int i = 0;i < nextrap*nvec;i++)
             // {
             //     for (int m = 0;m < nextrap;m++)
             //     {
             //         for (int k = 0;k < nvec;k++)
             //         {
-            //             std::cout << vr[k][m][i] << std::endl;
+            //             cout << vr[k][m][i] << endl;
             //         }
             //     }
             // }
@@ -397,12 +364,12 @@ class Davidson : public task::Destructible
             {
                 root[j] = -1;
 
-                dtype crit = std::numeric_limits<dtype>::max();
-                dtype mincrit = std::numeric_limits<dtype>::max();
+                dtype crit = numeric_limits<dtype>::max();
+                dtype mincrit = numeric_limits<dtype>::max();
 
                 for (int i = 0;i < nextrap*nvec;i++)
                 {
-                    //if (j == 0) printf("%15.12f\n", std::real(l[i]));
+                    //if (j == 0) printf("%15.12f\n", real(l[i]));
 
                     bool found = false;
                     for (int k = 0;k < j;k++)
@@ -420,14 +387,14 @@ class Davidson : public task::Destructible
                                     crit -= vr[k][m][i]*guess_overlap[k][m][j];
                             break;
                         case LOWEST_ENERGY:
-                            crit = std::real(l[i]);
+                            crit = real(l[i]);
                             break;
                         case CLOSEST_ENERGY:
-                            crit = std::abs(std::real(l[i])-target[j]);
+                            crit = abs(real(l[i])-target[j]);
                             break;
                     }
 
-                    if (crit < mincrit && std::abs(std::imag(l[i])) < 1e-12)
+                    if (crit < mincrit && abs(imag(l[i])) < 1e-12)
                     {
                         mincrit = crit;
                         root[j] = i;
@@ -437,13 +404,13 @@ class Davidson : public task::Destructible
                 assert(root[j] != -1);
 
                 if (nextrap > 1 && mode[j] != CLOSEST_ENERGY &&
-                    std::abs(previous[j]-std::real(l[root[j]])) < 1e-4)
+                    abs(previous[j]-real(l[root[j]])) < 1e-4)
                 {
                     cout << "Locking root " << (j+1) << endl;
                     mode[j] = CLOSEST_ENERGY;
-                    target[j] = std::real(l[root[j]]);
+                    target[j] = real(l[root[j]]);
                 }
-                previous[j] = std::real(l[root[j]]);
+                previous[j] = real(l[root[j]]);
             }
 
             /*
@@ -466,8 +433,8 @@ class Davidson : public task::Destructible
                     }
                 }
 
-                // std::cout << setprecision(10) <<"Inf Norm hc = " << hc[j]->norm(00) << std::endl;
-                // std::cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << std::endl;
+                // cout << setprecision(10) <<"Inf Norm hc = " << hc[j]->norm(00) << endl;
+                // cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << endl;
 
                 // so now c is V*y = x and hc is A*V*y = A*x
 
@@ -485,7 +452,7 @@ class Davidson : public task::Destructible
                 //         int ii = keys[k]/19+1;
                 //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
                 //     }
-                //     printf("Badness     c %d %15.12g\n", j+1, std::abs(values[19-4*j]));
+                //     printf("Badness     c %d %15.12g\n", j+1, abs(values[19-4*j]));
                 // }
                 // printf("Norm H*c %d %15.12f\n", j+1, (*hc[j])(1)({1,0},{0,1}).norm(2));
                 // {
@@ -501,15 +468,15 @@ class Davidson : public task::Destructible
                 //         int ii = keys[k]/19+1;
                 //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
                 //     }
-                //     printf("Badness   H*c %d %15.12g\n", j+1, std::abs(values[19-4*j]));
+                //     printf("Badness   H*c %d %15.12g\n", j+1, abs(values[19-4*j]));
                 // }
-                hc[j] -= std::real(l[root[j]])*c[j];
-                // std::cout << setprecision(10) <<"Inf Norm hc = " << hc[j]->norm(00) << std::endl;
+                hc[j] -= real(l[root[j]])*c[j];
+                // cout << setprecision(10) <<"Inf Norm hc = " << hc[j]->norm(00) << endl;
 
                 // now hc = A*x - mu*x = -r
 
                 c[j] = -hc[j]; // This is what we norm to determine convergence, which is r, makes sense.
-                // std::cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << std::endl;
+                // cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << endl;
                 // printf("Norm r %d %15.12f\n", j+1, (*c[j])(1)({1,0},{0,1}).norm(2));
                 // {
                 //     vector<dtype> values;
@@ -524,10 +491,10 @@ class Davidson : public task::Destructible
                 //         int ii = keys[k]/19+1;
                 //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
                 //     }
-                //     printf("Badness     r %d %15.12g\n", j+1, std::abs(values[19-4*j]));
+                //     printf("Badness     r %d %15.12g\n", j+1, abs(values[19-4*j]));
                 // }
-                c[j].weight(D, std::real(l[root[j]])); // Look into weight function
-                // std::cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << std::endl;
+                c[j].weight(D, real(l[root[j]])); // Look into weight function
+                // cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << endl;
                 // printf("Norm d %d %15.12f\n", j+1, (*c[j])(1)({1,0},{0,1}).norm(2));
                 // {
                 //     vector<dtype> values;
@@ -542,10 +509,10 @@ class Davidson : public task::Destructible
                 //         int ii = keys[k]/19+1;
                 //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
                 //     }
-                //     printf("Badness     d %d %15.12g\n", j+1, std::abs(values[19-4*j]));
+                //     printf("Badness     d %d %15.12g\n", j+1, abs(values[19-4*j]));
                 // }
 
-                c[j] /= sqrt(std::abs(scalar(conj(c[j])*c[j])));
+                c[j] /= sqrt(abs(scalar(conj(c[j])*c[j])));
 
                 //if (scalar((*c[j])(1)({1,0},{0,1})*(*c[j])(1)({0,0},{0,0})) < 0)
                 //{
@@ -589,9 +556,9 @@ class Davidson : public task::Destructible
                     }
                 }
 
-                c[j] /= sqrt(std::abs(scalar(conj(c[j])*c[j])));
+                c[j] /= sqrt(abs(scalar(conj(c[j])*c[j])));
 
-                // std::cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << std::endl;
+                // cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << endl;
 
                 // printf("Norm new c %d %15.12f\n", j+1, (*c[j])(1)({1,0},{0,1}).norm(2));
                 // {
@@ -608,13 +575,13 @@ class Davidson : public task::Destructible
                 //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
                 //     }
 
-                //     printf("Badness new c %d %15.12g\n", j+1, std::abs(values[19-4*j]));
+                //     printf("Badness new c %d %15.12g\n", j+1, abs(values[19-4*j]));
                 // }
             }
 
-            std::vector<dtype> myreturn(nvec);
+            vector<dtype> myreturn(nvec);
             for (int i = 0; i < nvec; i++)
-                myreturn[i] = std::real(l[root[i]]);
+                myreturn[i] = real(l[root[i]]);
 
             return myreturn;
         }

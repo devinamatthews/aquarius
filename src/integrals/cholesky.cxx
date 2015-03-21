@@ -1,39 +1,17 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #include "cholesky.hpp"
 
-using namespace std;
-using namespace aquarius;
 using namespace aquarius::tensor;
 using namespace aquarius::input;
-using namespace aquarius::integrals;
 using namespace aquarius::task;
 using namespace aquarius::symmetry;
 
+namespace aquarius
+{
+namespace integrals
+{
+
 template <typename T>
-CholeskyIntegrals<T>::CholeskyIntegrals(const Arena& arena, const Context& ctx, const Config& config, const Molecule& molecule)
+CholeskyIntegrals<T>::CholeskyIntegrals(const Arena& arena, const Context& ctx, Config& config, const Molecule& molecule)
 : Distributed(arena),
   molecule(molecule),
   ctx(ctx),
@@ -50,17 +28,10 @@ CholeskyIntegrals<T>::CholeskyIntegrals(const Arena& arena, const Context& ctx, 
 }
 
 template <typename T>
-CholeskyIntegrals<T>::~CholeskyIntegrals()
-{
-    delete D;
-    delete L;
-}
-
-template <typename T>
 void CholeskyIntegrals<T>::test()
 {
     const PointGroup& group = molecule.getGroup();
-    SymmetryBlockedTensor<T> LD("LD", this->arena, group, 3, {{nfunc},{nfunc},{rank}}, {SY,NS,NS}, false);
+    SymmetryBlockedTensor<T> LD("LD", this->arena, group, 3, {{nfunc},{nfunc},{ndiag}}, {SY,NS,NS}, false);
     SymmetryBlockedTensor<T> ints("V", this->arena, group, 4, {{nfunc},{nfunc},{nfunc},{nfunc}}, {NS,NS,NS,NS}, false);
 
     LD["pqJ"] = (*L)["pqJ"]*(*D)["J"];
@@ -102,7 +73,7 @@ void CholeskyIntegrals<T>::test()
                         }
                     }
 
-                    if (rank == 0)
+                    if (arena.rank == 0)
                     {
                         ints(0).getRemoteData(pairs);
 
@@ -137,7 +108,7 @@ void CholeskyIntegrals<T>::test()
         m += shells[i].getNFunc()*shells[i].getNContr();
     }
 
-    if (rank == 0)
+    if (arena.rank == 0)
     {
         err = sqrt(err / ndiag / ndiag);
         printf("RMS error: %.15e\n\n", err);
@@ -163,7 +134,7 @@ void CholeskyIntegrals<T>::decompose()
     int nblock_local = 0;
     for (int elem = 0;;)
     {
-        int block = rank+nblock_local*nproc;
+        int block = arena.rank+nblock_local*arena.size;
 
         if (block >= nblock) break;
 
@@ -184,7 +155,7 @@ void CholeskyIntegrals<T>::decompose()
         fill(block_data[block], block_data[block]+block_size[block]*ndiag, 0.0);
     }
 
-    arena.Allreduce(&max_block_size, 1, MPI::MAX);
+    arena.Allreduce(&max_block_size, 1, MPI_MAX);
 
     //for (l = 0;l < ndiag;l++)
     //{
@@ -214,15 +185,15 @@ void CholeskyIntegrals<T>::decompose()
         //printf("max block: %d\n", max_block);
         //printf("max elem: %e\n", local_max);
 
-        arena.Allreduce(&converged, 1, MPI::BAND);
+        arena.Allreduce(&converged, 1, MPI_BAND);
         if (converged) break;
 
-        T* maxes = new T[nproc];
-        arena.Allgather(&local_max, maxes, 1);
+        vector<T> maxes(arena.size);
+        arena.Allgather(&local_max, maxes);
 
         int pmax = 0;
         T global_max = 0;
-        for (int p = 0;p < nproc;p++)
+        for (int p = 0;p < arena.size;p++)
         {
             if (maxes[p] > global_max)
             {
@@ -231,12 +202,10 @@ void CholeskyIntegrals<T>::decompose()
             }
         }
 
-        delete[] maxes;
-
         int old_rank = nvec;
         int nactive;
 
-        if (pmax == rank)
+        if (pmax == arena.rank)
         {
             //cout << "Decomposing block " << rank+max_block*nproc << endl;
 
@@ -247,16 +216,16 @@ void CholeskyIntegrals<T>::decompose()
         }
 
         arena.Bcast(&nvec, 1, pmax);
-        if (rank == old_rank) continue;
+        if (nvec == old_rank) continue;
 
         arena.Bcast(&nactive, 1, pmax);
         arena.Bcast(tmp_block_data, nactive*ndiag, pmax);
-        arena.Bcast(tmp_diag, nactive*sizeof(diag_elem_t), pmax, MPI::BYTE);
+        arena.Bcast(tmp_diag, nactive*sizeof(diag_elem_t), pmax, MPI_BYTE);
         arena.Bcast(D+old_rank, nvec-old_rank, pmax);
 
         for (int next_block = 0;next_block < nblock_local;next_block++)
         {
-            if (next_block == max_block && rank == pmax) continue;
+            if (next_block == max_block && arena.rank == pmax) continue;
 
             updateBlock(old_rank, block_size[next_block], block_data[next_block], diag+block_start[next_block],
                                   nactive,                tmp_block_data,         tmp_diag,                     D);
@@ -278,7 +247,7 @@ void CholeskyIntegrals<T>::decompose()
     this->D = new SymmetryBlockedTensor<T>("D", this->arena, group, 1, {{nvec}}, {NS}, false);
     this->L = new SymmetryBlockedTensor<T>("L", this->arena, group, 3, {{nfunc},{nfunc},{nvec}}, {SY,NS,NS}, false);
 
-    if (rank == 0)
+    if (arena.rank == 0)
     {
         vector<tkv_pair<T> > pairs(nvec);
         for (int i = 0;i < nvec;i++)
@@ -619,7 +588,7 @@ void CholeskyIntegrals<T>::decomposeBlock(int block_size, T* L_, T* D, diag_elem
 
         //printf("updating L[%d][%d] (out of %d %d, addr=0x%x)\n", rank, elem, ndiag, block_size, L_);
         L[elem][nvec] = 1.0;
-        D[rank] = diag[elem].elem;
+        D[nvec] = diag[elem].elem;
 
         #pragma omp parallel for schedule(dynamic) default(shared)
         for (int row = 0;row < block_size;row++)
@@ -782,3 +751,6 @@ T CholeskyIntegrals<T>::testBlock(const DenseTensor<T>& block, const Shell& a, c
 }
 
 INSTANTIATE_SPECIALIZATIONS(CholeskyIntegrals);
+
+}
+}

@@ -1,44 +1,7 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_INPUT_CONFIG_HPP_
 #define _AQUARIUS_INPUT_CONFIG_HPP_
 
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <fstream>
-#include <vector>
-#include <list>
-#include <iterator>
-#include <utility>
-#include <stdexcept>
-#include <exception>
-#include <cstring>
-#include <strings.h>
-
-#include "util/stl_ext.hpp"
+#include "util/global.hpp"
 
 namespace aquarius
 {
@@ -48,45 +11,45 @@ namespace input
 class Config;
 class Schema;
 
-class EntryNotFoundError : public std::runtime_error
+class EntryNotFoundError : public runtime_error
 {
     public:
-        EntryNotFoundError(const std::string& what_arg) : runtime_error(what_arg) {}
+        EntryNotFoundError(const string& what_arg) : runtime_error(what_arg) {}
 };
 
-class NoValueError : public std::runtime_error
+class NoValueError : public runtime_error
 {
     public:
-        NoValueError(const std::string& what_arg) : runtime_error(what_arg) {}
+        NoValueError(const string& what_arg) : runtime_error(what_arg) {}
 };
 
-class BadValueError : public std::runtime_error
+class BadValueError : public runtime_error
 {
     public:
         BadValueError() : runtime_error("bad value") {}
 
-        BadValueError(const std::string& what_arg) : runtime_error(what_arg) {}
+        BadValueError(const string& what_arg) : runtime_error(what_arg) {}
 };
 
-class SchemaValidationError : public std::runtime_error
+class SchemaValidationError : public runtime_error
 {
     public:
-        SchemaValidationError(const std::string& what_arg) : runtime_error(what_arg) {}
+        SchemaValidationError(const string& what_arg) : runtime_error(what_arg) {}
 };
 
-class FormatError : public std::runtime_error
+class FormatError : public runtime_error
 {
     private:
-        static std::string buildString(const std::string& what_arg, const int lineno)
+        static string buildString(const string& what_arg, const int lineno)
         {
-            std::string s;
-            std::ostringstream os(s);
+            string s;
+            ostringstream os(s);
             os << what_arg << ": line " << lineno;
             return s;
         }
 
     public:
-        FormatError(const std::string& what_arg, const int lineno)
+        FormatError(const string& what_arg, const int lineno)
         : runtime_error(buildString(what_arg, lineno)) {}
 };
 
@@ -98,141 +61,140 @@ class Config
         enum {ALL=-1};
 
     protected:
-        struct node_t
+        struct Node
         {
-            std::string data;
-            node_t *parent;
-            node_t *children;
-            node_t *next;
-            node_t *prev;
-            int ref_count;
-            node_t() : parent(NULL), children(NULL), next(NULL), prev(NULL), ref_count(0) {}
-            node_t(const std::string data, node_t* parent, node_t* children, node_t* next, node_t* prev, const int ref_count)
-            : data(data), parent(parent), children(children), next(next), prev(prev), ref_count(ref_count) {}
+            string data;
+            Node *parent;
+            shared_list<Node> children;
+
+            Node() : parent(NULL) {}
+
+            string path() const;
+
+            string fullName() const;
+
+            shared_ptr<Node> clone() const;
+
+            void write(ostream& os, int level = 0) const;
+
+            shared_list<Node>::iterator getChild(int which);
+
+            shared_list<Node>::iterator addChild(const string& data = string());
+
+            void removeChild(const Node& child);
         };
-        node_t* root;
 
-        Config(node_t* node);
+        friend ostream& operator<<(ostream& os, const Node& node);
 
-        std::string fullName(node_t *node) const;
+        shared_ptr<Node> root;
 
-        node_t* cloneNode(node_t* node) const;
+        Config(const shared_ptr<Node>& node) : root(node) {}
 
-        void attachNode(node_t* node);
+        Config(shared_ptr<Node>&& node) : root(move(node)) {}
 
-        void detachNode(node_t* node);
+        static Node* resolve(Node& start, const string& path, bool create = false);
 
-        void deleteNode(node_t* node);
-
-        static node_t* resolve(node_t* start, const std::string& path, const bool create = false);
-
-        void writeNode(std::ostream& os, const node_t* n, const int level) const;
-
-        std::string readEntry(std::istream& is, std::string& line, int& lineno);
-
-        node_t* addNode(node_t* parent, const std::string& data);
-
-        void addNode(node_t* parent, node_t* child);
+        string readEntry(istream& is, string& line, int& lineno);
 
         template<typename T>
-        void emit(std::ostream& os, T& x) const;
+        void emit(ostream& os, T& x) const;
 
         template<typename T>
-        void emit(std::ostream& os, std::vector<T>& x) const;
+        void emit(ostream& os, vector<T>& x) const;
 
         template<typename T>
         class Parser
         {
             public:
-                static T parse(std::istream& is);
-                static T parse(std::string& s);
+                static T parse(istream& is);
+                static T parse(string& s);
         };
 
         template<typename T>
         class Extractor
         {
             public:
-                static T extract(node_t* node, int which = 0);
+                static T extract(Node& node, int which = 0);
         };
 
         bool matchesWithGlobs(const char* str, const char* pat) const;
 
         template<typename T>
-        void find(node_t* node, const std::string name, const std::string pattern, std::vector< std::pair<std::string,T> >& v) const;
-
-        static std::string path(node_t* node);
+        void find(Node& node, const string& name, const string& pattern, vector<pair<string,T>>& v) const;
 
     public:
-        Config();
 
-        Config(std::istream& is);
+        Config() : root(new Node()) {}
 
-        Config(const std::string& file);
+        Config(const Config& config) = default;
 
-        Config(const Config& copy);
+        Config(Config&& config) = default;
 
-        ~Config();
+        Config(istream& is);
+
+        Config(const string& s);
 
         Config clone() const;
 
-        Config& operator=(const Config& copy);
+        Config& operator=(const Config& copy) = default;
 
-        bool exists(const std::string& path) const { return resolve(root, path) != NULL; }
+        Config& operator=(Config&& copy) = default;
 
-        void remove(const std::string& path)
+        bool exists(const string& path) const
         {
-            node_t* node = resolve(root,path);
+            return resolve(*root, path) != NULL;
+        }
+
+        void remove(const string& path)
+        {
+            Node* node = resolve(*root, path);
             if (node == NULL) throw EntryNotFoundError(path);
-            deleteNode(node);
+            node->parent->removeChild(*node);
         }
 
         template<typename T>
-        T get(const std::string& path, const int which = 0) const;
+        T get(const string& path, int which = 0) const;
 
         template<typename T>
-        void set(const std::string& path, const T& data, const int which = 0, const bool create = true);
+        void set(const string& path, const T& data, const int which = 0, const bool create = true);
 
         template<typename T>
-        std::vector< std::pair<std::string,T> > find(const std::string& pattern) const;
+        vector< pair<string,T> > find(const string& pattern) const;
 
-        void read(const std::string& cwd, std::istream& is);
+        void read(const string& cwd, istream& is);
 
-        void read(const std::string& file);
+        void read(const string& file);
 
-        void write(std::ostream& os = std::cout) const;
+        void write(ostream& os = cout) const;
 
-        void write(const std::string& file) const;
+        void write(const string& file) const;
 
-        Config get(const std::string& path, int which = 0);
+        Config get(const string& path);
 
-        const Config get(const std::string& path, int which = 0) const;
-
-        std::vector< std::pair<std::string,Config> > find(const std::string& pattern);
-
-        std::vector< std::pair<std::string,const Config> > find(const std::string& pattern) const;
+        vector<pair<string,Config>> find(const string& pattern);
 };
 
 class Schema : public Config
 {
     private:
-        bool isPrimitive(const node_t* schema) const;
+        bool isPrimitive(const Node& schema) const;
 
-        bool isInt(const std::string& data) const;
+        bool isInt(const string& data) const;
 
-        bool isDouble(const std::string& data) const;
+        bool isDouble(const string& data) const;
 
-        bool isBool(const std::string& data) const;
+        bool isBool(const string& data) const;
 
-        bool hasDefault(const node_t* schema) const;
+        bool hasDefault(const Node& schema) const;
 
-        void apply(Config& config, const node_t* schema, node_t* root) const;
+        void apply(const Node& schema, Node& root) const;
 
     public:
         Schema() : Config() {}
 
-        Schema(std::istream& is) : Config(is) {}
+        Schema(istream& is) : Config(is) {}
 
-        Schema(const std::string& file) : Config(file) {}
+        Schema(const string& s) : Config(s) {}
 
         Schema(Config& copy) : Config(copy) {}
 
@@ -240,21 +202,21 @@ class Schema : public Config
 };
 
 template<typename S>
-class Config::Parser< std::vector<S> >
+class Config::Parser< vector<S> >
 {
     public:
-    static std::vector<S> parse(std::istream& is)
+    static vector<S> parse(istream& is)
     {
-        std::vector<S> x;
+        vector<S> x;
         char delim;
 
-        if (!(is >> std::skipws >> delim)) throw BadValueError();
+        if (!(is >> skipws >> delim)) throw BadValueError();
         if (delim != '[') throw BadValueError();
 
         while (true)
         {
             x.push_back(Parser<S>::parse(is));
-            if (!(is >> std::skipws >> delim)) throw BadValueError();
+            if (!(is >> skipws >> delim)) throw BadValueError();
             if (delim == ']') break;
             if (delim != ',') throw BadValueError();
         }
@@ -267,11 +229,11 @@ template<>
 class Config::Parser<bool>
 {
     public:
-    static bool parse(std::istream& is);
+    static bool parse(istream& is);
 };
 
 template<typename T>
-T Config::Parser<T>::parse(std::istream& is)
+T Config::Parser<T>::parse(istream& is)
 {
     T x;
     if (!(is >> x)) throw BadValueError();
@@ -279,34 +241,32 @@ T Config::Parser<T>::parse(std::istream& is)
 }
 
 template<typename T>
-T Config::Parser<T>::parse(std::string& s)
+T Config::Parser<T>::parse(string& s)
 {
-    std::istringstream iss(s);
+    istringstream iss(s);
     return parse(iss);
 }
 
 template<typename S>
-class Config::Extractor< std::vector<S> >
+class Config::Extractor< vector<S> >
 {
     public:
-    static std::vector<S> extract(node_t* node, int which = 0)
+    static vector<S> extract(Node& node, int which = 0)
     {
         if (which != ALL)
         {
-            // attempt to follow the linked list to the 'which'th element
-            for (node = node->children;node != NULL && which > 0;node = node->next, which--);
-            if (node == NULL) throw NoValueError(path(node));
+            auto i = node.getChild(which);
+            if (i == node.children.end()) throw NoValueError(node.fullName());
 
-            std::istringstream iss(node->data);
-            return Parser< std::vector<S> >::parse(iss);
+            istringstream iss(i->data);
+            return Parser< vector<S> >::parse(iss);
         }
         else
         {
-            std::vector<S> v;
-            int i = 0;
-            for (node = node->children;node != NULL;node = node->next)
+            vector<S> v;
+            for (int i = 0;i < node.children.size();i++)
             {
-                v.push_back(Extractor<S>::extract(node->parent, i++));
+                v.push_back(Extractor<S>::extract(node, i));
             }
             return v;
         }
@@ -314,34 +274,33 @@ class Config::Extractor< std::vector<S> >
 };
 
 template<>
-class Config::Extractor<std::string>
+class Config::Extractor<string>
 {
     public:
-    static std::string extract(node_t* node, int which = 0);
+    static string extract(Node& node, int which = 0);
 };
 
 template<>
 class Config::Extractor<Config>
 {
     public:
-    static Config extract(node_t* node, int which = 0);
+    static Config extract(Node& node, int which = 0);
 };
 
 template<typename T>
-T Config::Extractor<T>::extract(node_t* node, int which)
+T Config::Extractor<T>::extract(Node& node, int which)
 {
-    // attempt to follow the linked list to the 'which'th element
-    for (node = node->children;node != NULL && which > 0;node = node->next, which--);
-    if (node == NULL) throw NoValueError(path(node));
+    auto i = node.getChild(which);
+    if (i == node.children.end()) throw NoValueError(node.fullName());
 
-    std::istringstream iss(node->data);
+    istringstream iss(i->data);
     return Parser<T>::parse(iss);
 }
 
 template<typename T>
-void Config::emit(std::ostream& os, std::vector<T>& x) const
+void Config::emit(ostream& os, vector<T>& x) const
 {
-    typename std::vector<T>::iterator i;
+    typename vector<T>::iterator i;
 
     if (!(os << '[')) throw BadValueError();
     for (i = x.begin();i != x.end();)
@@ -356,40 +315,38 @@ void Config::emit(std::ostream& os, std::vector<T>& x) const
 }
 
 template<typename T>
-void Config::emit(std::ostream& os, T& x) const
+void Config::emit(ostream& os, T& x) const
 {
     if (!(os << x)) throw BadValueError();
 }
 
 template<typename T>
-T Config::get(const std::string& path, const int which) const
+T Config::get(const string& path, int which) const
 {
-    node_t* n = resolve(root, path);
+    Node* n = resolve(*root, path);
     if (n == NULL) throw EntryNotFoundError(path);
-    return Extractor<T>::extract(n, which);
+    return Extractor<T>::extract(*n, which);
 }
 
 template<>
-void Config::set<std::string>(const std::string& path, const std::string& data, const int which, const bool create);
+void Config::set<string>(const string& path, const string& data, int which, bool create);
 
 template<typename T>
-void Config::set(const std::string& path, const T& data, const int which, const bool create)
+void Config::set(const string& path, const T& data, int which, bool create)
 {
-    std::string s;
-    emit(std::ostringstream(s), data);
+    string s;
+    emit(ostringstream(s), data);
     set(path, s, create);
 }
 
 template<typename T>
-void Config::find(node_t* node, const std::string name, const std::string pattern, std::vector< std::pair<std::string,T> >& v) const
+void Config::find(Node& node, const string& name, const string& pattern, vector< pair<string,T> >& v) const
 {
-    node_t* c;
-    std::string toMatch;
-    std::string remainder;
-    size_t pos;
+    string toMatch;
+    string remainder;
 
-    pos = pattern.find('.');
-    if (pos == std::string::npos)
+    size_t pos = pattern.find('.');
+    if (pos == string::npos)
     {
         toMatch = pattern;
     }
@@ -399,34 +356,27 @@ void Config::find(node_t* node, const std::string name, const std::string patter
         remainder = pattern.substr(pos+1);
     }
 
-    for (c = node->children;c;c = c->next)
+    for (Node& c : node.children)
     {
-        if (matchesWithGlobs(c->data.c_str(), toMatch.c_str()))
+        if (matchesWithGlobs(c.data.c_str(), toMatch.c_str()))
         {
-            if (pos == std::string::npos)
+            if (pos == string::npos)
             {
-                v.push_back(std::make_pair(name + c->data, Extractor<T>::extract(c)));
+                v.push_back(make_pair(name + c.data, Extractor<T>::extract(c)));
             }
             else
             {
-                if (name == "")
-                {
-                    find(c, c->data + ".", remainder, v);
-                }
-                else
-                {
-                    find(c, name + c->data + ".", remainder, v);
-                }
+                find(c, name + c.data + ".", remainder, v);
             }
         }
     }
 }
 
 template<typename T>
-std::vector< std::pair<std::string,T> > Config::find(const std::string& pattern) const
+vector< pair<string,T> > Config::find(const string& pattern) const
 {
-    std::vector< std::pair<std::string,T> > v;
-    find(root, "", pattern, v);
+    vector< pair<string,T> > v;
+    find(*root, "", pattern, v);
     return v;
 }
 

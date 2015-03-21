@@ -1,43 +1,11 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
-#include <utility>
-#include <cstdio>
-#include <cassert>
-#include <algorithm>
-
 #ifdef __MACH__
 #include <mach/mach_time.h>
 #endif
 
-#include "util/util.h"
 #include "task/task.hpp"
 
 #include "time.hpp"
 
-using namespace std;
-using namespace aquarius;
 using namespace aquarius::task;
 
 extern "C"
@@ -57,7 +25,7 @@ namespace aquarius
 namespace time
 {
 
-static std::vector<Interval> *tics[128];
+static vector<Interval> *tics[128];
 
 #ifdef AQ_USE_MPI_WTIME
 #include "mpi.h"
@@ -182,20 +150,20 @@ double Interval::gflops() const
 double Interval::seconds(const Arena& arena) const
 {
     double dtmax = seconds();
-    arena.Allreduce(&dtmax, 1, MPI::MAX);
+    arena.Allreduce(&dtmax, 1, MPI_MAX);
     return dtmax;
 }
 
 double Interval::gflops(const Arena& arena) const
 {
     int64_t fl = flops;
-    arena.Allreduce(&fl, 1, MPI::SUM);
+    arena.Allreduce(&fl, 1, MPI_SUM);
     return (double)fl/1e9/seconds(arena);
 }
 
-std::vector<Timer> Timer::timers;
+vector<Timer> Timer::timers;
 
-Timer& Timer::timer(const std::string& name)
+Timer& Timer::timer(const string& name)
 {
     for (vector<Timer>::iterator it = timers.begin();it != timers.end();++it)
     {
@@ -220,7 +188,7 @@ void Timer::printTimers(const Arena& arena)
     {
         double tot = it->seconds(arena);
         int64_t count = it->count;
-        arena.Allreduce(&count, 1, MPI::SUM);
+        arena.Allreduce(&count, 1, MPI_SUM);
         double gflops = it->gflops(arena);
         Logger::log(arena) << strprintf("%s:%*s %13.6f s %10ld x %11.6f gflops/sec\n", it->name.c_str(), (int)(max_len-it->name.size()), "", tot, count, gflops) << endl;
     }
@@ -319,7 +287,6 @@ void do_flops(int64_t flops)
     #endif
     tics[tid]->back().flops -= flops;
 }
-
 
 }
 }

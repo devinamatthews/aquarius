@@ -1,35 +1,7 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_INDEXABLE_TENSOR_HPP_
 #define _AQUARIUS_INDEXABLE_TENSOR_HPP_
 
-#include <vector>
-#include <string>
-#include <algorithm>
-
-#include "util/stl_ext.hpp"
+#include "util/global.hpp"
 
 #include "tensor.hpp"
 
@@ -83,9 +55,9 @@ class IndexableTensorBase
 
         int getDimension() const { return ndim; }
 
-        std::string implicit() const
+        string implicit() const
         {
-            std::string inds(ndim, ' ');
+            string inds(ndim, ' ');
             for (int i = 0;i < ndim;i++) inds[i] = (char)('A'+i);
             return inds;
         }
@@ -95,12 +67,12 @@ class IndexableTensorBase
          * Explicit indexing operations
          *
          *********************************************************************/
-        IndexedTensor<Derived,T> operator[](const std::string& idx)
+        IndexedTensor<Derived,T> operator[](const string& idx)
         {
             return IndexedTensor<Derived,T>(getDerived(), idx);
         }
 
-        IndexedTensor<const Derived,T> operator[](const std::string& idx) const
+        IndexedTensor<const Derived,T> operator[](const string& idx) const
         {
             return IndexedTensor<const Derived,T>(getDerived(), idx);
         }
@@ -162,9 +134,9 @@ class IndexableTensorBase
          * Binary tensor operations (multiplication)
          *
          *********************************************************************/
-        virtual void mult(const T alpha,  bool conja, const Derived& A, const std::string& idx_A,
-                                          bool conjb, const Derived& B, const std::string& idx_B,
-                          const T beta,                                 const std::string& idx_C) = 0;
+        virtual void mult(const T alpha,  bool conja, const Derived& A, const string& idx_A,
+                                          bool conjb, const Derived& B, const string& idx_B,
+                          const T beta,                                 const string& idx_C) = 0;
 
 
         /**********************************************************************
@@ -172,8 +144,8 @@ class IndexableTensorBase
          * Unary tensor operations (summation)
          *
          *********************************************************************/
-        virtual void sum(const T alpha, bool conja, const Derived& A, const std::string& idx_A,
-                         const T beta,                                const std::string& idx_B) = 0;
+        virtual void sum(const T alpha, bool conja, const Derived& A, const string& idx_A,
+                         const T beta,                                const string& idx_B) = 0;
 
 
         /**********************************************************************
@@ -181,10 +153,10 @@ class IndexableTensorBase
          * Scalar operations
          *
          *********************************************************************/
-        virtual void scale(const T alpha, const std::string& idx_A) = 0;
+        virtual void scale(const T alpha, const string& idx_A) = 0;
 
-        virtual T dot(bool conja, const Derived& A, const std::string& idx_A,
-                      bool conjb,                   const std::string& idx_B) const = 0;
+        virtual T dot(bool conja, const Derived& A, const string& idx_A,
+                      bool conjb,                   const string& idx_B) const = 0;
 };
 
 template <class Derived, typename T>
@@ -202,7 +174,7 @@ class IndexableTensor : public IndexableTensorBase<Derived,T>, public Tensor<Der
         using IndexableTensorBase<Derived,T>::sum;
         using IndexableTensorBase<Derived,T>::implicit;
 
-        IndexableTensor(const std::string& name, const int ndim = 0)
+        IndexableTensor(const string& name, const int ndim = 0)
         : IndexableTensorBase<Derived,T>(ndim), Tensor<Derived,T>(name) {}
 
         virtual ~IndexableTensor() {}
@@ -277,7 +249,7 @@ class IndexedTensor
 {
     public:
         Derived& tensor_;
-        std::string idx_;
+        string idx_;
         T factor_;
         bool conj_;
 
@@ -285,7 +257,7 @@ class IndexedTensor
         IndexedTensor(const IndexedTensor<cvDerived,T>& other)
         : tensor_(other.tensor_), idx_(other.idx_), factor_(other.factor_), conj_(other.conj_) {}
 
-        IndexedTensor(Derived& tensor, const std::string& idx, const T factor=(T)1, const bool conj=false)
+        IndexedTensor(Derived& tensor, const string& idx, const T factor=(T)1, const bool conj=false)
         : tensor_(tensor), idx_(idx), factor_(factor), conj_(conj)
         {
             if (idx.size() != tensor.getDimension()) throw InvalidNdimError();
@@ -447,7 +419,7 @@ class IndexedTensor
 };
 
 template <class Derived1, class Derived2, class T>
-//typename std::enable_if<std::is_same<const Derived1, const Derived2>::value,IndexedTensorMult<Derived1,T> >::type
+//typename enable_if<is_same<const Derived1, const Derived2>::value,IndexedTensorMult<Derived1,T> >::type
 IndexedTensorMult<Derived1,T>
 operator*(const IndexableTensorBase<Derived1,T>& t1, const IndexedTensor<Derived2,T>& t2)
 {
@@ -455,7 +427,7 @@ operator*(const IndexableTensorBase<Derived1,T>& t1, const IndexedTensor<Derived
 }
 
 template <class Derived1, class Derived2, class T>
-//typename std::enable_if<std::is_same<const Derived1, const Derived2>::value,IndexedTensorMult<Derived1,T> >::type
+//typename enable_if<is_same<const Derived1, const Derived2>::value,IndexedTensorMult<Derived1,T> >::type
 IndexedTensorMult<Derived1,T>
 operator*(const ScaledTensor<Derived1,T>& t1, const IndexedTensor<Derived2,T>& t2)
 {

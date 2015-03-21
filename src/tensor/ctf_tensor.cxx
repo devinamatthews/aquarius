@@ -1,32 +1,9 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #include "ctf_tensor.hpp"
 
-using namespace std;
-using namespace aquarius;
-using namespace aquarius::tensor;
+namespace aquarius
+{
+namespace tensor
+{
 
 template <typename T>
 map<const tCTF_World<T>*,pair<int,CTFTensor<T>*> > CTFTensor<T>::scalars;
@@ -338,7 +315,7 @@ void CTFTensor<T>::div(T alpha, bool conja, const CTFTensor<T>& A,
         {
             for (int64_t i = 0;i < size;i++)
             {
-                if (abs(raw_data_B[i]) > DBL_MIN)
+                if (abs(raw_data_B[i]) > numeric_limits<double>::min())
                 {
                     raw_data[i] = beta*raw_data[i] + alpha*conj(raw_data_A[i])/conj(raw_data_B[i]);
                 }
@@ -348,7 +325,7 @@ void CTFTensor<T>::div(T alpha, bool conja, const CTFTensor<T>& A,
         {
             for (int64_t i = 0;i < size;i++)
             {
-                if (abs(raw_data_B[i]) > DBL_MIN)
+                if (abs(raw_data_B[i]) > numeric_limits<double>::min())
                 {
                     raw_data[i] = beta*raw_data[i] + alpha*conj(raw_data_A[i])/raw_data_B[i];
                 }
@@ -361,7 +338,7 @@ void CTFTensor<T>::div(T alpha, bool conja, const CTFTensor<T>& A,
         {
             for (int64_t i = 0;i < size;i++)
             {
-                if (abs(raw_data_B[i]) > DBL_MIN)
+                if (abs(raw_data_B[i]) > numeric_limits<double>::min())
                 {
                     raw_data[i] = beta*raw_data[i] + alpha*raw_data_A[i]/conj(raw_data_B[i]);
                 }
@@ -371,7 +348,7 @@ void CTFTensor<T>::div(T alpha, bool conja, const CTFTensor<T>& A,
         {
             for (int64_t i = 0;i < size;i++)
             {
-                if (abs(raw_data_B[i]) > DBL_MIN)
+                if (abs(raw_data_B[i]) > numeric_limits<double>::min())
                 {
                     raw_data[i] = beta*raw_data[i] + alpha*raw_data_A[i]/raw_data_B[i];
                 }
@@ -392,7 +369,7 @@ void CTFTensor<T>::invert(T alpha, bool conja, const CTFTensor<T>& A, T beta)
     {
         for (int64_t i = 0;i < size;i++)
         {
-            if (abs(raw_data_A[i]) > DBL_MIN)
+            if (abs(raw_data_A[i]) > numeric_limits<double>::min())
             {
                 raw_data[i] = beta*raw_data[i] + alpha/conj(raw_data_A[i]);
             }
@@ -402,7 +379,7 @@ void CTFTensor<T>::invert(T alpha, bool conja, const CTFTensor<T>& A, T beta)
     {
         for (int64_t i = 0;i < size;i++)
         {
-            if (abs(raw_data_A[i]) > DBL_MIN)
+            if (abs(raw_data_A[i]) > numeric_limits<double>::min())
             {
                 raw_data[i] = beta*raw_data[i] + alpha/raw_data_A[i];
             }
@@ -511,7 +488,7 @@ void CTFTensor<T>::weight(const vector<const vector<T>*>& d, double shift)
             den += (*d[j])[o];
         }
 
-        if (std::abs(den+shift) < 1e-4)
+        if (abs(den+shift) < 1e-4)
         {
             pairs[i].d = 0;
         }
@@ -525,3 +502,6 @@ void CTFTensor<T>::weight(const vector<const vector<T>*>& d, double shift)
 }
 
 INSTANTIATE_SPECIALIZATIONS(CTFTensor);
+
+}
+}

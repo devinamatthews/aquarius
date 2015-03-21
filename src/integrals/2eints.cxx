@@ -1,29 +1,6 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #include "2eints.hpp"
-#include "internal.h"
+
+#include "os.hpp"
 
 #define TMP_BUFSIZE 65536
 #define INTEGRAL_CUTOFF 1e-14
@@ -44,69 +21,32 @@
 #define IDX_GE(i,r,e,j,s,f) ((i) > (j) || ((i) == (j) && ((r) > (s) || ((r) == (s) && (e) >= (f)))))
 #define IDX_GT(i,r,e,j,s,f) ((i) > (j) || ((i) == (j) && ((r) > (s) || ((r) == (s) && (e) >  (f)))))
 
-using namespace std;
-using namespace aquarius;
-using namespace aquarius::integrals;
 using namespace aquarius::input;
 using namespace aquarius::symmetry;
 using namespace aquarius::task;
 
-void ERIEvaluator::operator()(int la, const double* ca, int na, const double *za,
-                              int lb, const double* cb, int nb, const double *zb,
-                              int lc, const double* cc, int nc, const double *zc,
-                              int ld, const double* cd, int nd, const double *zd,
-                              double *ints) const
+namespace aquarius
 {
-    /*
-    osinv(la, lb, lc, ld,
-          ca, cb, cc, cd,
-          na, nb, nc, nd,
-          za, zb, zc, zd, ints);
-    */
-
-    ///*
-    size_t nfunc = (la+1)*(la+2)*(lb+1)*(lb+2)*(lc+1)*(lc+2)*(ld+1)*(ld+2)/16;
-
-    int nt = omp_get_max_threads();
-    vector<double*> work(nt);
-    for (int i = 0;i < nt;i++)
-        work[i] = SAFE_MALLOC(double, (la+1)*(lb+1)*(lc+1)*(ld+1)*(la+lb+lc+ld+1));
-
-    #pragma omp parallel for
-    for (int m = 0;m < na*nb*nc*nd;m++)
-    {
-        int tid = omp_get_thread_num();
-        int h = m/(na*nb*nc);
-        int r = m%(na*nb*nc);
-        int g = r/(na*nb);
-        int s = r%(na*nb);
-        int f = s/na;
-        int e = s%na;
-        osprim(la, lb, lc, ld, ca, cb, cc, cd, za[e], zb[f], zc[g], zd[h],
-               ints+nfunc*m, work[tid]);
-    }
-
-    for (int i = 0;i < nt;i++) FREE(work[i]);
-    //*/
-}
-
-TwoElectronIntegrals::TwoElectronIntegrals(const Shell& a, const Shell& b, const Shell& c, const Shell& d,
-                                           const TwoElectronIntegralEvaluator& eval)
-: a(a), b(b), c(c), d(d), eval(eval), num_processed(0)
+namespace integrals
 {
-    const Center& ca = a.getCenter();
-    const Center& cb = b.getCenter();
-    const Center& cc = c.getCenter();
-    const Center& cd = d.getCenter();
-    const PointGroup& group = ca.getPointGroup();
 
-    size_t nfunccart = (a.getL()+1)*(a.getL()+2)*(b.getL()+1)*(b.getL()+2)*
-                       (c.getL()+1)*(c.getL()+2)*(d.getL()+1)*(d.getL()+2)/16;
-    size_t nfuncspher = a.getNFunc()*b.getNFunc()*c.getNFunc()*d.getNFunc();
-    size_t nprim = a.getNPrim()*b.getNPrim()*c.getNPrim()*d.getNPrim();
-    size_t ncontr = a.getNContr()*b.getNContr()*c.getNContr()*d.getNContr();
+TwoElectronIntegrals::TwoElectronIntegrals(const Shell& a, const Shell& b, const Shell& c, const Shell& d)
+: sa(a), sb(b), sc(c), sd(d), group(a.getCenter().getPointGroup()),
+  ca(a.getCenter()), cb(b.getCenter()), cc(c.getCenter()), cd(d.getCenter()),
+  la(a.getL()), lb(b.getL()), lc(c.getL()), ld(d.getL()),
+  na(a.getNPrim()), nb(b.getNPrim()), nc(c.getNPrim()), nd(d.getNPrim()),
+  ma(a.getNContr()), mb(b.getNContr()), mc(c.getNContr()), md(d.getNContr()),
+  da(a.getDegeneracy()), db(b.getDegeneracy()), dc(c.getDegeneracy()), dd(d.getDegeneracy()),
+  fsa(a.getNFunc()), fsb(b.getNFunc()), fsc(c.getNFunc()), fsd(d.getNFunc()),
+  za(a.getExponents()), zb(b.getExponents()), zc(c.getExponents()), zd(d.getExponents()),
+  num_processed(0)
+{
+    fca = (la+1)*(la+2)/2;
+    fcb = (lb+1)*(lb+2)/2;
+    fcc = (lc+1)*(lc+2)/2;
+    fcd = (ld+1)*(ld+2)/2;
 
-    nints = 0;
+    int nints = 0;
     for (int l = 0;l < d.getNFunc();l++)
     {
         for (int k = 0;k < c.getNFunc();k++)
@@ -128,7 +68,7 @@ TwoElectronIntegrals::TwoElectronIntegrals(const Shell& a, const Shell& b, const
                                     const Representation& y = group.getIrrep(c.getIrrepOfFunc(k, t));
                                     const Representation& z = group.getIrrep(d.getIrrepOfFunc(l, u));
 
-                                    if ((w*x*y*z).isTotallySymmetric()) nints += ncontr;
+                                    if ((w*x*y*z).isTotallySymmetric()) nints += ma*mb*mc*md;
                                 }
                             }
                         }
@@ -138,61 +78,18 @@ TwoElectronIntegrals::TwoElectronIntegrals(const Shell& a, const Shell& b, const
         }
     }
 
-    ints = SAFE_MALLOC(double, nints);
-    fill(ints, ints+nints, 0.0);
-
-    double *aobuf1 = SAFE_MALLOC(double, nfunccart*nprim);
-    double *aobuf2 = SAFE_MALLOC(double, nfunccart*nprim);
-
-    int lambdar, lambdas, lambdat;
-    vector<int> dcrr = group.DCR(ca.getStabilizer(), cb.getStabilizer(), lambdar);
-    vector<int> dcrs = group.DCR(cc.getStabilizer(), cd.getStabilizer(), lambdas);
-    vector<int> dcrt = group.DCR(intersection(ca.getStabilizer(), cb.getStabilizer()),
-                                 intersection(cc.getStabilizer(), cd.getStabilizer()), lambdat);
-    double coef = (double)group.getOrder()/(double)lambdat;
-
-    for (int i = 0;i < dcrr.size();i++)
-    {
-        for (int j = 0;j < dcrs.size();j++)
-        {
-            for (int k = 0;k < dcrt.size();k++)
-            {
-                int r = dcrr[i];
-                int s = dcrs[j];
-                int t = dcrt[k];
-                int st = group.getOpProduct(s,t);
-
-                eval(a.getL(), ca.getCenter(0),                       a.getNPrim(), a.getExponents().data(),
-                     b.getL(), cb.getCenter(cb.getCenterAfterOp(r)),  b.getNPrim(), b.getExponents().data(),
-                     c.getL(), cc.getCenter(cc.getCenterAfterOp(t)),  c.getNPrim(), c.getExponents().data(),
-                     d.getL(), cd.getCenter(cd.getCenterAfterOp(st)), d.getNPrim(), d.getExponents().data(),
-                     aobuf2);
-
-                prim2contr4r(nfunccart, aobuf2, aobuf1);
-                cart2spher4r(ncontr, aobuf1, aobuf2);
-
-                transpose(nfuncspher, ncontr, coef, aobuf2, nfuncspher,
-                                               0.0, aobuf1, ncontr);
-
-                ao2so4(ncontr, r, t, st, aobuf1, ints);
-            }
-        }
-    }
-
-    FREE(aobuf1);
-    FREE(aobuf2);
+    ints.resize(nints);
 }
 
-TwoElectronIntegrals::~TwoElectronIntegrals()
+void TwoElectronIntegrals::run()
 {
-    FREE(ints);
+    so(ints.data());
 }
 
 size_t TwoElectronIntegrals::process(const Context& ctx, const vector<int>& idxa, const vector<int>& idxb,
                                      const vector<int>& idxc, const vector<int>& idxd,
                                      size_t nprocess, double* integrals, idx4_t* indices, double cutoff)
 {
-    const PointGroup& group = a.getCenter().getPointGroup();
     Representation z = group.getIrrep(0);
     Representation yz = group.getIrrep(0);
     Representation xyz = group.getIrrep(0);
@@ -200,39 +97,39 @@ size_t TwoElectronIntegrals::process(const Context& ctx, const vector<int>& idxa
 
     size_t m = 0;
     size_t n = 0;
-    for (int l = 0;l < d.getNFunc();l++)
+    for (int l = 0;l < fsd;l++)
     {
-        for (int k = 0;k < c.getNFunc();k++)
+        for (int k = 0;k < fsc;k++)
         {
-            for (int j = 0;j < b.getNFunc();j++)
+            for (int j = 0;j < fsb;j++)
             {
-                for (int i = 0;i < a.getNFunc();i++)
+                for (int i = 0;i < fsa;i++)
                 {
-                    for (int u = 0;u < d.getDegeneracy();u++)
+                    for (int u = 0;u < dd;u++)
                     {
-                        z = group.getIrrep(d.getIrrepOfFunc(l,u));
-                        for (int t = 0;t < c.getDegeneracy();t++)
+                        z = group.getIrrep(sd.getIrrepOfFunc(l,u));
+                        for (int t = 0;t < dc;t++)
                         {
                             yz = z;
-                            yz *= group.getIrrep(c.getIrrepOfFunc(k,t));
-                            for (int s = 0;s < b.getDegeneracy();s++)
+                            yz *= group.getIrrep(sc.getIrrepOfFunc(k,t));
+                            for (int s = 0;s < db;s++)
                             {
                                 xyz = yz;
-                                xyz *= group.getIrrep(b.getIrrepOfFunc(j,s));
-                                for (int r = 0;r < a.getDegeneracy();r++)
+                                xyz *= group.getIrrep(sb.getIrrepOfFunc(j,s));
+                                for (int r = 0;r < da;r++)
                                 {
                                     wxyz = xyz;
-                                    wxyz *= group.getIrrep(a.getIrrepOfFunc(i,r));
+                                    wxyz *= group.getIrrep(sa.getIrrepOfFunc(i,r));
 
                                     if (!wxyz.isTotallySymmetric()) continue;
 
-                                    for (int h = 0;h < d.getNContr();h++)
+                                    for (int h = 0;h < md;h++)
                                     {
-                                        for (int g = 0;g < c.getNContr();g++)
+                                        for (int g = 0;g < mc;g++)
                                         {
-                                            for (int f = 0;f < b.getNContr();f++)
+                                            for (int f = 0;f < mb;f++)
                                             {
-                                                for (int e = 0;e < a.getNContr();e++)
+                                                for (int e = 0;e < ma;e++)
                                                 {
                                                     if (num_processed > m)
                                                     {
@@ -242,17 +139,17 @@ size_t TwoElectronIntegrals::process(const Context& ctx, const vector<int>& idxa
 
                                                     bool bad = false;
 
-                                                    if (&a == &b && !IDX_GE(i,r,e,j,s,f)) bad = true;
-                                                    if (&c == &d && !IDX_GE(k,t,g,l,u,h)) bad = true;
-                                                    if (&a == &c && &b == &d && !(IDX_GT(i,r,e,k,t,g) ||
+                                                    if (&sa == &sb && !IDX_GE(i,r,e,j,s,f)) bad = true;
+                                                    if (&sc == &sd && !IDX_GE(k,t,g,l,u,h)) bad = true;
+                                                    if (&sa == &sc && &sb == &sd && !(IDX_GT(i,r,e,k,t,g) ||
                                                         (IDX_EQ(i,r,e,k,t,g) && IDX_GE(j,s,f,l,u,h)))) bad = true;
 
                                                     if (!bad && abs(ints[m]) > cutoff)
                                                     {
-                                                        indices[n].i = a.getIndex(ctx, idxa, i, e, r);
-                                                        indices[n].j = b.getIndex(ctx, idxb, j, f, s);
-                                                        indices[n].k = c.getIndex(ctx, idxc, k, g, t);
-                                                        indices[n].l = d.getIndex(ctx, idxd, l, h, u);
+                                                        indices[n].i = sa.getIndex(ctx, idxa, i, e, r);
+                                                        indices[n].j = sb.getIndex(ctx, idxb, j, f, s);
+                                                        indices[n].k = sc.getIndex(ctx, idxc, k, g, t);
+                                                        indices[n].l = sd.getIndex(ctx, idxd, l, h, u);
                                                         integrals[n++] = ints[m];
                                                     }
 
@@ -276,47 +173,117 @@ size_t TwoElectronIntegrals::process(const Context& ctx, const vector<int>& idxa
     return n;
 }
 
+void TwoElectronIntegrals::prim(const vec3& posa, int e, const vec3& posb, int f,
+                                const vec3& posc, int g, const vec3& posd, int h,
+                                double* integrals)
+{
+    assert(0);
+}
+
+void TwoElectronIntegrals::prims(const vec3& posa, const vec3& posb, const vec3& posc, const vec3& posd,
+                                 double* integrals)
+{
+    #pragma omp parallel for
+    for (int m = 0;m < na*nb*nc*nd;m++)
+    {
+        int h = m/(na*nb*nc);
+        int r = m%(na*nb*nc);
+        int g = r/(na*nb);
+        int s = r%(na*nb);
+        int f = s/na;
+        int e = s%na;
+        prim(posa, e, posb, f, posc, g, posd, h, integrals+fca*fcb*fcc*fcd*m);
+    }
+}
+
+void TwoElectronIntegrals::contr(const vec3& posa, const vec3& posb, const vec3& posc, const vec3& posd,
+                                 double* integrals)
+{
+    vector<double> pintegrals(fca*fcb*fcc*fcd*na*nb*nc*nd);
+    prims(posa, posb, posc, posd, pintegrals.data());
+    prim2contr4r(fca*fcb*fcc*fcd, pintegrals.data(), integrals);
+}
+
+void TwoElectronIntegrals::spher(const vec3& posa, const vec3& posb, const vec3& posc, const vec3& posd,
+                                 double* integrals)
+{
+    vector<double> cintegrals(fca*fcb*fcc*fcd*na*nb*nc*nd);
+    contr(posa, posb, posc, posd, integrals);
+    cart2spher4r(ma*mb*mc*md, integrals, cintegrals.data());
+    transpose(fsa*fsb*fsc*fsd, ma*mb*mc*md, 1.0, cintegrals.data(), fsa*fsb*fsc*fsd,
+                                            0.0,  integrals       ,     ma*mb*mc*md);
+}
+
+void TwoElectronIntegrals::so(double* integrals)
+{
+    vector<double> aointegrals(fca*fcb*fcc*fcd*na*nb*nc*nd);
+
+    int lambdar, lambdas, lambdat;
+    vector<int> dcrr = group.DCR(ca.getStabilizer(), cb.getStabilizer(), lambdar);
+    vector<int> dcrs = group.DCR(cc.getStabilizer(), cd.getStabilizer(), lambdas);
+    vector<int> dcrt = group.DCR(intersection(ca.getStabilizer(), cb.getStabilizer()),
+                                 intersection(cc.getStabilizer(), cd.getStabilizer()), lambdat);
+    double coef = (double)group.getOrder()/(double)lambdat;
+
+    for (int r : dcrr)
+    {
+        for (int s : dcrs)
+        {
+            for (int t : dcrt)
+            {
+                int st = group.getOpProduct(s,t);
+
+                spher(ca.getCenter(0),
+                      cb.getCenter(cb.getCenterAfterOp(r)),
+                      cc.getCenter(cc.getCenterAfterOp(t)),
+                      cd.getCenter(cd.getCenterAfterOp(st)),
+                      aointegrals.data());
+                scal(aointegrals.size(), coef, aointegrals.data(), 1);
+                ao2so4(ma*mb*mc*md, r, t, st, aointegrals.data(), ints.data());
+            }
+        }
+    }
+}
+
 void TwoElectronIntegrals::ao2so4(size_t nother, int r, int t, int st, double* aointegrals, double* sointegrals)
 {
-    const PointGroup& group = a.getCenter().getPointGroup();
     Representation yz = group.getIrrep(0);
     Representation xyz = group.getIrrep(0);
     Representation wxyz = group.getIrrep(0);
 
-    for (int l = 0;l < d.getNFunc();l++)
+    for (int l = 0;l < fsd;l++)
     {
-        for (int k = 0;k < c.getNFunc();k++)
+        for (int k = 0;k < fsc;k++)
         {
-            for (int j = 0;j < b.getNFunc();j++)
+            for (int j = 0;j < fsb;j++)
             {
-                for (int i = 0;i < a.getNFunc();i++)
+                for (int i = 0;i < fsa;i++)
                 {
-                    for (int h = 0;h < d.getDegeneracy();h++)
+                    for (int h = 0;h < dd;h++)
                     {
-                        int z = d.getIrrepOfFunc(l,h);
-                        for (int g = 0;g < c.getDegeneracy();g++)
+                        int z = sd.getIrrepOfFunc(l,h);
+                        for (int g = 0;g < dc;g++)
                         {
-                            int y = c.getIrrepOfFunc(k,g);
+                            int y = sc.getIrrepOfFunc(k,g);
                             yz = group.getIrrep(z);
                             yz *= group.getIrrep(y);
-                            for (int f = 0;f < b.getDegeneracy();f++)
+                            for (int f = 0;f < db;f++)
                             {
-                                int x = b.getIrrepOfFunc(j,f);
+                                int x = sb.getIrrepOfFunc(j,f);
                                 xyz = yz;
                                 xyz *= group.getIrrep(x);
-                                for (int e = 0;e < a.getDegeneracy();e++)
+                                for (int e = 0;e < da;e++)
                                 {
-                                    int w = a.getIrrepOfFunc(i,e);
+                                    int w = sa.getIrrepOfFunc(i,e);
                                     wxyz = xyz;
                                     wxyz *= group.getIrrep(w);
 
                                     if (!wxyz.isTotallySymmetric()) continue;
 
-                                    double fac = b.getParity(j,r) *group.character(x,r)*
-                                                 c.getParity(k,t) *group.character(y,t)*
-                                                 d.getParity(l,st)*group.character(z,st);
+                                    double fac = sb.getParity(j,r) *group.character(x,r)*
+                                                 sc.getParity(k,t) *group.character(y,t)*
+                                                 sd.getParity(l,st)*group.character(z,st);
                                     axpy(nother, fac, aointegrals, 1, sointegrals, 1);
-                                    PROFILE_FLOPS(2*nother+5);
 
                                     sointegrals += nother;
                                 }
@@ -334,15 +301,14 @@ void TwoElectronIntegrals::cart2spher4r(size_t nother, double* buf1, double* buf
 {
     size_t m, n, k;
 
-    m = d.getNFunc();
-    n = (a.getL()+1)*(a.getL()+2)/2*(b.getL()+1)*(b.getL()+2)/2*(c.getL()+1)*(c.getL()+2)/2*nother;
-    k = (d.getL()+1)*(d.getL()+2)/2;
+    m = fsd;
+    n = fca*fcb*fcc*nother;
+    k = fcd;
 
-    if (d.isSpherical())
+    if (sd.isSpherical())
     {
         // [d,l]' x [xabc,d]' = [l,xabc]
-        gemm('T', 'T', m, n, k, 1.0, d.getCart2Spher().data(), k, buf1, n, 0.0, buf2, m);
-        PROFILE_FLOPS(2*m*n*k);
+        gemm('T', 'T', m, n, k, 1.0, sd.getCart2Spher().data(), k, buf1, n, 0.0, buf2, m);
     }
     else
     {
@@ -350,15 +316,14 @@ void TwoElectronIntegrals::cart2spher4r(size_t nother, double* buf1, double* buf
         transpose(n, m, 1.0, buf1, n, 0.0, buf2, m);
     }
 
-    m = c.getNFunc();
-    n = d.getNFunc()*(a.getL()+1)*(a.getL()+2)/2*(b.getL()+1)*(b.getL()+2)/2*nother;
-    k = (c.getL()+1)*(c.getL()+2)/2;
+    m = fsc;
+    n = fca*fcb*fsd*nother;
+    k = fcc;
 
-    if (c.isSpherical())
+    if (sc.isSpherical())
     {
         // [c,k]' x [lxab,c]' = [k,lxab]
-        gemm('T', 'T', m, n, k, 1.0, c.getCart2Spher().data(), k, buf2, n, 0.0, buf1, m);
-        PROFILE_FLOPS(2*m*n*k);
+        gemm('T', 'T', m, n, k, 1.0, sc.getCart2Spher().data(), k, buf2, n, 0.0, buf1, m);
     }
     else
     {
@@ -366,15 +331,14 @@ void TwoElectronIntegrals::cart2spher4r(size_t nother, double* buf1, double* buf
         transpose(n, m, 1.0, buf2, n, 0.0, buf1, m);
     }
 
-    m = b.getNFunc();
-    n = c.getNFunc()*d.getNFunc()*(a.getL()+1)*(a.getL()+2)/2*nother;
-    k = (b.getL()+1)*(b.getL()+2)/2;
+    m = fsb;
+    n = fca*fsc*fsd*nother;
+    k = fcb;
 
-    if (b.isSpherical())
+    if (sb.isSpherical())
     {
         // [b,j]' x [klxa,b]' = [j,klxa]
-        gemm('T', 'T', m, n, k, 1.0, b.getCart2Spher().data(), k, buf1, n, 0.0, buf2, m);
-        PROFILE_FLOPS(2*m*n*k);
+        gemm('T', 'T', m, n, k, 1.0, sb.getCart2Spher().data(), k, buf1, n, 0.0, buf2, m);
     }
     else
     {
@@ -382,15 +346,14 @@ void TwoElectronIntegrals::cart2spher4r(size_t nother, double* buf1, double* buf
         transpose(n, m, 1.0, buf1, n, 0.0, buf2, m);
     }
 
-    m = a.getNFunc();
-    n = b.getNFunc()*c.getNFunc()*d.getNFunc()*nother;
-    k = (a.getL()+1)*(a.getL()+2)/2;
+    m = fsa;
+    n = fsb*fsc*fsd*nother;
+    k = fca;
 
-    if (a.isSpherical())
+    if (sa.isSpherical())
     {
         // [a,i]' x [jklx,a]' = [i,jklx]
-        gemm('T', 'T', m, n, k, 1.0, a.getCart2Spher().data(), k, buf2, n, 0.0, buf1, m);
-        PROFILE_FLOPS(2*m*n*k);
+        gemm('T', 'T', m, n, k, 1.0, sa.getCart2Spher().data(), k, buf2, n, 0.0, buf1, m);
     }
     else
     {
@@ -405,15 +368,14 @@ void TwoElectronIntegrals::cart2spher4l(size_t nother, double* buf1, double* buf
 {
     size_t m, n, k;
 
-    m = a.getNFunc();
-    n = (b.getL()+1)*(b.getL()+2)/2*(c.getL()+1)*(c.getL()+2)/2*(d.getL()+1)*(d.getL()+2)/2*nother;
-    k = (a.getL()+1)*(a.getL()+2)/2;
+    m = fsa;
+    n = fcb*fcc*fcd*nother;
+    k = fca;
 
-    if (a.isSpherical())
+    if (sa.isSpherical())
     {
         // [a,bcdx]' x [a,i]' = [bcdx,i]
-        gemm('T', 'N', m, n, k, 1.0, buf1, k, d.getCart2Spher().data(), k, 0.0, buf2, m);
-        PROFILE_FLOPS(2*m*n*k);
+        gemm('T', 'N', m, n, k, 1.0, buf1, k, sd.getCart2Spher().data(), k, 0.0, buf2, m);
     }
     else
     {
@@ -421,15 +383,14 @@ void TwoElectronIntegrals::cart2spher4l(size_t nother, double* buf1, double* buf
         transpose(n, m, 1.0, buf1, n, 0.0, buf2, m);
     }
 
-    m = b.getNFunc();
-    n = a.getNFunc()*(c.getL()+1)*(c.getL()+2)/2*(d.getL()+1)*(d.getL()+2)/2*nother;
-    k = (b.getL()+1)*(b.getL()+2)/2;
+    m = fsb;
+    n = fsa*fcc*fcd*nother;
+    k = fcb;
 
-    if (b.isSpherical())
+    if (sb.isSpherical())
     {
         // [b,cdxi]' x [b,j]' = [cdxi,j]
-        gemm('T', 'N', m, n, k, 1.0, buf2, k, c.getCart2Spher().data(), k, 0.0, buf1, m);
-        PROFILE_FLOPS(2*m*n*k);
+        gemm('T', 'N', m, n, k, 1.0, buf2, k, sc.getCart2Spher().data(), k, 0.0, buf1, m);
     }
     else
     {
@@ -437,15 +398,14 @@ void TwoElectronIntegrals::cart2spher4l(size_t nother, double* buf1, double* buf
         transpose(n, m, 1.0, buf2, n, 0.0, buf1, m);
     }
 
-    m = c.getNFunc();
-    n = a.getNFunc()*b.getNFunc()*(d.getL()+1)*(d.getL()+2)/2*nother;
-    k = (c.getL()+1)*(c.getL()+2)/2;
+    m = fsc;
+    n = fsa*fsb*fcd*nother;
+    k = fcc;
 
-    if (c.isSpherical())
+    if (sc.isSpherical())
     {
         // [c,dxij]' x [c,k]' = [dxij,k]
-        gemm('T', 'N', m, n, k, 1.0, buf1, k, b.getCart2Spher().data(), k, 0.0, buf2, m);
-        PROFILE_FLOPS(2*m*n*k);
+        gemm('T', 'N', m, n, k, 1.0, buf1, k, sb.getCart2Spher().data(), k, 0.0, buf2, m);
     }
     else
     {
@@ -453,15 +413,14 @@ void TwoElectronIntegrals::cart2spher4l(size_t nother, double* buf1, double* buf
         transpose(n, m, 1.0, buf1, n, 0.0, buf2, m);
     }
 
-    m = d.getNFunc();
-    n = a.getNFunc()*b.getNFunc()*c.getNFunc()*nother;
-    k = (d.getL()+1)*(d.getL()+2)/2;
+    m = fsd;
+    n = fsa*fsb*fsc*nother;
+    k = fcd;
 
-    if (d.isSpherical())
+    if (sd.isSpherical())
     {
         // [d,xijk]' x [d,l]' = [xijk,l]
-        gemm('T', 'N', m, n, k, 1.0, buf2, k, a.getCart2Spher().data(), k, 0.0, buf1, m);
-        PROFILE_FLOPS(2*m*n*k);
+        gemm('T', 'N', m, n, k, 1.0, buf2, k, sa.getCart2Spher().data(), k, 0.0, buf1, m);
     }
     else
     {
@@ -477,32 +436,28 @@ void TwoElectronIntegrals::prim2contr4r(size_t nother, double* buf1, double* buf
     size_t m, n, k;
 
     // [d,l]' x [xabc,d]' = [l,xabc]
-    m = d.getNContr();
-    n = a.getNPrim()*b.getNPrim()*c.getNPrim()*nother;
-    k = d.getNPrim();
-    gemm('T', 'T', m, n, k, 1.0, d.getCoefficients().data(), k, buf1, n, 0.0, buf2, m);
-    PROFILE_FLOPS(2*m*n*k);
+    m = md;
+    n = na*nb*nc*nother;
+    k = nd;
+    gemm('T', 'T', m, n, k, 1.0, sd.getCoefficients().data(), k, buf1, n, 0.0, buf2, m);
 
     // [c,k]' x [lxab,c]' = [k,lxab]
-    m = c.getNContr();
-    n = d.getNContr()*a.getNPrim()*b.getNPrim()*nother;
-    k = c.getNPrim();
-    gemm('T', 'T', m, n, k, 1.0, c.getCoefficients().data(), k, buf2, n, 0.0, buf1, m);
-    PROFILE_FLOPS(2*m*n*k);
+    m = mc;
+    n = na*nb*md*nother;
+    k = nc;
+    gemm('T', 'T', m, n, k, 1.0, sc.getCoefficients().data(), k, buf2, n, 0.0, buf1, m);
 
     // [b,j]' x [klxa,b]' = [j,klxa]
-    m = b.getNContr();
-    n = c.getNContr()*d.getNContr()*a.getNPrim()*nother;
-    k = b.getNPrim();
-    gemm('T', 'T', m, n, k, 1.0, b.getCoefficients().data(), k, buf1, n, 0.0, buf2, m);
-    PROFILE_FLOPS(2*m*n*k);
+    m = mb;
+    n = na*mc*md*nother;
+    k = nb;
+    gemm('T', 'T', m, n, k, 1.0, sb.getCoefficients().data(), k, buf1, n, 0.0, buf2, m);
 
     // [a,i]' x [jkl,xa]' = [i,jklx]
-    m = a.getNContr();
-    n = b.getNContr()*c.getNContr()*d.getNContr()*nother;
-    k = a.getNPrim();
-    gemm('T', 'T', m, n, k, 1.0, a.getCoefficients().data(), k, buf2, n, 0.0, buf1, m);
-    PROFILE_FLOPS(2*m*n*k);
+    m = ma;
+    n = mb*mc*md*nother;
+    k = na;
+    gemm('T', 'T', m, n, k, 1.0, sa.getCoefficients().data(), k, buf2, n, 0.0, buf1, m);
 
     copy(m*n, buf1, 1, buf2, 1);
 }
@@ -512,32 +467,28 @@ void TwoElectronIntegrals::prim2contr4l(size_t nother, double* buf1, double* buf
     size_t m, n, k;
 
     // [a,bcdx]' x [a,i] = [bcdx,i]
-    m = a.getNContr();
-    n = b.getNPrim()*c.getNPrim()*d.getNPrim()*nother;
-    k = a.getNPrim();
-    gemm('T', 'N', m, n, k, 1.0, buf1, k, a.getCoefficients().data(), k, 0.0, buf2, m);
-    PROFILE_FLOPS(2*m*n*k);
+    m = ma;
+    n = nb*nc*nd*nother;
+    k = na;
+    gemm('T', 'N', m, n, k, 1.0, buf1, k, sa.getCoefficients().data(), k, 0.0, buf2, m);
 
     // [b,cdxi]' x [b,j] = [cdxi,j]
-    m = b.getNContr();
-    n = a.getNContr()*c.getNPrim()*d.getNPrim()*nother;
-    k = b.getNPrim();
-    gemm('T', 'N', m, n, k, 1.0, buf2, k, b.getCoefficients().data(), k, 0.0, buf1, m);
-    PROFILE_FLOPS(2*m*n*k);
+    m = mb;
+    n = ma*nc*nd*nother;
+    k = nb;
+    gemm('T', 'N', m, n, k, 1.0, buf2, k, sb.getCoefficients().data(), k, 0.0, buf1, m);
 
     // [c,dxij]' x [c,k] = [dxij,k]
-    m = c.getNContr();
-    n = a.getNContr()*b.getNContr()*d.getNPrim()*nother;
-    k = c.getNPrim();
-    gemm('T', 'N', m, n, k, 1.0, buf1, k, c.getCoefficients().data(), k, 0.0, buf2, m);
-    PROFILE_FLOPS(2*m*n*k);
+    m = mc;
+    n = ma*mb*nd*nother;
+    k = nc;
+    gemm('T', 'N', m, n, k, 1.0, buf1, k, sc.getCoefficients().data(), k, 0.0, buf2, m);
 
     // [d,xijk]' x [d,l] = [xijk,l]
-    m = d.getNContr();
-    n = a.getNContr()*b.getNContr()*c.getNContr()*nother;
-    k = d.getNPrim();
-    gemm('T', 'N', m, n, k, 1.0, buf2, k, d.getCoefficients().data(), k, 0.0, buf1, m);
-    PROFILE_FLOPS(2*m*n*k);
+    m = md;
+    n = ma*mb*mc*nother;
+    k = nd;
+    gemm('T', 'N', m, n, k, 1.0, buf2, k, sd.getCoefficients().data(), k, 0.0, buf1, m);
 
     copy(m*n, buf1, 1, buf2, 1);
 }
@@ -547,15 +498,15 @@ void ERI::print(Printer& p) const
     //TODO
 }
 
-TwoElectronIntegralsTask::TwoElectronIntegralsTask(const string& name, const Config& config)
-: Task("2eints", name)
+TwoElectronIntegralsTask::TwoElectronIntegralsTask(const string& name, Config& config)
+: Task(name, config)
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("molecule", "molecule"));
     addProduct(Product("eri", "I", reqs));
 }
 
-void TwoElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
+bool TwoElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
 {
     const Molecule& molecule = get<Molecule>("molecule");
 
@@ -583,9 +534,10 @@ void TwoElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
                 if (a == c) dmax = b;
                 for (int d = 0;d <= dmax;++d)
                 {
-                    if (abcd%arena.nproc == arena.rank)
+                    if (abcd%arena.size == arena.rank)
                     {
-                        TwoElectronIntegrals block(shells[a], shells[b], shells[c], shells[d], ERIEvaluator());
+                        OSERI block(shells[a], shells[b], shells[c], shells[d]);
+                        block.run();
 
                         size_t n;
                         while ((n = block.process(ctx, idx[a], idx[b], idx[c], idx[d],
@@ -605,17 +557,32 @@ void TwoElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
 
     for (int i = 0;i < eri->ints.size();++i)
     {
-        if (eri->idxs[i].i > eri->idxs[i].j) std::swap(eri->idxs[i].i, eri->idxs[i].j);
-        if (eri->idxs[i].k > eri->idxs[i].l) std::swap(eri->idxs[i].k, eri->idxs[i].l);
-        if (eri->idxs[i].i > eri->idxs[i].k ||
-            (eri->idxs[i].i == eri->idxs[i].k && eri->idxs[i].j > eri->idxs[i].l))
+        if (eri->idxs[i].i  > eri->idxs[i].j) swap(eri->idxs[i].i, eri->idxs[i].j);
+        if (eri->idxs[i].k  > eri->idxs[i].l) swap(eri->idxs[i].k, eri->idxs[i].l);
+        if (eri->idxs[i].i  > eri->idxs[i].k ||
+           (eri->idxs[i].i == eri->idxs[i].k &&
+            eri->idxs[i].j  > eri->idxs[i].l))
         {
-            std::swap(eri->idxs[i].i, eri->idxs[i].k);
-            std::swap(eri->idxs[i].j, eri->idxs[i].l);
+            swap(eri->idxs[i].i, eri->idxs[i].k);
+            swap(eri->idxs[i].j, eri->idxs[i].l);
         }
     }
 
     put("I", eri);
+
+    return true;
 }
 
-REGISTER_TASK(TwoElectronIntegralsTask,"2eints");
+}
+}
+
+static const char* spec = R"(
+
+storage_cutoff?
+    double 1e-14,
+calc_cutoff?
+    double 1e-15
+
+)";
+
+REGISTER_TASK(aquarius::integrals::TwoElectronIntegralsTask,"2eints",spec);

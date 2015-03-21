@@ -1,37 +1,7 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_SYMMETRY_HPP_
 #define _AQUARIUS_SYMMETRY_HPP_
 
-#include <stdint.h>
-#include <cassert>
-#include <cfloat>
-#include <cmath>
-
-#include "util/math_ext.h"
-#include "util/stl_ext.hpp"
+#include "util/global.hpp"
 
 namespace aquarius
 {
@@ -40,14 +10,14 @@ namespace symmetry
 
 class PointGroup;
 
-class Representation : public std::vector<double>
+class Representation : public vector<double>
 {
     friend class PointGroup;
 
     protected:
         const PointGroup& group;
 
-        Representation(const PointGroup& group, const std::vector<double>& rep);
+        Representation(const PointGroup& group, const vector<double>& rep);
 
     public:
         Representation(const PointGroup& group);
@@ -133,14 +103,14 @@ class PointGroup
         const char **irrep_names;
         const int *generators;
         const double *generator_reps;
-        std::vector<std::vector<double> > characters;
-        std::vector<std::vector<std::vector<double> > > reps;
+        vector<vector<double> > characters;
+        vector<vector<vector<double> > > reps;
         const int *irrep_degen;
         const mat3x3 *ops;
         const char **op_names;
-        std::vector<int> op_inverse;
-        std::vector<int> op_product;
-        std::vector<Representation> irreps;
+        vector<int> op_inverse;
+        vector<int> op_product;
+        vector<Representation> irreps;
 
         PointGroup(int order, int nirrep, int ngenerators, const char *name,
                    const char **irrep_names, const int *generators, const double *generator_reps,
@@ -149,7 +119,7 @@ class PointGroup
     public:
         bool operator==(const PointGroup& other) const { return this == &other; }
 
-        std::vector<int> DCR(const std::vector<int>& U, const std::vector<int>& V, int& lambda) const;
+        vector<int> DCR(const vector<int>& U, const vector<int>& V, int& lambda) const;
 
         double character(int irrep, int op) const { return characters[irrep][op]; }
 
@@ -197,52 +167,15 @@ class PointGroup
         const Representation& totallySymmetricIrrep() const { return getIrrep(0); }
 };
 
-inline mat3x3 Rotation(vec3 axis, double degrees)
-{
-    axis.normalize();
-    double c = cos(degrees*M_PI/180);
-    double s = sin(degrees*M_PI/180);
-    double x = axis[0];
-    double y = axis[1];
-    double z = axis[2];
-    return mat3x3(x*x*(1-c)+c  , x*y*(1-c)-z*s, x*z*(1-c)+y*s,
-                  x*y*(1-c)+z*s, y*y*(1-c)+c  , y*z*(1-c)-x*s,
-                  x*z*(1-c)-y*s, y*z*(1-c)+x*s, z*z*(1-c)+c  );
-}
+mat3x3 Rotation(vec3 axis, double degrees);
 
-inline mat3x3 Rotation(vec3 a, vec3 b)
-{
-    a.normalize();
-    b.normalize();
-    vec3 axis = a^b;
-    double cost = a*b;
-    return cost-(b|a)+(a|b)+(1-cost)*(axis|axis)/(axis*axis+DBL_MIN);
-}
+mat3x3 Rotation(vec3 a, vec3 b);
 
-inline mat3x3 Reflection(vec3 axis)
-{
-    axis.normalize();
-    double x = axis[0];
-    double y = axis[1];
-    double z = axis[2];
-    return mat3x3(1-2*x*x,  -2*x*y,  -2*x*z,
-                   -2*x*y, 1-2*y*y,  -2*y*z,
-                   -2*x*z,  -2*y*z, 1-2*z*z);
-}
+mat3x3 Reflection(vec3 axis);
 
-inline mat3x3 Identity()
-{
-    return mat3x3(1, 0, 0,
-                  0, 1, 0,
-                  0, 0, 1);
-}
+mat3x3 Identity();
 
-inline mat3x3 Inversion()
-{
-    return mat3x3(-1,  0,  0,
-                   0, -1,  0,
-                   0,  0, -1);
-}
+mat3x3 Inversion();
 
 template <int n>
 mat3x3 C(const vec3& axis)

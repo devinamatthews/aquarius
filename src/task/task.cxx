@@ -1,34 +1,5 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #include "task.hpp"
 
-#include <set>
-#include <exception>
-
-using namespace std;
-using namespace aquarius;
 using namespace aquarius::time;
 using namespace aquarius::input;
 
@@ -46,7 +17,7 @@ int Logger::LogToStreamBuffer::sync()
     else return -1;
 }
 
-std::streamsize Logger::LogToStreamBuffer::xsputn (const char* s, std::streamsize n)
+streamsize Logger::LogToStreamBuffer::xsputn (const char* s, streamsize n)
 {
     if (os.write(s, n)) return n;
     else return 0;
@@ -59,7 +30,7 @@ int Logger::LogToStreamBuffer::overflow (int c)
     else return traits_type::to_int_type(c);
 }
 
-Logger::LogToStreamBuffer::LogToStreamBuffer(std::ostream& os)
+Logger::LogToStreamBuffer::LogToStreamBuffer(ostream& os)
 : os(os) {}
 
 int Logger::SelfDestructBuffer::sync()
@@ -70,9 +41,9 @@ int Logger::SelfDestructBuffer::sync()
 }
 
 Logger::SelfDestructBuffer::SelfDestructBuffer()
-: LogToStreamBuffer(std::cerr) {}
+: LogToStreamBuffer(cerr) {}
 
-std::streamsize Logger::NullBuffer::xsputn (const char* s, std::streamsize n)
+streamsize Logger::NullBuffer::xsputn (const char* s, streamsize n)
 {
     return n;
 }
@@ -84,7 +55,7 @@ int Logger::NullBuffer::overflow (int c)
 }
 
 Logger::NullStream::NullStream()
-: std::ostream(new NullBuffer()) {}
+: ostream(new NullBuffer()) {}
 
 Logger::NullStream::~NullStream()
 {
@@ -92,23 +63,23 @@ Logger::NullStream::~NullStream()
 }
 
 Logger::SelfDestructStream::SelfDestructStream()
-: std::ostream(new SelfDestructBuffer()) {}
+: ostream(new SelfDestructBuffer()) {}
 
-std::string Logger::dateTime()
+string Logger::dateTime()
 {
     char buf[256];
     time_t t = ::time(NULL);
     tm* timeptr = localtime(&t);
     strftime(buf, 256, "%c", timeptr);
-    return std::string(buf);
+    return string(buf);
 }
 
-std::ostream& Logger::log(const Arena& arena)
+ostream& Logger::log(const Arena& arena)
 {
     if (arena.rank == 0)
     {
-        std::cout << dateTime() << ": ";
-        return std::cout;
+        cout << dateTime() << ": ";
+        return cout;
     }
     else
     {
@@ -116,12 +87,12 @@ std::ostream& Logger::log(const Arena& arena)
     }
 }
 
-std::ostream& Logger::warn(const Arena& arena)
+ostream& Logger::warn(const Arena& arena)
 {
     if (arena.rank == 0)
     {
-        std::cerr << dateTime() << ": warning: ";
-        return std::cerr;
+        cerr << dateTime() << ": warning: ";
+        return cerr;
     }
     else
     {
@@ -129,18 +100,18 @@ std::ostream& Logger::warn(const Arena& arena)
     }
 }
 
-std::ostream& Logger::error(const Arena& arena)
+ostream& Logger::error(const Arena& arena)
 {
+    arena.Barrier();
     if (arena.rank == 0)
     {
         sddstream << dateTime() << ": error: ";
         return sddstream;
-        //std::cout << dateTime() << ": error: ";
-        //return std::cout;
+        //cout << dateTime() << ": error: ";
+        //return cout;
     }
     else
     {
-        pause();
         return nullstream;
     }
 }
@@ -177,12 +148,12 @@ void Product::addRequirement(Requirement&& req)
     requirements->push_back(forward<Requirement>(req));
 }
 
-void Product::addRequirements(const std::vector<Requirement>& reqs)
+void Product::addRequirements(const vector<Requirement>& reqs)
 {
     requirements->insert(requirements->end(), reqs.begin(), reqs.end());
 }
 
-void Product::addRequirements(std::vector<Requirement>&& reqs)
+void Product::addRequirements(vector<Requirement>&& reqs)
 {
     requirements->reserve(requirements->size()+reqs.size());
     for (Requirement& req : reqs) requirements->push_back(move(req));
@@ -193,12 +164,12 @@ template <> string Task::type_string<double>() { return ""; }
 template <> string Task::type_string<complex<float> >() { return "<scomplex>"; }
 template <> string Task::type_string<complex<double> >() { return "<dcomplex>"; }
 
-Task::Task(const string& type, const string& name)
-: type(type), name(name) {}
+Task::Task(const string& name, Config& config)
+: name(name), config(config.clone()) {}
 
-map<string,Task::factory_func>& Task::tasks()
+map<string,tuple<Schema,Task::factory_func>>& Task::tasks()
 {
-    static std::map<std::string,factory_func> tasks_;
+    static map<string,tuple<Schema,Task::factory_func>> tasks_;
     return tasks_;
 }
 
@@ -217,30 +188,17 @@ ostream& Task::error(const Arena& arena)
     return Logger::error(arena) << name << ": ";
 }
 
-bool Task::registerTask(const string& name, factory_func create)
+bool Task::registerTask(const string& name, Schema&& schema, factory_func create)
 {
-    tasks()[name] = create;
+    tasks()[name] = make_tuple(move(schema), create);
     return true;
 }
 
 const Schema& Task::getSchema(const string& name)
 {
-    static map<string,Schema> schemas;
-
-    if (schemas.empty())
-    {
-        Config master(TOPDIR "/desc/schemas");
-
-        for (auto& i : master.find<Config>("*"))
-        {
-            Config schema = master.get(i.first);
-            schemas[i.first] = Schema(schema);
-        }
-    }
-
-    auto i = schemas.find(name);
-    if (i == schemas.end()) throw logic_error("Cannot find schema for task " + name);
-    return i->second;
+    auto i = tasks().find(name);
+    if (i == tasks().end()) throw logic_error("Cannot find schema for task " + name);
+    return aquarius::get<0>(i->second);
 }
 
 Product& Task::getProduct(const string& name)
@@ -257,11 +215,13 @@ const Product& Task::getProduct(const string& name) const
     return const_cast<Task&>(*this).getProduct(name);
 }
 
-Task* Task::createTask(const string& type, const string& name, const input::Config& config)
+unique_ptr<Task> Task::createTask(const string& type, const string& name, input::Config& config)
 {
     auto i = tasks().find(type);
     if (i == tasks().end()) throw logic_error("Task type " + type + " not found");
-    return i->second(name, config);
+    unique_ptr<Task> t = aquarius::get<1>(i->second)(name, config);
+    t->type = type;
+    return t;
 }
 
 void TaskDAG::parseTasks(const string& context, Config& input)
@@ -269,19 +229,21 @@ void TaskDAG::parseTasks(const string& context, Config& input)
     for (auto& i : input.find<string>("section"))
     {
         {
-            Config section = input.get<Config>("section." + i.second);
+            Config section = input.get("section." + i.second);
             parseTasks(context+i.second+".", section);
         }
         input.remove("section");
     }
 
-    for (auto& i : input.find<Config>("*"))
+    for (auto& i : input.find("*"))
     {
+        string type = i.first;
+
         int num = 0;
-        for (auto& t : tasks)
+        for (Task& t : tasks)
         {
-            if (t.first->getName().compare(0, context.size(), context) == 0 &&
-                t.first->getType() == i.first) num++;
+            if (t.getName().compare(0, context.size(), context) == 0 &&
+                t.getType() == type) num++;
         }
 
         Config config = i.second.clone();
@@ -296,34 +258,35 @@ void TaskDAG::parseTasks(const string& context, Config& input)
             config.remove("name");
         }
 
-        for (auto& t : tasks)
+        for (Task& t : tasks)
         {
-            if (t.first->getName() == name)
+            if (t.getName() == name)
                 Logger::error(Arena()) << "More than one task with name " << name << endl;
         }
 
-        while (config.exists("using")) config.remove("using");
+        while (config.exists("using"))
+        {
+            string u = config.get<string>("using");
+            Config c = config.get("using");
+            usings.emplace_back(name, u, c);
+            config.remove("using");
+        }
 
         Task::getSchema(i.first).apply(config);
-        tasks.push_back(make_pair(Task::createTask(i.first, name, config), i.second.clone()));
+        tasks.push_back(Task::createTask(i.first, name, config));
     }
 }
 
 TaskDAG::TaskDAG(const string& file)
 {
-    Config input(file);
+    ifstream ifs(file);
+    Config input(ifs);
     parseTasks("", input);
 }
 
-TaskDAG::~TaskDAG()
+void TaskDAG::schedule(unique_ptr<Task>&& task)
 {
-    for (auto& i : tasks) delete i.first;
-    tasks.clear();
-}
-
-void TaskDAG::addTask(Task* task, const Config& config)
-{
-    tasks.push_back(make_pair(task,config));
+    tasks.push_back(move(task));
 }
 
 void TaskDAG::satisfyRemainingRequirements(const Arena& world)
@@ -332,36 +295,36 @@ void TaskDAG::satisfyRemainingRequirements(const Arena& world)
      * Attempy to satisfy remaining task requirements greedily.
      * If we are not careful, this could produce cycles.
      */
-    for (auto& t1 : tasks)
+    for (Task& t1 : tasks)
     {
         string context1;
-        size_t sep = t1.first->getName().find_last_of(".");
+        size_t sep = t1.getName().find_last_of(".");
         if (sep != string::npos)
         {
-            context1 = t1.first->getName().substr(0, sep+1);
+            context1 = t1.getName().substr(0, sep+1);
         }
-        for (auto& p1 : t1.first->getProducts())
+        for (Product& p1 : t1.getProducts())
         {
-            for (auto& r1 : p1.getRequirements())
+            for (Requirement& r1 : p1.getRequirements())
             {
                 if (r1.isFulfilled()) continue;
 
                 if (r1.getType()=="double")
                     Logger::error(world) << "scalar requirements must be explicitly fulfilled" << endl;
 
-                for (auto& t2 : tasks)
+                for (Task& t2 : tasks)
                 {
                     if (&t1 == &t2) continue;
 
                     string context2;
-                    size_t sep = t2.first->getName().find_last_of(".");
+                    size_t sep = t2.getName().find_last_of(".");
                     if (sep!=string::npos)
                     {
-                        context2 = t2.first->getName().substr(0, sep+1);
+                        context2 = t2.getName().substr(0, sep+1);
                     }
                     if (context1.compare(0, context2.size(), context2) != 0) continue;
 
-                    for (auto& p2 : t2.first->getProducts())
+                    for (Product& p2 : t2.getProducts())
                     {
                         if (r1.isFulfilled()) continue;
 
@@ -369,7 +332,7 @@ void TaskDAG::satisfyRemainingRequirements(const Arena& world)
                         {
                             r1.fulfil(p2);
                         }
-                        for (auto& r2 : p2.getRequirements())
+                        for (Requirement& r2 : p2.getRequirements())
                         {
                             if (r1.isFulfilled()) continue;
                             if (!r2.isFulfilled()) continue;
@@ -382,7 +345,7 @@ void TaskDAG::satisfyRemainingRequirements(const Arena& world)
                     }
                 }
                 if (!r1.isFulfilled())
-                    Logger::error(world)<<"Could not fulfil requirement " << r1.getName() << " of task " << t1.first->getName() << endl;
+                    Logger::error(world)<<"Could not fulfil requirement " << r1.getName() << " of task " << t1.getName() << endl;
             }
         }
     }
@@ -393,102 +356,103 @@ void TaskDAG::satisfyExplicitRequirements(const Arena& world)
     /*
      * Hook up explicitly fulfilled requirements.
      */
-    for (auto& t1 : tasks)
+    for (auto& u : usings)
     {
         string context;
+        const string& name = get<1>(u);
+        Config& config = get<2>(u);
 
-        size_t sep = t1.first->getName().find_last_of(".");
+        Task *t1 = NULL;
+        for (Task& t : tasks) if (t.getName() == get<0>(u)) t1 = &t;
+        assert(t1);
+
+        size_t sep = t1->getName().find_last_of(".");
         if (sep != string::npos)
         {
-            context = t1.first->getName().substr(0, sep+1);
+            context = t1->getName().substr(0, sep+1);
         }
 
-        for (auto& u : t1.second.find<string>("using"))
-        {
-            vector<Requirement*> reqs;
+        ptr_vector<Requirement> reqs;
 
-            for (auto& p : t1.first->getProducts())
+        for (Product& p : t1->getProducts())
+        {
+            for (Requirement& r : p.getRequirements())
             {
-                for (auto& r : p.getRequirements())
+                if (r.getName() == name)
                 {
-                    if (r.getName() == u.second)
-                    {
-                        if (!reqs.empty() && reqs.back()->getType() != r.getType())
-                            Logger::error(world) << "Multiple requirements named " << u.second << " with different types" << endl;
-                        reqs.push_back(&r);
-                    }
+                    if (!reqs.empty() && reqs.back().getType() != r.getType())
+                        Logger::error(world) << "Multiple requirements named " << name << " with different types" << endl;
+                    reqs.push_back(&r);
                 }
             }
+        }
 
-            if (reqs.empty())
-                Logger::error(world) << "No requirement " << u.second << " found on task " << t1.first->getName() << endl;
+        if (reqs.empty())
+            Logger::error(world) << "No requirement " << name << " found on task " << t1->getName() << endl;
 
-            Product p("double", u.second);
-            Product* fulfiller = NULL;
+        Product p("double", name);
+        Product* fulfiller = NULL;
 
-            if (t1.second.exists("using."+u.second+".="))
+        if (config.exists(name+".="))
+        {
+            if (reqs.back().getType() != "double")
+                Logger::error(world) << "Attempting to specify a non-scalar requirement by value" << endl;
+            p.put(new double(config.get<double>(name+".=")));
+            fulfiller = &p;
+        }
+        else
+        {
+            string from = config.get<string>(name+".from");
+            string task, req;
+
+            size_t sep = from.find(':');
+            if (sep == string::npos)
             {
-                if (reqs.back()->getType() != "double")
-                    Logger::error(world) << "Attempting to specify a non-scalar requirement by value" << endl;
-                p.put(new double(t1.second.get<double>("using."+u.second+".=")));
-                fulfiller = &p;
+                task = from;
+                req = name;
             }
             else
             {
-                string from = t1.second.get<string>("using."+u.second+".from");
-                string task, req;
-
-                size_t sep = from.find(':');
-                if (sep == string::npos)
-                {
-                    task = from;
-                    req = u.second;
-                }
-                else
-                {
-                    task = from.substr(0, sep);
-                    req = from.substr(sep+1);
-                }
-
-                sep = task.find('.');
-                if (sep == string::npos)
-                {
-                    task = context+task;
-                }
-
-                if (task[0] == '.')
-                    task = task.substr(1);
-
-                for (auto& t2 : tasks)
-                {
-                    if (t2.first->getName() == task)
-                    {
-                        for (auto& p2 : t2.first->getProducts())
-                        {
-                            if (p2.getName() == req)
-                            {
-                                if (p2.getType() != reqs.back()->getType())
-                                    Logger::error(world) << "Product " << task << "." << req <<
-                                        " is wrong type for requirement " << t1.first->getName() << "." << req << endl;
-                                fulfiller = &p2;
-                            }
-                        }
-
-                        if (fulfiller == NULL)
-                            Logger::error(world) << "Product " << req << " not found on task " << task << endl;
-                    }
-                }
-
-                if (fulfiller == NULL)
-                    Logger::error(world) << "Task " << task << " not found" << endl;
+                task = from.substr(0, sep);
+                req = from.substr(sep+1);
             }
 
-            for (auto& r : reqs)
+            sep = task.find('.');
+            if (sep == string::npos)
             {
-                r->fulfil(*fulfiller);
+                task = context+task;
             }
 
-            t1.second.remove("using");
+            if (task[0] == '.')
+                task = task.substr(1);
+
+            for (Task& t2 : tasks)
+            {
+                if (t2.getName() == task)
+                {
+                    for (Product& p2 : t2.getProducts())
+                    {
+                        if (p2.getName() == req)
+                        {
+                            if (p2.getType() != reqs.back().getType())
+                                Logger::error(world) << "Product " << task << "." << req <<
+                                    " is wrong type for requirement " << t1->getName() << "." << req << endl;
+                            fulfiller = &p2;
+                        }
+                    }
+
+                    if (fulfiller == NULL)
+                        Logger::error(world) << "Product " << req << " not found on task " << task << endl;
+                }
+            }
+
+            if (fulfiller == NULL)
+                Logger::error(world) << "Task " << task << " not found" << endl;
+        }
+
+        for (Requirement& r : reqs)
+        {
+            r.fulfil(*fulfiller);
         }
     }
 }
@@ -503,19 +467,16 @@ void TaskDAG::execute(Arena& world)
     /*
      * Successively search for executable tasks
      */
-    while (true)
+    while (!tasks.empty())
     {
-        vector<Task*> to_execute;
-
-        for (auto t = tasks.begin();;)
+        for (auto i = tasks.pbegin();i != tasks.pend();)
         {
-            if (t == tasks.end()) break;
-
             bool can_execute = true;
+            Task& t = **i;
 
-            for (auto& p : t->first->getProducts())
+            for (Product& p : t.getProducts())
             {
-                for (auto& r : p.getRequirements())
+                for (Requirement& r : p.getRequirements())
                 {
                     if (!r.exists())
                     {
@@ -528,58 +489,51 @@ void TaskDAG::execute(Arena& world)
 
             if (can_execute)
             {
-                to_execute.push_back(t->first);
-                t = tasks.erase(t);
+                Logger::log(world) << "Starting task: " << t.getName() << endl;
+                Timer timer;
+
+                bool success = true;
+                bool done = false;
+                string error;
+
+                timer.start();
+                //try
+                //{
+                    done = t.run(*this, world);
+                //}
+                //catch (runtime_error& e)
+                //{
+                //    success = false;
+                //    error = e.what();
+                //}
+                timer.stop();
+
+                double dt = timer.seconds(world);
+                double gflops = timer.gflops(world);
+                Logger::log(world) << "Finished task: " << t.getName() <<
+                           " in " << fixed << setprecision(3) << dt << " s" << endl;
+                Logger::log(world) << "Task: " << t.getName() <<
+                           " achieved " << fixed << setprecision(3) << gflops << " Gflops/sec" << endl;
+
+                if (!success)
+                {
+                    throw runtime_error(error);
+                }
+
+                for (Product& p : t.getProducts())
+                {
+                    if (p.isUsed() && !p.exists())
+                        Logger::error(world) << "Product " << p.getName() <<
+                                                " of task " << t.getName() <<
+                                                " was not successfully produced" << endl;
+                }
+
+                if (done) i = tasks.perase(i);
             }
             else
             {
-                ++t;
+                ++i;
             }
-        }
-
-        if (to_execute.empty()) break;
-
-        for (auto& t : to_execute)
-        {
-            Logger::log(world) << "Starting task: " << t->getName() << endl;
-            Timer timer;
-
-            bool success = true;
-            string error;
-
-            timer.start();
-            try
-            {
-                t->run(*this, world);
-            }
-            catch (runtime_error& e)
-            {
-                success = false;
-                error = e.what();
-            }
-            timer.stop();
-
-            double dt = timer.seconds(world);
-            double gflops = timer.gflops(world);
-            Logger::log(world) << "Finished task: " << t->getName() <<
-                       " in " << std::fixed << std::setprecision(3) << dt << " s" << endl;
-            Logger::log(world) << "Task: " << t->getName() <<
-                       " achieved " << std::fixed << std::setprecision(3) << gflops << " Gflops/sec" << endl;
-
-            if (!success)
-            {
-                throw runtime_error(error);
-            }
-
-            for (auto& p : t->getProducts())
-            {
-                if (p.isUsed() && !p.exists())
-                    Logger::error(world) << "Product " << p.getName() <<
-                                            " of task " << t->getName() <<
-                                            " was not successfully produced" << endl;
-            }
-
-            delete t;
         }
     }
 
@@ -589,8 +543,8 @@ void TaskDAG::execute(Arena& world)
     }
 }
 
-CompareScalars::CompareScalars(const string& name, const Config& config)
-: Task("compare", name)
+CompareScalars::CompareScalars(const string& name, Config& config)
+: Task(name, config)
 {
     tolerance = config.get<double>("tolerance");
 
@@ -600,7 +554,7 @@ CompareScalars::CompareScalars(const string& name, const Config& config)
     addProduct(Product("bool", "match", reqs));
 }
 
-void CompareScalars::run(TaskDAG& dag, const Arena& arena)
+bool CompareScalars::run(TaskDAG& dag, const Arena& arena)
 {
     double val1 = get<double>("val1");
     double val2 = get<double>("val2");
@@ -618,9 +572,11 @@ void CompareScalars::run(TaskDAG& dag, const Arena& arena)
     }
 
     put("match", new bool(match));
+
+    return true;
 }
 
-REGISTER_TASK(CompareScalars,"compare");
+REGISTER_TASK(CompareScalars,"compare","tolerance double");
 
 }
 }

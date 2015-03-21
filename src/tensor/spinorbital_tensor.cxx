@@ -1,38 +1,14 @@
-/* Copyin (c) 2013, Devin Matthews
- * All ins reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyin
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyin
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #include "spinorbital_tensor.hpp"
 
-bool doit = false;
-
-using namespace std;
-using namespace aquarius;
 using namespace aquarius::op;
-using namespace aquarius::tensor;
 using namespace aquarius::autocc;
 using namespace aquarius::task;
 using namespace aquarius::symmetry;
+
+namespace aquarius
+{
+namespace tensor
+{
 
 static int conv_idx(const vector<int>& cidx_A, string& iidx_A)
 {
@@ -196,12 +172,12 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const Arena& arena,
                                         const vector<Space>& spaces,
                                         const vector<int>& nout,
                                         const vector<int>& nin, int spin)
-: IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T>(name, std::sum(nout)+std::sum(nin), 0),
+: IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T>(name, aquarius::sum(nout)+aquarius::sum(nin), 0),
   Distributed(arena), group(group), spaces(spaces), nout(nout), nin(nin), spin(spin)
 {
     int nspaces = spaces.size();
-    int nouttot = std::sum(nout);
-    int nintot = std::sum(nin);
+    int nouttot = aquarius::sum(nout);
+    int nintot = aquarius::sum(nin);
     vector<int> whichout(nouttot), whichin(nintot);
     vector<int> alpha_out(nspaces), alpha_in(nspaces);
 
@@ -302,12 +278,12 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const Arena& arena,
                                         const vector<Space>& spaces,
                                         const vector<int>& nout,
                                         const vector<int>& nin, int spin)
-: IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T>(name, std::sum(nout)+std::sum(nin), 0),
+: IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T>(name, aquarius::sum(nout)+aquarius::sum(nin), 0),
   Distributed(arena), group(group), spaces(spaces), nout(nout), nin(nin), spin(spin)
 {
     int nspaces = spaces.size();
-    int nouttot = std::sum(nout);
-    int nintot = std::sum(nin);
+    int nouttot = aquarius::sum(nout);
+    int nintot = aquarius::sum(nin);
     vector<int> whichout(nouttot), whichin(nintot);
     vector<int> alpha_out(nspaces), alpha_in(nspaces);
 
@@ -494,11 +470,11 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
     {
         SpinCase& scC = cases[sc];
 
-        int nouttot_C = std::sum(nout);
+        int nouttot_C = aquarius::sum(nout);
 
         string ext;
-        vector<Line> lines_C_out(std::sum(nout));
-        vector<Line> lines_C_in(std::sum(nin));
+        vector<Line> lines_C_out(aquarius::sum(nout));
+        vector<Line> lines_C_in(aquarius::sum(nin));
         for (int i = 0, s = 0;s < spaces.size();s++)
         {
             for (int a = 0;a <         scC.alpha_out[s];a++,i++)
@@ -526,11 +502,11 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
             }
         }
 
-        int nouttot_A = std::sum(A.nout);
+        int nouttot_A = aquarius::sum(A.nout);
 
         string sum;
-        vector<Line> lines_A_out(std::sum(A.nout));
-        vector<Line> lines_A_in(std::sum(A.nin));
+        vector<Line> lines_A_out(aquarius::sum(A.nout));
+        vector<Line> lines_A_in(aquarius::sum(A.nin));
         vector<Line> lines_AandC_out, lines_AandC_in;
         for (int i = 0, s = 0;s < A.spaces.size();s++)
         {
@@ -583,10 +559,10 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
             }
         }
 
-        int nouttot_B = std::sum(B.nout);
+        int nouttot_B = aquarius::sum(B.nout);
 
-        vector<Line> lines_B_out(std::sum(B.nout));
-        vector<Line> lines_B_in(std::sum(B.nin));
+        vector<Line> lines_B_out(aquarius::sum(B.nout));
+        vector<Line> lines_B_in(aquarius::sum(B.nin));
         vector<Line> lines_BandC_out, lines_BandC_in;
         for (int i = 0, s = 0;s < B.spaces.size();s++)
         {
@@ -788,7 +764,7 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
             const SymmetryBlockedTensor<T>& tensor_A = A(alpha_out_A, alpha_in_A);
             const SymmetryBlockedTensor<T>& tensor_B = B(alpha_out_B, alpha_in_B);
 
-            if (doit)
+            if (0)
             {
                 cout << alpha << " " << beta[sc] << " " << *t << endl;
                 cout <<    tensor_A.getSymmetry() << " " <<   alpha_out_A << " " <<   alpha_in_A << endl;
@@ -821,11 +797,11 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
     {
         SpinCase& scB = cases[sc];
 
-        int nouttot_B = std::sum(this->nout);
+        int nouttot_B = aquarius::sum(this->nout);
 
         string ext;
-        vector<Line> lines_B_out(std::sum(nout));
-        vector<Line> lines_B_in(std::sum(nin));
+        vector<Line> lines_B_out(aquarius::sum(nout));
+        vector<Line> lines_B_in(aquarius::sum(nin));
         for (int i = 0, s = 0;s < spaces.size();s++)
         {
             for (int a = 0;a <         scB.alpha_out[s];a++,i++)
@@ -853,11 +829,11 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
             }
         }
 
-        int nouttot_A = std::sum(A.nout);
+        int nouttot_A = aquarius::sum(A.nout);
 
         string sum;
-        vector<Line> lines_A_out(std::sum(A.nout));
-        vector<Line> lines_A_in(std::sum(A.nin));
+        vector<Line> lines_A_out(aquarius::sum(A.nout));
+        vector<Line> lines_A_in(aquarius::sum(A.nin));
         vector<Line> lines_AandB_out, lines_AandB_in;
         for (int i = 0, s = 0;s < A.spaces.size();s++)
         {
@@ -1091,9 +1067,9 @@ T SpinorbitalTensor<T>::dot(bool conja, const SpinorbitalTensor<T>& A, const str
 }
 
 template<class T>
-typename std::real_type<T>::type SpinorbitalTensor<T>::norm(int p) const
+typename real_type<T>::type SpinorbitalTensor<T>::norm(int p) const
 {
-    typename std::real_type<T>::type nrm = 0;
+    typename real_type<T>::type nrm = 0;
 
     for (typename vector<SpinCase>::const_iterator sc = cases.begin();sc != cases.end();++sc)
     {
@@ -1104,7 +1080,7 @@ typename std::real_type<T>::type SpinorbitalTensor<T>::norm(int p) const
             factor *= binom( nin[s],  sc->alpha_in[s]);
         }
 
-        typename std::real_type<T>::type subnrm = sc->tensor->norm(p);
+        typename real_type<T>::type subnrm = sc->tensor->norm(p);
 
         if (p == 2)
         {
@@ -1175,3 +1151,6 @@ SpinorbitalTensor<T>& SpinorbitalTensor<T>::scalar() const
 }
 
 INSTANTIATE_SPECIALIZATIONS(SpinorbitalTensor);
+
+}
+}

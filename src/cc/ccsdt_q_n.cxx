@@ -1,41 +1,20 @@
-/* Copyright (c) 2014, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #include "ccsdt_q_n.hpp"
 
-using namespace std;
 using namespace aquarius::op;
-using namespace aquarius::cc;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
 using namespace aquarius::task;
 using namespace aquarius::time;
 using namespace aquarius::symmetry;
 
+namespace aquarius
+{
+namespace cc
+{
+
 template <typename U>
-CCSDT_Q_N<U>::CCSDT_Q_N(const string& name, const Config& config)
-: Task("ccsdt(q-n)", name)
+CCSDT_Q_N<U>::CCSDT_Q_N(const string& name, Config& config)
+: Task(name, config)
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("moints", "H"));
@@ -48,7 +27,7 @@ CCSDT_Q_N<U>::CCSDT_Q_N(const string& name, const Config& config)
 }
 
 template <typename U>
-void CCSDT_Q_N<U>::run(task::TaskDAG& dag, const Arena& arena)
+bool CCSDT_Q_N<U>::run(task::TaskDAG& dag, const Arena& arena)
 {
     const TwoElectronOperator<U>& H = this->template get<TwoElectronOperator<U>>("H");
     const STTwoElectronOperator<U>& Hbar = this->template get<STTwoElectronOperator<U>>("Hbar");
@@ -388,7 +367,12 @@ void CCSDT_Q_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     this->put("E(2)", new U(E2));
     this->put("E(3)", new U(E3));
     this->put("E(4)", new U(E4));
+
+    return true;
 }
 
-INSTANTIATE_SPECIALIZATIONS(CCSDT_Q_N);
-REGISTER_TASK(CCSDT_Q_N<double>,"ccsdt(q-n)");
+}
+}
+
+INSTANTIATE_SPECIALIZATIONS(aquarius::cc::CCSDT_Q_N);
+REGISTER_TASK(aquarius::cc::CCSDT_Q_N<double>,"ccsdt(q-n)");

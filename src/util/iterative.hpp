@@ -1,33 +1,5 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_UTIL_ITERATIVE_HPP_
 #define _AQUARIUS_UTIL_ITERATIVE_HPP_
-
-#include <limits>
-#include <string>
-#include <vector>
 
 #include "time/time.hpp"
 #include "task/task.hpp"
@@ -45,8 +17,8 @@ class Iterative : public task::Task
         enum ConvergenceType {MAX_ABS, RMSD, MAD};
 
     private:
-        std::vector<U> energy_;
-        std::vector<double> conv_;
+        vector<U> energy_;
+        vector<double> conv_;
         double convtol;
         int iter_;
         int maxiter;
@@ -54,7 +26,7 @@ class Iterative : public task::Task
 
         static ConvergenceType getConvType(const input::Config& config)
         {
-            std::string sconv = config.get<std::string>("conv_type");
+            string sconv = config.get<string>("conv_type");
 
             if (sconv == "MAXE")
             {
@@ -137,8 +109,8 @@ class Iterative : public task::Task
         virtual void iterate(const Arena& arena) = 0;
 
     public:
-        Iterative(const std::string& type, const std::string& name, const input::Config& config)
-        : Task(type, name),
+        Iterative(const string& name, input::Config& config)
+        : Task(name, config),
           convtol(config.get<double>("convergence")),
           maxiter(config.get<int>("max_iterations")),
           nsolution_(0),
@@ -146,11 +118,16 @@ class Iterative : public task::Task
 
         virtual ~Iterative() {}
 
-        void run(task::TaskDAG& dag, const Arena& arena, int nsolution = 1)
+        bool run(task::TaskDAG& dag, const Arena& arena)
+        {
+            return run(dag, arena, 1);
+        }
+
+        bool run(task::TaskDAG& dag, const Arena& arena, int nsolution)
         {
             nsolution_ = nsolution;
             energy_.resize(nsolution);
-            conv_.assign(nsolution, std::numeric_limits<U>::max());
+            conv_.assign(nsolution, numeric_limits<U>::max());
 
             for (iter_ = 1;iter_ <= maxiter && !isConverged();iter_++)
             {
@@ -162,22 +139,22 @@ class Iterative : public task::Task
 
                 int ndigit = (int)(ceil(-log10(convtol))+0.5);
 
-                log(arena) << "Iteration " << iter_ << " took " << std::fixed <<
-                              std::setprecision(3) << dt << " s" << std::endl;
+                log(arena) << "Iteration " << iter_ << " took " << fixed <<
+                              setprecision(3) << dt << " s" << endl;
 
                 for (int i = 0;i < nsolution;i++)
                 {
                     if (nsolution > 1)
                     {
                         log(arena) << "Iteration " << iter_ << " sol'n " << (i+1) <<
-                                      " energy = " << std::fixed << std::setprecision(ndigit) << energy_[i] <<
-                                      ", convergence = " << std::scientific << std::setprecision(3) << conv_[i] << std::endl;
+                                      " energy = " << fixed << setprecision(ndigit) << energy_[i] <<
+                                      ", convergence = " << scientific << setprecision(3) << conv_[i] << endl;
                     }
                     else
                     {
                         log(arena) << "Iteration " << iter_ <<
-                                      " energy = " << std::fixed << std::setprecision(ndigit) << energy_[i] <<
-                                      ", convergence = " << std::scientific << std::setprecision(3) << conv_[i] << std::endl;
+                                      " energy = " << fixed << setprecision(ndigit) << energy_[i] <<
+                                      ", convergence = " << scientific << setprecision(3) << conv_[i] << endl;
                     }
                 }
 
@@ -185,8 +162,10 @@ class Iterative : public task::Task
 
             if (!isConverged())
             {
-                log(arena) << "Did not converge in " << maxiter << " iterations" << std::endl;
+                log(arena) << "Did not converge in " << maxiter << " iterations" << endl;
             }
+
+            return true;
         }
 
         double getConvergence() const

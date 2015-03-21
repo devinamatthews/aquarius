@@ -1,36 +1,10 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_INPUT_MOLECULE_HPP_
 #define _AQUARIUS_INPUT_MOLECULE_HPP_
 
-#include <vector>
-#include <iterator>
+#include "util/global.hpp"
 
 #include "integrals/shell.hpp"
 #include "symmetry/symmetry.hpp"
-#include "util/util.h"
 #include "task/task.hpp"
 
 #include "config.hpp"
@@ -48,16 +22,16 @@ class Molecule
     friend class MoleculeTask;
 
     protected:
-        std::vector<Atom> atoms;
+        vector<Atom> atoms;
         int multiplicity;
         int nelec;
-        std::vector<int> norb;
+        vector<int> norb;
         double nucrep;
         const symmetry::PointGroup *group;
         double rota[3];
 
         template <typename shell_type, typename atom_iterator_type, typename shell_iterator_type>
-        class shell_iterator_ : public std::iterator<std::forward_iterator_tag, shell_type>
+        class shell_iterator_ : public iterator<forward_iterator_tag, shell_type>
         {
             friend class Molecule;
 
@@ -151,16 +125,16 @@ class Molecule
                 }
         };
 
-        static bool isSymmetric(const std::vector<AtomCartSpec>& cartpos, const mat3x3& op);
+        static bool isSymmetric(const vector<AtomCartSpec>& cartpos, const mat3x3& op);
 
-        void initGeometry(const input::Config& config, std::vector<AtomCartSpec>& cartpos);
+        void initGeometry(input::Config& config, vector<AtomCartSpec>& cartpos);
 
-        void initSymmetry(const input::Config& config, std::vector<AtomCartSpec>& cartpos);
+        void initSymmetry(input::Config& config, vector<AtomCartSpec>& cartpos);
 
-        void initBasis(const input::Config& config, const std::vector<AtomCartSpec>& cartpos);
+        void initBasis(input::Config& config, const vector<AtomCartSpec>& cartpos);
 
     public:
-        Molecule(const Config& config, const Arena& arena);
+        Molecule(Config& config, const Arena& arena);
 
         void print(task::Printer& p) const {}
 
@@ -172,18 +146,18 @@ class Molecule
 
         int getMultiplicity() const { return multiplicity; }
 
-        const std::vector<int>& getNumOrbitals() const { return norb; }
+        const vector<int>& getNumOrbitals() const { return norb; }
 
         double getNuclearRepulsion() const { return nucrep; }
 
         const symmetry::PointGroup& getGroup() const { return *group; }
 
         typedef shell_iterator_<integrals::Shell,
-                                std::vector<Atom>::iterator,
-                                std::vector<integrals::Shell>::iterator > shell_iterator;
+                                vector<Atom>::iterator,
+                                vector<integrals::Shell>::iterator > shell_iterator;
         typedef shell_iterator_<const integrals::Shell,
-                                std::vector<Atom>::const_iterator,
-                                std::vector<integrals::Shell>::const_iterator > const_shell_iterator;
+                                vector<Atom>::const_iterator,
+                                vector<integrals::Shell>::const_iterator > const_shell_iterator;
 
         shell_iterator getShellsBegin();
 
@@ -193,20 +167,24 @@ class Molecule
 
         const_shell_iterator getShellsEnd() const;
 
-        std::vector<Atom>::iterator getAtomsBegin() { return atoms.begin(); }
+        vector<Atom>& getAtoms() { return atoms; }
 
-        std::vector<Atom>::iterator getAtomsEnd() { return atoms.end(); }
+        const vector<Atom>& getAtoms() const { return atoms; }
 
-        std::vector<Atom>::const_iterator getAtomsBegin() const { return atoms.begin(); }
+        vector<Atom>::iterator getAtomsBegin() { return atoms.begin(); }
 
-        std::vector<Atom>::const_iterator getAtomsEnd() const { return atoms.end(); }
+        vector<Atom>::iterator getAtomsEnd() { return atoms.end(); }
+
+        vector<Atom>::const_iterator getAtomsBegin() const { return atoms.begin(); }
+
+        vector<Atom>::const_iterator getAtomsEnd() const { return atoms.end(); }
 };
 
 class Atom
 {
     private:
         integrals::Center center;
-        std::vector<integrals::Shell> shells;
+        vector<integrals::Shell> shells;
 
     public:
         Atom(const integrals::Center& center) : center(center) {}
@@ -217,13 +195,13 @@ class Atom
 
         const integrals::Center& getCenter() const { return center; }
 
-        std::vector<integrals::Shell>::iterator getShellsBegin() { return shells.begin(); }
+        vector<integrals::Shell>::iterator getShellsBegin() { return shells.begin(); }
 
-        std::vector<integrals::Shell>::iterator getShellsEnd() { return shells.end(); }
+        vector<integrals::Shell>::iterator getShellsEnd() { return shells.end(); }
 
-        std::vector<integrals::Shell>::const_iterator getShellsBegin() const { return shells.begin(); }
+        vector<integrals::Shell>::const_iterator getShellsBegin() const { return shells.begin(); }
 
-        std::vector<integrals::Shell>::const_iterator getShellsEnd() const { return shells.end(); }
+        vector<integrals::Shell>::const_iterator getShellsEnd() const { return shells.end(); }
 };
 
 class MoleculeTask : public task::Task
@@ -232,9 +210,9 @@ class MoleculeTask : public task::Task
         Config config;
 
     public:
-        MoleculeTask(const std::string& name, const input::Config& config);
+        MoleculeTask(const string& name, input::Config& config);
 
-        void run(task::TaskDAG& dag, const Arena& arena);
+        bool run(task::TaskDAG& dag, const Arena& arena);
 };
 
 }

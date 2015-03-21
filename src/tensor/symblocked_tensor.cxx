@@ -1,35 +1,12 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
-#include <fstream>
-
 #include "symblocked_tensor.hpp"
 
-using namespace std;
-using namespace aquarius::tensor;
 using namespace aquarius::symmetry;
 using namespace aquarius::task;
+
+namespace aquarius
+{
+namespace tensor
+{
 
 template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const SymmetryBlockedTensor<T>& other)
@@ -411,8 +388,8 @@ void SymmetryBlockedTensor<T>::slice(T alpha, bool conja, const SymmetryBlockedT
 }
 
 template <class T>
-vector<int> SymmetryBlockedTensor<T>::getStrides(const string& indices, const int ndim,
-                                                 const int len, const string& idx_A)
+vector<int> SymmetryBlockedTensor<T>::getStrides(const string& indices, int ndim,
+                                                 int len, const string& idx_A)
 {
     vector<int> strides(indices.size(), 0);
     vector<int> stride_A(ndim);
@@ -900,9 +877,9 @@ void SymmetryBlockedTensor<T>::weight(const vector<const vector<vector<T> >*>& d
 }
 
 template <class T>
-typename std::real_type<T>::type SymmetryBlockedTensor<T>::norm(int p) const
+typename real_type<T>::type SymmetryBlockedTensor<T>::norm(int p) const
 {
-    typename std::real_type<T>::type nrm = 0;
+    typename real_type<T>::type nrm = 0;
 
     int n = group.getNumIrreps();
 
@@ -935,7 +912,7 @@ typename std::real_type<T>::type SymmetryBlockedTensor<T>::norm(int p) const
                 i = j;
             }
 
-            typename std::real_type<T>::type subnrm = tensors[off_A].tensor->norm(p);
+            typename real_type<T>::type subnrm = tensors[off_A].tensor->norm(p);
 
             if (p == 2)
             {
@@ -1028,3 +1005,6 @@ SymmetryBlockedTensor<T>& SymmetryBlockedTensor<T>::scalar() const
 }
 
 INSTANTIATE_SPECIALIZATIONS(SymmetryBlockedTensor);
+
+}
+}

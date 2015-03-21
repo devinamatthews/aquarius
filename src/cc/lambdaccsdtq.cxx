@@ -1,43 +1,20 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #include "lambdaccsdtq.hpp"
 
-extern bool doit;
-
-using namespace std;
 using namespace aquarius::op;
-using namespace aquarius::cc;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
 using namespace aquarius::task;
 using namespace aquarius::time;
 using namespace aquarius::symmetry;
 
+namespace aquarius
+{
+namespace cc
+{
+
 template <typename U>
-LambdaCCSDTQ<U>::LambdaCCSDTQ(const string& name, const Config& config)
-: Iterative<U>("lambdaccsdtq", name, config), diis(config.get("diis"))
+LambdaCCSDTQ<U>::LambdaCCSDTQ(const string& name, Config& config)
+: Iterative<U>(name, config), diis(config.get("diis"))
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("ccsdtq.Hbar", "Hbar"));
@@ -48,7 +25,7 @@ LambdaCCSDTQ<U>::LambdaCCSDTQ(const string& name, const Config& config)
 }
 
 template <typename U>
-void LambdaCCSDTQ<U>::run(TaskDAG& dag, const Arena& arena)
+bool LambdaCCSDTQ<U>::run(TaskDAG& dag, const Arena& arena)
 {
     const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
 
@@ -59,9 +36,6 @@ void LambdaCCSDTQ<U>::run(TaskDAG& dag, const Arena& arena)
     this->put   (      "L", new DeexcitationOperator<U,4>("L", arena, occ, vrt));
     this->puttmp(      "D", new Denominator         <U  >(H));
     this->puttmp(      "Z", new DeexcitationOperator<U,4>("Z", arena, occ, vrt));
-    this->puttmp(      "Q", new DeexcitationOperator<U,4>("Q", arena, occ, vrt));
-    this->puttmp(     "L2", new ExcitationOperator  <U,4>("L2", arena, occ, vrt));
-    this->puttmp(     "Q2", new ExcitationOperator  <U,4>("Q2", arena, occ, vrt));
     this->puttmp(    "DAB", new SpinorbitalTensor   <U  >(     "D(ab)", arena, group, {vrt,occ}, {1,0}, {1,0}));
     this->puttmp(    "DIJ", new SpinorbitalTensor   <U  >(     "D(ij)", arena, group, {vrt,occ}, {0,1}, {0,1}));
     this->puttmp(    "DAI", new SpinorbitalTensor   <U  >(     "D(ai)", arena, group, {vrt,occ}, {1,0}, {0,1}));
@@ -130,6 +104,8 @@ void LambdaCCSDTQ<U>::run(TaskDAG& dag, const Arena& arena)
 
     this->put("energy", new U(this->energy()));
     this->put("convergence", new U(this->conv()));
+
+    return true;
 }
 
 template <typename U>
@@ -153,9 +129,6 @@ void LambdaCCSDTQ<U>::iterate(const Arena& arena)
     DeexcitationOperator<U,4>& L = this->template get   <DeexcitationOperator<U,4>>("L");
     Denominator         <U  >& D = this->template gettmp<Denominator         <U  >>("D");
     DeexcitationOperator<U,4>& Z = this->template gettmp<DeexcitationOperator<U,4>>("Z");
-    DeexcitationOperator<U,4>& Q = this->template gettmp<DeexcitationOperator<U,4>>("Q");
-    ExcitationOperator  <U,4>& L2 = this->template gettmp<ExcitationOperator  <U,4>>("L2");
-    ExcitationOperator  <U,4>& Q2 = this->template gettmp<ExcitationOperator  <U,4>>("Q2");
 
     SpinorbitalTensor<U>&     DIJ = this->template gettmp<SpinorbitalTensor<U>>(    "DIJ");
     SpinorbitalTensor<U>&     DAB = this->template gettmp<SpinorbitalTensor<U>>(    "DAB");
@@ -396,5 +369,30 @@ void LambdaCCSDTQ<U>::iterate(const Arena& arena)
     diis.extrapolate(L, Z);
 }
 
-INSTANTIATE_SPECIALIZATIONS(LambdaCCSDTQ);
-REGISTER_TASK(LambdaCCSDTQ<double>,"lambdaccsdtq");
+}
+}
+
+static const char* spec = R"!(
+
+convergence?
+    double 1e-9,
+max_iterations?
+    int 50,
+conv_type?
+    enum { MAXE, RMSE, MAE },
+diis?
+{
+    damping?
+        double 0.0,
+    start?
+        int 1,
+    order?
+        int 5,
+    jacobi?
+        bool false
+}
+
+)!";
+
+INSTANTIATE_SPECIALIZATIONS(aquarius::cc::LambdaCCSDTQ);
+REGISTER_TASK(aquarius::cc::LambdaCCSDTQ<double>,"lambdaccsdtq",spec);

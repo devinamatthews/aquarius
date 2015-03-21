@@ -1,38 +1,9 @@
-/* Copyright (c) 2013, Devin Matthews
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following
- * conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL DEVIN MATTHEWS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE. */
-
 #ifndef _AQUARIUS_DIIS_HPP_
 #define _AQUARIUS_DIIS_HPP_
 
-#include <vector>
-#include <cassert>
-#include <algorithm>
-#include <iostream>
-#include <limits>
+#include "util/global.hpp"
 
 #include "input/config.hpp"
-#include "util/lapack.h"
 #include "task/task.hpp"
 
 namespace aquarius
@@ -46,100 +17,80 @@ class DIIS
     protected:
         typedef typename T::dtype dtype;
 
-        std::vector< std::vector<T*> > old_x;
-        std::vector< std::vector<U*> > old_dx;
-        std::vector<dtype> c, e;
+        vector<unique_vector<T>> old_x;
+        vector<unique_vector<U>> old_dx;
+        marray<dtype,1> c;
+        marray<dtype,2> e;
         int nextrap, start, nx, ndx;
         double damping;
 
     public:
-        DIIS(const input::Config& config, const int nx = 1, const int ndx = 1)
+        DIIS(const input::Config& config, int nx = 1, int ndx = 1)
         : nx(nx), ndx(ndx)
         {
             nextrap = config.get<int>("order");
             start = config.get<int>("start");
             damping = config.get<double>("damping");
 
-            e.resize((nextrap+1)*(nextrap+1));
-            c.resize(nextrap+1);
+            e.resize({nextrap+1,nextrap+1});
+            c.resize({nextrap+1});
 
-            old_x.resize(nextrap, std::vector<T*>(nx, (T*)NULL));
-            old_dx.resize(nextrap, std::vector<U*>(ndx, (U*)NULL));
-        }
-
-        ~DIIS()
-        {
-            for (typename std::vector< std::vector<T*> >::iterator j = old_x.begin();j != old_x.end();++j)
-            {
-                for (typename std::vector<T*>::iterator i = j->begin();i != j->end();i++)
-                {
-                    if (*i != NULL) delete *i;
-                }
-            }
-
-            for (typename std::vector< std::vector<U*> >::iterator j = old_dx.begin();j != old_dx.end();++j)
-            {
-                for (typename std::vector<U*>::iterator i = j->begin();i != j->end();++i)
-                {
-                    if (*i != NULL) delete *i;
-                }
-            }
+            old_x.resize(nextrap);
+            old_dx.resize(nextrap);
         }
 
         void extrapolate(T& x, U& dx)
         {
-            extrapolate(std::vector<T*>(1, &x), std::vector<U*>(1, &dx));
+            extrapolate(ptr_vector<T>{&x}, ptr_vector<U>{&dx});
         }
 
-        void extrapolate(const std::vector<T*>& x, const std::vector<U*>& dx)
+        template <typename x_container, typename dx_container>
+        void extrapolate(x_container&& x, dx_container&& dx)
         {
             assert(x.size() == nx);
             assert(dx.size() == ndx);
 
             if (nextrap <= 1) return;
 
-            for (int i = 0;i < nx;i++) assert(x[i] != NULL);
-            for (int i = 0;i < ndx;i++) assert(dx[i] != NULL);
-
             /*
              * Move things around such that in iteration n, the data from
              * iteration n-k is in slot k
              */
-            std::rotate( old_x.begin(),  old_x.end()-1,  old_x.end());
-            std::rotate(old_dx.begin(), old_dx.end()-1, old_dx.end());
+            rotate( old_x.begin(),  old_x.end()-1,  old_x.end());
+            rotate(old_dx.begin(), old_dx.end()-1, old_dx.end());
 
             /*
              * Lazily allocate elements of old_x etc. so that we can
              * just use the copy ctor and subclasses do not have to
              * worry about allocation/deallocation
              */
-            if (old_x[0][0] == NULL)
+            if (old_x[0].empty())
             {
                 for (int i = 0;i < nx;i++)
                 {
-                    old_x[0][i] = new T(*x[i]);
+                    old_x[0].push_back(x[i]);
                 }
             }
             else
             {
                 for (int i = 0;i < nx;i++)
                 {
-                    (*old_x[0][i]) = *x[i];
+                    old_x[0][i] = x[i];
                 }
             }
 
-            if (old_dx[0][0] == NULL)
+            if (old_dx[0].empty())
             {
                 for (int i = 0;i < ndx;i++)
                 {
-                    old_dx[0][i] = new U(*dx[i]);
+                    old_dx[0].push_back(dx[i]);
                 }
             }
             else
             {
                 for (int i = 0;i < ndx;i++)
                 {
-                    (*old_dx[0][i]) = *dx[i];
+                    old_dx[0][i] = dx[i];
                 }
             }
 
@@ -150,16 +101,16 @@ class DIIS
             {
                 for (int j = nextrap-1;j > 0;j--)
                 {
-                    e[i+j*(nextrap+1)] = e[(i-1)+(j-1)*(nextrap+1)];
+                    e[i][j] = e[i-1][j-1];
                 }
 
                 c[i] = c[i-1];
             }
 
-            e[0] = 0;
+            e[0][0] = 0;
             for (int i = 0;i < ndx;i++)
             {
-                e[0] += scalar(conj(*dx[i])*(*dx[i]));
+                e[0][0] += scalar(conj(dx[i])*dx[i]);
             }
 
             /*
@@ -168,14 +119,14 @@ class DIIS
              * (e.g. in iterations 1 to nextrap-1), so save this number.
              */
             int nextrap_real = 1;
-            for (int i = 1;i < nextrap && old_dx[i][0] != NULL;i++)
+            for (int i = 1;i < nextrap && !old_dx[i].empty();i++)
             {
-                e[i] = 0;
+                e[i][0] = 0;
                 for (int j = 0;j < ndx;j++)
                 {
-                    e[i] += scalar(conj(*dx[j])*(*old_dx[i][j]));
+                    e[i][0] += scalar(conj(dx[j])*old_dx[i][j]);
                 }
-                e[i*(nextrap+1)] = e[i];
+                e[0][i] = e[i][0];
                 nextrap_real++;
             }
 
@@ -185,12 +136,12 @@ class DIIS
              */
             for (int i = 0;i < nextrap_real;i++)
             {
-                e[i+nextrap_real*(nextrap+1)] = -1.0;
-                e[nextrap_real+i*(nextrap+1)] = -1.0;
+                e[i][nextrap_real] = -1.0;
+                e[nextrap_real][i] = -1.0;
                 c[i] = 0.0;
             }
 
-            e[nextrap_real+nextrap_real*(nextrap+1)] = 0.0;
+            e[nextrap_real][nextrap_real] = 0.0;
             c[nextrap_real] = -1.0;
 
             /*
@@ -214,7 +165,7 @@ class DIIS
                 {
                     for (int i = 0;i < nx;i++)
                     {
-                        (damping-1)*(*old_x[0][i]) += damping*(*old_x[1][i]);
+                        (damping-1)*old_x[0][i] += damping*old_x[1][i];
                     }
                 }
 
@@ -223,10 +174,9 @@ class DIIS
 
             {
                 int info;
-                std::vector<dtype> tmp((nextrap+1)*(nextrap+1));
-                std::vector<integer> ipiv(nextrap+1);
+                marray<dtype,2> tmp(e);
+                vector<integer> ipiv(nextrap+1);
 
-                std::copy(e.begin(), e.end(), tmp.begin());
                 info = hesv('U', nextrap_real+1, 1, tmp.data(), nextrap+1, ipiv.data(),
                             c.data(), nextrap+1);
 
@@ -235,39 +185,39 @@ class DIIS
                  */
                 if (info > 0)
                 {
-                    dtype eps = e[nextrap_real-1+(nextrap_real-1)*(nextrap+1)]*
-                                std::numeric_limits<typename std::real_type<dtype>::type>::epsilon();
-                    std::copy(e.begin(), e.end(), tmp.begin());
+                    dtype eps = e[nextrap_real-1][nextrap_real-1]*
+                                numeric_limits<typename real_type<dtype>::type>::epsilon();
+                    tmp = e;
                     axpy(nextrap_real, 1.0, &eps, 0, tmp.data(), nextrap+1);
                     info = hesv('U', nextrap_real+1, 1, tmp.data(), nextrap+1, ipiv.data(),
                                 c.data(), nextrap+1);
                 }
 
-                if (info != 0) throw std::runtime_error(std::strprintf("DIIS: Info in hesv: %d", info));
+                if (info != 0) throw runtime_error(strprintf("DIIS: Info in hesv: %d", info));
             }
 
             //for (int i = 0;i <= nextrap_real;i++) printf("%+11e ", c[i]); printf("\n");
 
             for (int i = 0;i < ndx;i++)
             {
-                *dx[i] = (*old_dx[0][i])*c[0];
+                dx[i] = old_dx[0][i]*c[0];
             }
 
             for (int i = 0;i < nx;i++)
             {
-                *x[i] = (*old_x[0][i])*c[0];
+                x[i] = old_x[0][i]*c[0];
             }
 
             for (int i = 1;i < nextrap_real;i++)
             {
                 for (int j = 0;j < ndx;j++)
                 {
-                    *dx[j] += (*old_dx[i][j])*c[i];
+                    dx[j] += old_dx[i][j]*c[i];
                 }
 
                 for (int j = 0;j < nx;j++)
                 {
-                    *x[j] += (*old_x[i][j])*c[i];
+                    x[j] += old_x[i][j]*c[i];
                 }
             }
         }
