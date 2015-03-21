@@ -21,7 +21,7 @@ section h2o-pvdz
     compare { name    mp2test, using val1 from          ccsd:mp2, using val2 =  -0.171348679568, tolerance 1e-9 },
     compare { name    ccdtest, using val1 from        ccd:energy, using val2 =  -0.179753103625, tolerance 1e-9 },
     compare { name   ccsdtest, using val1 from       ccsd:energy, using val2 =  -0.180145524753, tolerance 1e-9 },
-    compare { name lambdatest, using val1 from lambdaccsd:energy, using val2 =  -0.180145524753, tolerance 1e-9 }
+    compare { name lambdatest, using val1 from lambdaccsd:energy, using val2 =  -0.178358521000, tolerance 1e-9 }
 },
 section h2o-dz
 {
@@ -68,7 +68,7 @@ section ch2-pvdz
     compare { name    mp2test, using val1 from          ccsd:mp2, using val2 =  -0.085465008793, tolerance 1e-9 },
     compare { name    ccdtest, using val1 from        ccd:energy, using val2 =  -0.098998464453, tolerance 1e-9 },
     compare { name   ccsdtest, using val1 from       ccsd:energy, using val2 =  -0.099500248606, tolerance 1e-9 },
-    compare { name lambdatest, using val1 from lambdaccsd:energy, using val2 =  -0.099500248606, tolerance 1e-9 }
+    compare { name lambdatest, using val1 from lambdaccsd:energy, using val2 =  -0.098025357000, tolerance 1e-9 }
 },
 section ch2-dz
 {
