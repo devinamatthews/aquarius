@@ -49,48 +49,62 @@ void ElementalUHF<T>::calcSMinusHalf()
         vector<typename real_type<T>::type> E(norb[i]);
 
         DistMatrix<T> S_elem(norb[i], norb[i]);
-        vector<tkv_pair<T>> pairs;
+        vector<tkv_pair<T>> pairs, pairs2;
 
         int cshift = S_elem.ColShift();
         int rshift = S_elem.RowShift();
         int cstride = S_elem.ColStride();
         int rstride = S_elem.RowStride();
+
         for (int k = 0;k < S_elem.LocalHeight();k++)
         {
             for (int j = 0;j < S_elem.LocalWidth();j++)
             {
                 int c = cshift+k*cstride;
                 int r = rshift+j*rstride;
+                if (r > c) continue;
                 pairs.emplace_back(r*norb[i]+c, 0);
+                if (r == c) continue;
+                pairs2.emplace_back(c*norb[i]+r, 0);
             }
         }
 
         S.getRemoteData(irreps, pairs);
 
-        for (int p = 0;p < pairs.size();p++)
+        for (auto& p : pairs)
         {
-            int r = pairs[p].k/norb[i];
-            int c = pairs[p].k%norb[i];
+            int r = p.k/norb[i];
+            int c = p.k%norb[i];
             int k = (c-cshift)/cstride;
             int j = (r-rshift)/rstride;
-            S_elem.SetLocal(k, j, pairs[p].d);
+            S_elem.SetLocal(k, j, p.d);
         }
 
         DistMatrix<T> Smhalf_elem(S_elem);
-        //HPSDSquareRoot(LOWER, Smhalf_elem);
+        HPSDSquareRoot(LOWER, Smhalf_elem);
         HPDInverse(LOWER, Smhalf_elem);
 
-        for (int p = 0;p < pairs.size();p++)
+        for (auto& p : pairs)
         {
-            int r = pairs[p].k/norb[i];
-            int c = pairs[p].k%norb[i];
-            if (r > c) swap(r,c);
+            int r = p.k/norb[i];
+            int c = p.k%norb[i];
             int k = (c-cshift)/cstride;
             int j = (r-rshift)/rstride;
-            pairs[p].d = Smhalf_elem.GetLocal(k, j);
+            p.d = Smhalf_elem.GetLocal(k, j);
         }
 
         Smhalf.writeRemoteData(irreps, pairs);
+
+        for (auto& p : pairs2)
+        {
+            int c = p.k/norb[i];
+            int r = p.k%norb[i];
+            int k = (c-cshift)/cstride;
+            int j = (r-rshift)/rstride;
+            p.d = Smhalf_elem.GetLocal(k, j);
+        }
+
+        Smhalf.writeRemoteData(irreps, pairs2);
 
         if (S.arena.rank == 0)
         {
@@ -100,12 +114,12 @@ void ElementalUHF<T>::calcSMinusHalf()
             S.getAllData(irreps, s, 0);
             assert(s.size() == norb[i]*norb[i]);
 
-            PROFILE_FLOPS(26*norb[i]*norb[i]*norb[i]);
+            //PROFILE_FLOPS(26*norb[i]*norb[i]*norb[i]);
             int info = heev('V', 'U', norb[i], s.data(), norb[i], E.data());
             assert(info == 0);
 
             fill(smhalf.begin(), smhalf.end(), (T)0);
-            PROFILE_FLOPS(2*norb[i]*norb[i]*norb[i]);
+            //PROFILE_FLOPS(2*norb[i]*norb[i]*norb[i]);
             for (int j = 0;j < norb[i];j++)
             {
                 ger(norb[i], norb[i], 1/sqrt(E[j]), &s[j*norb[i]], 1, &s[j*norb[i]], 1, smhalf.data(), norb[i]);
@@ -125,13 +139,13 @@ void ElementalUHF<T>::calcSMinusHalf()
             S.getAllData(irreps, 0);
             Smhalf2.writeRemoteData(irreps);
         }
-
-        tmp["il"] = S["ik"]*Smhalf["kl"];
-        //tmp2["ij"] = tmp["il"]*Smhalf["lj"];
-        double nrm = tmp.norm(1)-sum(norb);
-        if (S.arena.rank == 0)
-        printf("S^-1/2 diff: %g\n", nrm);
     }
+
+    tmp["il"] = S["ik"]*Smhalf["kl"];
+    tmp2["ij"] = tmp["il"]*Smhalf2["lj"];
+    double nrm = tmp2.norm(1)-sum(norb);
+    if (S.arena.rank == 0)
+    printf("S^-1/2 diff: %g\n", nrm);
 }
 
 template <typename T>
@@ -252,7 +266,7 @@ void ElementalUHF<T>::diagonalizeFock()
 
                 F.getAllData(irreps, fock, 0);
                 assert(fock.size() == norb[i]*norb[i]);
-                PROFILE_FLOPS(9*norb[i]*norb[i]*norb[i]);
+                //PROFILE_FLOPS(9*norb[i]*norb[i]*norb[i]);
                 int info = hegv(LAWrap::AXBX, 'V', 'U', norb[i], fock.data(), norb[i], tmp.data(), norb[i], E2[i].data());
                 assert(info == 0);
                 S.arena.Bcast(E2[i], 0);
@@ -268,7 +282,7 @@ void ElementalUHF<T>::diagonalizeFock()
                             break;
                         }
                     }
-                    PROFILE_FLOPS(norb[i]);
+                    //PROFILE_FLOPS(norb[i]);
                     scal(norb[i], sign, &fock[j*norb[i]], 1);
                 }
 
