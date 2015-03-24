@@ -3,6 +3,7 @@
 
 #include <array>
 #include <vector>
+#include <deque>
 #include <string>
 #include <sstream>
 #include <fstream>
@@ -26,6 +27,7 @@
 #include <iomanip>
 #include <cstdint>
 #include <cstddef>
+#include <strings.h>
 
 #if !(defined(__GXX_EXPERIMENTAL_CXX0X__) || _MSC_VER >= 1600 || __cplusplus >= 201103l)
 #error "A C++11-capable compiler is required."
@@ -92,6 +94,7 @@ namespace aquarius
     using std::set;
     using std::array;
     using std::vector;
+    using std::deque;
     using std::pair;
     using std::make_pair;
     using std::make_tuple;

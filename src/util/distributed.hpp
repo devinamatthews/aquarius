@@ -1,6 +1,7 @@
 #ifndef _AQUARIUS_UTIL_DISTRIBUTED_HPP_
 #define _AQUARIUS_UTIL_DISTRIBUTED_HPP_
 
+#define MPIWRAP_LONG_LONG
 #include "external/mpiwrap/mpiwrap.hpp"
 
 #ifdef ELEMENTAL
