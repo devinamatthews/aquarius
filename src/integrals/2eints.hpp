@@ -96,8 +96,8 @@ class ERI : public task::Destructible, public Distributed
 {
     public:
         const symmetry::PointGroup& group;
-        vector<double> ints;
-        vector<idx4_t> idxs;
+        deque<double> ints;
+        deque<idx4_t> idxs;
 
         ERI(const Arena& arena, const symmetry::PointGroup& group) : Distributed(arena), group(group) {}
 

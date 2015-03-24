@@ -80,8 +80,8 @@ void AOUHF<T,WhichUHF>::buildFock()
         }
     }
 
-    const vector<T>& eris = ints.ints;
-    const vector<idx4_t>& idxs = ints.idxs;
+    auto& eris = ints.ints;
+    auto& idxs = ints.idxs;
     size_t neris = eris.size();
     assert(eris.size() == idxs.size());
 
@@ -102,19 +102,22 @@ void AOUHF<T,WhichUHF>::buildFock()
             fockb_local[i].resize(norb[i]*norb[i], (T)0);
         }
 
-        for (size_t n = n0;n < n1;n++)
+        auto iidx = idxs.begin()+n0;
+        auto iend = idxs.begin()+n1;
+        auto iint = eris.begin()+n0;
+        for (;iidx != iend;++iidx, ++iint)
         {
-            int irri = irrep[idxs[n].i];
-            int irrj = irrep[idxs[n].j];
-            int irrk = irrep[idxs[n].k];
-            int irrl = irrep[idxs[n].l];
+            int irri = irrep[iidx->i];
+            int irrj = irrep[iidx->j];
+            int irrk = irrep[iidx->k];
+            int irrl = irrep[iidx->l];
 
             if (irri != irrj && irri != irrk && irri != irrl) continue;
 
-            int i = idxs[n].i-start[irri];
-            int j = idxs[n].j-start[irrj];
-            int k = idxs[n].k-start[irrk];
-            int l = idxs[n].l-start[irrl];
+            int i = iidx->i-start[irri];
+            int j = iidx->j-start[irrj];
+            int k = iidx->k-start[irrk];
+            int l = iidx->l-start[irrl];
 
             /*
             if (i < j)
@@ -144,7 +147,7 @@ void AOUHF<T,WhichUHF>::buildFock()
              * Exchange contribution: Fa(ac) -= Da(bd)*(ab|cd)
              */
 
-            T e = 2.0*eris[n]*(ijeqkl ? 0.5 : 1.0);
+            T e = 2.0*(*iint)*(ijeqkl ? 0.5 : 1.0);
 
             if (irri == irrk && irrj == irrl)
             {
