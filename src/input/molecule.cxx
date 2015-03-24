@@ -301,7 +301,7 @@ void Molecule::initSymmetry(Config& config, vector<AtomCartSpec>& cartpos)
 
     for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
     {
-        it->pos = it->pos*R;
+        it->pos = R*it->pos;
     }
 
     I = 0;
