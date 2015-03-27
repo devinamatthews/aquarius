@@ -261,7 +261,7 @@ SparseAOMOIntegrals<T>::pqrs_integrals::transform(Index index, const vector<int>
                                 for (int q = startq[irrepq];q < startq[irrepq]+nq[irrepq];q++)
                                 {
                                     double val = after[c][q];
-                                    if (abs(val) > 1e-12)
+                                    if (aquarius::abs(val) > 1e-12)
                                     {
                                         out.idxs.emplace_back(c, q, r, s);
                                         out.ints.push_back(val);
@@ -291,7 +291,7 @@ SparseAOMOIntegrals<T>::pqrs_integrals::transform(Index index, const vector<int>
                                 for (int c = startc[irrepc];c < startc[irrepc]+nc[irrepc];c++)
                                 {
                                     double val = after[p][c];
-                                    if (abs(val) > 1e-12)
+                                    if (aquarius::abs(val) > 1e-12)
                                     {
                                         out.idxs.emplace_back(p, c, r, s);
                                         out.ints.push_back(val);

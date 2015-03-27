@@ -391,20 +391,20 @@ void Molecule::initSymmetry(Config& config, vector<AtomCartSpec>& cartpos)
             else throw runtime_error(subgrp + "is not a valid subgroup of C2v");
         }
     }
-    else if (2*abs(A[0]-A[2])/(A[0]+A[2]) < 1e-8)
+    else if (2*aquarius::abs(A[0]-A[2])/(A[0]+A[2]) < 1e-8)
     {
         /*
          * Spherical rotors: Td, Oh, Ih
          */
         assert(0);
     }
-    else if (2*abs(A[0]-A[1])/(A[0]+A[1]) < 1e-8 ||
-             2*abs(A[1]-A[2])/(A[1]+A[2]) < 1e-8)
+    else if (2*aquarius::abs(A[0]-A[1])/(A[0]+A[1]) < 1e-8 ||
+             2*aquarius::abs(A[1]-A[2])/(A[1]+A[2]) < 1e-8)
     {
         /*
          * Symmetric rotors: Cn, Cnv, Cnh, Dn, Dnh (all n>2), S2n, Dnd (both n>1)
          */
-        vec3 axis = (2*abs(A[0]-A[1])/(A[0]+A[1]) < 1e-8 ? z : x);
+        vec3 axis = (2*aquarius::abs(A[0]-A[1])/(A[0]+A[1]) < 1e-8 ? z : x);
 
         /*
          * Find the highest-order rotation axis (up to C6, C7 and higher must be treated

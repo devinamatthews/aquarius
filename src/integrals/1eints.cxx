@@ -96,7 +96,7 @@ size_t OneElectronIntegrals::process(const Context& ctx, const vector<int>& idxa
                                 continue;
                             }
 
-                            if (abs(ints[m]) > cutoff && (&sa != &sb || IDX_GE(i,r,e,j,s,f)))
+                            if (aquarius::abs(ints[m]) > cutoff && (&sa != &sb || IDX_GE(i,r,e,j,s,f)))
                             {
                                 indices[n].i = sa.getIndex(ctx, idxa, i, e, r);
                                 indices[n].j = sb.getIndex(ctx, idxb, j, f, s);

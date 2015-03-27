@@ -17,7 +17,7 @@ namespace
 
 template <typename T> bool absGreaterThan(const T& a, const T& b)
 {
-    return abs(a) > abs(b);
+    return aquarius::abs(a) > aquarius::abs(b);
 }
 
 }
@@ -56,7 +56,7 @@ class Davidson : public task::Destructible
             assert(nvec > 0);
             assert(maxextrap > 0);
 
-            guess_overlap.resize({nvec, maxextrap, nvec});
+            guess_overlap.resize({nvec, nvec, maxextrap});
             s.resize({nvec, maxextrap, nvec, maxextrap});
             e.resize({nvec, maxextrap, nvec, maxextrap});
             c.resize(maxextrap*nvec);
@@ -66,7 +66,7 @@ class Davidson : public task::Destructible
 
             root.resize(nvec);
             l.resize(nvec*maxextrap);
-            vr.resize({nvec,maxextrap,nvec*maxextrap});
+            vr.resize({nvec*maxextrap,nvec,maxextrap});
         }
 
     public:
@@ -138,7 +138,7 @@ class Davidson : public task::Destructible
              */
             for (int i = 0;i < nvec;i++)
             {
-                double norm = sqrt(abs(scalar(conj(c[i])*c[i])));
+                double norm = sqrt(aquarius::abs(scalar(conj(c[i])*c[i])));
 
                 c[i] /= norm;
                 hc[i] /= norm;
@@ -201,7 +201,7 @@ class Davidson : public task::Destructible
                     //    vector<int64_t> keys = range<int64_t>(5*19);
                     //    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
                     //           absGreaterThan<dtype>);
-                    //    //printf("Badness old c %d %d %d %15.12g\n", i+1, i+1, nextrap+1, abs(values[19-4*i]));
+                    //    //printf("Badness old c %d %d %d %15.12g\n", i+1, i+1, nextrap+1, aquarius::abs(values[19-4*i]));
                     //}
                 }
             }
@@ -225,7 +225,7 @@ class Davidson : public task::Destructible
                     //    vector<int64_t> keys = range<int64_t>(5*19);
                     //    cosort(values.begin(), values.end(), keys.begin(), keys.end(),
                     //           absGreaterThan<dtype>);
-                    //    //printf("Badness old hc %d %d %d %15.12g\n", i+1, i+1, nextrap+1, abs(values[19-4*i]));
+                    //    //printf("Badness old hc %d %d %d %15.12g\n", i+1, i+1, nextrap+1, aquarius::abs(values[19-4*i]));
                     //}
                 }
             }
@@ -250,24 +250,24 @@ class Davidson : public task::Destructible
                 {
                     for (int j = 0;j < nvec;j++)
                     {
-                        guess_overlap[i][nextrap][j] = abs(scalar(conj(c[i])*guess[j]));
+                        guess_overlap[j][i][nextrap] = aquarius::abs(scalar(conj(c[i])*guess[j]));
                     }
                 }
 
                 for (int j = 0;j < nvec;j++)
                 {
                     // "Diagonal"
-                    e[i][nextrap][j][nextrap] = scalar(conj(hc[i])*c[j]);
-                    s[i][nextrap][j][nextrap] = scalar(conj( c[i])*c[j]);
+                    e[i][nextrap][j][nextrap] = scalar(conj(c[i])*hc[j]);
+                    s[i][nextrap][j][nextrap] = scalar(conj(c[i])* c[j]);
                     //printf("s %d %d %d %18.15f\n", nextrap, i, j, s[i][nextrap][j][nextrap]);
 
                     // "Off-diagonal"
                     for (int k = 0;k < nextrap;k++)
                     {
-                        e[i][nextrap][j][k] = scalar(conj(old_hc[k][i])*    c   [j]);
-                        e[i][k][j][nextrap] = scalar(conj(    hc   [i])*old_c[k][j]);
-                        s[i][nextrap][j][k] = scalar(conj( old_c[k][i])*    c   [j]);
-                        s[i][k][j][nextrap] = scalar(conj(     c   [i])*old_c[k][j]);
+                        e[i][nextrap][j][k] = scalar(conj(old_c[k][i])*    hc   [j]);
+                        e[i][k][j][nextrap] = scalar(conj(    c   [i])*old_hc[k][j]);
+                        s[i][nextrap][j][k] = scalar(conj(old_c[k][i])*     c   [j]);
+                        s[i][k][j][nextrap] = scalar(conj(    c   [i])* old_c[k][j]);
                         //printf("s %d %d %d %18.15f\n", k, i, j, s[i][nextrap][j][nextrap]);
                     }
                 }
@@ -282,7 +282,7 @@ class Davidson : public task::Destructible
             vector<dtype> beta(nvec*nextrap);
             marray<dtype,4> tmp1({nvec,nextrap,nvec,nextrap});
             marray<dtype,4> tmp2({nvec,nextrap,nvec,nextrap});
-            marray<dtype,3> tmp3({nvec,nextrap,nvec*nextrap});
+            marray<dtype,3> tmp3({nvec*nextrap,nvec,nextrap});
 
             for (int m = 0;m < nextrap;m++)
             {
@@ -292,12 +292,12 @@ class Davidson : public task::Destructible
                     {
                         for (int i = 0;i < nvec;i++)
                         {
-                            // printf("%15.12f ", e[i][j][k][m]);
+                            //printf("%15.12f ", e[i][j][k][m]);
                             tmp1[i][j][k][m] = e[i][j][k][m];
                             tmp2[i][j][k][m] = s[i][j][k][m];
                         }
                     }
-                    // printf("\n");
+                    //printf("\n");
                 }
             }
 
@@ -305,8 +305,7 @@ class Davidson : public task::Destructible
             //            tmp2.data(), nextrap*nvec, l.data(), beta.data(), NULL, 1,
             //            vr.data(), nextrap*nvec);
             info = geev('N', 'V', nextrap*nvec, tmp1.data(), nextrap*nvec,
-                        l.data(), NULL, 1,
-                        tmp3.data(), nextrap*nvec);
+                        l.data(), NULL, 1, tmp3.data(), nextrap*nvec);
             if (info != 0) throw runtime_error(strprintf("davidson: Info in ggev: %d", info));
 
             for (int k = 0;k < nvec*nextrap;k++)
@@ -315,7 +314,7 @@ class Davidson : public task::Destructible
                 {
                     for (int i = 0;i < nvec;i++)
                     {
-                        vr[i][j][k] = tmp3[i][j][k];
+                        vr[k][i][j] = tmp3[k][i][j];
                     }
                 }
             }
@@ -326,17 +325,17 @@ class Davidson : public task::Destructible
             for (int i = 0;i < nextrap*nvec;i++)
             {
                 //l[i] /= beta[i];
-                // printf("%15.12f\n", real(l[i]));
+                //printf("%15.12f\n", real(l[i]));
 
                 for (int m = 0;m < nextrap;m++)
                 {
                     for (int k = 0;k < nvec;k++)
                     {
-                        if (abs(vr[k][m][i]) > 1e-10)
+                        if (aquarius::abs(vr[i][k][m]) > 1e-10)
                         {
-                            if (real(vr[k][m][i]) < 0)
+                            if (real(vr[i][k][m]) < 0)
                             {
-                                scal(nextrap*nvec, -1, &vr[0][0][i], 1);
+                                scal(nextrap*nvec, -1, vr[i].data(), 1);
                             }
                             m = nextrap;
                             break;
@@ -352,7 +351,7 @@ class Davidson : public task::Destructible
             //     {
             //         for (int k = 0;k < nvec;k++)
             //         {
-            //             cout << vr[k][m][i] << endl;
+            //             cout << vr[i][k][m] << endl;
             //         }
             //     }
             // }
@@ -384,17 +383,17 @@ class Davidson : public task::Destructible
                             crit = 0.0;
                             for (int m = 0;m < nextrap;m++)
                                 for (int k = 0;k < nvec;k++)
-                                    crit -= vr[k][m][i]*guess_overlap[k][m][j];
+                                    crit -= vr[i][k][m]*guess_overlap[j][k][m];
                             break;
                         case LOWEST_ENERGY:
                             crit = real(l[i]);
                             break;
                         case CLOSEST_ENERGY:
-                            crit = abs(real(l[i])-target[j]);
+                            crit = aquarius::abs(real(l[i])-target[j]);
                             break;
                     }
 
-                    if (crit < mincrit && abs(imag(l[i])) < 1e-12)
+                    if (crit < mincrit && aquarius::abs(imag(l[i])) < 1e-12)
                     {
                         mincrit = crit;
                         root[j] = i;
@@ -404,7 +403,7 @@ class Davidson : public task::Destructible
                 assert(root[j] != -1);
 
                 if (nextrap > 1 && mode[j] != CLOSEST_ENERGY &&
-                    abs(previous[j]-real(l[root[j]])) < 1e-4)
+                    aquarius::abs(previous[j]-real(l[root[j]])) < 1e-4)
                 {
                     cout << "Locking root " << (j+1) << endl;
                     mode[j] = CLOSEST_ENERGY;
@@ -428,13 +427,13 @@ class Davidson : public task::Destructible
                 {
                     for (int k = nvec-1;k >= 0;k--)
                     {
-                        c [j] +=  old_c[i][k]*vr[k][i][root[j]]; // weight each old c by its evec value
-                        hc[j] += old_hc[i][k]*vr[k][i][root[j]]; // same for old_hc. making the new state state
+                        c [j] +=  old_c[i][k]*vr[root[j]][k][i]; // weight each old c by its evec value
+                        hc[j] += old_hc[i][k]*vr[root[j]][k][i]; // same for old_hc. making the new state state
                     }
                 }
 
-                // cout << setprecision(10) <<"Inf Norm hc = " << hc[j]->norm(00) << endl;
-                // cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << endl;
+                //cout << setprecision(10) <<"Inf Norm hc = " << hc[j].norm(00) << endl;
+                //cout << setprecision(10) <<"Inf Norm c = " << c[j].norm(00) << endl;
 
                 // so now c is V*y = x and hc is A*V*y = A*x
 
@@ -452,7 +451,7 @@ class Davidson : public task::Destructible
                 //         int ii = keys[k]/19+1;
                 //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
                 //     }
-                //     printf("Badness     c %d %15.12g\n", j+1, abs(values[19-4*j]));
+                //     printf("Badness     c %d %15.12g\n", j+1, aquarius::abs(values[19-4*j]));
                 // }
                 // printf("Norm H*c %d %15.12f\n", j+1, (*hc[j])(1)({1,0},{0,1}).norm(2));
                 // {
@@ -468,7 +467,7 @@ class Davidson : public task::Destructible
                 //         int ii = keys[k]/19+1;
                 //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
                 //     }
-                //     printf("Badness   H*c %d %15.12g\n", j+1, abs(values[19-4*j]));
+                //     printf("Badness   H*c %d %15.12g\n", j+1, aquarius::abs(values[19-4*j]));
                 // }
                 hc[j] -= real(l[root[j]])*c[j];
                 // cout << setprecision(10) <<"Inf Norm hc = " << hc[j]->norm(00) << endl;
@@ -491,7 +490,7 @@ class Davidson : public task::Destructible
                 //         int ii = keys[k]/19+1;
                 //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
                 //     }
-                //     printf("Badness     r %d %15.12g\n", j+1, abs(values[19-4*j]));
+                //     printf("Badness     r %d %15.12g\n", j+1, aquarius::abs(values[19-4*j]));
                 // }
                 c[j].weight(D, real(l[root[j]])); // Look into weight function
                 // cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << endl;
@@ -509,10 +508,10 @@ class Davidson : public task::Destructible
                 //         int ii = keys[k]/19+1;
                 //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
                 //     }
-                //     printf("Badness     d %d %15.12g\n", j+1, abs(values[19-4*j]));
+                //     printf("Badness     d %d %15.12g\n", j+1, aquarius::abs(values[19-4*j]));
                 // }
 
-                c[j] /= sqrt(abs(scalar(conj(c[j])*c[j])));
+                c[j] /= sqrt(aquarius::abs(scalar(conj(c[j])*c[j])));
 
                 //if (scalar((*c[j])(1)({1,0},{0,1})*(*c[j])(1)({0,0},{0,0})) < 0)
                 //{
@@ -556,7 +555,7 @@ class Davidson : public task::Destructible
                     }
                 }
 
-                c[j] /= sqrt(abs(scalar(conj(c[j])*c[j])));
+                c[j] /= sqrt(aquarius::abs(scalar(conj(c[j])*c[j])));
 
                 // cout << setprecision(10) <<"Inf Norm c = " << c[j]->norm(00) << endl;
 
@@ -575,7 +574,7 @@ class Davidson : public task::Destructible
                 //         //printf("%2d %2d %18.15f\n", ii, ia, values[k]);
                 //     }
 
-                //     printf("Badness new c %d %15.12g\n", j+1, abs(values[19-4*j]));
+                //     printf("Badness new c %d %15.12g\n", j+1, aquarius::abs(values[19-4*j]));
                 // }
             }
 
@@ -593,7 +592,7 @@ class Davidson : public task::Destructible
             {
                 for (int k = nvec-1;k >= 0;k--)
                 {
-                    s += old_c[i][k]*vr[k][i][root[j]];
+                    s += old_c[i][k]*vr[root[j]][k][i];
                 }
             }
         }

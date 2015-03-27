@@ -144,7 +144,7 @@ size_t TwoElectronIntegrals::process(const Context& ctx, const vector<int>& idxa
                                                     if (&sa == &sc && &sb == &sd && !(IDX_GT(i,r,e,k,t,g) ||
                                                         (IDX_EQ(i,r,e,k,t,g) && IDX_GE(j,s,f,l,u,h)))) bad = true;
 
-                                                    if (!bad && abs(ints[m]) > cutoff)
+                                                    if (!bad && aquarius::abs(ints[m]) > cutoff)
                                                     {
                                                         indices[n].i = sa.getIndex(ctx, idxa, i, e, r);
                                                         indices[n].j = sb.getIndex(ctx, idxb, j, f, s);

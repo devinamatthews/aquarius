@@ -559,7 +559,7 @@ bool CompareScalars::run(TaskDAG& dag, const Arena& arena)
     double val1 = get<double>("val1");
     double val2 = get<double>("val2");
 
-    bool match = abs(val1-val2) < tolerance;
+    bool match = aquarius::abs(val1-val2) < tolerance;
 
     if (match)
     {

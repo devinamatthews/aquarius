@@ -315,7 +315,7 @@ void CTFTensor<T>::div(T alpha, bool conja, const CTFTensor<T>& A,
         {
             for (int64_t i = 0;i < size;i++)
             {
-                if (abs(raw_data_B[i]) > numeric_limits<double>::min())
+                if (aquarius::abs(raw_data_B[i]) > numeric_limits<double>::min())
                 {
                     raw_data[i] = beta*raw_data[i] + alpha*conj(raw_data_A[i])/conj(raw_data_B[i]);
                 }
@@ -325,7 +325,7 @@ void CTFTensor<T>::div(T alpha, bool conja, const CTFTensor<T>& A,
         {
             for (int64_t i = 0;i < size;i++)
             {
-                if (abs(raw_data_B[i]) > numeric_limits<double>::min())
+                if (aquarius::abs(raw_data_B[i]) > numeric_limits<double>::min())
                 {
                     raw_data[i] = beta*raw_data[i] + alpha*conj(raw_data_A[i])/raw_data_B[i];
                 }
@@ -338,7 +338,7 @@ void CTFTensor<T>::div(T alpha, bool conja, const CTFTensor<T>& A,
         {
             for (int64_t i = 0;i < size;i++)
             {
-                if (abs(raw_data_B[i]) > numeric_limits<double>::min())
+                if (aquarius::abs(raw_data_B[i]) > numeric_limits<double>::min())
                 {
                     raw_data[i] = beta*raw_data[i] + alpha*raw_data_A[i]/conj(raw_data_B[i]);
                 }
@@ -348,7 +348,7 @@ void CTFTensor<T>::div(T alpha, bool conja, const CTFTensor<T>& A,
         {
             for (int64_t i = 0;i < size;i++)
             {
-                if (abs(raw_data_B[i]) > numeric_limits<double>::min())
+                if (aquarius::abs(raw_data_B[i]) > numeric_limits<double>::min())
                 {
                     raw_data[i] = beta*raw_data[i] + alpha*raw_data_A[i]/raw_data_B[i];
                 }
@@ -369,7 +369,7 @@ void CTFTensor<T>::invert(T alpha, bool conja, const CTFTensor<T>& A, T beta)
     {
         for (int64_t i = 0;i < size;i++)
         {
-            if (abs(raw_data_A[i]) > numeric_limits<double>::min())
+            if (aquarius::abs(raw_data_A[i]) > numeric_limits<double>::min())
             {
                 raw_data[i] = beta*raw_data[i] + alpha/conj(raw_data_A[i]);
             }
@@ -379,7 +379,7 @@ void CTFTensor<T>::invert(T alpha, bool conja, const CTFTensor<T>& A, T beta)
     {
         for (int64_t i = 0;i < size;i++)
         {
-            if (abs(raw_data_A[i]) > numeric_limits<double>::min())
+            if (aquarius::abs(raw_data_A[i]) > numeric_limits<double>::min())
             {
                 raw_data[i] = beta*raw_data[i] + alpha/raw_data_A[i];
             }
@@ -415,7 +415,7 @@ typename real_type<T>::type CTFTensor<T>::norm(int p) const
     {
         ans = dt->reduce(CTF_OP_NORM2);
     }
-    return abs(ans);
+    return aquarius::abs(ans);
 }
 
 template <typename T>
@@ -488,7 +488,7 @@ void CTFTensor<T>::weight(const vector<const vector<T>*>& d, double shift)
             den += (*d[j])[o];
         }
 
-        if (abs(den+shift) < 1e-4)
+        if (aquarius::abs(den+shift) < 1e-4)
         {
             pairs[i].d = 0;
         }

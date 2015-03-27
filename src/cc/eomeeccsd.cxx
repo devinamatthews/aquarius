@@ -146,7 +146,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                     Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
                     ExcitationOperator<U,2>& V = Vs.back();
                     davidson.getSolution(j, V);
-                    V /= sqrt(abs(scalar(conj(V)*V)));
+                    V /= sqrt(aquarius::abs(scalar(conj(V)*V)));
                 }
             }
         }
@@ -174,7 +174,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                     Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
                     ExcitationOperator<U,2>& V = Vs.back();
                     davidson.getSolution(0, V);
-                    V /= sqrt(abs(scalar(conj(V)*V)));
+                    V /= sqrt(aquarius::abs(scalar(conj(V)*V)));
                 }
             }
         }
@@ -225,7 +225,7 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
         {
             R -= scalar(conj(R)*V)*V;
         }
-        R /= sqrt(abs(scalar(conj(R)*R)));
+        R /= sqrt(aquarius::abs(scalar(conj(R)*R)));
 
          XMI[  "mi"]  =     WMNEJ["nmei"]*R(1)[  "en"];
          XMI[  "mi"] += 0.5*WMNEF["mnef"]*R(2)["efin"];

@@ -276,7 +276,7 @@ void ElementalUHF<T>::diagonalizeFock()
                     T sign = 0;
                     for (int k = 0;k < norb[i];k++)
                     {
-                        if (abs(fock[k+j*norb[i]]) > 1e-10)
+                        if (aquarius::abs(fock[k+j*norb[i]]) > 1e-10)
                         {
                             sign = (fock[k+j*norb[i]] < 0 ? -1 : 1);
                             break;
@@ -319,8 +319,8 @@ void ElementalUHF<T>::diagonalizeFock()
             {
                 for (int j = 0;j < norb[i];j++)
                 {
-                    dE += abs(E_alpha[i][j]-E_alpha2[i][j]);
-                    dE += abs(E_beta[i][j]-E_beta2[i][j]);
+                    dE += aquarius::abs(E_alpha[i][j]-E_alpha2[i][j]);
+                    dE += aquarius::abs(E_beta[i][j]-E_beta2[i][j]);
                 }
             }
             printf("E diff: %g\n", sqrt(dE));

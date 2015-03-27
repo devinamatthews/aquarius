@@ -258,7 +258,7 @@ double CCSD<U>::getProjectedS2(const MOSpace<U>& occ, const MOSpace<U>& vrt,
     U S2T12 = -scalar(Dai*T1B);
     U S2T2 = -scalar(DAbIj*TauAB);
 
-    return abs(S2+S2T11+S2T12+S2T2);
+    return aquarius::abs(S2+S2T11+S2T12+S2T2);
 }
 */
 

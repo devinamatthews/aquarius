@@ -36,7 +36,7 @@ double Fm::direct(double T, int m)
     {
         delt *= T/ap;
         ap += 1.0;
-        if (abs(delt) < epsilon*sum) break;
+        if (aquarius::abs(delt) < epsilon*sum) break;
         sum += delt;
     }
 

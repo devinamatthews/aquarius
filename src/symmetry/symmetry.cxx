@@ -198,7 +198,7 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
         {
             for (int irrep = 0;irrep < nirrep;irrep++)
             {
-                assert(abs(characters[irrep][g-1]-characters[irrep][g]) < 1e-10);
+                assert(aquarius::abs(characters[irrep][g-1]-characters[irrep][g]) < 1e-10);
             }
         }
     }
@@ -214,7 +214,7 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
         {
             dp += characters[irrep][g]*characters[irrep][g];
         }
-        assert(abs(dp-order) < 1e-10);
+        assert(aquarius::abs(dp-order) < 1e-10);
     }
 
     /*
@@ -237,11 +237,11 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
                     }
                     if (i1 == i2 && j1 == j2)
                     {
-                        assert(abs(dp-order/n1) < 1e-10);
+                        assert(aquarius::abs(dp-order/n1) < 1e-10);
                     }
                     else
                     {
-                        assert(abs(dp) < 1e-10);
+                        assert(aquarius::abs(dp) < 1e-10);
                     }
                 }
             }
@@ -426,7 +426,7 @@ bool Representation::transformsAs(const Representation r) const
     {
         dp += (*this)[i]*r[i];
     }
-    return abs(dp) > 1e-10;
+    return aquarius::abs(dp) > 1e-10;
 }
 
 Representation Representation::operator^(int p) const

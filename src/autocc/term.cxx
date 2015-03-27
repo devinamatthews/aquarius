@@ -356,7 +356,7 @@ bool Term::checkspin() const
     {
         int nl = count_if(it->out.begin(), it->out.end(), isAlpha());
         int nr = count_if(it->in.begin(), it->in.end(), isAlpha());
-        if (abs(nl-nr) > abs((int)(it->out.size()-it->in.size()))) return false;
+        if (abs(nl-nr) > abs((int)it->out.size()-(int)it->in.size())) return false;
     }
 
     return true;

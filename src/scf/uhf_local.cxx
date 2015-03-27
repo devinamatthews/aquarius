@@ -134,7 +134,7 @@ void LocalUHF<T>::diagonalizeFock()
                     T sign = 0;
                     for (int k = 0;k < norb[i];k++)
                     {
-                        if (abs(fock[k+j*norb[i]]) > 1e-10)
+                        if (aquarius::abs(fock[k+j*norb[i]]) > 1e-10)
                         {
                             sign = (fock[k+j*norb[i]] < 0 ? -1 : 1);
                             break;
