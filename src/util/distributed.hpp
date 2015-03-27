@@ -4,7 +4,7 @@
 #define MPIWRAP_LONG_LONG
 #include "external/mpiwrap/mpiwrap.hpp"
 
-#ifdef ELEMENTAL
+#ifdef HAVE_ELEMENTAL
 #include "El.hpp"
 #endif
 

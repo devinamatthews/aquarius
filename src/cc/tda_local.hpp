@@ -1,5 +1,5 @@
-#ifndef _AQUARIUS_CC_TDA_HPP_
-#define _AQUARIUS_CC_TDA_HPP_
+#ifndef _AQUARIUS_CC_TDA_LOCAL_HPP_
+#define _AQUARIUS_CC_TDA_LOCAL_HPP_
 
 #include "util/global.hpp"
 
@@ -19,12 +19,12 @@ namespace cc
 {
 
 template <typename U>
-class TDA : public task::Task
+class LocalTDA : public task::Task
 {
     protected:
 
     public:
-        TDA(const string& name, input::Config& config);
+        LocalTDA(const string& name, input::Config& config);
 
         bool run(task::TaskDAG& dag, const Arena& arena);
 };

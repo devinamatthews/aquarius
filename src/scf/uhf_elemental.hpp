@@ -4,7 +4,6 @@
 #include "uhf.hpp"
 #include "util/global.hpp"
 
-
 namespace aquarius
 {
 namespace scf

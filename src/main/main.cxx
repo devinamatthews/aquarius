@@ -9,7 +9,7 @@ using namespace aquarius::task;
 
 int main(int argc, char **argv)
 {
-    #ifdef ELEMENTAL
+    #ifdef HAVE_ELEMENTAL
     El::Initialize(argc, argv);
     #else
     MPI_Init(&argc, &argv);
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
         Timer::printTimers(world);
     }
 
-    #ifdef ELEMENTAL
+    #ifdef HAVE_ELEMENTAL
     El::Finalize();
     #else
     MPI_Finalize();

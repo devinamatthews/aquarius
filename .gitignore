@@ -13,3 +13,4 @@ config.mk
 ctf
 how-did-i-configure
 .*project
+autom4te.cache
