@@ -1,6 +1,7 @@
 AC_INIT(aquarius, 1.0, dmatthews@utexas.edu, aquarius, http://www.github.com/devinamatthews/aquarius)
 AM_INIT_AUTOMAKE([foreign silent-rules subdir-objects])
 AM_SILENT_RULES([yes])
+AM_MAINTAINER_MODE([disable])
 
 AC_CONFIG_MACRO_DIR([m4])
 
