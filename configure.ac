@@ -10,7 +10,13 @@ AH_TOP([
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 ])
-AH_BOTTOM([#endif])
+AH_BOTTOM([
+#ifndef DEBUG
+#define NDEBUG
+#endif
+
+#endif
+])
 
 AX_PROG_CC_MPI([true], [], [AC_MSG_FAILURE([No MPI C compiler found.])])
 AX_PROG_CXX_MPI([true], [], [AC_MSG_FAILURE([No MPI C++ compiler found.])])

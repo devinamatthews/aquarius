@@ -66,58 +66,20 @@ Term::Term(const Diagram::Type type, const Fraction factor, const vector<Fragmen
 Term& Term::fixorder(const vector<Line>& which)
 {
     int idx = 0;
-    vector<Line> inds = indices();
-    for (vector<Line>::iterator l = inds.begin();l != inds.end();++l)
-    {
-        if (find(which.begin(), which.end(), *l) == which.end())
-        {
-            idx = max(idx, l->getIndex());
-        }
-    }
+    for (auto& l : exclude_copy(indices(), which)) idx = max(idx, l.getIndex());
 
     vector<Line> oldlines, newlines;
+    set<Line> done;
 
-    for (vector<Fragment>::iterator f = getFragments().begin();f != getFragments().end();++f)
+    for (auto& f : fragments)
     {
-        vector<Line> tofix = intersection(which, filter_copy(f->indices(), and1(isAlpha(),isVirtual())));
-
-        for (vector<Line>::iterator l = tofix.begin();l != tofix.end();++l)
+        for (auto& l : intersection(which, f.indices()))
         {
-            oldlines += *l;
-            newlines += l->asIndex(++idx);
-        }
-    }
-
-    for (vector<Fragment>::iterator f = getFragments().begin();f != getFragments().end();++f)
-    {
-        vector<Line> tofix = intersection(which, filter_copy(f->indices(), and1(isAlpha(),isOccupied())));
-
-        for (vector<Line>::iterator l = tofix.begin();l != tofix.end();++l)
-        {
-            oldlines += *l;
-            newlines += l->asIndex(++idx);
-        }
-    }
-
-    for (vector<Fragment>::iterator f = getFragments().begin();f != getFragments().end();++f)
-    {
-        vector<Line> tofix = intersection(which, filter_copy(f->indices(), and1(isBeta(),isVirtual())));
-
-        for (vector<Line>::iterator l = tofix.begin();l != tofix.end();++l)
-        {
-            oldlines += *l;
-            newlines += l->asIndex(++idx);
-        }
-    }
-
-    for (vector<Fragment>::iterator f = getFragments().begin();f != getFragments().end();++f)
-    {
-        vector<Line> tofix = intersection(which, filter_copy(f->indices(), and1(isBeta(),isOccupied())));
-
-        for (vector<Line>::iterator l = tofix.begin();l != tofix.end();++l)
-        {
-            oldlines += *l;
-            newlines += l->asIndex(++idx);
+            if (done.insert(l).second)
+            {
+                oldlines += l;
+                newlines += l.asIndex(++idx);
+            }
         }
     }
 

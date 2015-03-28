@@ -2915,7 +2915,17 @@ namespace aquarius
      */
     template<typename T> typename decay<T>::type exclude_copy(T&& v1, const T& v2)
     {
-        typename decay<T>::type v3(forward<T>(v1));
+        typename decay<T>::type v3(move(v1));
+        exclude(v3, v2);
+        return v3;
+    }
+
+    /*
+     * Return elements from v1 that are not also in v2
+     */
+    template<typename T> typename decay<T>::type exclude_copy(const T& v1, const T& v2)
+    {
+        typename decay<T>::type v3(v1);
         exclude(v3, v2);
         return v3;
     }
