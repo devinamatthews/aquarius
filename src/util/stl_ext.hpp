@@ -1,33 +1,36 @@
 #ifndef _AQUARIUS_STL_EXT_HPP_
 #define _AQUARIUS_STL_EXT_HPP_
 
-#include <array>
-#include <vector>
-#include <deque>
-#include <string>
-#include <sstream>
-#include <fstream>
-#include <ostream>
-#include <iostream>
-#include <algorithm>
-#include <functional>
-#include <stdexcept>
+#include <cassert>
 #include <cctype>
-#include <iterator>
+#include <cmath>
 #include <complex>
 #include <cstdarg>
-#include <cstdio>
-#include <tuple>
-#include <cassert>
-#include <type_traits>
-#include <memory>
-#include <map>
-#include <list>
-#include <set>
-#include <iomanip>
-#include <cstdint>
 #include <cstddef>
-#include <strings.h>
+#include <cstdio>
+#include <cstdlib>
+
+#include <algorithm>
+#include <array>
+#include <deque>
+#include <functional>
+#include <initializer_list>
+#include <iomanip>
+#include <iostream>
+#include <iterator>
+#include <limits>
+#include <list>
+#include <locale>
+#include <map>
+#include <memory>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <string>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 #if !(defined(__GXX_EXPERIMENTAL_CXX0X__) || _MSC_VER >= 1600 || __cplusplus >= 201103l)
 #error "A C++11-capable compiler is required."
