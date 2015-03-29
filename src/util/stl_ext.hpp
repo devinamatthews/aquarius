@@ -13,9 +13,11 @@
 #include <algorithm>
 #include <array>
 #include <deque>
+#include <fstream>
 #include <functional>
 #include <initializer_list>
 #include <iomanip>
+#include <istream>
 #include <iostream>
 #include <iterator>
 #include <limits>
@@ -23,6 +25,7 @@
 #include <locale>
 #include <map>
 #include <memory>
+#include <ostream>
 #include <set>
 #include <sstream>
 #include <stack>
