@@ -542,8 +542,8 @@ Diagram Term::symmetrize() const
         {
             _external.erase(find(_external.begin(), _external.end(), *l1));
             assert(l->getSpin() == l1->getSpin());
-            particles += {*l, *l1};
-            (l->isAlpha() ? alpha : beta) += {min(*l, *l1)};
+            particles += make_vector(*l, *l1);
+            (l->isAlpha() ? alpha : beta) += make_vector(min(*l, *l1));
         }
 
         l = _external.erase(l);
