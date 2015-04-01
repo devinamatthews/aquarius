@@ -1,3 +1,5 @@
+#include "util/global.hpp"
+
 #include "tensor/symblocked_tensor.hpp"
 #include "time/time.hpp"
 #include "task/task.hpp"
