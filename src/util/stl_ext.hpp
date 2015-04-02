@@ -249,7 +249,7 @@ namespace aquarius
         template <size_t I, typename... Args>
         struct increment_helper
         {
-            void operator()(tuple<typename vector<Args>::const_iterator...>& i)
+            void operator()(tuple<Args...>& i)
             {
                 ++get<I-1>(i);
                 increment_helper<I-1, Args...>()(i);
@@ -259,7 +259,7 @@ namespace aquarius
         template <typename... Args>
         struct increment_helper<1, Args...>
         {
-            void operator()(tuple<typename vector<Args>::const_iterator...>& i)
+            void operator()(tuple<Args...>& i)
             {
                 ++get<0>(i);
             }
@@ -268,11 +268,11 @@ namespace aquarius
         template <typename... Args>
         struct increment_helper<0, Args...>
         {
-            void operator()(tuple<typename vector<Args>::const_iterator...>& i) {}
+            void operator()(tuple<Args...>& i) {}
         };
 
         template <typename... Args>
-        void increment(tuple<typename vector<Args>::const_iterator...>& i)
+        void increment(tuple<Args...>& i)
         {
             increment_helper<sizeof...(Args), Args...>()(i);
         }
@@ -360,7 +360,7 @@ namespace aquarius
         template <size_t I, typename... Args>
         struct reserve_helper
         {
-            void operator()(tuple<vector<Args>...>& t, size_t n)
+            void operator()(tuple<Args...>& t, size_t n)
             {
                 get<I-1>(t).reserve(n);
                 reserve_helper<I-1, Args...>()(t, n);
@@ -370,7 +370,7 @@ namespace aquarius
         template <typename... Args>
         struct reserve_helper<1, Args...>
         {
-            void operator()(tuple<vector<Args>...>& t, size_t n)
+            void operator()(tuple<Args...>& t, size_t n)
             {
                 get<0>(t).reserve(n);
             }
@@ -379,11 +379,11 @@ namespace aquarius
         template <typename... Args>
         struct reserve_helper<0, Args...>
         {
-            void operator()(tuple<vector<Args>...>& t, size_t n) {}
+            void operator()(tuple<Args...>& t, size_t n) {}
         };
 
         template <typename... Args>
-        void reserve(tuple<vector<Args>...>& t, size_t n)
+        void reserve(tuple<Args...>& t, size_t n)
         {
             reserve_helper<sizeof...(Args), Args...>()(t, n);
         }
@@ -391,13 +391,13 @@ namespace aquarius
         template <size_t I, typename... Args>
         struct emplace_back_helper
         {
-            void operator()(tuple<vector<Args>...>& t, const tuple<Args...>& v)
+            void operator()(tuple<Args...>& t, const tuple<typename Args::value_type...>& v)
             {
                 get<I-1>(t).emplace_back(get<I-1>(v));
                 emplace_back_helper<I-1, Args...>()(t, v);
             }
 
-            void operator()(tuple<vector<Args>...>& t, tuple<Args...>&& v)
+            void operator()(tuple<Args...>& t, tuple<typename Args::value_type...>&& v)
             {
                 get<I-1>(t).emplace_back(move(get<I-1>(v)));
                 emplace_back_helper<I-1, Args...>()(t, v);
@@ -407,12 +407,12 @@ namespace aquarius
         template <typename... Args>
         struct emplace_back_helper<1, Args...>
         {
-            void operator()(tuple<vector<Args>...>& t, const tuple<Args...>& v)
+            void operator()(tuple<Args...>& t, const tuple<typename Args::value_type...>& v)
             {
                 get<0>(t).emplace_back(get<0>(v));
             }
 
-            void operator()(tuple<vector<Args>...>& t, tuple<Args...>&& v)
+            void operator()(tuple<Args...>& t, tuple<typename Args::value_type...>&& v)
             {
                 get<0>(t).emplace_back(move(get<0>(v)));
             }
@@ -421,19 +421,19 @@ namespace aquarius
         template <typename... Args>
         struct emplace_back_helper<0, Args...>
         {
-            void operator()(tuple<vector<Args>...>& t, const tuple<Args...>& v) {}
+            void operator()(tuple<Args...>& t, const tuple<typename Args::value_type...>& v) {}
 
-            void operator()(tuple<vector<Args>...>& t, tuple<Args...>&& v) {}
+            void operator()(tuple<Args...>& t, tuple<typename Args::value_type...>&& v) {}
         };
 
         template <typename... Args>
-        void emplace_back(tuple<vector<Args>...>& t, const tuple<Args...>& v)
+        void emplace_back(tuple<Args...>& t, const tuple<typename Args::value_type...>& v)
         {
             emplace_back_helper<sizeof...(Args), Args...>()(t, v);
         }
 
         template <typename... Args>
-        void emplace_back(tuple<vector<Args>...>& t, tuple<Args...>&& v)
+        void emplace_back(tuple<Args...>& t, tuple<typename Args::value_type...>&& v)
         {
             emplace_back_helper<sizeof...(Args), Args...>()(t, move(v));
         }
@@ -545,7 +545,7 @@ namespace aquarius
         class ptr_vector_
         {
             private:
-                template <typename ptr_>
+                template <typename ptr_, typename=void>
                 class iterator_
                 {
                     friend class ptr_vector_;
@@ -567,8 +567,7 @@ namespace aquarius
                         : it_(other.it_) {}
 
                         template <typename ptr__>
-                        iterator_(typename enable_if<is_same<ptr__,value_type*>::value,
-                                                     const iterator_<ptr__>&>::type other)
+                        iterator_(const iterator_<ptr__, typename enable_if<is_same<ptr__,value_type*>::value>::type>& other)
                         : it_(other.it_) {}
 
                         iterator_& operator=(const iterator_& other)
@@ -578,8 +577,7 @@ namespace aquarius
                         }
 
                         template <typename ptr__>
-                        iterator_& operator=(typename enable_if<is_same<ptr__,value_type*>::value,
-                                             const iterator_<ptr__>&>::type other)
+                        iterator_& operator=(const iterator_<ptr__, typename enable_if<is_same<ptr__,value_type*>::value>::type>& other)
                         {
                             it_ = other.it_;
                             return *this;
@@ -993,7 +991,7 @@ namespace aquarius
                     return *impl_.at(n);
                 }
 
-                const reference at(size_type n) const
+                const_reference at(size_type n) const
                 {
                     return *impl_.at(n);
                 }
@@ -2179,55 +2177,55 @@ namespace aquarius
     }
 
     template <typename... Args>
-    vector<tuple<Args...>> zip(const tuple<const vector<Args>&...>& v)
+    vector<tuple<typename Args::value_type...>> zip(const tuple<const Args&...>& v)
     {
-        vector<tuple<Args...>> t;
+        vector<tuple<typename Args::value_type...>> t;
         t.reserve(detail::min_size(v));
 
         auto i = detail::cbegin(v);
-        for (;detail::not_end(i,v);detail::increment<Args...>(i))
+        for (;detail::not_end(i,v);detail::increment(i))
         {
-            call([&t](typename vector<Args>::const_iterator... args) {t.emplace_back(*args...); }, i);
+            call([&t](typename Args::const_iterator... args) {t.emplace_back(*args...); }, i);
         }
 
         return t;
     }
 
     template <typename... Args>
-    vector<tuple<Args...>> zip(const tuple<vector<Args>...>& v_)
+    vector<tuple<typename Args::value_type...>> zip(const tuple<Args...>& v_)
     {
-        return zip(tuple<const vector<Args>&...>(v_));
+        return zip(tuple<const Args&...>(v_));
     }
 
     template <typename... Args>
-    vector<tuple<Args...>> zip(const vector<Args>&... v_)
+    vector<tuple<typename Args::value_type...>> zip(const Args&... v_)
     {
-        return zip(tuple<const vector<Args>&...>(v_...));
+        return zip(tuple<const Args&...>(v_...));
     }
 
     template <typename... Args>
-    vector<tuple<Args...>> zip(const tuple<vector<Args>&&...>& v)
+    vector<tuple<typename decay<Args>::type::value_type...>> zip(const tuple<Args&&...>& v)
     {
-        vector<tuple<Args...>> t;
+        vector<tuple<typename decay<Args>::type::value_type...>> t;
         t.reserve(detail::min_size(v));
 
         auto i = detail::cbegin(v);
-        for (;detail::not_end(i,v);detail::increment<Args...>(i))
+        for (;detail::not_end(i,v);detail::increment(i))
         {
-            call([&t](typename vector<Args>::const_iterator... args) {t.emplace_back(move(*args)...); }, i);
+            call([&t](typename decay<Args>::type::const_iterator... args) {t.emplace_back(move(*args)...); }, i);
         }
 
         return t;
     }
 
     template <typename... Args>
-    vector<tuple<Args...>> zip(tuple<vector<Args>...>&& v)
+    vector<tuple<typename decay<Args>::type::value_type...>> zip(tuple<Args...>&& v)
     {
-        return zip(tuple<vector<Args>&&...>(move(v)));
+        return zip(tuple<Args&&...>(move(v)));
     }
 
     template <typename... Args>
-    vector<tuple<Args...>> zip(vector<Args>&&... v)
+    vector<tuple<typename decay<Args>::type::value_type...>> zip(Args&&... v)
     {
         return zip(forward_as_tuple(move(v)...));
     }
@@ -2996,7 +2994,8 @@ namespace aquarius
         cosort(fromSorted2, toSorted2);
 
         T fromSorted, toSorted;
-        tie(fromSorted, toSorted) = unzip(sorted(zip(from, to)));
+		auto tmp = sorted(zip(forward_as_tuple(from,to)));
+        tie(fromSorted, toSorted) = unzip(tmp);
 
         assert(fromSorted2 == fromSorted);
         assert(toSorted2 == toSorted);
