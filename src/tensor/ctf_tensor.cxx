@@ -405,15 +405,27 @@ typename real_type<T>::type CTFTensor<T>::norm(int p) const
     T ans = (T)0;
     if (p == 00)
     {
+#if CTF_VERSION >= 120
+        ans = dt->norm_infty();
+#else
         ans = dt->reduce(CTF_OP_NORM_INFTY);
+#endif
     }
     else if (p == 1)
     {
+#if CTF_VERSION >= 120
+        ans = dt->norm1();
+#else
         ans = dt->reduce(CTF_OP_NORM1);
+#endif
     }
     else if (p == 2)
     {
+#if CTF_VERSION >= 120
+        ans = dt->norm2();
+#else
         ans = dt->reduce(CTF_OP_NORM2);
+#endif
     }
     return aquarius::abs(ans);
 }
