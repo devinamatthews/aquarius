@@ -2211,37 +2211,47 @@ namespace aquarius
         return zip(tuple<const Args&...>(v_));
     }
 
+    /*
     template <typename... Args>
     vector<tuple<typename Args::value_type...>> zip(const Args&... v_)
     {
         return zip(tuple<const Args&...>(v_...));
     }
+    */
+
+    template <typename Arg, typename... Args>
+    vector<tuple<typename Arg::value_type, typename Args::value_type...>> zip(const Arg& v, const Args&... v_)
+    {
+        return zip(tuple<const Arg&, const Args&...>(v, v_...));
+    }
 
     template <typename... Args>
-    vector<tuple<typename decay<Args>::type::value_type...>> zip(const tuple<Args&&...>& v)
+    vector<tuple<typename decay_t<Args>::value_type...>> zip(tuple<Args...>&& v)
     {
-        vector<tuple<typename decay<Args>::type::value_type...>> t;
+        vector<tuple<typename decay_t<Args>::value_type...>> t;
         t.reserve(detail::min_size(v));
 
         auto i = detail::cbegin(v);
         for (;detail::not_end(i,v);detail::increment(i))
         {
-            call([&t](typename decay<Args>::type::const_iterator... args) {t.emplace_back(move(*args)...); }, i);
+            call([&t](typename decay_t<Args>::const_iterator... args) {t.emplace_back(move(*args)...); }, i);
         }
 
         return t;
     }
 
+    /*
     template <typename... Args>
-    vector<tuple<typename decay<Args>::type::value_type...>> zip(tuple<Args...>&& v)
-    {
-        return zip(tuple<Args&&...>(move(v)));
-    }
-
-    template <typename... Args>
-    vector<tuple<typename decay<Args>::type::value_type...>> zip(Args&&... v)
+    vector<tuple<typename decay_t<Args>::value_type...>> zip(Args&&... v)
     {
         return zip(forward_as_tuple(move(v)...));
+    }
+    */
+
+    template <typename Arg, typename... Args>
+    vector<tuple<typename decay_t<Arg>::value_type, typename decay_t<Args>::value_type...>> zip(Arg&& v, Args&&... v_)
+    {
+        return zip(forward_as_tuple(move(v), move(v_)...));
     }
 
     template <typename... Args>
