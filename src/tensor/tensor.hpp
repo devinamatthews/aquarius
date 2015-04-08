@@ -158,7 +158,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator=(cvDerived& other)
         {
@@ -166,7 +166,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator+=(cvDerived& other)
         {
@@ -174,7 +174,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator-=(cvDerived& other)
         {
@@ -182,7 +182,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator*=(cvDerived& other)
         {
@@ -190,7 +190,7 @@ class Tensor
             return getDerived();
         }
 
-        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, Derived&>::type
+        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
         //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
         operator/=(cvDerived& other)
         {
@@ -323,7 +323,7 @@ class Tensor
             return ScaledTensor<const Derived,T>(t.getDerived(), (T)1, true);
         }
 
-        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, TensorMult<Derived,T> >::type
+        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, TensorMult<Derived,T>>
         //ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
         operator*(const cvDerived& other) const
         {
@@ -331,7 +331,7 @@ class Tensor
                                          ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
         }
 
-        template <typename cvDerived> typename if_exists<typename cvDerived::dtype, TensorDiv<Derived,T> >::type
+        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, TensorDiv<Derived,T>>
         //ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorDiv<Derived,T>))
         operator/(const cvDerived& other) const
         {
@@ -665,7 +665,7 @@ class ScaledTensor
 };
 
 template <class Derived1, class Derived2, class T>
-//typename enable_if<is_same<const Derived1, const Derived2>::value,TensorMult<Derived1,T> >::type
+//enable_if_t<is_same<const Derived1, const Derived2>::value,TensorMult<Derived1,T>>
 TensorMult<Derived1,T>
 operator*(const Derived1& t1, const ScaledTensor<Derived2,T>& t2)
 {
@@ -673,7 +673,7 @@ operator*(const Derived1& t1, const ScaledTensor<Derived2,T>& t2)
 }
 
 template <class Derived1, class Derived2, class T>
-//typename enable_if<is_same<const Derived1, const Derived2>::value,TensorDiv<Derived1,T> >::type
+//enable_if_t<is_same<const Derived1, const Derived2>::value,TensorDiv<Derived1,T>>
 TensorDiv<Derived1,T>
 operator/(const Derived1& t1, const ScaledTensor<Derived2,T>& t2)
 {

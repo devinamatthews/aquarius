@@ -1,25 +1,5 @@
 #include "2eints.hpp"
-
 #include "os.hpp"
-
-#define TMP_BUFSIZE 65536
-#define INTEGRAL_CUTOFF 1e-14
-
-/**
- * Compute the index of a function in cartesian angular momentum.
- */
-#define FUNC_CART(x,y,z) ((((x)*(3+(x)+2*((y)+(z))))/2) + (y))
-/**
- * Compute the index of a function in spherical harmonic angular momentum.
- *
- * Regular spherical harmonics are referenced by n=l, l>=m>=-l. Contaminants may also be referenced by
- * n>l>=0, n-l even.
- */
-#define FUNC_SPHER(n,l,m) ((((n)-(l))*((n)+(l)-1))/2 + 2*(n) + ((m) > 0 ? -2*(m) : 2*(m)+1))
-
-#define IDX_EQ(i,r,e,j,s,f) ((i) == (j) && (r) == (s) && (e) == (f))
-#define IDX_GE(i,r,e,j,s,f) ((i) > (j) || ((i) == (j) && ((r) > (s) || ((r) == (s) && (e) >= (f)))))
-#define IDX_GT(i,r,e,j,s,f) ((i) > (j) || ((i) == (j) && ((r) > (s) || ((r) == (s) && (e) >  (f)))))
 
 using namespace aquarius::input;
 using namespace aquarius::symmetry;
@@ -39,7 +19,7 @@ TwoElectronIntegrals::TwoElectronIntegrals(const Shell& a, const Shell& b, const
   da(a.getDegeneracy()), db(b.getDegeneracy()), dc(c.getDegeneracy()), dd(d.getDegeneracy()),
   fsa(a.getNFunc()), fsb(b.getNFunc()), fsc(c.getNFunc()), fsd(d.getNFunc()),
   za(a.getExponents()), zb(b.getExponents()), zc(c.getExponents()), zd(d.getExponents()),
-  num_processed(0)
+  num_processed(0), accuracy_(0)
 {
     fca = (la+1)*(la+2)/2;
     fcb = (lb+1)*(lb+2)/2;
@@ -183,16 +163,56 @@ void TwoElectronIntegrals::prim(const vec3& posa, int e, const vec3& posb, int f
 void TwoElectronIntegrals::prims(const vec3& posa, const vec3& posb, const vec3& posc, const vec3& posd,
                                  double* integrals)
 {
+    constexpr double TWO_PI_52 = 34.98683665524972497; // 2*pi^(5/2)
+
+    matrix<double> Kab(na, nb), Kcd(nc, nd);
+
     #pragma omp parallel for
-    for (int m = 0;m < na*nb*nc*nd;m++)
+    for (int64_t j = 0;j < na*nb;j++)
     {
-        int h = m/(na*nb*nc);
-        int r = m%(na*nb*nc);
-        int g = r/(na*nb);
-        int s = r%(na*nb);
-        int f = s/na;
-        int e = s%na;
-        prim(posa, e, posb, f, posc, g, posd, h, integrals+fca*fcb*fcc*fcd*m);
+        int f = j/na;
+        int e = j%na;
+
+        double zp = za[e]+zb[f];
+        Kab[e][f] = exp(-za[e]*zb[f]*norm2(posa-posb)/zp)/zp;
+    }
+
+    #pragma omp parallel for
+    for (int64_t j = 0;j < nc*nd;j++)
+    {
+        int h = j/nc;
+        int g = j%nc;
+
+        double zq = zc[g]+zd[h];
+        Kcd[g][h] = exp(-zc[g]*zd[h]*norm2(posc-posd)/zq)/zq;
+    }
+
+    #pragma omp parallel
+    {
+        int nt = omp_get_num_threads();
+        int i = omp_get_thread_num();
+        int len = fca*fcb*fcc*fcd;
+        for (int64_t j = i;j < na*nb*nc*nd;j += nt)
+        {
+            int h = j/(na*nb*nc);
+            int r = j%(na*nb*nc);
+            int g = r/(na*nb);
+            int s = r%(na*nb);
+            int f = s/na;
+            int e = s%na;
+
+            double A0 = TWO_PI_52*Kab[e][f]*Kcd[g][h]/sqrt(za[e]+zb[f]+zc[g]+zd[h]);
+
+            if (Kab[e][f] < accuracy_ ||
+                Kcd[g][h] < accuracy_ ||
+                A0 < accuracy_)
+            {
+                fill_n(integrals+j*len, len, 0.0);
+                continue;
+            }
+
+            prim(posa, e, posb, f, posc, g, posd, h, integrals+j*len);
+        }
     }
 }
 
@@ -498,81 +518,6 @@ void ERI::print(Printer& p) const
     //TODO
 }
 
-TwoElectronIntegralsTask::TwoElectronIntegralsTask(const string& name, Config& config)
-: Task(name, config)
-{
-    vector<Requirement> reqs;
-    reqs.push_back(Requirement("molecule", "molecule"));
-    addProduct(Product("eri", "I", reqs));
-}
-
-bool TwoElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
-{
-    const Molecule& molecule = get<Molecule>("molecule");
-
-    ERI* eri = new ERI(arena, molecule.getGroup());
-
-    Context ctx(Context::ISCF);
-
-    vector<double> tmpval(TMP_BUFSIZE);
-    vector<idx4_t> tmpidx(TMP_BUFSIZE);
-
-    const vector<int>& N = molecule.getNumOrbitals();
-    int nirrep = molecule.getGroup().getNumIrreps();
-
-    vector<vector<int> > idx = Shell::setupIndices(Context(), molecule);
-    vector<Shell> shells(molecule.getShellsBegin(), molecule.getShellsEnd());
-
-    int abcd = 0;
-    for (int a = 0;a < shells.size();++a)
-    {
-        for (int b = 0;b <= a;++b)
-        {
-            for (int c = 0;c <= a;++c)
-            {
-                int dmax = c;
-                if (a == c) dmax = b;
-                for (int d = 0;d <= dmax;++d)
-                {
-                    if (abcd%arena.size == arena.rank)
-                    {
-                        OSERI block(shells[a], shells[b], shells[c], shells[d]);
-                        block.run();
-
-                        size_t n;
-                        while ((n = block.process(ctx, idx[a], idx[b], idx[c], idx[d],
-                                                  TMP_BUFSIZE, tmpval.data(), tmpidx.data(), INTEGRAL_CUTOFF)) != 0)
-                        {
-                            eri->ints.insert(eri->ints.end(), tmpval.data(), tmpval.data()+n);
-                            eri->idxs.insert(eri->idxs.end(), tmpidx.data(), tmpidx.data()+n);
-                        }
-                    }
-                    abcd++;
-                }
-            }
-        }
-    }
-
-    //TODO: load balance
-
-    for (int i = 0;i < eri->ints.size();++i)
-    {
-        if (eri->idxs[i].i  > eri->idxs[i].j) swap(eri->idxs[i].i, eri->idxs[i].j);
-        if (eri->idxs[i].k  > eri->idxs[i].l) swap(eri->idxs[i].k, eri->idxs[i].l);
-        if (eri->idxs[i].i  > eri->idxs[i].k ||
-           (eri->idxs[i].i == eri->idxs[i].k &&
-            eri->idxs[i].j  > eri->idxs[i].l))
-        {
-            swap(eri->idxs[i].i, eri->idxs[i].k);
-            swap(eri->idxs[i].j, eri->idxs[i].l);
-        }
-    }
-
-    put("I", eri);
-
-    return true;
-}
-
 }
 }
 
@@ -585,4 +530,4 @@ calc_cutoff?
 
 )";
 
-REGISTER_TASK(aquarius::integrals::TwoElectronIntegralsTask,"2eints",spec);
+REGISTER_TASK(aquarius::integrals::OS2eIntegralsTask,"2eints",spec);

@@ -9,7 +9,7 @@ namespace op
 
 template <typename T>
 TwoElectronOperator<T>::TwoElectronOperator(const string& name, const Arena& arena, const Space& occ, const Space& vrt)
-: OneElectronOperatorBase<T,TwoElectronOperator<T> >(name, arena, occ, vrt),
+: OneElectronOperatorBase<T,TwoElectronOperator<T>>(name, arena, occ, vrt),
   ijkl(this->addTensor(new SpinorbitalTensor<T>(name, arena, occ.group, {vrt, occ}, {0,2}, {0,2}))),
   aijk(this->addTensor(new SpinorbitalTensor<T>(name, arena, occ.group, {vrt, occ}, {1,1}, {0,2}))),
   ijak(this->addTensor(new SpinorbitalTensor<T>(name, arena, occ.group, {vrt, occ}, {0,2}, {1,1}))),
@@ -22,7 +22,7 @@ TwoElectronOperator<T>::TwoElectronOperator(const string& name, const Arena& are
 
 template <typename T>
 TwoElectronOperator<T>::TwoElectronOperator(const string& name, OneElectronOperator<T>& other, int copy)
-: OneElectronOperatorBase<T,TwoElectronOperator<T> >(name, other, copy),
+: OneElectronOperatorBase<T,TwoElectronOperator<T>>(name, other, copy),
   ijkl(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, {other.vrt, other.occ}, {0,2}, {0,2}))),
   aijk(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, {other.vrt, other.occ}, {1,1}, {0,2}))),
   ijak(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, {other.vrt, other.occ}, {0,2}, {1,1}))),
@@ -35,7 +35,7 @@ TwoElectronOperator<T>::TwoElectronOperator(const string& name, OneElectronOpera
 
 template <typename T>
 TwoElectronOperator<T>::TwoElectronOperator(const OneElectronOperator<T>& other)
-: OneElectronOperatorBase<T,TwoElectronOperator<T> >(other),
+: OneElectronOperatorBase<T,TwoElectronOperator<T>>(other),
   ijkl(this->addTensor(new SpinorbitalTensor<T>(other.name, other.arena, other.occ.group, {other.vrt, other.occ}, {0,2}, {0,2}))),
   aijk(this->addTensor(new SpinorbitalTensor<T>(other.name, other.arena, other.occ.group, {other.vrt, other.occ}, {1,1}, {0,2}))),
   ijak(this->addTensor(new SpinorbitalTensor<T>(other.name, other.arena, other.occ.group, {other.vrt, other.occ}, {0,2}, {1,1}))),
@@ -48,7 +48,7 @@ TwoElectronOperator<T>::TwoElectronOperator(const OneElectronOperator<T>& other)
 
 template <typename T>
 TwoElectronOperator<T>::TwoElectronOperator(const string& name, const OneElectronOperator<T>& other)
-: OneElectronOperatorBase<T,TwoElectronOperator<T> >(name, other),
+: OneElectronOperatorBase<T,TwoElectronOperator<T>>(name, other),
   ijkl(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, {other.vrt, other.occ}, {0,2}, {0,2}))),
   aijk(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, {other.vrt, other.occ}, {1,1}, {0,2}))),
   ijak(this->addTensor(new SpinorbitalTensor<T>(name, other.arena, other.occ.group, {other.vrt, other.occ}, {0,2}, {1,1}))),
@@ -61,7 +61,7 @@ TwoElectronOperator<T>::TwoElectronOperator(const string& name, const OneElectro
 
 template <typename T>
 TwoElectronOperator<T>::TwoElectronOperator(const string& name, TwoElectronOperator<T>& other, int copy)
-: OneElectronOperatorBase<T,TwoElectronOperator<T> >(name, other, copy),
+: OneElectronOperatorBase<T,TwoElectronOperator<T>>(name, other, copy),
   ijkl(copy&IJKL ? this->addTensor(new SpinorbitalTensor<T>(name, other.getIJKL())) : this->addTensor(other.getIJKL())),
   aijk(copy&AIJK ? this->addTensor(new SpinorbitalTensor<T>(name, other.getAIJK())) : this->addTensor(other.getAIJK())),
   ijak(copy&IJAK ? this->addTensor(new SpinorbitalTensor<T>(name, other.getIJAK())) : this->addTensor(other.getIJAK())),
@@ -74,7 +74,7 @@ TwoElectronOperator<T>::TwoElectronOperator(const string& name, TwoElectronOpera
 
 template <typename T>
 TwoElectronOperator<T>::TwoElectronOperator(const TwoElectronOperator<T>& other)
-: OneElectronOperatorBase<T,TwoElectronOperator<T> >(other),
+: OneElectronOperatorBase<T,TwoElectronOperator<T>>(other),
   ijkl(this->addTensor(new SpinorbitalTensor<T>(other.getIJKL()))),
   aijk(this->addTensor(new SpinorbitalTensor<T>(other.getAIJK()))),
   ijak(this->addTensor(new SpinorbitalTensor<T>(other.getIJAK()))),
@@ -87,7 +87,7 @@ TwoElectronOperator<T>::TwoElectronOperator(const TwoElectronOperator<T>& other)
 
 template <typename T>
 TwoElectronOperator<T>::TwoElectronOperator(const string& name, const TwoElectronOperator<T>& other)
-: OneElectronOperatorBase<T,TwoElectronOperator<T> >(name, other),
+: OneElectronOperatorBase<T,TwoElectronOperator<T>>(name, other),
   ijkl(this->addTensor(new SpinorbitalTensor<T>(name, other.getIJKL()))),
   aijk(this->addTensor(new SpinorbitalTensor<T>(name, other.getAIJK()))),
   ijak(this->addTensor(new SpinorbitalTensor<T>(name, other.getIJAK()))),

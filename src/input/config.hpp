@@ -159,7 +159,7 @@ class Config
         void set(const string& path, const T& data, const int which = 0, const bool create = true);
 
         template<typename T>
-        vector< pair<string,T> > find(const string& pattern) const;
+        vector<pair<string,T>> find(const string& pattern) const;
 
         void read(const string& cwd, istream& is);
 
@@ -202,7 +202,7 @@ class Schema : public Config
 };
 
 template<typename S>
-class Config::Parser< vector<S> >
+class Config::Parser<vector<S>>
 {
     public:
     static vector<S> parse(istream& is)
@@ -248,7 +248,7 @@ T Config::Parser<T>::parse(string& s)
 }
 
 template<typename S>
-class Config::Extractor< vector<S> >
+class Config::Extractor<vector<S>>
 {
     public:
     static vector<S> extract(Node& node, int which = 0)
@@ -259,7 +259,7 @@ class Config::Extractor< vector<S> >
             if (i == node.children.end()) throw NoValueError(node.fullName());
 
             istringstream iss(i->data);
-            return Parser< vector<S> >::parse(iss);
+            return Parser<vector<S>>::parse(iss);
         }
         else
         {
@@ -340,7 +340,7 @@ void Config::set(const string& path, const T& data, int which, bool create)
 }
 
 template<typename T>
-void Config::find(Node& node, const string& name, const string& pattern, vector< pair<string,T> >& v) const
+void Config::find(Node& node, const string& name, const string& pattern, vector<pair<string,T>>& v) const
 {
     string toMatch;
     string remainder;
@@ -373,9 +373,9 @@ void Config::find(Node& node, const string& name, const string& pattern, vector<
 }
 
 template<typename T>
-vector< pair<string,T> > Config::find(const string& pattern) const
+vector<pair<string,T>> Config::find(const string& pattern) const
 {
-    vector< pair<string,T> > v;
+    vector<pair<string,T>> v;
     find(*root, "", pattern, v);
     return v;
 }

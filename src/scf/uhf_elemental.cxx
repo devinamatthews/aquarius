@@ -22,12 +22,12 @@ ElementalUHF<T>::ElementalUHF(const string& name, Config& config)
 template <typename T>
 void ElementalUHF<T>::calcSMinusHalf()
 {
-    const Molecule& molecule = this->template get<Molecule>("molecule");
+    const auto& molecule = this->template get<Molecule>("molecule");
 
     const vector<int>& norb = molecule.getNumOrbitals();
 
-    SymmetryBlockedTensor<T>& S = this->template get<SymmetryBlockedTensor<T> >("S");
-    SymmetryBlockedTensor<T>& Smhalf = this->template gettmp<SymmetryBlockedTensor<T> >("S^-1/2");
+    auto& S = this->template get<SymmetryBlockedTensor<T>>("S");
+    auto& Smhalf = this->template gettmp<SymmetryBlockedTensor<T>>("S^-1/2");
 
     for (int i = 0;i < molecule.getGroup().getNumIrreps();i++)
     {
@@ -46,7 +46,7 @@ void ElementalUHF<T>::calcSMinusHalf()
         if (norb[i] == 0) continue;
 
         vector<int> irreps = {i,i};
-        vector<typename real_type<T>::type> E(norb[i]);
+        vector<real_type_t<T>> E(norb[i]);
 
         DistMatrix<T> S_elem(norb[i], norb[i]);
         vector<tkv_pair<T>> pairs, pairs2;
@@ -151,15 +151,15 @@ void ElementalUHF<T>::calcSMinusHalf()
 template <typename T>
 void ElementalUHF<T>::diagonalizeFock()
 {
-    const Molecule& molecule = this->template get<Molecule>("molecule");
+    const auto& molecule = this->template get<Molecule>("molecule");
 
     const vector<int>& norb = molecule.getNumOrbitals();
 
-    SymmetryBlockedTensor<T>& S = this->template get<SymmetryBlockedTensor<T> >("S");
-    SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
-    SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
-    SymmetryBlockedTensor<T>& Ca = this->template gettmp<SymmetryBlockedTensor<T> >("Ca");
-    SymmetryBlockedTensor<T>& Cb = this->template gettmp<SymmetryBlockedTensor<T> >("Cb");
+    auto& S  = this->template get   <SymmetryBlockedTensor<T>>("S");
+    auto& Fa = this->template get   <SymmetryBlockedTensor<T>>("Fa");
+    auto& Fb = this->template get   <SymmetryBlockedTensor<T>>("Fb");
+    auto& Ca = this->template gettmp<SymmetryBlockedTensor<T>>("Ca");
+    auto& Cb = this->template gettmp<SymmetryBlockedTensor<T>>("Cb");
 
     for (int i = 0;i < molecule.getGroup().getNumIrreps();i++)
     {
@@ -221,8 +221,8 @@ void ElementalUHF<T>::diagonalizeFock()
 
         SymmetryBlockedTensor<T> Ca2(Ca);
         SymmetryBlockedTensor<T> Cb2(Cb);
-        vector<vector<typename real_type<T>::type>> E_alpha2(E_alpha);
-        vector<vector<typename real_type<T>::type>> E_beta2(E_beta);
+        vector<vector<real_type_t<T>>> E_alpha2(E_alpha);
+        vector<vector<real_type_t<T>>> E_beta2(E_beta);
 
         for (int spin : {0,1})
         {
@@ -269,7 +269,7 @@ void ElementalUHF<T>::diagonalizeFock()
                 //PROFILE_FLOPS(9*norb[i]*norb[i]*norb[i]);
                 int info = hegv(LAWrap::AXBX, 'V', 'U', norb[i], fock.data(), norb[i], tmp.data(), norb[i], E2[i].data());
                 assert(info == 0);
-                S.arena.Bcast(E2[i], 0);
+                S.arena.comm().Bcast(E2[i], 0);
 
                 for (int j = 0;j < norb[i];j++)
                 {
@@ -298,7 +298,7 @@ void ElementalUHF<T>::diagonalizeFock()
             else
             {
                 F.getAllData(irreps, 0);
-                S.arena.Bcast(E2[i], 0);
+                S.arena.comm().Bcast(E2[i], 0);
                 C2.writeRemoteData(irreps);
             }
         }

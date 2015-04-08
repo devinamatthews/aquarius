@@ -29,7 +29,7 @@ bool LocalTDA<U>::run(TaskDAG& dag, const Arena& arena)
     const PointGroup& group = molecule.getGroup();
     int nirrep = group.getNumIrreps();
 
-    TwoElectronOperator<U>& W = get<TwoElectronOperator<U> >("H");
+    const auto& W = get<TwoElectronOperator<U>>("H");
     const Space& occ = W.occ;
     const Space& vrt = W.vrt;
 
@@ -134,7 +134,7 @@ bool LocalTDA<U>::run(TaskDAG& dag, const Arena& arena)
         //     cout << TDAevals[R] << endl;
         //     cout << "I'm not rank 0. " << TDAevals[R][0] << endl;
         // }
-        arena.Barrier();
+        arena.comm().Barrier();
 
         for (int root = 0;root < ntot;root++)
         {
@@ -155,7 +155,7 @@ bool LocalTDA<U>::run(TaskDAG& dag, const Arena& arena)
                         int nai = (spin_ai == 1 ? vrt.nalpha[a] : vrt.nbeta[a])*
                                   (spin_ai == 1 ? occ.nalpha[i] : occ.nbeta[i]);
 
-                        vector<tkv_pair<U> > pairs(nai);
+                        vector<tkv_pair<U>> pairs(nai);
                         for (int ai = 0;ai < nai;ai++)
                         {
                             pairs[ai].k = ai;

@@ -183,8 +183,8 @@ void Molecule::initGeometry(Config& config, vector<AtomCartSpec>& cartpos)
 
     if (zmat)
     {
-        vector< pair<string,AtomZmatSpec> > atomspecs = config.find<AtomZmatSpec>("atom");
-        for (vector< pair<string,AtomZmatSpec> >::iterator it = atomspecs.begin();it != atomspecs.end();++it)
+        vector<pair<string,AtomZmatSpec>> atomspecs = config.find<AtomZmatSpec>("atom");
+        for (vector<pair<string,AtomZmatSpec>>::iterator it = atomspecs.begin();it != atomspecs.end();++it)
         {
             vec3 pos, posb, posc, posd;
             AtomZmatSpec a = it->second;
@@ -220,8 +220,8 @@ void Molecule::initGeometry(Config& config, vector<AtomCartSpec>& cartpos)
     }
     else
     {
-        vector< pair<string,AtomCartSpec> > atomspecs = config.find<AtomCartSpec>("atom");
-        for (vector< pair<string,AtomCartSpec> >::iterator it = atomspecs.begin();it != atomspecs.end();++it)
+        vector<pair<string,AtomCartSpec>> atomspecs = config.find<AtomCartSpec>("atom");
+        for (vector<pair<string,AtomCartSpec>>::iterator it = atomspecs.begin();it != atomspecs.end();++it)
         {
             cartpos.push_back(it->second);
         }

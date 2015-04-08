@@ -35,17 +35,17 @@ void AOUHF<T,WhichUHF>::buildFock()
     vector<int> start(nirrep,0);
     for (int i = 1;i < nirrep;i++) start[i] = start[i-1]+norb[i-1];
 
-    SymmetryBlockedTensor<T>& H = this->template get<SymmetryBlockedTensor<T> >("H");
-    SymmetryBlockedTensor<T>& Da = this->template get<SymmetryBlockedTensor<T> >("Da");
-    SymmetryBlockedTensor<T>& Db = this->template get<SymmetryBlockedTensor<T> >("Db");
-    SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
-    SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
+    auto& H  = this->template get<SymmetryBlockedTensor<T>>("H");
+    auto& Da = this->template get<SymmetryBlockedTensor<T>>("Da");
+    auto& Db = this->template get<SymmetryBlockedTensor<T>>("Db");
+    auto& Fa = this->template get<SymmetryBlockedTensor<T>>("Fa");
+    auto& Fb = this->template get<SymmetryBlockedTensor<T>>("Fb");
 
     Arena& arena = H.arena;
 
-    vector<vector<T> > focka(nirrep), fockb(nirrep);
-    vector<vector<T> > densa(nirrep), densb(nirrep);
-    vector<vector<T> > densab(nirrep);
+    vector<vector<T>> focka(nirrep), fockb(nirrep);
+    vector<vector<T>> densa(nirrep), densb(nirrep);
+    vector<vector<T>> densab(nirrep);
 
     for (int i = 0;i < nirrep;i++)
     {
@@ -93,8 +93,8 @@ void AOUHF<T,WhichUHF>::buildFock()
         size_t n0 = (neris*tid)/nt;
         size_t n1 = (neris*(tid+1))/nt;
 
-        vector<vector<T> > focka_local(nirrep);
-        vector<vector<T> > fockb_local(nirrep);
+        vector<vector<T>> focka_local(nirrep);
+        vector<vector<T>> fockb_local(nirrep);
 
         for (int i = 0;i < nirrep;i++)
         {
@@ -227,10 +227,10 @@ void AOUHF<T,WhichUHF>::buildFock()
         if (arena.rank == 0)
         {
             //PROFILE_FLOPS(2*norb[i]*norb[i]);
-            arena.Reduce(focka[i], MPI_SUM);
-            arena.Reduce(fockb[i], MPI_SUM);
+            arena.comm().Reduce(focka[i], MPI_SUM);
+            arena.comm().Reduce(fockb[i], MPI_SUM);
 
-            vector<tkv_pair<T> > pairs(norb[i]*norb[i]);
+            vector<tkv_pair<T>> pairs(norb[i]*norb[i]);
 
             for (int p = 0;p < norb[i]*norb[i];p++)
             {
@@ -251,8 +251,8 @@ void AOUHF<T,WhichUHF>::buildFock()
         else
         {
             //PROFILE_FLOPS(2*norb[i]*norb[i]);
-            arena.Reduce(focka[i], MPI_SUM, (MPI_Int)0);
-            arena.Reduce(fockb[i], MPI_SUM, (MPI_Int)0);
+            arena.comm().Reduce(focka[i], MPI_SUM, 0);
+            arena.comm().Reduce(fockb[i], MPI_SUM, 0);
 
             Fa.writeRemoteData(irreps);
             Fb.writeRemoteData(irreps);

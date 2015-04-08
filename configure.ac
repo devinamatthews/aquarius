@@ -88,12 +88,12 @@ if test x"$with_elemental" != xno; then
     CPPFLAGS=$CXXFLAGS
         
     if test x"$with_elemental" != xyes; then
-        LDFLAGS+=" -L$with_elemental/lib"
+        LDFLAGS+=" -L$with_elemental/lib -L$with_elemental/lib64"
         CPPFLAGS+=" -I$with_elemental/include"
     fi
     
     AC_CHECK_HEADER([El.hpp], [], [AC_MSG_FAILURE([Elemental requested, but could not find El.hpp.])])
-    AC_CHECK_LIB([El], [ElInitialize], [], [AC_MSG_FAILURE([Elemental requested, but could not find -lEl.])], [$elemental_libs])
+    AC_CHECK_LIB([El], [ElInitialize], [true], [AC_MSG_FAILURE([Elemental requested, but could not find -lEl.])], [$elemental_libs])
     
     LDFLAGS=$LDFLAGS_SAVE
     CPPFLAGS=$CPPFLAGS_SAVE
@@ -101,7 +101,7 @@ if test x"$with_elemental" != xno; then
     have_elemental=yes
     
     if test x"$with_elemental" != xyes; then
-        AC_SUBST([elemental_LIBS], ["-L$with_elemental/lib $elemental_libs"])
+        AC_SUBST([elemental_LIBS], ["-L$with_elemental/lib -L$with_elemental/lib64 $elemental_libs"])
         AC_SUBST([elemental_INCLUDES], ["-I$with_elemental/include"])
     else
         AC_SUBST([elemental_LIBS], ["$elemental_libs"])
@@ -111,6 +111,45 @@ fi
 
 AS_IF([test x"$have_elemental" = xyes], [AC_DEFINE([HAVE_ELEMENTAL], [1], [Define if Elemental is to be used.])])
 AM_CONDITIONAL([HAVE_ELEMENTAL], [test x"$have_elemental" = xyes])
+
+#
+# Check for libint2
+#
+AC_ARG_WITH([libint2],
+            [AS_HELP_STRING([--with-libint2=<dir>],
+                            [Enable the use of the libint2 atomic integral library.])],
+            [], [with_libint2=no])
+
+if test x"$with_libint2" != xno; then
+    LDFLAGS_SAVE=$LDFLAGS
+    CPPFLAGS_SAVE=$CPPFLAGS
+    LDFLAGS=
+    CPPFLAGS=$CXXFLAGS
+        
+    if test x"$with_libint2" != xyes; then
+        LDFLAGS+=" -L$with_libint2/lib -L$with_libint2/lib64"
+        CPPFLAGS+=" -I$with_libint2/include -I$with_libint2/include/libint2"
+    fi
+    
+    AC_CHECK_HEADER([libint2.h], [], [AC_MSG_FAILURE([libint2 requested, but could not find libint2.h.])])
+    AC_CHECK_LIB([int2], [libint2_static_init], [true], [AC_MSG_FAILURE([libint2 requested, but could not find -lint2.])])
+    
+    LDFLAGS=$LDFLAGS_SAVE
+    CPPFLAGS=$CPPFLAGS_SAVE
+        
+    have_libint2=yes
+    
+    if test x"$with_libint2" != xyes; then
+        AC_SUBST([libint2_LIBS], ["-L$with_libint2/lib -L$with_libint2/lib64 -lint2"])
+        AC_SUBST([libint2_INCLUDES], ["-I$with_libint2/include -I$with_libint2/include/libint2"])
+    else
+        AC_SUBST([libint2_LIBS], ["-lint2"])
+        AC_SUBST([libint2_INCLUDES], [])
+    fi
+fi
+
+AS_IF([test x"$have_libint2" = xyes], [AC_DEFINE([HAVE_LIBINT2], [1], [Define if libint2 is to be used.])])
+AM_CONDITIONAL([HAVE_LIBINT2], [test x"$have_libint2" = xyes])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

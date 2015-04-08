@@ -30,7 +30,7 @@ class PerturbedCCSD : public Iterative<U>
 {
     protected:
         U omega;
-        convergence::DIIS< op::ExcitationOperator<U,2> > diis;
+        convergence::DIIS<op::ExcitationOperator<U,2>> diis;
 
     public:
         PerturbedCCSD(const string& name, input::Config& config);

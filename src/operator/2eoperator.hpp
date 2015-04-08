@@ -11,7 +11,7 @@ namespace op
 {
 
 template <typename T>
-class TwoElectronOperator : public OneElectronOperatorBase<T,TwoElectronOperator<T> >
+class TwoElectronOperator : public OneElectronOperatorBase<T,TwoElectronOperator<T>>
 {
     protected:
         tensor::SpinorbitalTensor<T>& ijkl;

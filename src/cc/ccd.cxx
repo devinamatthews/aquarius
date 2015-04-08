@@ -28,23 +28,19 @@ CCD<U>::CCD(const string& name, Config& config)
 template <typename U>
 bool CCD<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const TwoElectronOperator<U>& H = this->template get<TwoElectronOperator<U> >("H");
+    const auto& H = this->template get<TwoElectronOperator<U>>("H");
 
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    this->put   (  "T", new ExcitationOperator<U,2>("T", arena, occ, vrt));
-    this->puttmp(  "Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
-    this->puttmp(  "D", new Denominator<U>(H));
+    auto& T = this->put   (  "T", new ExcitationOperator<U,2>("T", arena, occ, vrt));
+    auto& Z = this->puttmp(  "Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
+    auto& D = this->puttmp(  "D", new Denominator<U>(H));
 
     this->puttmp(  "FAE", new SpinorbitalTensor<U>(    "F(ae)",   H.getAB()));
     this->puttmp(  "FMI", new SpinorbitalTensor<U>(    "F(mi)",   H.getIJ()));
     this->puttmp("WMNIJ", new SpinorbitalTensor<U>( "W(mn,ij)", H.getIJKL()));
     this->puttmp("WAMEI", new SpinorbitalTensor<U>("W~(am,ei)", H.getAIBJ()));
-
-    ExcitationOperator<U,2>& T = this->template get   <ExcitationOperator<U,2> >(  "T");
-    Denominator<U>&          D = this->template gettmp<Denominator<U> >         (  "D");
-    ExcitationOperator<U,2>& Z = this->template gettmp<ExcitationOperator<U,2> >(  "Z");
 
     Z(0) = 0;
     T(0) = 0;
@@ -83,7 +79,7 @@ bool CCD<U>::run(TaskDAG& dag, const Arena& arena)
 template <typename U>
 void CCD<U>::iterate(const Arena& arena)
 {
-    const TwoElectronOperator<U>& H = this->template get<TwoElectronOperator<U> >("H");
+    const auto& H = this->template get<TwoElectronOperator<U>>("H");
 
     const SpinorbitalTensor<U>&   fAE =   H.getAB();
     const SpinorbitalTensor<U>&   fMI =   H.getIJ();
@@ -93,14 +89,14 @@ void CCD<U>::iterate(const Arena& arena)
     const SpinorbitalTensor<U>& VMNIJ = H.getIJKL();
     const SpinorbitalTensor<U>& VAMEI = H.getAIBJ();
 
-    ExcitationOperator<U,2>& T = this->template get   <ExcitationOperator<U,2> >(  "T");
-    Denominator<U>&          D = this->template gettmp<Denominator<U>          >(  "D");
-    ExcitationOperator<U,2>& Z = this->template gettmp<ExcitationOperator<U,2> >(  "Z");
+    auto& T = this->template get   <ExcitationOperator<U,2>>(  "T");
+    auto& D = this->template gettmp<Denominator       <U  >>(  "D");
+    auto& Z = this->template gettmp<ExcitationOperator<U,2>>(  "Z");
 
-    SpinorbitalTensor<U>&   FAE = this->template gettmp<SpinorbitalTensor<U> >(  "FAE");
-    SpinorbitalTensor<U>&   FMI = this->template gettmp<SpinorbitalTensor<U> >(  "FMI");
-    SpinorbitalTensor<U>& WMNIJ = this->template gettmp<SpinorbitalTensor<U> >("WMNIJ");
-    SpinorbitalTensor<U>& WAMEI = this->template gettmp<SpinorbitalTensor<U> >("WAMEI");
+    auto&   FAE = this->template gettmp<SpinorbitalTensor<U>>(  "FAE");
+    auto&   FMI = this->template gettmp<SpinorbitalTensor<U>>(  "FMI");
+    auto& WMNIJ = this->template gettmp<SpinorbitalTensor<U>>("WMNIJ");
+    auto& WAMEI = this->template gettmp<SpinorbitalTensor<U>>("WAMEI");
 
     /**************************************************************************
      *

@@ -29,18 +29,14 @@ MP4DQ<U>::MP4DQ(const string& name, Config& config)
 template <typename U>
 bool MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
+    const auto& H = get<TwoElectronOperator<U>>("H");
 
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    puttmp("T", new ExcitationOperator<U,2>("T", arena, occ, vrt));
-    puttmp("D", new Denominator<U>(H));
-    puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
-
-    ExcitationOperator<U,2>& T = gettmp<ExcitationOperator<U,2> >("T");
-    Denominator<U>& D = gettmp<Denominator<U> >("D");
-    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+    auto& T = puttmp("T", new ExcitationOperator<U,2>("T", arena, occ, vrt));
+    auto& D = puttmp("D", new Denominator       <U  >(H));
+    auto& Z = puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
 
     Z(0) = (U)0.0;
     T(0) = (U)0.0;
@@ -52,11 +48,10 @@ bool MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
     double energy = 0.25*real(scalar(H.getABIJ()*T(2)));
     double mp2energy = energy;
 
-
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
     put("mp2", new U(energy));
 
-    TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
+    auto& H_ = get<TwoElectronOperator<U>>("H");
 
     TwoElectronOperator<U> Hnew("W", H_, TwoElectronOperator<U>::AB|
                                  TwoElectronOperator<U>::IJ|
@@ -87,7 +82,7 @@ bool MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
     Logger::log(arena) << "MP3 correlation energy = " << setprecision(15) << energy - mp2energy << endl;
     put("mp3", new U(energy));
 
-    ExcitationOperator<U,2>& Znew = gettmp<ExcitationOperator<U,2> >("Z");
+    auto& Znew = gettmp<ExcitationOperator<U,2>>("Z");
 
     Znew(2)["abij"] = WMNEF["ijab"];
     Znew(2)["abij"] += FAE["af"]*T(2)["fbij"];
@@ -106,9 +101,9 @@ bool MP4DQ<U>::run(TaskDAG& dag, const Arena& arena)
     Logger::log(arena) << "MP4D correlation energy = " << setprecision(15) << energy - mp3energy << endl;
     put("mp4d", new U(energy));
 
-    ExcitationOperator<U,2>& Tccd = get<ExcitationOperator<U,2> >("T");
-    Denominator<U>& Dccd = gettmp<Denominator<U> >("D");
-    ExcitationOperator<U,2>& Zccd = gettmp<ExcitationOperator<U,2> >("Z");
+    auto& Tccd = get   <ExcitationOperator<U,2>>("T");
+    auto& Dccd = gettmp<Denominator       <U  >>("D");
+    auto& Zccd = gettmp<ExcitationOperator<U,2>>("Z");
 
     Zccd(0) = (U)0.0;
     Tccd(0) = (U)0.0;

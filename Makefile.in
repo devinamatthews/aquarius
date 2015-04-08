@@ -84,6 +84,9 @@ bin_PROGRAMS = $(top_builddir)/bin/aquarius$(EXEEXT)
 @HAVE_ELEMENTAL_TRUE@	src/scf/uhf_elemental.cxx \
 @HAVE_ELEMENTAL_TRUE@	src/cc/tda_elemental.cxx
 
+@HAVE_LIBINT2_TRUE@am__append_4 = @libint2_INCLUDES@
+@HAVE_LIBINT2_TRUE@am__append_5 = @libint2_LIBS@
+@HAVE_LIBINT2_TRUE@am__append_6 = src/integrals/libint2eints.cxx
 subdir = .
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/configure $(am__configure_deps) \
@@ -132,10 +135,13 @@ am____top_builddir__bin_aquarius_SOURCES_DIST = src/autocc/autocc.cxx \
 	src/symmetry/symmetry.cxx src/task/task.cxx \
 	src/tensor/ctf_tensor.cxx src/tensor/spinorbital_tensor.cxx \
 	src/tensor/symblocked_tensor.cxx src/time/time.cxx \
-	src/scf/uhf_elemental.cxx src/cc/tda_elemental.cxx
+	src/scf/uhf_elemental.cxx src/cc/tda_elemental.cxx \
+	src/integrals/libint2eints.cxx
 am__dirstamp = $(am__leading_dot)dirstamp
 @HAVE_ELEMENTAL_TRUE@am__objects_1 = src/scf/uhf_elemental.$(OBJEXT) \
 @HAVE_ELEMENTAL_TRUE@	src/cc/tda_elemental.$(OBJEXT)
+@HAVE_LIBINT2_TRUE@am__objects_2 =  \
+@HAVE_LIBINT2_TRUE@	src/integrals/libint2eints.$(OBJEXT)
 am___top_builddir__bin_aquarius_OBJECTS = src/autocc/autocc.$(OBJEXT) \
 	src/autocc/diagram.$(OBJEXT) src/autocc/fraction.$(OBJEXT) \
 	src/autocc/fragment.$(OBJEXT) src/autocc/generator.$(OBJEXT) \
@@ -170,13 +176,13 @@ am___top_builddir__bin_aquarius_OBJECTS = src/autocc/autocc.$(OBJEXT) \
 	src/tensor/ctf_tensor.$(OBJEXT) \
 	src/tensor/spinorbital_tensor.$(OBJEXT) \
 	src/tensor/symblocked_tensor.$(OBJEXT) src/time/time.$(OBJEXT) \
-	$(am__objects_1)
+	$(am__objects_1) $(am__objects_2)
 __top_builddir__bin_aquarius_OBJECTS =  \
 	$(am___top_builddir__bin_aquarius_OBJECTS)
 am__DEPENDENCIES_1 =
 __top_builddir__bin_aquarius_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -349,6 +355,8 @@ infodir = @infodir@
 install_sh = @install_sh@
 libdir = @libdir@
 libexecdir = @libexecdir@
+libint2_INCLUDES = @libint2_INCLUDES@
+libint2_LIBS = @libint2_LIBS@
 localedir = @localedir@
 localstatedir = @localstatedir@
 mandir = @mandir@
@@ -393,10 +401,12 @@ __top_builddir__bin_aquarius_SOURCES = src/autocc/autocc.cxx \
 	src/symmetry/symmetry.cxx src/task/task.cxx \
 	src/tensor/ctf_tensor.cxx src/tensor/spinorbital_tensor.cxx \
 	src/tensor/symblocked_tensor.cxx src/time/time.cxx \
-	$(am__append_3)
-AM_CPPFLAGS = -I$(srcdir)/src -I$(ctfdir)/include $(am__append_1)
+	$(am__append_3) $(am__append_6)
+AM_CPPFLAGS = -I$(srcdir)/src -I$(ctfdir)/include $(am__append_1) \
+	$(am__append_4)
 __top_builddir__bin_aquarius_LDADD = -L$(ctfdir)/lib -lctf \
-	$(am__append_2) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
+	$(am__append_2) $(am__append_5) $(LAPACK_LIBS) $(BLAS_LIBS) \
+	$(FLIBS)
 AM_CXXFLAGS = $(OPENMP_CXXFLAGS)
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -684,6 +694,8 @@ src/scf/uhf_elemental.$(OBJEXT): src/scf/$(am__dirstamp) \
 	src/scf/$(DEPDIR)/$(am__dirstamp)
 src/cc/tda_elemental.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/integrals/libint2eints.$(OBJEXT): src/integrals/$(am__dirstamp) \
+	src/integrals/$(DEPDIR)/$(am__dirstamp)
 $(top_builddir)/bin/$(am__dirstamp):
 	@$(MKDIR_P) $(top_builddir)/bin
 	@: > $(top_builddir)/bin/$(am__dirstamp)
@@ -752,6 +764,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/integrals/$(DEPDIR)/element.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/integrals/$(DEPDIR)/fmgamma.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/integrals/$(DEPDIR)/kei.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/integrals/$(DEPDIR)/libint2eints.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/integrals/$(DEPDIR)/nai.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/integrals/$(DEPDIR)/os.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/integrals/$(DEPDIR)/ovi.Po@am__quote@

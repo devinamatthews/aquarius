@@ -30,8 +30,8 @@
 /* Define if you have LAPACK library. */
 #undef HAVE_LAPACK
 
-/* Define to 1 if you have the `El' library (-lEl). */
-#undef HAVE_LIBEL
+/* Define if libint2 is to be used. */
+#undef HAVE_LIBINT2
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H

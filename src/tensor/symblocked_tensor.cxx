@@ -59,8 +59,8 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, const Symmet
 
 template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, const SymmetryBlockedTensor<T>& A,
-                                                const vector<vector<int> >& start_A,
-                                                const vector<vector<int> >& len_A)
+                                                const vector<vector<int>>& start_A,
+                                                const vector<vector<int>>& len_A)
 : IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(name, A.ndim, 0), Distributed(A.arena),
   group(A.group), rep(A.rep), len(len_A), sym(A.sym)
 {
@@ -71,7 +71,7 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, const Symmet
 
 template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, const Arena& arena, const PointGroup& group,
-                                                int ndim, const vector<vector<int> >& len,
+                                                int ndim, const vector<vector<int>>& len,
                                                 const vector<int>& sym, bool zero)
 : IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(name, ndim, 0), Distributed(arena),
   group(group), rep(group.totallySymmetricIrrep()), len(len), sym(sym)
@@ -85,7 +85,7 @@ SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, const Arena&
 
 template <class T>
 SymmetryBlockedTensor<T>::SymmetryBlockedTensor(const string& name, const Arena& arena, const PointGroup& group,
-                                                const Representation& rep, int ndim, const vector<vector<int> >& len,
+                                                const Representation& rep, int ndim, const vector<vector<int>>& len,
                                                 const vector<int>& sym, bool zero)
 : IndexableCompositeTensor<SymmetryBlockedTensor<T>,CTFTensor<T>,T>(name, ndim, 0), Distributed(arena),
   group(group), rep(rep), len(len), sym(sym)
@@ -294,36 +294,36 @@ bool SymmetryBlockedTensor<T>::exists(const vector<int>& irreps) const
 
 template <class T>
 void SymmetryBlockedTensor<T>::slice(T alpha, bool conja, const SymmetryBlockedTensor<T>& A,
-                                     const vector<vector<int> >& start_A, T beta)
+                                     const vector<vector<int>>& start_A, T beta)
 {
     int n = group.getNumIrreps();
-    slice(alpha, conja, A, start_A, beta, vector<vector<int> >(this->ndim,vector<int>(n,0)), len);
+    slice(alpha, conja, A, start_A, beta, vector<vector<int>>(this->ndim,vector<int>(n,0)), len);
 }
 
 template <class T>
 void SymmetryBlockedTensor<T>::slice(T alpha, bool conja, const SymmetryBlockedTensor<T>& A,
-                                     T beta, const vector<vector<int> >& start_B)
+                                     T beta, const vector<vector<int>>& start_B)
 {
     int n = group.getNumIrreps();
-    vector<vector<int> > len_B = len;
+    vector<vector<int>> len_B = len;
     for (int i = 0;i < this->ndim;i++)
         for (int j = 0;j < n;j++)
             len_B[i][j] -= start_B[i][j];
-    slice(alpha, conja, A, vector<vector<int> >(A.ndim,vector<int>(n,0)), beta, start_B, len_B);
+    slice(alpha, conja, A, vector<vector<int>>(A.ndim,vector<int>(n,0)), beta, start_B, len_B);
 }
 
 template <class T>
 void SymmetryBlockedTensor<T>::slice(T alpha, bool conja, const SymmetryBlockedTensor<T>& A,
-                                                          const vector<vector<int> >& start_A,
-                                     T  beta,             const vector<vector<int> >& start_B,
-                                                          const vector<vector<int> >& len)
+                                                          const vector<vector<int>>& start_A,
+                                     T  beta,             const vector<vector<int>>& start_B,
+                                                          const vector<vector<int>>& len)
 {
     assert(this->ndim == A.ndim);
 
     int n = group.getNumIrreps();
 
-    vector<vector<int> > end_A(ndim);
-    vector<vector<int> > end_B(ndim);
+    vector<vector<int>> end_A(ndim);
+    vector<vector<int>> end_B(ndim);
 
     for (int i = 0;i < ndim;i++)
     {
@@ -836,7 +836,7 @@ T SymmetryBlockedTensor<T>::dot(bool conja, const SymmetryBlockedTensor<T>& A, c
 }
 
 template <class T>
-void SymmetryBlockedTensor<T>::weight(const vector<const vector<vector<T> >*>& d,
+void SymmetryBlockedTensor<T>::weight(const vector<const vector<vector<T>>*>& d,
                                       double shift)
 {
     int n = group.getNumIrreps();
@@ -877,9 +877,9 @@ void SymmetryBlockedTensor<T>::weight(const vector<const vector<vector<T> >*>& d
 }
 
 template <class T>
-typename real_type<T>::type SymmetryBlockedTensor<T>::norm(int p) const
+real_type_t<T> SymmetryBlockedTensor<T>::norm(int p) const
 {
-    typename real_type<T>::type nrm = 0;
+    real_type_t<T> nrm = 0;
 
     int n = group.getNumIrreps();
 
@@ -912,7 +912,7 @@ typename real_type<T>::type SymmetryBlockedTensor<T>::norm(int p) const
                 i = j;
             }
 
-            typename real_type<T>::type subnrm = tensors[off_A].tensor->norm(p);
+            real_type_t<T> subnrm = tensors[off_A].tensor->norm(p);
 
             if (p == 2)
             {
@@ -954,7 +954,7 @@ typename real_type<T>::type SymmetryBlockedTensor<T>::norm(int p) const
 }
 
 template<class T>
-map<const tCTF_World<T>*,map<const PointGroup*,pair<int,SymmetryBlockedTensor<T>*> > > SymmetryBlockedTensor<T>::scalars;
+map<const tCTF_World<T>*,map<const PointGroup*,pair<int,SymmetryBlockedTensor<T>*>>> SymmetryBlockedTensor<T>::scalars;
 
 template <typename T>
 void SymmetryBlockedTensor<T>::register_scalar()

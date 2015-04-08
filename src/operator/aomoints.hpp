@@ -53,7 +53,7 @@ class AOMOIntegrals : public MOIntegrals<T>
              *
              * C is ldc*nc if trans = 'N' and ldc*[na|nb] if trans = 'T'
              */
-            pqrs_integrals transform(Index index, const vector<int>& nc, const vector<vector<T> >& C, bool pleq);
+            pqrs_integrals transform(Index index, const vector<int>& nc, const vector<vector<T>>& C, bool pleq);
 
             void transcribe(tensor::SymmetryBlockedTensor<T>& tensor, bool assymij, bool assymkl, Side swap);
 
@@ -81,7 +81,7 @@ class AOMOIntegrals : public MOIntegrals<T>
              *
              * C is ldc*nc if trans = 'N' and ldc*[na|nb] if trans = 'T'
              */
-            abrs_integrals transform(Index index, const vector<int>& nc, const vector<vector<T> >& C);
+            abrs_integrals transform(Index index, const vector<int>& nc, const vector<vector<T>>& C);
 
             void transcribe(tensor::SymmetryBlockedTensor<T>& tensor, bool assymij, bool assymkl, Side swap);
 

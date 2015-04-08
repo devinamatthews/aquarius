@@ -181,8 +181,8 @@ class OperatorProduct : public Operator
                 const Term& term;
                 const Side side;
 
-                vector< vector<Line> > pindices;
-                vector< vector<Line> > hindices;
+                vector<vector<Line>> pindices;
+                vector<vector<Line>> hindices;
                 vector<int> which_bin_p;
                 vector<int> which_bin_h;
                 vector<int> how_many_p;

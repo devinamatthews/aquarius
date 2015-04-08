@@ -26,7 +26,7 @@ Multipole<T>::Multipole(const string& name, const UHF<T>& uhf, int Lmin_, int Lm
     int xyztot = 0;
     for (int L = Lmin;L <= Lmax;L++)
     {
-        vector< vector< tkv_pair<T> > > pairs;
+        vector<vector<tkv_pair<T>>> pairs;
 
         int ij = 0;
         for (Molecule::const_shell_iterator i = m.getShellsBegin();i != m.getShellsEnd();++i)

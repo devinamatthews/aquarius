@@ -26,23 +26,18 @@ PerturbedLambdaCCSD<U>::PerturbedLambdaCCSD(const string& name, Config& config)
 template <typename U>
 bool PerturbedLambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const PerturbedSTTwoElectronOperator<U>& A = this->template get<PerturbedSTTwoElectronOperator<U> >("A");
-    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
+    const auto& A = this->template get<PerturbedSTTwoElectronOperator<U>>("A");
+    const auto& H = this->template get<STTwoElectronOperator         <U>>("Hbar");
 
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    this->put   ("LA", new DeexcitationOperator<U,2>("L^A", arena, occ, vrt));
-    this->puttmp( "D", new DeexcitationOperator<U,2>("D", arena, occ, vrt));
-    this->puttmp( "N", new DeexcitationOperator<U,2>("N", arena, occ, vrt));
-    this->puttmp( "Z", new DeexcitationOperator<U,2>("Z", arena, occ, vrt));
+    auto& LA = this->put   ("LA", new DeexcitationOperator<U,2>("L^A", arena, occ, vrt));
+    auto& D  = this->puttmp( "D", new DeexcitationOperator<U,2>(  "D", arena, occ, vrt));
+    auto& N  = this->puttmp( "N", new DeexcitationOperator<U,2>(  "N", arena, occ, vrt));
+    auto& Z  = this->puttmp( "Z", new DeexcitationOperator<U,2>(  "Z", arena, occ, vrt));
 
     U omega = this->template get<U>("omega");
-
-    DeexcitationOperator<U,2>&  L = this->template get   <DeexcitationOperator<U,2> >( "L");
-    DeexcitationOperator<U,2>& LA = this->template get   <DeexcitationOperator<U,2> >("LA");
-    DeexcitationOperator<U,2>&  D = this->template gettmp<DeexcitationOperator<U,2> >( "D");
-    DeexcitationOperator<U,2>&  N = this->template gettmp<DeexcitationOperator<U,2> >( "N");
 
     D(0) = (U)1.0;
     D(1)["ia"]  = H.getIJ()["ii"];
@@ -72,12 +67,12 @@ bool PerturbedLambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
 template <typename U>
 void PerturbedLambdaCCSD<U>::iterate(const Arena& arena)
 {
-    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
+    const auto& H = this->template get<STTwoElectronOperator<U>>("Hbar");
 
-    DeexcitationOperator<U,2>& LA = this->template get   <DeexcitationOperator<U,2> >("LA");
-    DeexcitationOperator<U,2>&  D = this->template gettmp<DeexcitationOperator<U,2> >( "D");
-    DeexcitationOperator<U,2>&  N = this->template gettmp<DeexcitationOperator<U,2> >( "N");
-    DeexcitationOperator<U,2>&  Z = this->template gettmp<DeexcitationOperator<U,2> >( "Z");
+    auto& LA = this->template get   <DeexcitationOperator<U,2>>("LA");
+    auto& D  = this->template gettmp<DeexcitationOperator<U,2>>( "D");
+    auto& N  = this->template gettmp<DeexcitationOperator<U,2>>( "N");
+    auto& Z  = this->template gettmp<DeexcitationOperator<U,2>>( "Z");
 
     Z = N;
     //TODO: H.contract(LA, Z);

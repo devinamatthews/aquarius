@@ -47,18 +47,18 @@ bool UHF<T>::run(TaskDAG& dag, const Arena& arena)
     int nbeta = molecule.getNumBetaElectrons();
 
     vector<int> shapeNN = {NS,NS};
-    vector<vector<int> > sizenn = {norb,norb};
+    vector<vector<int>> sizenn = {norb,norb};
 
     this->put("Fa", new SymmetryBlockedTensor<T>("Fa", arena, group, 2, sizenn, shapeNN, false));
     this->put("Fb", new SymmetryBlockedTensor<T>("Fb", arena, group, 2, sizenn, shapeNN, false));
     this->put("Da", new SymmetryBlockedTensor<T>("Da", arena, group, 2, sizenn, shapeNN, true));
     this->put("Db", new SymmetryBlockedTensor<T>("Db", arena, group, 2, sizenn, shapeNN, true));
 
-    this->puttmp("dF", new SymmetryBlockedTensor<T>("dF", arena, group, 2, sizenn, shapeNN, false));
-    this->puttmp("Ca", new SymmetryBlockedTensor<T>("Ca", arena, group, 2, sizenn, shapeNN, false));
-    this->puttmp("Cb", new SymmetryBlockedTensor<T>("Cb", arena, group, 2, sizenn, shapeNN, false));
-    this->puttmp("dDa", new SymmetryBlockedTensor<T>("dDa", arena, group, 2, sizenn, shapeNN, false));
-    this->puttmp("dDb", new SymmetryBlockedTensor<T>("dDb", arena, group, 2, sizenn, shapeNN, false));
+    this->puttmp("dF",     new SymmetryBlockedTensor<T>("dF",     arena, group, 2, sizenn, shapeNN, false));
+    this->puttmp("Ca",     new SymmetryBlockedTensor<T>("Ca",     arena, group, 2, sizenn, shapeNN, false));
+    this->puttmp("Cb",     new SymmetryBlockedTensor<T>("Cb",     arena, group, 2, sizenn, shapeNN, false));
+    this->puttmp("dDa",    new SymmetryBlockedTensor<T>("dDa",    arena, group, 2, sizenn, shapeNN, false));
+    this->puttmp("dDb",    new SymmetryBlockedTensor<T>("dDb",    arena, group, 2, sizenn, shapeNN, false));
     this->puttmp("S^-1/2", new SymmetryBlockedTensor<T>("S^-1/2", arena, group, 2, sizenn, shapeNN, false));
 
     occ_alpha.resize(group.getNumIrreps());
@@ -106,8 +106,8 @@ bool UHF<T>::run(TaskDAG& dag, const Arena& arena)
     if (nfrozen > nalpha || nfrozen > nbeta)
         Logger::error(arena) << "There are not enough valence electrons for this multiplicity" << endl;
 
-    vector<pair<typename real_type<T>::type,int> > E_alpha_occ;
-    vector<pair<typename real_type<T>::type,int> > E_beta_occ;
+    vector<pair<real_type_t<T>,int>> E_alpha_occ;
+    vector<pair<real_type_t<T>,int>> E_beta_occ;
     for (int i = 0;i < group.getNumIrreps();i++)
     {
         for (int j = 0;j < occ_alpha[i];j++)
@@ -165,17 +165,13 @@ bool UHF<T>::run(TaskDAG& dag, const Arena& arena)
                                                              {norb,vrt_beta})));
 
     vector<int> shapeN{NS};
-    vector<vector<int> > sizena{norb};
-    vector<vector<int> > sizenb{norb};
+    vector<vector<int>> sizena{norb};
+    vector<vector<int>> sizenb{norb};
     for (int i = 0;i < group.getNumIrreps();i++) sizena[0][i] -= nfrozen_alpha[i];
     for (int i = 0;i < group.getNumIrreps();i++) sizenb[0][i] -= nfrozen_beta[i];
 
-    this->put("Ea", new vector<vector<typename real_type<T>::type> >(group.getNumIrreps()));
-    this->put("Eb", new vector<vector<typename real_type<T>::type> >(group.getNumIrreps()));
-    vector<vector<typename real_type<T>::type> >& Ea =
-        this->template get<vector<vector<typename real_type<T>::type> > >("Ea");
-    vector<vector<typename real_type<T>::type> >& Eb =
-        this->template get<vector<vector<typename real_type<T>::type> > >("Eb");
+    auto& Ea = this->put("Ea", new vector<vector<real_type_t<T>>>(group.getNumIrreps()));
+    auto& Eb = this->put("Eb", new vector<vector<real_type_t<T>>>(group.getNumIrreps()));
 
     for (int i = 0;i < group.getNumIrreps();i++)
     {
@@ -207,8 +203,8 @@ void UHF<T>::iterate(const Arena& arena)
     calcEnergy();
     diagonalizeFock();
 
-    vector<pair<typename real_type<T>::type,int> > E_alpha_sorted;
-    vector<pair<typename real_type<T>::type,int> > E_beta_sorted;
+    vector<pair<real_type_t<T>,int>> E_alpha_sorted;
+    vector<pair<real_type_t<T>,int>> E_beta_sorted;
     for (int i = 0;i < molecule.getGroup().getNumIrreps();i++)
     {
         occ_alpha[i] = 0;
@@ -239,8 +235,8 @@ void UHF<T>::iterate(const Arena& arena)
 
     calcDensity();
 
-    SymmetryBlockedTensor<T>& dDa = this->template gettmp<SymmetryBlockedTensor<T> >("dDa");
-    SymmetryBlockedTensor<T>& dDb = this->template gettmp<SymmetryBlockedTensor<T> >("dDb");
+    auto& dDa = this->template gettmp<SymmetryBlockedTensor<T>>("dDa");
+    auto& dDb = this->template gettmp<SymmetryBlockedTensor<T>>("dDb");
 
     switch (this->convtype)
     {
@@ -259,19 +255,19 @@ void UHF<T>::iterate(const Arena& arena)
 template <typename T>
 void UHF<T>::calcS2()
 {
-    const Molecule& molecule = this->template get<Molecule>("molecule");
+    const auto& molecule = this->template get<Molecule>("molecule");
     const PointGroup& group = molecule.getGroup();
 
     const vector<int>& norb = molecule.getNumOrbitals();
     int nalpha = molecule.getNumAlphaElectrons();
     int nbeta = molecule.getNumBetaElectrons();
 
-    SymmetryBlockedTensor<T>& S = this->template get<SymmetryBlockedTensor<T> >("S");
+    auto& S = this->template get<SymmetryBlockedTensor<T>>("S");
 
     vector<int> zero(norb.size(), 0);
-    SymmetryBlockedTensor<T> Ca_occ("CI", this->template gettmp<SymmetryBlockedTensor<T> >("Ca"),
+    SymmetryBlockedTensor<T> Ca_occ("CI", this->template gettmp<SymmetryBlockedTensor<T>>("Ca"),
                                     {zero,zero}, {norb,occ_alpha});
-    SymmetryBlockedTensor<T> Cb_occ("Ci", this->template gettmp<SymmetryBlockedTensor<T> >("Cb"),
+    SymmetryBlockedTensor<T> Cb_occ("Ci", this->template gettmp<SymmetryBlockedTensor<T>>("Cb"),
                                     {zero,zero}, {norb,occ_beta});
 
     SymmetryBlockedTensor<T> Delta("Delta", S.arena, group, 2, {{nalpha},{nbeta}}, {NS,NS}, false);
@@ -296,11 +292,11 @@ void UHF<T>::calcEnergy()
 {
     const Molecule& molecule = this->template get<Molecule>("molecule");
 
-    SymmetryBlockedTensor<T>& H = this->template get<SymmetryBlockedTensor<T> >("H");
-    SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
-    SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
-    SymmetryBlockedTensor<T>& Da = this->template get<SymmetryBlockedTensor<T> >("Da");
-    SymmetryBlockedTensor<T>& Db = this->template get<SymmetryBlockedTensor<T> >("Db");
+    auto& H  = this->template get<SymmetryBlockedTensor<T>>("H");
+    auto& Fa = this->template get<SymmetryBlockedTensor<T>>("Fa");
+    auto& Fb = this->template get<SymmetryBlockedTensor<T>>("Fb");
+    auto& Da = this->template get<SymmetryBlockedTensor<T>>("Da");
+    auto& Db = this->template get<SymmetryBlockedTensor<T>>("Db");
 
     /*
      * E = (1/2)Tr[D(F+H)]
@@ -325,15 +321,15 @@ void UHF<T>::calcDensity()
     int nalpha = molecule.getNumAlphaElectrons();
     int nbeta = molecule.getNumBetaElectrons();
 
-    SymmetryBlockedTensor<T>& dDa = this->template gettmp<SymmetryBlockedTensor<T> >("dDa");
-    SymmetryBlockedTensor<T>& dDb = this->template gettmp<SymmetryBlockedTensor<T> >("dDb");
-    SymmetryBlockedTensor<T>& Da = this->template get<SymmetryBlockedTensor<T> >("Da");
-    SymmetryBlockedTensor<T>& Db = this->template get<SymmetryBlockedTensor<T> >("Db");
+    auto& dDa = this->template gettmp<SymmetryBlockedTensor<T>>("dDa");
+    auto& dDb = this->template gettmp<SymmetryBlockedTensor<T>>("dDb");
+    auto& Da  = this->template get   <SymmetryBlockedTensor<T>>("Da");
+    auto& Db  = this->template get   <SymmetryBlockedTensor<T>>("Db");
 
     vector<int> zero(norb.size(), 0);
-    SymmetryBlockedTensor<T> Ca_occ("CI", this->template gettmp<SymmetryBlockedTensor<T> >("Ca"),
+    SymmetryBlockedTensor<T> Ca_occ("CI", this->template gettmp<SymmetryBlockedTensor<T>>("Ca"),
                                     {zero,zero}, {norb,occ_alpha});
-    SymmetryBlockedTensor<T> Cb_occ("Ci", this->template gettmp<SymmetryBlockedTensor<T> >("Cb"),
+    SymmetryBlockedTensor<T> Cb_occ("Ci", this->template gettmp<SymmetryBlockedTensor<T>>("Cb"),
                                     {zero,zero}, {norb,occ_beta});
 
     /*
@@ -350,13 +346,13 @@ void UHF<T>::calcDensity()
 template <typename T>
 void UHF<T>::DIISExtrap()
 {
-    SymmetryBlockedTensor<T>& S = this->template get<SymmetryBlockedTensor<T> >("S");
-    SymmetryBlockedTensor<T>& Smhalf = this->template gettmp<SymmetryBlockedTensor<T> >("S^-1/2");
-    SymmetryBlockedTensor<T>& dF = this->template gettmp<SymmetryBlockedTensor<T> >("dF");
-    SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
-    SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
-    SymmetryBlockedTensor<T>& Da = this->template get<SymmetryBlockedTensor<T> >("Da");
-    SymmetryBlockedTensor<T>& Db = this->template get<SymmetryBlockedTensor<T> >("Db");
+    auto& S      = this->template get   <SymmetryBlockedTensor<T>>("S");
+    auto& Smhalf = this->template gettmp<SymmetryBlockedTensor<T>>("S^-1/2");
+    auto& dF     = this->template gettmp<SymmetryBlockedTensor<T>>("dF");
+    auto& Fa     = this->template get   <SymmetryBlockedTensor<T>>("Fa");
+    auto& Fb     = this->template get   <SymmetryBlockedTensor<T>>("Fb");
+    auto& Da     = this->template get   <SymmetryBlockedTensor<T>>("Da");
+    auto& Db     = this->template get   <SymmetryBlockedTensor<T>>("Db");
 
     /*
      * Generate the residual:

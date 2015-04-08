@@ -22,16 +22,15 @@ CholeskyMOIntegrals<T>::CholeskyMOIntegrals(const string& name, Config& config)
 template <typename T>
 bool CholeskyMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
 {
-    const MOSpace<T>& occ = this->template get<MOSpace<T> >("occ");
-    const MOSpace<T>& vrt = this->template get<MOSpace<T> >("vrt");
+    const auto& occ = this->template get<MOSpace<T>>("occ");
+    const auto& vrt = this->template get<MOSpace<T>>("vrt");
 
-    const SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
-    const SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
+    const auto& Fa = this->template get<SymmetryBlockedTensor<T>>("Fa");
+    const auto& Fb = this->template get<SymmetryBlockedTensor<T>>("Fb");
 
-    this->put("H", new TwoElectronOperator<T>("V", OneElectronOperator<T>("f", occ, vrt, Fa, Fb)));
-    TwoElectronOperator<T>& H = this->template get<TwoElectronOperator<T> >("H");
+    auto& H = this->put("H", new TwoElectronOperator<T>("V", OneElectronOperator<T>("f", occ, vrt, Fa, Fb)));
 
-    const CholeskyIntegrals<T>& chol = this->template get<CholeskyIntegrals<T> >("cholesky");
+    const auto& chol = this->template get<CholeskyIntegrals<T>>("cholesky");
 
     const SymmetryBlockedTensor<T>& cA = vrt.Calpha;
     const SymmetryBlockedTensor<T>& ca = vrt.Cbeta;
@@ -49,12 +48,12 @@ bool CholeskyMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     const vector<int>& na = vrt.nbeta;
     int R = chol.getRank();
 
-    vector<vector<int> > sizeIIR = {nI, nI, {R}};
-    vector<vector<int> > sizeiiR = {ni, ni, {R}};
-    vector<vector<int> > sizeAAR = {nA, nA, {R}};
-    vector<vector<int> > sizeaaR = {na, na, {R}};
-    vector<vector<int> > sizeAIR = {nA, nI, {R}};
-    vector<vector<int> > sizeaiR = {na, ni, {R}};
+    vector<vector<int>> sizeIIR = {nI, nI, {R}};
+    vector<vector<int>> sizeiiR = {ni, ni, {R}};
+    vector<vector<int>> sizeAAR = {nA, nA, {R}};
+    vector<vector<int>> sizeaaR = {na, na, {R}};
+    vector<vector<int>> sizeAIR = {nA, nI, {R}};
+    vector<vector<int>> sizeaiR = {na, ni, {R}};
 
     vector<int> shapeNNN = {NS, NS, NS};
 
@@ -66,10 +65,10 @@ bool CholeskyMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     SymmetryBlockedTensor<T> Lai("Lai", arena, group, 3, sizeaiR, shapeNNN, false);
 
     {
-        vector<vector<int> > sizeNIR = {N, nI, {R}};
-        vector<vector<int> > sizeNiR = {N, ni, {R}};
-        vector<vector<int> > sizeNAR = {N, nA, {R}};
-        vector<vector<int> > sizeNaR = {N, na, {R}};
+        vector<vector<int>> sizeNIR = {N, nI, {R}};
+        vector<vector<int>> sizeNiR = {N, ni, {R}};
+        vector<vector<int>> sizeNAR = {N, nA, {R}};
+        vector<vector<int>> sizeNaR = {N, na, {R}};
 
         SymmetryBlockedTensor<T> LpI("LpI", arena, group, 3, sizeNIR, shapeNNN, false);
         SymmetryBlockedTensor<T> Lpi("Lpi", arena, group, 3, sizeNiR, shapeNNN, false);

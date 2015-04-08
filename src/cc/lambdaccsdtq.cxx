@@ -27,7 +27,7 @@ LambdaCCSDTQ<U>::LambdaCCSDTQ(const string& name, Config& config)
 template <typename U>
 bool LambdaCCSDTQ<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
+    const auto& H = this->template get<STTwoElectronOperator<U>>("Hbar");
 
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
@@ -54,10 +54,10 @@ bool LambdaCCSDTQ<U>::run(TaskDAG& dag, const Arena& arena)
     this->puttmp("GIJKABL", new SpinorbitalTensor   <U  >("G(ijk,abl)", arena, group, {vrt,occ}, {0,3}, {2,1}));
     this->puttmp("GIJKALM", new SpinorbitalTensor   <U  >("G(ijk,alm)", arena, group, {vrt,occ}, {0,3}, {1,2}));
 
-    ExcitationOperator  <U,4>& T = this->template get   <ExcitationOperator  <U,4>>("T");
-    DeexcitationOperator<U,4>& L = this->template get   <DeexcitationOperator<U,4>>("L");
-    DeexcitationOperator<U,4>& Z = this->template gettmp<DeexcitationOperator<U,4>>("Z");
-    Denominator         <U  >& D = this->template gettmp<Denominator         <U  >>("D");
+    auto& T = this->template get   <ExcitationOperator  <U,4>>("T");
+    auto& L = this->template get   <DeexcitationOperator<U,4>>("L");
+    auto& Z = this->template gettmp<DeexcitationOperator<U,4>>("Z");
+    auto& D = this->template gettmp<Denominator         <U  >>("D");
 
     Z(0) = 0;
     L(0) = 1;
@@ -74,10 +74,10 @@ bool LambdaCCSDTQ<U>::run(TaskDAG& dag, const Arena& arena)
     const SpinorbitalTensor<U>& WMNEJ = H.getIJAK();
     const SpinorbitalTensor<U>& WAMEI = H.getAIBJ();
 
-    SpinorbitalTensor<U>& WABCEJK = this->template gettmp<SpinorbitalTensor<U>>("WABCEJK");
-    SpinorbitalTensor<U>& WABMIJK = this->template gettmp<SpinorbitalTensor<U>>("WABMIJK");
-    SpinorbitalTensor<U>& WAMNIJK = this->template gettmp<SpinorbitalTensor<U>>("WAMNIJK");
-    SpinorbitalTensor<U>& WABMEJI = this->template gettmp<SpinorbitalTensor<U>>("WABMEJI");
+    auto& WABCEJK = this->template gettmp<SpinorbitalTensor<U>>("WABCEJK");
+    auto& WABMIJK = this->template gettmp<SpinorbitalTensor<U>>("WABMIJK");
+    auto& WAMNIJK = this->template gettmp<SpinorbitalTensor<U>>("WAMNIJK");
+    auto& WABMEJI = this->template gettmp<SpinorbitalTensor<U>>("WABMEJI");
 
     WABCEJK["abcejk"]  =              -FME[  "me"]*T(3)[  "abcmjk"];
     WABCEJK["abcejk"] -=             WAMEI["amej"]*T(2)[    "bcmk"];
@@ -111,7 +111,7 @@ bool LambdaCCSDTQ<U>::run(TaskDAG& dag, const Arena& arena)
 template <typename U>
 void LambdaCCSDTQ<U>::iterate(const Arena& arena)
 {
-    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
+    const auto& H = this->template get<STTwoElectronOperator<U>>("Hbar");
 
     const SpinorbitalTensor<U>&   FME =   H.getIA();
     const SpinorbitalTensor<U>&   FAE =   H.getAB();
@@ -125,28 +125,28 @@ void LambdaCCSDTQ<U>::iterate(const Arena& arena)
     const SpinorbitalTensor<U>& WAMIJ = H.getAIJK();
     const SpinorbitalTensor<U>& WAMEI = H.getAIBJ();
 
-    ExcitationOperator  <U,4>& T = this->template get   <ExcitationOperator  <U,4>>("T");
-    DeexcitationOperator<U,4>& L = this->template get   <DeexcitationOperator<U,4>>("L");
-    Denominator         <U  >& D = this->template gettmp<Denominator         <U  >>("D");
-    DeexcitationOperator<U,4>& Z = this->template gettmp<DeexcitationOperator<U,4>>("Z");
+    auto& T = this->template get   <ExcitationOperator  <U,4>>("T");
+    auto& L = this->template get   <DeexcitationOperator<U,4>>("L");
+    auto& D = this->template gettmp<Denominator         <U  >>("D");
+    auto& Z = this->template gettmp<DeexcitationOperator<U,4>>("Z");
 
-    SpinorbitalTensor<U>&     DIJ = this->template gettmp<SpinorbitalTensor<U>>(    "DIJ");
-    SpinorbitalTensor<U>&     DAB = this->template gettmp<SpinorbitalTensor<U>>(    "DAB");
-    SpinorbitalTensor<U>&     DAI = this->template gettmp<SpinorbitalTensor<U>>(    "DAI");
-    SpinorbitalTensor<U>&   GABCD = this->template gettmp<SpinorbitalTensor<U>>(  "GABCD");
-    SpinorbitalTensor<U>&   GAIBJ = this->template gettmp<SpinorbitalTensor<U>>(  "GAIBJ");
-    SpinorbitalTensor<U>&   GIJKL = this->template gettmp<SpinorbitalTensor<U>>(  "GIJKL");
-    SpinorbitalTensor<U>&   GAIBC = this->template gettmp<SpinorbitalTensor<U>>(  "GAIBC");
-    SpinorbitalTensor<U>&   GIJAK = this->template gettmp<SpinorbitalTensor<U>>(  "GIJAK");
-    SpinorbitalTensor<U>&   GABCI = this->template gettmp<SpinorbitalTensor<U>>(  "GABCI");
-    SpinorbitalTensor<U>&   GAIJK = this->template gettmp<SpinorbitalTensor<U>>(  "GAIJK");
-    SpinorbitalTensor<U>& WABCEJK = this->template gettmp<SpinorbitalTensor<U>>("WABCEJK");
-    SpinorbitalTensor<U>& WABMIJK = this->template gettmp<SpinorbitalTensor<U>>("WABMIJK");
-    SpinorbitalTensor<U>& WAMNIJK = this->template gettmp<SpinorbitalTensor<U>>("WAMNIJK");
-    SpinorbitalTensor<U>& WABMEJI = this->template gettmp<SpinorbitalTensor<U>>("WABMEJI");
-    SpinorbitalTensor<U>& GAIJBCD = this->template gettmp<SpinorbitalTensor<U>>("GAIJBCD");
-    SpinorbitalTensor<U>& GIJKABL = this->template gettmp<SpinorbitalTensor<U>>("GIJKABL");
-    SpinorbitalTensor<U>& GIJKALM = this->template gettmp<SpinorbitalTensor<U>>("GIJKALM");
+    auto&     DIJ = this->template gettmp<SpinorbitalTensor<U>>(    "DIJ");
+    auto&     DAB = this->template gettmp<SpinorbitalTensor<U>>(    "DAB");
+    auto&     DAI = this->template gettmp<SpinorbitalTensor<U>>(    "DAI");
+    auto&   GABCD = this->template gettmp<SpinorbitalTensor<U>>(  "GABCD");
+    auto&   GAIBJ = this->template gettmp<SpinorbitalTensor<U>>(  "GAIBJ");
+    auto&   GIJKL = this->template gettmp<SpinorbitalTensor<U>>(  "GIJKL");
+    auto&   GAIBC = this->template gettmp<SpinorbitalTensor<U>>(  "GAIBC");
+    auto&   GIJAK = this->template gettmp<SpinorbitalTensor<U>>(  "GIJAK");
+    auto&   GABCI = this->template gettmp<SpinorbitalTensor<U>>(  "GABCI");
+    auto&   GAIJK = this->template gettmp<SpinorbitalTensor<U>>(  "GAIJK");
+    auto& WABCEJK = this->template gettmp<SpinorbitalTensor<U>>("WABCEJK");
+    auto& WABMIJK = this->template gettmp<SpinorbitalTensor<U>>("WABMIJK");
+    auto& WAMNIJK = this->template gettmp<SpinorbitalTensor<U>>("WAMNIJK");
+    auto& WABMEJI = this->template gettmp<SpinorbitalTensor<U>>("WABMEJI");
+    auto& GAIJBCD = this->template gettmp<SpinorbitalTensor<U>>("GAIJBCD");
+    auto& GIJKABL = this->template gettmp<SpinorbitalTensor<U>>("GIJKABL");
+    auto& GIJKALM = this->template gettmp<SpinorbitalTensor<U>>("GIJKALM");
 
     /***************************************************************************
      *

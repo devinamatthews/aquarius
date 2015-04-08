@@ -155,7 +155,7 @@ int Fragment::canonicalize(const Diagram::Type type)
     }
     else
     {
-        vector< pair<Line,Line> > particles;
+        vector<pair<Line,Line>> particles;
         for (int i = 0;i < out.size();i++) particles.push_back(make_pair(out[i], in[i]));
         sort(particles.begin(), particles.end(),
              [](const pair<Line,Line>& p1, const pair<Line,Line>& p2) { return p1.first < p2.first; });

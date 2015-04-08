@@ -125,7 +125,7 @@ static int conv_idx(const vector<int>& cidx_A, string& iidx_A,
 }
 
 template<class T>
-map<const tCTF_World<T>*,map<const PointGroup*,pair<int,SpinorbitalTensor<T>*> > > SpinorbitalTensor<T>::scalars;
+map<const tCTF_World<T>*,map<const PointGroup*,pair<int,SpinorbitalTensor<T>*>>> SpinorbitalTensor<T>::scalars;
 
 template<class T>
 SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const SpinorbitalTensor<T>& t, const T val)
@@ -389,7 +389,7 @@ void SpinorbitalTensor<T>::SpinCase::construct(SpinorbitalTensor<T>& t,
                                                const vector<int>& alpha_out,
                                                const vector<int>& alpha_in)
 {
-    vector<vector<int> > len(t.ndim);
+    vector<vector<int>> len(t.ndim);
     vector<int> sym(t.ndim, AS);
 
     this->alpha_out = alpha_out;
@@ -636,7 +636,7 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
 
         for (int s = 0;s < max(max(A.spaces.size(),B.spaces.size()),spaces.size());s++)
         {
-            vector<vector<Line> > assym(3);
+            vector<vector<Line>> assym(3);
 
             for (vector<Line>::iterator i = lines_AandC_out.begin();i != lines_AandC_out.end();++i)
                 if (i->getType() == s) assym[0].push_back(*i);
@@ -653,7 +653,7 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
 
         for (int s = 0;s < max(max(A.spaces.size(),B.spaces.size()),spaces.size());s++)
         {
-            vector<vector<Line> > assym(3);
+            vector<vector<Line>> assym(3);
 
             for (vector<Line>::iterator i = lines_AandC_in.begin();i != lines_AandC_in.end();++i)
                 if (i->getType() == s) assym[0].push_back(*i);
@@ -902,7 +902,7 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
 
         for (int s = 0;s < max(A.spaces.size(),spaces.size());s++)
         {
-            vector<vector<Line> > assym(2);
+            vector<vector<Line>> assym(2);
 
             for (vector<Line>::iterator i = lines_AandB_out.begin();i != lines_AandB_out.end();++i)
                 if (i->getType() == s) assym[0].push_back(*i);
@@ -914,7 +914,7 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
 
         for (int s = 0;s < max(A.spaces.size(),spaces.size());s++)
         {
-            vector<vector<Line> > assym(3);
+            vector<vector<Line>> assym(2);
 
             for (vector<Line>::iterator i = lines_AandB_in.begin();i != lines_AandB_in.end();++i)
                 if (i->getType() == s) assym[0].push_back(*i);
@@ -1028,11 +1028,11 @@ void SpinorbitalTensor<T>::scale(const T alpha, const string& idx_A)
 }
 
 template<class T>
-void SpinorbitalTensor<T>::weight(const vector<const vector<vector<T> >*>& da,
-                                  const vector<const vector<vector<T> >*>& db,
+void SpinorbitalTensor<T>::weight(const vector<const vector<vector<T>>*>& da,
+                                  const vector<const vector<vector<T>>*>& db,
                                   double shift)
 {
-    vector<const vector<vector<T> >*> d(this->ndim);
+    vector<const vector<vector<T>>*> d(this->ndim);
 
     for (typename vector<SpinCase>::iterator sc = cases.begin();sc != cases.end();++sc)
     {
@@ -1067,9 +1067,9 @@ T SpinorbitalTensor<T>::dot(bool conja, const SpinorbitalTensor<T>& A, const str
 }
 
 template<class T>
-typename real_type<T>::type SpinorbitalTensor<T>::norm(int p) const
+real_type_t<T> SpinorbitalTensor<T>::norm(int p) const
 {
-    typename real_type<T>::type nrm = 0;
+    real_type_t<T> nrm = 0;
 
     for (typename vector<SpinCase>::const_iterator sc = cases.begin();sc != cases.end();++sc)
     {
@@ -1080,7 +1080,7 @@ typename real_type<T>::type SpinorbitalTensor<T>::norm(int p) const
             factor *= binom( nin[s],  sc->alpha_in[s]);
         }
 
-        typename real_type<T>::type subnrm = sc->tensor->norm(p);
+        real_type_t<T> subnrm = sc->tensor->norm(p);
 
         if (p == 2)
         {

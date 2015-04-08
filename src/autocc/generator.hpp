@@ -56,8 +56,8 @@ class BasicManifoldGenerator : public ManifoldGenerator
 
     private:
         const BasicOperator& op;
-        vector< pair<Manifold,Manifold> > choices;
-        vector< pair<Manifold,Manifold> >::iterator it;
+        vector<pair<Manifold,Manifold>> choices;
+        vector<pair<Manifold,Manifold>>::iterator it;
         BasicManifoldGenerator(BasicManifoldGenerator& other);
         BasicManifoldGenerator& operator=(BasicManifoldGenerator& other);
 

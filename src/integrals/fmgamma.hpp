@@ -28,7 +28,17 @@ class Fm
     public:
         Fm()
         {
-            if (!inited) calcTable();
+            while (!inited)
+            {
+                #pragma omp critical
+                {
+                    if (!inited)
+                    {
+                        calcTable();
+                        inited = true;
+                    }
+                }
+            }
         }
 
         static void calcTable();

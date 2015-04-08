@@ -57,7 +57,7 @@ void CholeskyIntegrals<T>::test()
 
                     DenseTensor<T> local_ints("tmp", 4, {ni,nj,nk,nl});
 
-                    vector<tkv_pair<T> > pairs(ni*nj*nk*nl);
+                    vector<tkv_pair<T>> pairs(ni*nj*nk*nl);
 
                     for (int a = 0, q = 0;a < ni;a++)
                     {
@@ -249,7 +249,7 @@ void CholeskyIntegrals<T>::decompose()
 
     if (arena.rank == 0)
     {
-        vector<tkv_pair<T> > pairs(nvec);
+        vector<tkv_pair<T>> pairs(nvec);
         for (int i = 0;i < nvec;i++)
         {
             pairs[i].k = i;
@@ -262,9 +262,9 @@ void CholeskyIntegrals<T>::decompose()
         (*this->D)(0).writeRemoteData();
     }
 
-    vector<vector<int> > idx = Shell::setupIndices(ctx, molecule);
+    vector<vector<int>> idx = Shell::setupIndices(ctx, molecule);
 
-    vector< tkv_pair<T> > pairs;
+    vector<tkv_pair<T>> pairs;
     for (int block = 0;block < nblock_local;block++)
     {
         int i = diag[block_start[block]].shelli;

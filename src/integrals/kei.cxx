@@ -91,14 +91,14 @@ void IshidaKEI::prim(const vec3& posa, int e,
 
     matrix<double> integral((lb+1)*(lb+2)/2, (la+1)*(la+2)/2, integrals);
 
-    for (int bx = 0;bx <= lb;bx++)
+    for (int bx = lb;bx >= 0;bx--)
     {
-        for (int by = 0;by <= lb-bx;by++)
+        for (int by = lb-bx;by >= 0;by--)
         {
             int bz = lb-bx-by;
-            for (int ax = 0;ax <= la;ax++)
+            for (int ax = la;ax >= 0;ax--)
             {
-                for (int ay = 0;ay <= la-ax;ay++)
+                for (int ay = la-ax;ay >= 0;ay--)
                 {
                     int az = la-ax-ay;
                     integral[XYZ(bx,by,bz)][XYZ(ax,ay,az)] =

@@ -84,7 +84,7 @@ Diagram::Diagram(const Type type, const vector<string>& strings)
             int oldbar = lp;
             if (lp == string::npos) throw logic_error("malformed antisymmetrizer: " + *s);
 
-            vector< vector<Line> > assym;
+            vector<vector<Line>> assym;
             for (int bar;(bar = s->find('|', oldbar+1)) != string::npos;oldbar = bar)
             {
                 assym.push_back(Line::parse(s->substr(oldbar+1, bar-oldbar-1)));
@@ -401,7 +401,7 @@ Diagram& Diagram::symmetrize()
     return *this;
 }
 
-Diagram& Diagram::antisymmetrize(const vector< vector<Line> >& assym)
+Diagram& Diagram::antisymmetrize(const vector<vector<Line>>& assym)
 {
     vector<Term> terms;
     terms.swap(this->terms);

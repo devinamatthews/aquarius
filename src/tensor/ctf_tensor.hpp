@@ -21,7 +21,7 @@ class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public Distributed
         tCTF_Tensor<T>* dt;
         vector<int> len;
         vector<int> sym;
-        static map<const tCTF_World<T>*,pair<int,CTFTensor<T>*> > scalars;
+        static map<const tCTF_World<T>*,pair<int,CTFTensor<T>*>> scalars;
 
         void allocate();
 
@@ -192,9 +192,9 @@ class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public Distributed
             {
                 getAllData(0);
             }
-            this->arena.Bcast(&npair, 1, 0);
+            this->arena.comm().Bcast(&npair, 1, 0);
             if (this->arena.rank != 0) vals.resize(npair);
-            this->arena.Bcast(vals, 0);
+            this->arena.comm().Bcast(vals, 0);
         }
 
         template <typename Container>
@@ -211,7 +211,7 @@ class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public Distributed
                 }
             }
 
-            vector<tkv_pair<T> > pairs;
+            vector<tkv_pair<T>> pairs;
             vector<int> idx(ndim, 0);
 
             first_packed_indices(ndim, len.data(), sym.data(), idx.data());
@@ -267,7 +267,7 @@ class CTFTensor : public IndexableTensor< CTFTensor<T>,T >, public Distributed
 
         void compare(FILE* fp, const CTFTensor<T>& other, double cutoff = 0.0) const;
 
-        typename real_type<T>::type norm(int p) const;
+        real_type_t<T> norm(int p) const;
 
         void mult(T alpha, bool conja, const CTFTensor<T>& A, const string& idx_A,
                            bool conjb, const CTFTensor<T>& B, const string& idx_B,

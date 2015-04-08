@@ -60,14 +60,14 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,S
 
         void scale(const T alpha, const string& idx_A);
 
-        void weight(const vector<const vector<vector<T> >*>& da,
-                    const vector<const vector<vector<T> >*>& db,
+        void weight(const vector<const vector<vector<T>>*>& da,
+                    const vector<const vector<vector<T>>*>& db,
                     double shift = 0);
 
         T dot(bool conja, const SpinorbitalTensor<T>& A, const string& idx_A,
               bool conjb,                                const string& idx_B) const;
 
-        typename real_type<T>::type norm(int p) const;
+        real_type_t<T> norm(int p) const;
 
     protected:
         struct SpinCase
@@ -86,7 +86,7 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,S
         vector<int> nout, nin;
         int spin;
         vector<SpinCase> cases;
-        static map<const tCTF_World<T>*,map<const symmetry::PointGroup*,pair<int,SpinorbitalTensor<T>*> > > scalars;
+        static map<const tCTF_World<T>*,map<const symmetry::PointGroup*,pair<int,SpinorbitalTensor<T>*>>> scalars;
 
         void register_scalar();
 

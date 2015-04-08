@@ -26,7 +26,7 @@ LambdaCCSD<U>::LambdaCCSD(const string& name, Config& config)
 template <typename U>
 bool LambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
+    const auto& H = this->template get<STTwoElectronOperator<U>>("Hbar");
 
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
@@ -37,10 +37,10 @@ bool LambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
     this->puttmp("GIM", new SpinorbitalTensor   <U  >("G(im)", H.getIJ()));
     this->puttmp("GEA", new SpinorbitalTensor   <U  >("G(ea)", H.getAB()));
 
-    ExcitationOperator  <U,2>& T = this->template get   <ExcitationOperator  <U,2>>("T");
-    DeexcitationOperator<U,2>& L = this->template get   <DeexcitationOperator<U,2>>("L");
-    DeexcitationOperator<U,2>& Z = this->template gettmp<DeexcitationOperator<U,2>>("Z");
-    Denominator         <U  >& D = this->template gettmp<Denominator         <U  >>("D");
+    auto& T = this->template get   <ExcitationOperator  <U,2>>("T");
+    auto& L = this->template get   <DeexcitationOperator<U,2>>("L");
+    auto& Z = this->template gettmp<DeexcitationOperator<U,2>>("Z");
+    auto& D = this->template gettmp<Denominator         <U  >>("D");
 
     Z(0) = 0;
     L(0) = 1;
@@ -58,7 +58,7 @@ bool LambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
 template <typename U>
 void LambdaCCSD<U>::iterate(const Arena& arena)
 {
-    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
+    const auto& H = this->template get<STTwoElectronOperator<U>>("Hbar");
 
     const SpinorbitalTensor<U>&   FME =   H.getIA();
     const SpinorbitalTensor<U>&   FAE =   H.getAB();
@@ -72,13 +72,13 @@ void LambdaCCSD<U>::iterate(const Arena& arena)
     const SpinorbitalTensor<U>& WAMIJ = H.getAIJK();
     const SpinorbitalTensor<U>& WAMEI = H.getAIBJ();
 
-    ExcitationOperator  <U,2>& T = this->template get   <ExcitationOperator  <U,2>>("T");
-    DeexcitationOperator<U,2>& L = this->template get   <DeexcitationOperator<U,2>>("L");
-    Denominator         <U  >& D = this->template gettmp<Denominator         <U  >>("D");
-    DeexcitationOperator<U,2>& Z = this->template gettmp<DeexcitationOperator<U,2>>("Z");
+    auto& T = this->template get   <ExcitationOperator  <U,2>>("T");
+    auto& L = this->template get   <DeexcitationOperator<U,2>>("L");
+    auto& D = this->template gettmp<Denominator         <U  >>("D");
+    auto& Z = this->template gettmp<DeexcitationOperator<U,2>>("Z");
 
-    SpinorbitalTensor<U>& GIM = this->template gettmp<SpinorbitalTensor<U>>("GIM");
-    SpinorbitalTensor<U>& GEA = this->template gettmp<SpinorbitalTensor<U>>("GEA");
+    auto& GIM = this->template gettmp<SpinorbitalTensor<U>>("GIM");
+    auto& GEA = this->template gettmp<SpinorbitalTensor<U>>("GEA");
 
     /***************************************************************************
      *

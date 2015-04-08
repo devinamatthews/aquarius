@@ -108,7 +108,7 @@ class Term
 
         Diagram symmetrize() const;
 
-        Diagram antisymmetrize(const vector< vector<Line> >& assym) const;
+        Diagram antisymmetrize(const vector<vector<Line>>& assym) const;
 
         void canonicalize();
 };

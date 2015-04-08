@@ -9,7 +9,21 @@
 #include "element.hpp"
 #include "context.hpp"
 
-#define XYZ(x,y,z) ((x)*((x)+1)/2 + (x)*(1+(y)+(z)) + (y))
+/**
+ * Compute the index of a function in cartesian angular momentum in the order:
+ *
+ * xxx, xxy, xxz, xyy, xyz, xzz, yyy, yyz, yzz, zzz
+ */
+#define FUNC_CART(x,y,z) ((((y)+(z))*((y)+(z)+1))/2 + (z))
+#define XYZ(x,y,z) FUNC_CART(x,y,z)
+
+/**
+ * Compute the index of a function in spherical harmonic angular momentum.
+ *
+ * Regular spherical harmonics are referenced by n=l, l>=m>=-l. Contaminants may also be referenced by
+ * n>l>=0, n-l even.
+ */
+#define FUNC_SPHER(n,l,m) ((((n)-(l))*((n)+(l)-1))/2 + 2*(n) + ((m) > 0 ? -2*(m) : 2*(m)+1))
 
 namespace aquarius
 {
@@ -35,19 +49,19 @@ class Shell
         vector<int> nfunc_per_irrep;
         bool spherical;
         bool keep_contaminants;
-        vector<vector<int> > func_irrep;
-        vector<vector<int> > irrep_pos;
-        vector<vector<int> > irreps;
+        vector<vector<int>> func_irrep;
+        vector<vector<int>> irrep_pos;
+        vector<vector<int>> irreps;
         vector<double> exponents;
         vector<double> coefficients;
-        vector<vector<int> > parity;
+        vector<vector<int>> parity;
         vector<double> cart2spher;
 
     public:
         Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bool keep_contaminants,
               const vector<double>& exponents, const vector<double>& coefficients);
 
-        static vector<vector<int> > setupIndices(const Context& ctx, const input::Molecule& m);
+        static vector<vector<int>> setupIndices(const Context& ctx, const input::Molecule& m);
 
         int getIndex(const Context& ctx, vector<int> idx, int func, int contr, int degen) const;
 

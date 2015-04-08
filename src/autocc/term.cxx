@@ -388,8 +388,8 @@ Diagram Term::expanduhf() const
     {
         Fragment f(*it);
 
-        vector< vector<Line> > alpha;
-        vector< vector<Line> > beta;
+        vector<vector<Line>> alpha;
+        vector<vector<Line>> beta;
         for (int i = 0;i < f.out.size();i++) f.out[i].toBeta();
         for (int i = 0;i < f.in.size();i++)
         {
@@ -455,7 +455,7 @@ Diagram Term::expandrhf() const
         Diagram choice(type, vector<Term>(1, Term(type, Fraction(1,1), vector<Fragment>(1, f))));
         for (int i = 0;i < f1.size();i++)
         {
-            vector< vector<Line> > assym;
+            vector<vector<Line>> assym;
             assym.push_back(slice(f1, i, i+1));
             assym.push_back(slice(f1, i+1) + f2);
             //cout << "assym: " << assym[0] << "|" << assym[1] << endl;
@@ -486,9 +486,9 @@ Diagram Term::doexpand(const Term& term, vector<Diagram>::iterator first, vector
 Diagram Term::symmetrize() const
 {
     vector<Line> _external = external();
-    vector< vector<Line> > particles;
-    vector< vector<Line> > alpha;
-    vector< vector<Line> > beta;
+    vector<vector<Line>> particles;
+    vector<vector<Line>> alpha;
+    vector<vector<Line>> beta;
 
     /*
      * Attempt to trace each external line to another external line.
@@ -569,9 +569,9 @@ Diagram Term::symmetrize() const
     return diagram.translate(alphas, betas);
 }
 
-Diagram Term::antisymmetrize(const vector< vector<Line> >& _assym) const
+Diagram Term::antisymmetrize(const vector<vector<Line>>& _assym) const
 {
-    vector< vector<Line> > assym(_assym);
+    vector<vector<Line>> assym(_assym);
     Diagram diagram(type, vector<Term>(1, *this));
 
     for (int k = assym.size()-1;k > 0;k--)

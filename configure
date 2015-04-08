@@ -625,6 +625,10 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+HAVE_LIBINT2_FALSE
+HAVE_LIBINT2_TRUE
+libint2_INCLUDES
+libint2_LIBS
 HAVE_ELEMENTAL_FALSE
 HAVE_ELEMENTAL_TRUE
 elemental_INCLUDES
@@ -754,6 +758,7 @@ with_lapack
 with_ctf
 with_elemental
 with_elemental_libs
+with_libint2
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1411,6 +1416,8 @@ Optional Packages:
                           library.
   --with-elemental-libs=<lib>
                           Specify the libraries to link to use Elemental.
+  --with-libint2=<dir>    Enable the use of the libint2 atomic integral
+                          library.
 
 Some influential environment variables:
   MPICC       MPI C compiler command
@@ -7631,7 +7638,7 @@ if test x"$with_elemental" != xno; then
     CPPFLAGS=$CXXFLAGS
 
     if test x"$with_elemental" != xyes; then
-        LDFLAGS+=" -L$with_elemental/lib"
+        LDFLAGS+=" -L$with_elemental/lib -L$with_elemental/lib64"
         CPPFLAGS+=" -I$with_elemental/include"
     fi
 
@@ -8092,12 +8099,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_El_ElInitialize" >&5
 $as_echo "$ac_cv_lib_El_ElInitialize" >&6; }
 if test "x$ac_cv_lib_El_ElInitialize" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBEL 1
-_ACEOF
-
-  LIBS="-lEl $LIBS"
-
+  true
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -8112,7 +8114,7 @@ fi
     have_elemental=yes
 
     if test x"$with_elemental" != xyes; then
-        elemental_LIBS="-L$with_elemental/lib $elemental_libs"
+        elemental_LIBS="-L$with_elemental/lib -L$with_elemental/lib64 $elemental_libs"
 
         elemental_INCLUDES="-I$with_elemental/include"
 
@@ -8134,6 +8136,125 @@ fi
 else
   HAVE_ELEMENTAL_TRUE='#'
   HAVE_ELEMENTAL_FALSE=
+fi
+
+
+#
+# Check for libint2
+#
+
+# Check whether --with-libint2 was given.
+if test "${with_libint2+set}" = set; then :
+  withval=$with_libint2;
+else
+  with_libint2=no
+fi
+
+
+if test x"$with_libint2" != xno; then
+    LDFLAGS_SAVE=$LDFLAGS
+    CPPFLAGS_SAVE=$CPPFLAGS
+    LDFLAGS=
+    CPPFLAGS=$CXXFLAGS
+
+    if test x"$with_libint2" != xyes; then
+        LDFLAGS+=" -L$with_libint2/lib -L$with_libint2/lib64"
+        CPPFLAGS+=" -I$with_libint2/include -I$with_libint2/include/libint2"
+    fi
+
+    ac_fn_cxx_check_header_mongrel "$LINENO" "libint2.h" "ac_cv_header_libint2_h" "$ac_includes_default"
+if test "x$ac_cv_header_libint2_h" = xyes; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "libint2 requested, but could not find libint2.h.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for libint2_static_init in -lint2" >&5
+$as_echo_n "checking for libint2_static_init in -lint2... " >&6; }
+if ${ac_cv_lib_int2_libint2_static_init+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lint2  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char libint2_static_init ();
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+int
+main ()
+{
+return libint2_static_init ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_int2_libint2_static_init=yes
+else
+  ac_cv_lib_int2_libint2_static_init=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_int2_libint2_static_init" >&5
+$as_echo "$ac_cv_lib_int2_libint2_static_init" >&6; }
+if test "x$ac_cv_lib_int2_libint2_static_init" = xyes; then :
+  true
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "libint2 requested, but could not find -lint2.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+
+    LDFLAGS=$LDFLAGS_SAVE
+    CPPFLAGS=$CPPFLAGS_SAVE
+
+    have_libint2=yes
+
+    if test x"$with_libint2" != xyes; then
+        libint2_LIBS="-L$with_libint2/lib -L$with_libint2/lib64 -lint2"
+
+        libint2_INCLUDES="-I$with_libint2/include -I$with_libint2/include/libint2"
+
+    else
+        libint2_LIBS="-lint2"
+
+
+    fi
+fi
+
+if test x"$have_libint2" = xyes; then :
+
+$as_echo "#define HAVE_LIBINT2 1" >>confdefs.h
+
+fi
+ if test x"$have_libint2" = xyes; then
+  HAVE_LIBINT2_TRUE=
+  HAVE_LIBINT2_FALSE='#'
+else
+  HAVE_LIBINT2_TRUE='#'
+  HAVE_LIBINT2_FALSE=
 fi
 
 
@@ -8281,6 +8402,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_ELEMENTAL_TRUE}" && test -z "${HAVE_ELEMENTAL_FALSE}"; then
   as_fn_error $? "conditional \"HAVE_ELEMENTAL\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${HAVE_LIBINT2_TRUE}" && test -z "${HAVE_LIBINT2_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_LIBINT2\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 

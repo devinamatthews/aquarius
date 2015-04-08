@@ -6,7 +6,7 @@ namespace tensor
 {
 
 template <typename T>
-map<const tCTF_World<T>*,pair<int,CTFTensor<T>*> > CTFTensor<T>::scalars;
+map<const tCTF_World<T>*,pair<int,CTFTensor<T>*>> CTFTensor<T>::scalars;
 
 /*
  * Create a scalar (0-dimensional tensor)
@@ -400,7 +400,7 @@ void CTFTensor<T>::compare(FILE* fp, const CTFTensor<T>& other, double cutoff) c
 }
 
 template <typename T>
-typename real_type<T>::type CTFTensor<T>::norm(int p) const
+real_type_t<T> CTFTensor<T>::norm(int p) const
 {
     T ans = (T)0;
     if (p == 00)
@@ -433,7 +433,7 @@ template <typename T>
 void CTFTensor<T>::sum(T alpha, T beta)
 {
     CTFTensor<T>& s = scalar();
-    if (arena.rank == 0) s.writeRemoteData(vector<tkv_pair<T> >(1, tkv_pair<T>(0, alpha)));
+    if (arena.rank == 0) s.writeRemoteData(vector<tkv_pair<T>>(1, tkv_pair<T>(0, alpha)));
     else s.writeRemoteData();
     beta*(*this) += s;
 }
@@ -473,7 +473,7 @@ void CTFTensor<T>::weight(const vector<const vector<T>*>& d, double shift)
     assert(d.size() == this->ndim);
     for (int i = 0;i < d.size();i++) assert(d[i]->size() == len[i]);
 
-    vector<tkv_pair<T> > pairs;
+    vector<tkv_pair<T>> pairs;
     getLocalData(pairs);
 
     for (int i = 0;i < pairs.size();i++)

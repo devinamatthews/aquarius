@@ -9,14 +9,14 @@ namespace aquarius
 {
 
 template <typename T>
-typename enable_if<is_integral<T>::value,T>::type
+enable_if_t<is_integral<T>::value,T>
 roundup(T x, T y)
 {
     return ((x+y-1)/y)*y;
 }
 
 template <typename T>
-typename enable_if<is_integral<T>::value,T>::type
+enable_if_t<is_integral<T>::value,T>
 binom(T a, T b)
 {
     T i, j;
@@ -33,14 +33,14 @@ binom(T a, T b)
 }
 
 template <typename T>
-typename enable_if<is_integral<T>::value,T>::type
+enable_if_t<is_integral<T>::value,T>
 binomial(T a, T b)
 {
     return binom(a, b);
 }
 
 template <typename T>
-typename enable_if<is_integral<T>::value,T>::type
+enable_if_t<is_integral<T>::value,T>
 fact(T n)
 {
     T i, j;
@@ -56,14 +56,14 @@ fact(T n)
 }
 
 template <typename T>
-typename enable_if<is_integral<T>::value,T>::type
+enable_if_t<is_integral<T>::value,T>
 factorial(T n)
 {
     return fact(n);
 }
 
 template <typename T>
-typename enable_if<is_integral<T>::value,T>::type
+enable_if_t<is_integral<T>::value,T>
 dfact(T n)
 {
     T i, j;

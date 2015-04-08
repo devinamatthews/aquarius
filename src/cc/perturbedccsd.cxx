@@ -26,26 +26,22 @@ PerturbedCCSD<U>::PerturbedCCSD(const string& name, Config& config)
 template <typename U>
 bool PerturbedCCSD<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const OneElectronOperator<U>& A = this->template get<OneElectronOperator<U> >("A");
-    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
+    const auto& A = this->template get<OneElectronOperator  <U>>("A");
+    const auto& H = this->template get<STTwoElectronOperator<U>>("Hbar");
 
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    ExcitationOperator<U,2>& T = this->template get<ExcitationOperator<U,2> >("T");
+    auto& T = this->template get<ExcitationOperator<U,2>>("T");
 
-    this->put   ("TA", new ExcitationOperator<U,2>("T^A", arena, occ, vrt));
-    //TODO: this->puttmp( "X", new STExcitationOperator<U,2>("X", A, T));
-    this->puttmp( "Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
-    this->puttmp( "D", new Denominator<U>(H));
+    auto& TA = this->put   ("TA", new ExcitationOperator  <U,2>("T^A", arena, occ, vrt));
+    //auto& X  = this->puttmp( "X", new STExcitationOperator<U,2>("X", A, T));
+    auto& Z  = this->puttmp( "Z", new ExcitationOperator  <U,2>("Z", arena, occ, vrt));
+    auto& D  = this->puttmp( "D", new Denominator         <U  >(H));
 
     omega = this->template get<U>("omega");
 
-    ExcitationOperator<U,2>& TA = this->template get   <ExcitationOperator<U,2> >  ("TA");
-    Denominator<U>&           D = this->template gettmp<Denominator<U> >           ( "D");
-    ExcitationOperator<U,2>&  X = this->template gettmp<ExcitationOperator<U,2> >( "X");
-
-    X(0) = 0;
+    //X(0) = 0;
     TA.weight(D, omega);
 
     return true;
@@ -54,12 +50,12 @@ bool PerturbedCCSD<U>::run(TaskDAG& dag, const Arena& arena)
 template <typename U>
 void PerturbedCCSD<U>::iterate(const Arena& arena)
 {
-    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
+    const auto& H = this->template get<STTwoElectronOperator<U>>("Hbar");
 
-    ExcitationOperator<U,2>& TA = this->template get   <ExcitationOperator<U,2> >("TA");
-    Denominator<U>&           D = this->template gettmp<Denominator<U> >         ( "D");
-    ExcitationOperator<U,2>&  X = this->template gettmp<ExcitationOperator<U,2> >( "X");
-    ExcitationOperator<U,2>&  Z = this->template gettmp<ExcitationOperator<U,2> >( "Z");
+    auto& TA = this->template get   <ExcitationOperator<U,2>>("TA");
+    auto& D  = this->template gettmp<Denominator       <U  >>( "D");
+    auto& X  = this->template gettmp<ExcitationOperator<U,2>>( "X");
+    auto& Z  = this->template gettmp<ExcitationOperator<U,2>>( "Z");
 
     Z = X;
     //TODO: H.contract(TA, Z);

@@ -103,8 +103,8 @@ class PointGroup
         const char **irrep_names;
         const int *generators;
         const double *generator_reps;
-        vector<vector<double> > characters;
-        vector<vector<vector<double> > > reps;
+        vector<vector<double>> characters;
+        vector<vector<vector<double>>> reps;
         const int *irrep_degen;
         const mat3x3 *ops;
         const char **op_names;

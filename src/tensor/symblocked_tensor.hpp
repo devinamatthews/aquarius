@@ -25,11 +25,11 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
     protected:
         const symmetry::PointGroup& group;
         symmetry::Representation rep;
-        vector< vector<int> > len;
+        vector<vector<int>> len;
         vector<int> sym;
         vector<double> factor;
-        vector<vector<int> > reorder;
-        static map<const tCTF_World<T>*,map<const symmetry::PointGroup*,pair<int,SymmetryBlockedTensor<T>*> > > scalars;
+        vector<vector<int>> reorder;
+        static map<const tCTF_World<T>*,map<const symmetry::PointGroup*,pair<int,SymmetryBlockedTensor<T>*>>> scalars;
 
         static vector<int> getStrides(const string& indices, int ndim,
                                       int len, const string& idx_A);
@@ -58,22 +58,22 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
         SymmetryBlockedTensor(const string& name, const SymmetryBlockedTensor<T>& other, T scalar);
 
         SymmetryBlockedTensor(const string& name, const SymmetryBlockedTensor<T>& A,
-                              const vector<vector<int> >& start_A,
-                              const vector<vector<int> >& len_A);
+                              const vector<vector<int>>& start_A,
+                              const vector<vector<int>>& len_A);
 
         SymmetryBlockedTensor(const string& name, const Arena& arena, const symmetry::PointGroup& group,
-                              int ndim, const vector<vector<int> >& len,
+                              int ndim, const vector<vector<int>>& len,
                               const vector<int>& sym, bool zero=true);
 
         SymmetryBlockedTensor(const string& name, const Arena& arena, const symmetry::PointGroup& group,
-                              const symmetry::Representation& rep, int ndim, const vector<vector<int> >& len,
+                              const symmetry::Representation& rep, int ndim, const vector<vector<int>>& len,
                               const vector<int>& sym, bool zero=true);
 
         ~SymmetryBlockedTensor();
 
         const symmetry::PointGroup& getGroup() const { return group; }
 
-        const vector<vector<int> >& getLengths() const { return len; }
+        const vector<vector<int>>& getLengths() const { return len; }
 
         const vector<int>& getSymmetry() const { return sym; }
 
@@ -146,15 +146,15 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
         }
 
         void slice(T alpha, bool conja, const SymmetryBlockedTensor<T>& A,
-                   const vector<vector<int> >& start_A, T beta);
+                   const vector<vector<int>>& start_A, T beta);
 
         void slice(T alpha, bool conja, const SymmetryBlockedTensor<T>& A,
-                   T beta, const vector<vector<int> >& start_B);
+                   T beta, const vector<vector<int>>& start_B);
 
         void slice(T alpha, bool conja, const SymmetryBlockedTensor<T>& A,
-                                        const vector<vector<int> >& start_A,
-                   T  beta,             const vector<vector<int> >& start_B,
-                                        const vector<vector<int> >& len);
+                                        const vector<vector<int>>& start_A,
+                   T  beta,             const vector<vector<int>>& start_B,
+                                        const vector<vector<int>>& len);
 
         virtual void mult(T alpha, bool conja, const SymmetryBlockedTensor<T>& A, const string& idx_A,
                                    bool conjb, const SymmetryBlockedTensor<T>& B, const string& idx_B,
@@ -168,10 +168,10 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
         virtual T dot(bool conja, const SymmetryBlockedTensor<T>& A, const string& idx_A,
                       bool conjb,                                    const string& idx_B) const;
 
-        void weight(const vector<const vector<vector<T> >*>& d,
+        void weight(const vector<const vector<vector<T>>*>& d,
                     double shift = 0);
 
-        typename real_type<T>::type norm(int p) const;
+        real_type_t<T> norm(int p) const;
 };
 
 }

@@ -45,7 +45,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     this->puttmp("XMI", new SpinorbitalTensor<U>("X(mi)", H.getIJ()));
     this->puttmp("XAE", new SpinorbitalTensor<U>("X(ae)", H.getAB()));
 
-    vector<tuple<U,int,int,int> > tda_sorted;
+    vector<tuple<U,int,int,int>> tda_sorted;
 
     int tot_singlet = 0;
     int tot_triplet = 0;
@@ -135,7 +135,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
             }
 
             auto& davidson = this->puttmp("Davidson",
-                new Davidson<ExcitationOperator<U,2> >(davidson_config, (int)root_idx[i].size()));
+                new Davidson<ExcitationOperator<U,2>>(davidson_config, (int)root_idx[i].size()));
 
             Iterative<U>::run(dag, arena, root_idx[i].size());
 
@@ -165,7 +165,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                 R(2) = 0;
 
                 auto& davidson = this->puttmp("Davidson",
-                    new Davidson<ExcitationOperator<U,2> >(davidson_config));
+                    new Davidson<ExcitationOperator<U,2>>(davidson_config));
 
                 Iterative<U>::run(dag, arena);
 
@@ -189,7 +189,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 template <typename U>
 void EOMEECCSD<U>::iterate(const Arena& arena)
 {
-    auto& H = this->template get<STTwoElectronOperator<U> >("Hbar");
+    const auto& H = this->template get<STTwoElectronOperator<U>>("Hbar");
 
     const SpinorbitalTensor<U>&   FME =   H.getIA();
     const SpinorbitalTensor<U>&   FAE =   H.getAB();
@@ -203,12 +203,12 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     const SpinorbitalTensor<U>& WAMIJ = H.getAIJK();
     const SpinorbitalTensor<U>& WAMEI = H.getAIBJ();
 
-    auto& T = this->template get<ExcitationOperator<U,2> >("T");
+    auto& T = this->template get<ExcitationOperator<U,2>>("T");
 
-    auto& XMI = this->template gettmp<SpinorbitalTensor<U> >("XMI");
-    auto& XAE = this->template gettmp<SpinorbitalTensor<U> >("XAE");
+    auto& XMI = this->template gettmp<SpinorbitalTensor<U>>("XMI");
+    auto& XAE = this->template gettmp<SpinorbitalTensor<U>>("XAE");
 
-    auto& D = this->template gettmp<Denominator<U> >("D");
+    auto& D = this->template gettmp<Denominator<U>>("D");
     auto& davidson = this->template gettmp<Davidson<ExcitationOperator<U,2>>>("Davidson");
 
     auto& Rs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("R");

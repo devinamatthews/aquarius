@@ -42,7 +42,7 @@ bool CFOUROneElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
     int batchsize = 600;
     vector<double> ints(batchsize);
     vector<int64_t> idxs(batchsize);
-    vector<tkv_pair<double> > pairs;
+    vector<tkv_pair<double>> pairs;
 
     OVI *ovi = new OVI(arena, molecule.getGroup(), N);
     KEI *kei = new KEI(arena, molecule.getGroup(), N);

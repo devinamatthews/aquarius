@@ -63,16 +63,16 @@ class OneElectronOperatorBase : public MOOperator,
             const vector<int>& nA = vrt.nalpha;
             const vector<int>& na = vrt.nbeta;
 
-            vector<vector<int> > sizeAA = {nA, nA};
-            vector<vector<int> > sizeaa = {na, na};
-            vector<vector<int> > sizeAI = {nA, nI};
-            vector<vector<int> > sizeai = {na, ni};
-            vector<vector<int> > sizeII = {nI, nI};
-            vector<vector<int> > sizeii = {ni, ni};
-            vector<vector<int> > sizeAN = {nA, N};
-            vector<vector<int> > sizeaN = {na, N};
-            vector<vector<int> > sizeIN = {nI, N};
-            vector<vector<int> > sizeiN = {ni, N};
+            vector<vector<int>> sizeAA = {nA, nA};
+            vector<vector<int>> sizeaa = {na, na};
+            vector<vector<int>> sizeAI = {nA, nI};
+            vector<vector<int>> sizeai = {na, ni};
+            vector<vector<int>> sizeII = {nI, nI};
+            vector<vector<int>> sizeii = {ni, ni};
+            vector<vector<int>> sizeAN = {nA, N};
+            vector<vector<int>> sizeaN = {na, N};
+            vector<vector<int>> sizeIN = {nI, N};
+            vector<vector<int>> sizeiN = {ni, N};
 
             vector<int> shapeNN = {NS, NS};
 
@@ -149,34 +149,34 @@ class OneElectronOperatorBase : public MOOperator,
 };
 
 template <typename T>
-class OneElectronOperator : public OneElectronOperatorBase<T,OneElectronOperator<T> >
+class OneElectronOperator : public OneElectronOperatorBase<T,OneElectronOperator<T>>
 {
     public:
         OneElectronOperator(const string& name, const Arena& arena, const Space& occ, const Space& vrt)
-        : OneElectronOperatorBase<T,OneElectronOperator<T> >(name, arena, occ, vrt) {}
+        : OneElectronOperatorBase<T,OneElectronOperator<T>>(name, arena, occ, vrt) {}
 
         OneElectronOperator(const string& name, const MOSpace<T>& occ, const MOSpace<T>& vrt,
                             const tensor::SymmetryBlockedTensor<T>& aoa,
                             const tensor::SymmetryBlockedTensor<T>& aob)
-        : OneElectronOperatorBase<T,OneElectronOperator<T> >(name, occ, vrt, aoa, aob) {}
+        : OneElectronOperatorBase<T,OneElectronOperator<T>>(name, occ, vrt, aoa, aob) {}
 
         template <typename Derived>
         OneElectronOperator(const string& name, OneElectronOperatorBase<T,Derived>& other, int copy)
-        : OneElectronOperatorBase<T,OneElectronOperator<T> >(name, other, copy) {}
+        : OneElectronOperatorBase<T,OneElectronOperator<T>>(name, other, copy) {}
 
         template <typename Derived>
         OneElectronOperator(const OneElectronOperatorBase<T,Derived>& other)
-        : OneElectronOperatorBase<T,OneElectronOperator<T> >(other) {}
+        : OneElectronOperatorBase<T,OneElectronOperator<T>>(other) {}
 
         template <typename Derived>
         OneElectronOperator(const string& name, const OneElectronOperatorBase<T,Derived>& other)
-        : OneElectronOperatorBase<T,OneElectronOperator<T> >(name, other) {}
+        : OneElectronOperatorBase<T,OneElectronOperator<T>>(name, other) {}
 
         OneElectronOperator(const OneElectronOperator<T>& other)
-        : OneElectronOperatorBase<T,OneElectronOperator<T> >(other) {}
+        : OneElectronOperatorBase<T,OneElectronOperator<T>>(other) {}
 
         OneElectronOperator(const string& name, const OneElectronOperator<T>& other)
-        : OneElectronOperatorBase<T,OneElectronOperator<T> >(name, other) {}
+        : OneElectronOperatorBase<T,OneElectronOperator<T>>(name, other) {}
 };
 
 }

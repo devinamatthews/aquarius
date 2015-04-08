@@ -43,7 +43,7 @@ class Davidson : public task::Destructible
         vector<dtype> target;
         vector<dtype> previous;
         vector<int> root;
-        vector<typename complex_type<dtype>::type> l;
+        vector<complex_type_t<dtype>> l;
         marray<dtype,3> vr;
 
         enum {GUESS_OVERLAP, LOWEST_ENERGY, CLOSEST_ENERGY};

@@ -116,13 +116,7 @@ void SparseAOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
 {
     PROFILE_FUNCTION
 
-    static Datatype IDX4_T_TYPE;
-
-    if (IDX4_T_TYPE == MPI_DATATYPE_NULL)
-    {
-        MPI_Type_contiguous(4, MPI_TYPE_<uint16_t>::value(), IDX4_T_TYPE);
-        MPI_Type_commit(IDX4_T_TYPE);
-    }
+    Datatype IDX4_T_TYPE = MPI_TYPE_<uint16_t>::value()*4;
 
     size_t nrs;
     vector<size_t> rscount;
@@ -143,7 +137,7 @@ void SparseAOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
     }
 
     PROFILE_SECTION(collect_comm)
-    this->arena.Alltoall(sendcount, recvcount);
+    this->arena.comm().Alltoall(const_cast<const vector<MPI_Int>&>(sendcount), recvcount);
     PROFILE_STOP
 
     vector<T> oldints(ints.begin(), ints.end());
@@ -156,8 +150,8 @@ void SparseAOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
     vector<idx4_t> newidxs(nnewints);
 
     PROFILE_SECTION(collect_comm)
-    this->arena.Alltoall(oldints, sendcount, newints, recvcount);
-    this->arena.Alltoall(oldidxs, sendcount, newidxs, recvcount, IDX4_T_TYPE);
+    this->arena.comm().Alltoall(oldints, sendcount, newints, recvcount);
+    this->arena.comm().Alltoall(oldidxs, sendcount, newidxs, recvcount, IDX4_T_TYPE);
     PROFILE_STOP
 
     oldints.clear(); oldints.shrink_to_fit();
@@ -176,7 +170,8 @@ void SparseAOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
 
 template <typename T>
 typename SparseAOMOIntegrals<T>::pqrs_integrals
-SparseAOMOIntegrals<T>::pqrs_integrals::transform(Index index, const vector<int>& nc, const vector<vector<T> >& C, bool pleq)
+SparseAOMOIntegrals<T>::pqrs_integrals::transform(Index index, const vector<int>& nc,
+                                                  const vector<vector<T>>& C, bool pleq)
 {
     pqrs_integrals out(arena, group);
 
@@ -476,10 +471,10 @@ bool SparseAOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
 {
     CTF_Timer_epoch ep("SparseAOMOIntegrals");
     ep.begin();
-    const MOSpace<T>& occ = this->template get<MOSpace<T> >("occ");
-    const MOSpace<T>& vrt = this->template get<MOSpace<T> >("vrt");
+    const auto& occ = this->template get<MOSpace<T>>("occ");
+    const auto& vrt = this->template get<MOSpace<T>>("vrt");
 
-    const ERI& ints = this->template get<ERI>("I");
+    const auto& ints = this->template get<ERI>("I");
 
     const SymmetryBlockedTensor<T>& cA_ = vrt.Calpha;
     const SymmetryBlockedTensor<T>& ca_ = vrt.Cbeta;
@@ -498,17 +493,14 @@ bool SparseAOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     vector<int> nA_{sum(nA)}; nA_ += vector<int>(n-1,0);
     vector<int> na_{sum(na)}; na_ += vector<int>(n-1,0);
 
-    vector<vector<typename real_type<T>::type> >& Ea =
-        this->template get<vector<vector<typename real_type<T>::type> > >("Ea");
-    vector<vector<typename real_type<T>::type> >& Eb =
-        this->template get<vector<vector<typename real_type<T>::type> > >("Eb");
+    auto& Ea = this->template get<vector<vector<real_type_t<T>>>>("Ea");
+    auto& Eb = this->template get<vector<vector<real_type_t<T>>>>("Eb");
 
-    SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
-    SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
+    auto& Fa = this->template get<SymmetryBlockedTensor<T>>("Fa");
+    auto& Fb = this->template get<SymmetryBlockedTensor<T>>("Fb");
 
     //this->put("H", new TwoElectronOperator<T>("V", OneElectronOperator<T>("f", arena, occ, vrt)));
-    this->put("H", new TwoElectronOperator<T>("V", OneElectronOperator<T>("f", occ, vrt, Fa, Fb)));
-    TwoElectronOperator<T>& H = this->template get<TwoElectronOperator<T> >("H");
+    auto& H = this->put("H", new TwoElectronOperator<T>("V", OneElectronOperator<T>("f", occ, vrt, Fa, Fb)));
 
     /*
     {
@@ -533,7 +525,7 @@ bool SparseAOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     SymmetryBlockedTensor<T> ABIJ__("<AB|IJ>", arena, ints.group, 4, {nA,nA,nI,nI}, {NS,NS,NS,NS}, false);
     SymmetryBlockedTensor<T> abij__("<ab|ij>", arena, ints.group, 4, {na,na,ni,ni}, {NS,NS,NS,NS}, false);
 
-    vector<vector<T> > cA(n), ca(n), cI(n), ci(n);
+    vector<vector<T>> cA(n), ca(n), cI(n), ci(n);
 
     /*
      * Read transformation coefficients

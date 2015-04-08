@@ -24,8 +24,8 @@ CholeskyUHF<T,WhichUHF>::CholeskyUHF(const string& name, Config& config)
 template <typename T, template <typename T_> class WhichUHF>
 bool CholeskyUHF<T,WhichUHF>::run(TaskDAG& dag, const Arena& arena)
 {
-    const Molecule& molecule = this->template get<Molecule>("molecule");
-    const CholeskyIntegrals<T>& chol = this->template get<CholeskyIntegrals<T> >("cholesky");
+    const auto& molecule = this->template get<Molecule>("molecule");
+    const auto& chol = this->template get<CholeskyIntegrals<T>>("cholesky");
 
     const PointGroup& group = molecule.getGroup();
 
@@ -35,14 +35,14 @@ bool CholeskyUHF<T,WhichUHF>::run(TaskDAG& dag, const Arena& arena)
 
     vector<int> shapeN{NS};
     vector<int> shapeNNN{NS,NS,NS};
-    vector<vector<int> > sizer{{chol.getRank()}};
-    vector<vector<int> > sizenOr{norb,{nalpha},{chol.getRank()}};
-    vector<vector<int> > sizenor{norb,{nbeta},{chol.getRank()}};
+    vector<vector<int>> sizer{{chol.getRank()}};
+    vector<vector<int>> sizenOr{norb,{nalpha},{chol.getRank()}};
+    vector<vector<int>> sizenor{norb,{nbeta},{chol.getRank()}};
 
-    this->puttmp("J", new SymmetryBlockedTensor<T>("J", arena, group, 1, sizer, shapeN, false));
-    this->puttmp("JD", new SymmetryBlockedTensor<T>("JD", arena, group, 1, sizer, shapeN, false));
-    this->puttmp("La_occ", new SymmetryBlockedTensor<T>("LpI", arena, group, 3, sizenOr, shapeNNN, false));
-    this->puttmp("Lb_occ", new SymmetryBlockedTensor<T>("Lpi", arena, group, 3, sizenor, shapeNNN, false));
+    this->puttmp("J",       new SymmetryBlockedTensor<T>("J",    arena, group, 1, sizer,   shapeN,   false));
+    this->puttmp("JD",      new SymmetryBlockedTensor<T>("JD",   arena, group, 1, sizer,   shapeN,   false));
+    this->puttmp("La_occ",  new SymmetryBlockedTensor<T>("LpI",  arena, group, 3, sizenOr, shapeNNN, false));
+    this->puttmp("Lb_occ",  new SymmetryBlockedTensor<T>("Lpi",  arena, group, 3, sizenor, shapeNNN, false));
     this->puttmp("LDa_occ", new SymmetryBlockedTensor<T>("LDpI", arena, group, 3, sizenOr, shapeNNN, false));
     this->puttmp("LDb_occ", new SymmetryBlockedTensor<T>("LDpi", arena, group, 3, sizenor, shapeNNN, false));
 
@@ -52,31 +52,31 @@ bool CholeskyUHF<T,WhichUHF>::run(TaskDAG& dag, const Arena& arena)
 template <typename T, template <typename T_> class WhichUHF>
 void CholeskyUHF<T,WhichUHF>::buildFock()
 {
-    const Molecule& molecule = this->template get<Molecule>("molecule");
+    const auto& molecule = this->template get<Molecule>("molecule");
 
     const vector<int>& norb = molecule.getNumOrbitals();
     int nalpha = molecule.getNumAlphaElectrons();
     int nbeta = molecule.getNumAlphaElectrons();
 
-    const CholeskyIntegrals<T>& chol = this->template get<CholeskyIntegrals<T> >("cholesky");
+    const auto& chol = this->template get<CholeskyIntegrals<T>>("cholesky");
 
-    SymmetryBlockedTensor<T>& H = this->template get<SymmetryBlockedTensor<T> >("H");
-    SymmetryBlockedTensor<T>& Da = this->template get<SymmetryBlockedTensor<T> >("Da");
-    SymmetryBlockedTensor<T>& Db = this->template get<SymmetryBlockedTensor<T> >("Db");
-    SymmetryBlockedTensor<T>& Fa = this->template get<SymmetryBlockedTensor<T> >("Fa");
-    SymmetryBlockedTensor<T>& Fb = this->template get<SymmetryBlockedTensor<T> >("Fb");
+    auto& H  = this->template get<SymmetryBlockedTensor<T>>("H");
+    auto& Da = this->template get<SymmetryBlockedTensor<T>>("Da");
+    auto& Db = this->template get<SymmetryBlockedTensor<T>>("Db");
+    auto& Fa = this->template get<SymmetryBlockedTensor<T>>("Fa");
+    auto& Fb = this->template get<SymmetryBlockedTensor<T>>("Fb");
 
-    SymmetryBlockedTensor<T> Ca_occ("CI", this->template gettmp<SymmetryBlockedTensor<T> >("Ca"),
+    SymmetryBlockedTensor<T> Ca_occ("CI", this->template gettmp<SymmetryBlockedTensor<T>>("Ca"),
                                     {{0},{0}}, {norb,{nalpha}});
-    SymmetryBlockedTensor<T> Cb_occ("Ci", this->template gettmp<SymmetryBlockedTensor<T> >("Cb"),
+    SymmetryBlockedTensor<T> Cb_occ("Ci", this->template gettmp<SymmetryBlockedTensor<T>>("Cb"),
                                     {{0},{0}}, {norb,{nbeta}});
 
-    SymmetryBlockedTensor<T>& J = this->template gettmp<SymmetryBlockedTensor<T> >("J");
-    SymmetryBlockedTensor<T>& JD = this->template gettmp<SymmetryBlockedTensor<T> >("JD");
-    SymmetryBlockedTensor<T>& La_occ = this->template gettmp<SymmetryBlockedTensor<T> >("La_occ");
-    SymmetryBlockedTensor<T>& Lb_occ = this->template gettmp<SymmetryBlockedTensor<T> >("Lb_occ");
-    SymmetryBlockedTensor<T>& LDa_occ = this->template gettmp<SymmetryBlockedTensor<T> >("LDa_occ");
-    SymmetryBlockedTensor<T>& LDb_occ = this->template gettmp<SymmetryBlockedTensor<T> >("LDb_occ");
+    auto& J       = this->template gettmp<SymmetryBlockedTensor<T>>("J");
+    auto& JD      = this->template gettmp<SymmetryBlockedTensor<T>>("JD");
+    auto& La_occ  = this->template gettmp<SymmetryBlockedTensor<T>>("La_occ");
+    auto& Lb_occ  = this->template gettmp<SymmetryBlockedTensor<T>>("Lb_occ");
+    auto& LDa_occ = this->template gettmp<SymmetryBlockedTensor<T>>("LDa_occ");
+    auto& LDb_occ = this->template gettmp<SymmetryBlockedTensor<T>>("LDb_occ");
 
     /*
      * Coulomb contribution:

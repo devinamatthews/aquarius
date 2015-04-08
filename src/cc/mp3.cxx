@@ -27,18 +27,14 @@ MP3<U>::MP3(const string& name, Config& config)
 template <typename U>
 bool MP3<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const TwoElectronOperator<U>& H = get<TwoElectronOperator<U> >("H");
+    const auto& H = get<TwoElectronOperator<U>>("H");
 
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
 
-    puttmp("T", new ExcitationOperator<U,2>("T", arena, occ, vrt));
-    puttmp("D", new Denominator<U>(H));
-    puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
-
-    ExcitationOperator<U,2>& T = gettmp<ExcitationOperator<U,2> >("T");
-    Denominator<U>& D = gettmp<Denominator<U> >("D");
-    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+    auto& T = puttmp("T", new ExcitationOperator<U,2>("T", arena, occ, vrt));
+    auto& D = puttmp("D", new Denominator       <U  >(H));
+    auto& Z = puttmp("Z", new ExcitationOperator<U,2>("Z", arena, occ, vrt));
 
     Z(0) = (U)0.0;
     T(0) = (U)0.0;
@@ -50,11 +46,10 @@ bool MP3<U>::run(TaskDAG& dag, const Arena& arena)
     double energy = 0.25*real(scalar(H.getABIJ()*T(2)));
     double mp2energy = energy;
 
-
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << energy << endl;
     put("mp2", new U(energy));
 
-    TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
+    auto& H_ = get<TwoElectronOperator<U>>("H");
 
     TwoElectronOperator<U> Hnew("W", H_, TwoElectronOperator<U>::AB|
                                  TwoElectronOperator<U>::IJ|
@@ -104,16 +99,16 @@ bool MP3<U>::run(TaskDAG& dag, const Arena& arena)
 template <typename U>
 void MP3<U>::iterate(const Arena& arena)
 {
-    TwoElectronOperator<U>& H_ = get<TwoElectronOperator<U> >("H");
+    const auto& H_ = get<TwoElectronOperator<U>>("H");
 
-    ExcitationOperator<U,2>& T = get<ExcitationOperator<U,2> >("T");
-    Denominator<U>& D = gettmp<Denominator<U> >("D");
-    ExcitationOperator<U,2>& Z = gettmp<ExcitationOperator<U,2> >("Z");
+    auto& T = get   <ExcitationOperator<U,2>>("T");
+    auto& D = gettmp<Denominator       <U  >>("D");
+    auto& Z = gettmp<ExcitationOperator<U,2>>("Z");
 
     TwoElectronOperator<U> H("W", H_, TwoElectronOperator<U>::AB|
-                                 TwoElectronOperator<U>::IJ|
-                                 TwoElectronOperator<U>::IJKL|
-                                 TwoElectronOperator<U>::AIBJ);
+                                      TwoElectronOperator<U>::IJ|
+                                      TwoElectronOperator<U>::IJKL|
+                                      TwoElectronOperator<U>::AIBJ);
 
     SpinorbitalTensor<U>& FAE = H.getAB();
     SpinorbitalTensor<U>& FMI = H.getIJ();

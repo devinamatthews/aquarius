@@ -2,18 +2,6 @@
 
 #include "input/molecule.hpp"
 
-/**
- * Compute the index of a function in cartesian angular momentum.
- */
-#define FUNC_CART(x,y,z) ((((x)*(3+(x)+2*((y)+(z))))/2) + (y))
-/**
- * Compute the index of a function in spherical harmonic angular momentum.
- *
- * Regular spherical harmonics are referenced by n=l, l>=m>=-l. Contaminants may also be referenced by
- * n>l>=0, n-l even.
- */
-#define FUNC_SPHER(n,l,m) ((((n)-(l))*((n)+(l)-1))/2 + 2*(n) + ((m) > 0 ? -2*(m) : 2*(m)+1))
-
 using namespace aquarius::input;
 using namespace aquarius::symmetry;
 
@@ -60,9 +48,9 @@ Shell::Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bo
         else
         {
             int f = 0;
-            for (int x = 0;x <= L;x++)
+            for (int x = L;x >= 0;x--)
             {
-                for (int y = 0;y <= L-x;y++)
+                for (int y = L-x;y >= 0;y--)
                 {
                     int z = L-x-y;
                     parity[f++][op] = (group.cartesianParity(x, y, z, op) < 0 ? -1 : 1);
@@ -157,26 +145,26 @@ Shell::Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bo
         {
             for (int m = l;m > 0;m--)
             {
-                for (int x = 0;x <= L;x++)
-                    for (int y = 0;y <= L-x;y++)
+                for (int x = L;x >= 0;x--)
+                    for (int y = L-x;y >= 0;y--)
                         cart2spher[k++] = cartcoef(l, m, x, y, L-x-y);
-                for (int x = 0;x <= L;x++)
-                    for (int y = 0;y <= L-x;y++)
+                for (int x = L;x >= 0;x--)
+                    for (int y = L-x;y >= 0;y--)
                         cart2spher[k++] = cartcoef(l, -m, x, y, L-x-y);
             }
-            for (int x = 0;x <= L;x++)
-                for (int y = 0;y <= L-x;y++)
+            for (int x = L;x >= 0;x--)
+                for (int y = L-x;y >= 0;y--)
                     cart2spher[k++] = cartcoef(l, 0, x, y, L-x-y);
         }
         assert(k == nfunc*(L+1)*(L+2)/2);
     }
 }
 
-vector<vector<int> > Shell::setupIndices(const Context& ctx, const Molecule& m)
+vector<vector<int>> Shell::setupIndices(const Context& ctx, const Molecule& m)
 {
     int nirrep = m.getGroup().getNumIrreps();
 
-    vector<vector<int> > idx;
+    vector<vector<int>> idx;
     vector<int> nfunc(nirrep, (int)0);
 
     for (Molecule::const_shell_iterator s = m.getShellsBegin();s != m.getShellsEnd();++s)
@@ -226,7 +214,7 @@ vector<vector<int> > Shell::setupIndices(const Context& ctx, const Molecule& m)
 
     if (ctx.getOrdering() == Context::ISCF || ctx.getOrdering() == Context::ISFC)
     {
-        for (vector<vector<int> >::iterator s = idx.begin();s != idx.end();++s)
+        for (vector<vector<int>>::iterator s = idx.begin();s != idx.end();++s)
         {
             vector<int>& index = *s;
             for (int i = 1;i < nirrep;i++) index[i] += nfunc[i-1];

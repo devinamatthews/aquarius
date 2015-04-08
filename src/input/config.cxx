@@ -319,7 +319,7 @@ void Config::write(ostream& os) const
 
 vector<pair<string,Config>> Config::find(const string& pattern)
 {
-    vector< pair<string,Config> > v;
+    vector<pair<string,Config>> v;
     find(*root, "", pattern, v);
     return v;
 }

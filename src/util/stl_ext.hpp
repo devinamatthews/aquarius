@@ -41,15 +41,15 @@
 
 #define ENABLE_IF_CONST(const_type,return_type) \
 template <typename _IsConst = const_type > \
-typename enable_if<is_const<_IsConst>::value, return_type >::type
+enable_if_t<is_const<_IsConst>::value, return_type >
 
 #define ENABLE_IF_NON_CONST(const_type,return_type) \
 template <typename _IsConst = const_type > \
-typename enable_if<!is_const<_IsConst>::value, return_type >::type
+enable_if_t<!is_const<_IsConst>::value, return_type >
 
 //#define ENABLE_IF_SAME(old_type,new_type,return_type) \
 //template <typename new_type > \
-//typename enable_if<is_base_of<const old_type, const new_type >::value, return_type >::type
+//enable_if_t<is_base_of<const old_type, const new_type >::value, return_type >
 
 #define ENABLE_IF_SAME(old_type,new_type,return_type) \
 template <typename new_type > return_type
@@ -113,7 +113,9 @@ namespace aquarius
     using std::max;
     using std::abs;
     using std::copy;
+    using std::copy_n;
     using std::fill;
+    using std::fill_n;
     using std::sort;
     using std::swap;
     using std::remove;
@@ -174,6 +176,15 @@ namespace aquarius
     using std::runtime_error;
     using std::out_of_range;
 
+    template <bool T, typename U=void>
+    using enable_if_t = typename enable_if<T,U>::type;
+
+    template <typename T>
+    using decay_t = typename decay<T>::type;
+
+    template <bool T, typename U, typename V>
+    using conditional_t = typename conditional<T,U,V>::type;
+
     namespace detail
     {
 
@@ -213,7 +224,7 @@ namespace aquarius
         template <size_t I, typename... Args>
         struct cbegin_helper
         {
-            void operator()(tuple<typename decay<Args>::type::const_iterator...>& i,
+            void operator()(tuple<typename decay_t<Args>::const_iterator...>& i,
                             const tuple<Args...>& v)
             {
                 get<I-1>(i) = get<I-1>(v).begin();
@@ -224,7 +235,7 @@ namespace aquarius
         template <typename... Args>
         struct cbegin_helper<1, Args...>
         {
-            void operator()(tuple<typename decay<Args>::type::const_iterator...>& i,
+            void operator()(tuple<typename decay_t<Args>::const_iterator...>& i,
                             const tuple<Args...>& v)
             {
                 get<0>(i) = get<0>(v).begin();
@@ -234,14 +245,14 @@ namespace aquarius
         template <typename... Args>
         struct cbegin_helper<0, Args...>
         {
-            void operator()(tuple<typename decay<Args>::type::const_iterator...>& i,
+            void operator()(tuple<typename decay_t<Args>::const_iterator...>& i,
                             const tuple<Args...>& v) {}
         };
 
         template <typename... Args>
-        tuple<typename decay<Args>::type::const_iterator...> cbegin(const tuple<Args...>& v)
+        tuple<typename decay_t<Args>::const_iterator...> cbegin(const tuple<Args...>& v)
         {
-            tuple<typename decay<Args>::type::const_iterator...> i;
+            tuple<typename decay_t<Args>::const_iterator...> i;
             cbegin_helper<sizeof...(Args), Args...>()(i, v);
             return i;
         }
@@ -294,7 +305,7 @@ namespace aquarius
         template <size_t I, typename... Args>
         struct not_end_helper
         {
-            bool operator()(const tuple<typename decay<Args>::type::const_iterator...>& i,
+            bool operator()(const tuple<typename decay_t<Args>::const_iterator...>& i,
                         const tuple<Args...>& v)
             {
                 return get<I-1>(i) != get<I-1>(v).end() &&
@@ -305,7 +316,7 @@ namespace aquarius
         template <typename... Args>
         struct not_end_helper<1, Args...>
         {
-            bool operator()(const tuple<typename decay<Args>::type::const_iterator...>& i,
+            bool operator()(const tuple<typename decay_t<Args>::const_iterator...>& i,
                         const tuple<Args...>& v)
             {
                 return get<0>(i) != get<0>(v).end();
@@ -315,7 +326,7 @@ namespace aquarius
         template <typename... Args>
         struct not_end_helper<0, Args...>
         {
-            bool operator()(const tuple<typename decay<Args>::type::const_iterator...>& i,
+            bool operator()(const tuple<typename decay_t<Args>::const_iterator...>& i,
                             const tuple<Args...>& v)
             {
                 return false;
@@ -323,7 +334,7 @@ namespace aquarius
         };
 
         template <typename... Args>
-        bool not_end(const tuple<typename decay<Args>::type::const_iterator...>& i,
+        bool not_end(const tuple<typename decay_t<Args>::const_iterator...>& i,
                      const tuple<Args...>& v)
         {
             return not_end_helper<sizeof...(Args), Args...>()(i, v);
@@ -440,11 +451,14 @@ namespace aquarius
 
     }
 
-    template <class T, class U>
+    template <typename T, typename U=void>
     struct if_exists
     {
         typedef U type;
     };
+
+    template <typename T, typename U=void>
+    using if_exists_t = typename if_exists<T,U>::type;
 
     template<typename T> class global_ptr
     {
@@ -545,7 +559,7 @@ namespace aquarius
         class ptr_vector_
         {
             private:
-                template <typename ptr_>
+                template <typename ptr_, typename=void>
                 class iterator_
                 {
                     friend class ptr_vector_;
@@ -557,9 +571,9 @@ namespace aquarius
                         typedef typename iterator_traits<ptr_>::pointer pointer;
                         typedef typename iterator_traits<ptr_>::reference reference;
 
-                        typedef typename conditional<is_same<ptr_,value_type*>::value,
-                                                     typename vector_::iterator,
-                                                     typename vector_::const_iterator>::type ptr_iterator;
+                        typedef conditional_t<is_same<ptr_,value_type*>::value,
+                                              typename vector_::iterator,
+                                              typename vector_::const_iterator> ptr_iterator;
 
                         iterator_() = default;
 
@@ -567,8 +581,7 @@ namespace aquarius
                         : it_(other.it_) {}
 
                         template <typename ptr__>
-                        iterator_(typename enable_if<is_same<ptr__,value_type*>::value,
-                                                     const iterator_<ptr__>&>::type other)
+                        iterator_(const iterator_<ptr__, enable_if_t<is_same<ptr__,value_type*>::value>>& other)
                         : it_(other.it_) {}
 
                         iterator_& operator=(const iterator_& other)
@@ -578,8 +591,7 @@ namespace aquarius
                         }
 
                         template <typename ptr__>
-                        iterator_& operator=(typename enable_if<is_same<ptr__,value_type*>::value,
-                                             const iterator_<ptr__>&>::type other)
+                        iterator_& operator=(const iterator_<ptr__, enable_if_t<is_same<ptr__,value_type*>::value>>& other)
                         {
                             it_ = other.it_;
                             return *this;
@@ -738,7 +750,7 @@ namespace aquarius
 
             public:
                 typedef typename vector_::value_type ptr_type;
-                typedef typename decay<decltype(*declval<ptr_type>())>::type value_type;
+                typedef decay_t<decltype(*declval<ptr_type>())> value_type;
                 typedef value_type& reference;
                 typedef const value_type& const_reference;
                 typedef value_type* pointer;
@@ -1113,8 +1125,8 @@ namespace aquarius
                 }
 
                 template <typename Pointer>
-                typename enable_if< is_same<pointer, Pointer>::value &&
-                                   !is_same<pointer,ptr_type>::value>::type
+                enable_if_t< is_same<pointer, Pointer>::value &&
+                            !is_same<pointer,ptr_type>::value>
                 push_back(Pointer x)
                 {
                     impl_.emplace_back(x);
@@ -1314,9 +1326,9 @@ namespace aquarius
                         typedef typename iterator_traits<ptr_>::pointer pointer;
                         typedef typename iterator_traits<ptr_>::reference reference;
 
-                        typedef typename conditional<is_same<ptr_,value_type*>::value,
-                                                     typename list_::iterator,
-                                                     typename list_::const_iterator>::type ptr_iterator;
+                        typedef conditional_t<is_same<ptr_,value_type*>::value,
+                                              typename list_::iterator,
+                                              typename list_::const_iterator> ptr_iterator;
 
                         iterator_() = default;
 
@@ -1324,7 +1336,7 @@ namespace aquarius
                         : it_(other.it_) {}
 
                         template <typename ptr__>
-                        iterator_(const iterator_<ptr__, typename enable_if<is_same<ptr__,value_type*>::value>::type>& other)
+                        iterator_(const iterator_<ptr__, enable_if_t<is_same<ptr__,value_type*>::value>>& other)
                         : it_(other.it_) {}
 
                         iterator_& operator=(const iterator_& other)
@@ -1334,7 +1346,7 @@ namespace aquarius
                         }
 
                         template <typename ptr__>
-                        iterator_& operator=(const iterator_<ptr__, typename enable_if<is_same<ptr__,value_type*>::value>::type>& other)
+                        iterator_& operator=(const iterator_<ptr__, enable_if_t<is_same<ptr__,value_type*>::value>>& other)
                         {
                             it_ = other.it_;
                             return *this;
@@ -1422,7 +1434,7 @@ namespace aquarius
 
             public:
                 typedef typename list_::value_type ptr_type;
-                typedef typename decay<decltype(*declval<ptr_type>())>::type value_type;
+                typedef decay_t<decltype(*declval<ptr_type>())> value_type;
                 typedef value_type& reference;
                 typedef const value_type& const_reference;
                 typedef value_type* pointer;
@@ -1750,8 +1762,8 @@ namespace aquarius
                 }
 
                 template <typename Pointer>
-                typename enable_if< is_same<pointer, Pointer>::value &&
-                                   !is_same<pointer,ptr_type>::value>::type
+                enable_if_t< is_same<pointer, Pointer>::value &&
+                            !is_same<pointer,ptr_type>::value>
                 push_front(Pointer x)
                 {
                     impl_.emplace_front(x);
@@ -1783,8 +1795,8 @@ namespace aquarius
                 }
 
                 template <typename Pointer>
-                typename enable_if< is_same<pointer, Pointer>::value &&
-                                   !is_same<pointer,ptr_type>::value>::type
+                enable_if_t< is_same<pointer, Pointer>::value &&
+                            !is_same<pointer,ptr_type>::value>
                 push_back(Pointer x)
                 {
                     impl_.emplace_back(x);
@@ -2084,7 +2096,7 @@ namespace aquarius
     template <size_t N, typename T, typename... Ts>
     struct vec_helper
     {
-        vec_helper(vector<typename decay<T>::type>& v, T&& t, Ts&&... ts)
+        vec_helper(vector<decay_t<T>>& v, T&& t, Ts&&... ts)
         {
             v.push_back(forward<T>(t));
             vec_helper<N-1, Ts...>(v, forward<Ts>(ts)...);
@@ -2094,7 +2106,7 @@ namespace aquarius
     template <typename T>
     struct vec_helper<1, T>
     {
-        vec_helper(vector<typename decay<T>::type>& v, T&& t)
+        vec_helper(vector<decay_t<T>>& v, T&& t)
         {
             v.push_back(forward<T>(t));
         }
@@ -2103,9 +2115,9 @@ namespace aquarius
     }
 
     template <typename T, typename... Ts>
-    vector<typename decay<T>::type> vec(T&& t, Ts&&... ts)
+    vector<decay_t<T>> vec(T&& t, Ts&&... ts)
     {
-        vector<typename decay<T>::type> v;
+        vector<decay_t<T>> v;
         v.reserve(1+sizeof...(Ts));
         detail::vec_helper<1+sizeof...(Ts), T, Ts...>(v, forward<T>(t), forward<Ts>(ts)...);
         return v;
@@ -2270,7 +2282,7 @@ namespace aquarius
     };
 
     template <typename Container, typename T>
-    struct __erase<Container, T, typename enable_if<is_same<typename Container::value_type,T>::value>::type>
+    struct __erase<Container, T, enable_if_t<is_same<typename Container::value_type,T>::value>>
     {
         static void erase(Container& v, const T& e)
         {
@@ -2789,9 +2801,9 @@ namespace aquarius
         return v2;
     }
 
-    template<typename T, class Predicate> typename decay<T>::type filter_copy(const T& v, Predicate pred)
+    template<typename T, class Predicate> decay_t<T> filter_copy(const T& v, Predicate pred)
     {
-        typename decay<T>::type v2;
+        decay_t<T> v2;
         for (auto& i : v)
         {
             if (pred(i)) v2.emplace_back(i);
@@ -2799,9 +2811,9 @@ namespace aquarius
         return v2;
     }
 
-    template<typename T, class Predicate> typename decay<T>::type filter_copy(T&& v, Predicate pred)
+    template<typename T, class Predicate> decay_t<T> filter_copy(T&& v, Predicate pred)
     {
-        typename decay<T>::type v2;
+        decay_t<T> v2;
         for (auto& i : v)
         {
             if (pred(i)) v2.emplace_back(move(i));
@@ -2834,16 +2846,16 @@ namespace aquarius
         return v;
     }
 
-    template<typename T> typename decay<T>::type sorted(T&& v)
+    template<typename T> decay_t<T> sorted(T&& v)
     {
-        typename decay<T>::type v2(forward<T>(v));
+        decay_t<T> v2(forward<T>(v));
         sort(v2);
         return v2;
     }
 
-    template<typename T, typename Compare> typename decay<T>::type sorted(T&& v, Compare comp)
+    template<typename T, typename Compare> decay_t<T> sorted(T&& v, Compare comp)
     {
-        typename decay<T>::type v2(forward<T>(v));
+        decay_t<T> v2(forward<T>(v));
         sort(v2, comp);
         return v2;
     }
@@ -2857,9 +2869,9 @@ namespace aquarius
         return v;
     }
 
-    template<typename T> typename decay<T>::type uniq_copy(T&& v)
+    template<typename T> decay_t<T> uniq_copy(T&& v)
     {
-        typename decay<T>::type v2(forward<T>(v));
+        decay_t<T> v2(forward<T>(v));
         uniq(v2);
         return v2;
     }
@@ -2919,9 +2931,9 @@ namespace aquarius
     /*
      * Return elements from v1 that are not also in v2
      */
-    template<typename T> typename decay<T>::type exclude_copy(T&& v1, const T& v2)
+    template<typename T> decay_t<T> exclude_copy(T&& v1, const T& v2)
     {
-        typename decay<T>::type v3(move(v1));
+        decay_t<T> v3(move(v1));
         exclude(v3, v2);
         return v3;
     }
@@ -2929,9 +2941,9 @@ namespace aquarius
     /*
      * Return elements from v1 that are not also in v2
      */
-    template<typename T> typename decay<T>::type exclude_copy(const T& v1, const T& v2)
+    template<typename T> decay_t<T> exclude_copy(const T& v1, const T& v2)
     {
-        typename decay<T>::type v3(v1);
+        decay_t<T> v3(v1);
         exclude(v3, v2);
         return v3;
     }
@@ -2954,9 +2966,9 @@ namespace aquarius
         return v;
     }
 
-    template<typename T, typename U> typename decay<T>::type mask_copy(const T& v, const U& mask)
+    template<typename T, typename U> decay_t<T> mask_copy(const T& v, const U& mask)
     {
-        typename decay<T>::type v2;
+        decay_t<T> v2;
 
         auto i3 = mask.begin();
         for (auto& i : v)
@@ -2970,9 +2982,9 @@ namespace aquarius
         return v2;
     }
 
-    template<typename T, typename U> typename decay<T>::type mask_copy(T&& v, const U& mask)
+    template<typename T, typename U> decay_t<T> mask_copy(T&& v, const U& mask)
     {
-        typename decay<T>::type v2;
+        decay_t<T> v2;
 
         auto i3 = mask.begin();
         for (auto& i : v)
@@ -3015,9 +3027,9 @@ namespace aquarius
     }
 
     template<typename T>
-    typename decay<T>::type translate_copy(T&& s, const T& from, const T& to)
+    decay_t<T> translate_copy(T&& s, const T& from, const T& to)
     {
-        typename decay<T>::type s_(forward<T>(s));
+        decay_t<T> s_(forward<T>(s));
         translate(s_, from, to);
         return s_;
     }
@@ -3103,7 +3115,7 @@ namespace aquarius
     };
 
     template <typename T>
-    struct real_type<complex<T> >
+    struct real_type<complex<T>>
     {
         typedef T type;
     };
@@ -3115,11 +3127,16 @@ namespace aquarius
     };
 
     template <typename T>
-    struct complex_type<complex<T> >
+    struct complex_type<complex<T>>
     {
         typedef complex<T> type;
     };
 
+    template <typename T>
+    using real_type_t = typename real_type<T>::type;
+
+    template <typename T>
+    using complex_type_t = typename complex_type<T>::type;
 }
 
 namespace std
@@ -3146,28 +3163,28 @@ namespace std
     }
 
     template <class F, class I>
-    typename std::enable_if<std::is_integral<I>::value,std::complex<F> >::type
+    aquarius::enable_if_t<std::is_integral<I>::value,std::complex<F>>
     operator*(const std::complex<F>& f, I i)
     {
         return f*(F)i;
     }
 
     template <class F, class I>
-    typename std::enable_if<std::is_integral<I>::value,std::complex<F> >::type
+    aquarius::enable_if_t<std::is_integral<I>::value,std::complex<F>>
     operator*(I i, const std::complex<F>& f)
     {
         return f*(F)i;
     }
 
     template <class F, class I>
-    typename std::enable_if<std::is_integral<I>::value,std::complex<F> >::type
+    aquarius::enable_if_t<std::is_integral<I>::value,std::complex<F>>
     operator/(const std::complex<F>& f, I i)
     {
         return f/(F)i;
     }
 
     template <class F, class I>
-    typename std::enable_if<std::is_integral<I>::value,std::complex<F> >::type
+    aquarius::enable_if_t<std::is_integral<I>::value,std::complex<F>>
     operator/(I i, const std::complex<F>& f)
     {
         return std::complex<F>((F)i)/f;

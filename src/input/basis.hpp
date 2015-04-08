@@ -45,7 +45,7 @@ class BasisSet
             int L;
         };
 
-        map< string,vector<ShellBasis> > atomBases;
+        map<string,vector<ShellBasis>> atomBases;
 
         void readBasisSet(const string& file);
 

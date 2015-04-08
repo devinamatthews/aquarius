@@ -137,7 +137,7 @@ int main(int argc, char **argv)
         cout << endl;
 
         cout << "UHF:" << endl;
-        vector< vector<string> > uhf(n+1);
+        vector<vector<string>> uhf(n+1);
         for (int k = 0;k <= n;k++)
         {
             while (true)

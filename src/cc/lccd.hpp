@@ -21,7 +21,7 @@ template <typename U>
 class LCCD : public Iterative<U>
 {
     protected:
-        convergence::DIIS< op::ExcitationOperator<U,2> > diis;
+        convergence::DIIS<op::ExcitationOperator<U,2>> diis;
 
     public:
         LCCD(const string& name, input::Config& config);

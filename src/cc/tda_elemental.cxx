@@ -31,7 +31,7 @@ bool ElementalTDA<U>::run(TaskDAG& dag, const Arena& arena)
     const PointGroup& group = molecule.getGroup();
     int nirrep = group.getNumIrreps();
 
-    TwoElectronOperator<U>& W = get<TwoElectronOperator<U> >("H");
+    const auto& W = get<TwoElectronOperator<U>>("H");
     const Space& occ = W.occ;
     const Space& vrt = W.vrt;
 

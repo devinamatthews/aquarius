@@ -16,8 +16,8 @@ class Context
         enum Ordering {ISCF,ISFC,SICF,SIFC,SCIF,SCFI,SFIC,SFCI};
 
     protected:
-        mutable vector<vector<int> > cartesian_ordering;
-        mutable vector<vector<int> > spherical_ordering;
+        mutable vector<vector<int>> cartesian_ordering;
+        mutable vector<vector<int>> spherical_ordering;
         Ordering ordering;
 
     public:

@@ -25,16 +25,27 @@ template <typename T> class SpinorbitalTensor;
 
 }
 
-class Arena : public Intracomm
+class Arena
 {
     protected:
-        //global_ptr<tCTF_World<float> > ctfs;
-        global_ptr<tCTF_World<double> > ctfd;
-        //global_ptr<tCTF_World<complex<float> > > ctfc;
-        //global_ptr<tCTF_World<complex<double> > > ctfz;
+        //global_ptr<tCTF_World<float>> ctfs;
+        global_ptr<tCTF_World<double>> ctfd;
+        //global_ptr<tCTF_World<complex<float>>> ctfc;
+        //global_ptr<tCTF_World<complex<double>>> ctfz;
+        shared_ptr<Intracomm> comm_;
 
     public:
-        Arena(const MPI_Comm& comm = MPI_COMM_WORLD) : Intracomm(comm) {}
+        const int rank;
+        const int size;
+
+        Arena(Intracomm&& comm)
+        : comm_(new Intracomm(move(comm))), rank(comm.rank), size(comm.size) {}
+
+        Arena() : Arena(Intracomm::world()) {}
+
+        Intracomm& comm() { return *comm_; }
+
+        const Intracomm& comm() const { return *comm_; }
 
         template <typename T>
         tCTF_World<T>& ctf();
@@ -50,7 +61,7 @@ class Arena : public Intracomm
 template <>
 inline tCTF_World<float>& Arena::ctf<float>()
 {
-    if (!ctfs) ctfs = new tCTF_World<float>(comm);
+    if (!ctfs) ctfs = new tCTF_World<float>(*comm_);
     return *ctfs;
 }
 */
@@ -58,22 +69,22 @@ inline tCTF_World<float>& Arena::ctf<float>()
 template <>
 inline tCTF_World<double>& Arena::ctf<double>()
 {
-    if (!ctfd) ctfd.reset(new tCTF_World<double>(comm));
+    if (!ctfd) ctfd.reset(new tCTF_World<double>(*comm_));
     return *ctfd;
 }
 
 /*
 template <>
-inline tCTF_World<complex<float> >& Arena::ctf<complex<float> >()
+inline tCTF_World<complex<float>>& Arena::ctf<complex<float>>()
 {
-    if (!ctfc) ctfc = new tCTF_World<complex<float> >(comm);
+    if (!ctfc) ctfc = new tCTF_World<complex<float>>(*comm_);
     return *ctfc;
 }
 
 template <>
-inline tCTF_World<complex<double> >& Arena::ctf<complex<double> >()
+inline tCTF_World<complex<double>>& Arena::ctf<complex<double>>()
 {
-    if (!ctfz) ctfz = new tCTF_World<complex<double> >(comm);
+    if (!ctfz) ctfz = new tCTF_World<complex<double>>(*comm_);
     return *ctfz;
 }
 */

@@ -150,14 +150,14 @@ double Interval::gflops() const
 double Interval::seconds(const Arena& arena) const
 {
     double dtmax = seconds();
-    arena.Allreduce(&dtmax, 1, MPI_MAX);
+    arena.comm().Allreduce(&dtmax, 1, MPI_MAX);
     return dtmax;
 }
 
 double Interval::gflops(const Arena& arena) const
 {
     int64_t fl = flops;
-    arena.Allreduce(&fl, 1, MPI_SUM);
+    arena.comm().Allreduce(&fl, 1, MPI_SUM);
     return (double)fl/1e9/seconds(arena);
 }
 
@@ -188,7 +188,7 @@ void Timer::printTimers(const Arena& arena)
     {
         double tot = it->seconds(arena);
         int64_t count = it->count;
-        arena.Allreduce(&count, 1, MPI_SUM);
+        arena.comm().Allreduce(&count, 1, MPI_SUM);
         double gflops = it->gflops(arena);
         Logger::log(arena) << strprintf("%s:%*s %13.6f s %10ld x %11.6f gflops/sec\n", it->name.c_str(), (int)(max_len-it->name.size()), "", tot, count, gflops) << endl;
     }

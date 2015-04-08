@@ -56,7 +56,7 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
                        const char **irrep_names, const int *generators, const double *generator_reps,
                        const int *irrep_degen, const mat3x3 *ops, const char **op_names)
 : order(order), nirrep(nirrep), name(name), irrep_names(irrep_names),
-  characters(nirrep, vector<double>(order)), reps(nirrep, vector<vector<double> >(order)),
+  characters(nirrep, vector<double>(order)), reps(nirrep, vector<vector<double>>(order)),
   irrep_degen(irrep_degen), ops(ops), op_names(op_names),
   op_inverse(order, -1), op_product(order*order, -1)
 {

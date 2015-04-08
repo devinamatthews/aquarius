@@ -186,7 +186,7 @@ class DIIS
                 if (info > 0)
                 {
                     dtype eps = e[nextrap_real-1][nextrap_real-1]*
-                                numeric_limits<typename real_type<dtype>::type>::epsilon();
+                                numeric_limits<real_type_t<dtype>>::epsilon();
                     tmp = e;
                     axpy(nextrap_real, 1.0, &eps, 0, tmp.data(), nextrap+1);
                     info = hesv('U', nextrap_real+1, 1, tmp.data(), nextrap+1, ipiv.data(),

@@ -153,7 +153,7 @@ class Product
         string type;
         string name;
         global_ptr<Destructible> data;
-        shared_ptr<vector<Requirement> > requirements;
+        shared_ptr<vector<Requirement>> requirements;
         shared_ptr<bool> used;
 
     public:

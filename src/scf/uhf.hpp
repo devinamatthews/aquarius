@@ -24,7 +24,7 @@ class UHF : public Iterative<T>
         bool frozen_core;
         T damping;
         vector<int> occ_alpha, occ_beta;
-        vector<vector<typename real_type<T>::type>> E_alpha, E_beta;
+        vector<vector<real_type_t<T>>> E_alpha, E_beta;
         convergence::DIIS<tensor::SymmetryBlockedTensor<T>> diis;
 
     public:

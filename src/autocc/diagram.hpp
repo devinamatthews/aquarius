@@ -94,7 +94,7 @@ class Diagram
 
         Diagram& sum(const vector<Line>& which);
 
-        Diagram& antisymmetrize(const vector< vector<Line> >& assym);
+        Diagram& antisymmetrize(const vector<vector<Line>>& assym);
 
     protected:
         Diagram& suminternal();

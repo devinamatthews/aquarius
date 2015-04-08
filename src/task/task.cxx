@@ -102,7 +102,7 @@ ostream& Logger::warn(const Arena& arena)
 
 ostream& Logger::error(const Arena& arena)
 {
-    arena.Barrier();
+    arena.comm().Barrier();
     if (arena.rank == 0)
     {
         sddstream << dateTime() << ": error: ";
@@ -161,8 +161,8 @@ void Product::addRequirements(vector<Requirement>&& reqs)
 
 template <> string Task::type_string<float>() { return "<float>"; }
 template <> string Task::type_string<double>() { return ""; }
-template <> string Task::type_string<complex<float> >() { return "<scomplex>"; }
-template <> string Task::type_string<complex<double> >() { return "<dcomplex>"; }
+template <> string Task::type_string<complex<float>>() { return "<scomplex>"; }
+template <> string Task::type_string<complex<double>>() { return "<dcomplex>"; }
 
 Task::Task(const string& name, Config& config)
 : name(name), config(config.clone()) {}

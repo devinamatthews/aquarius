@@ -49,7 +49,7 @@ class SparseAOMOIntegrals : public MOIntegrals<T>
             /*
              * Transform (ab|rs) -> (cb|rs) (index = A) or (ab|rs) -> (ac|rs) (index = B)
              */
-            pqrs_integrals transform(Index index, const vector<int>& nc, const vector<vector<T> >& C, bool pleq);
+            pqrs_integrals transform(Index index, const vector<int>& nc, const vector<vector<T>>& C, bool pleq);
 
             void transcribe(tensor::SymmetryBlockedTensor<T>& tensor, bool assymij, bool assymkl, Side swap);
 

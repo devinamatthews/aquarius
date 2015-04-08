@@ -84,6 +84,12 @@ __top_builddir__bin_aquarius_SOURCES += \
 	src/scf/uhf_elemental.cxx \
 	src/cc/tda_elemental.cxx
 endif
+	
+if HAVE_LIBINT2
+AM_CPPFLAGS += @libint2_INCLUDES@
+__top_builddir__bin_aquarius_LDADD += @libint2_LIBS@
+__top_builddir__bin_aquarius_SOURCES += src/integrals/libint2eints.cxx
+endif
 
 __top_builddir__bin_aquarius_LDADD += $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
 

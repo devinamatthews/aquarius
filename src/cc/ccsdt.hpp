@@ -21,7 +21,7 @@ template <typename U>
 class CCSDT : public Iterative<U>
 {
     protected:
-        convergence::DIIS< op::ExcitationOperator<U,3> > diis;
+        convergence::DIIS<op::ExcitationOperator<U,3>> diis;
 
     public:
         CCSDT(const string& name, input::Config& config);

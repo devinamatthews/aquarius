@@ -30,7 +30,7 @@ template <typename U>
 class LambdaCCSDTQ : public Iterative<U>
 {
     protected:
-        convergence::DIIS< op::DeexcitationOperator<U,4> > diis;
+        convergence::DIIS<op::DeexcitationOperator<U,4>> diis;
 
     public:
         LambdaCCSDTQ(const string& name, input::Config& config);

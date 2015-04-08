@@ -64,8 +64,8 @@ class DeexcitationOperator
 
         void weight(const Denominator<T>& d, double shift = 0)
         {
-            vector<const vector<vector<T> >*> da{&d.getDA(), &d.getDI()};
-            vector<const vector<vector<T> >*> db{&d.getDa(), &d.getDi()};
+            vector<const vector<vector<T>>*> da{&d.getDA(), &d.getDI()};
+            vector<const vector<vector<T>>*> db{&d.getDa(), &d.getDi()};
 
             for (int ex = 0;ex <= min(np,nh);ex++)
             {
@@ -89,9 +89,9 @@ class DeexcitationOperator
         /*
          * Return the largest p-norm of the constituent operators
          */
-        typename real_type<T>::type norm(int p) const
+        real_type_t<T> norm(int p) const
         {
-            typename real_type<T>::type nrm = 0;
+            real_type_t<T> nrm = 0;
 
             for (int i = 0;i <= min(np,nh);i++)
             {

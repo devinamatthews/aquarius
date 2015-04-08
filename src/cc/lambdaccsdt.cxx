@@ -26,7 +26,7 @@ LambdaCCSDT<U>::LambdaCCSDT(const string& name, Config& config)
 template <typename U>
 bool LambdaCCSDT<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
+    const auto& H = this->template get<STTwoElectronOperator<U>>("Hbar");
 
     const Space& occ = H.occ;
     const Space& vrt = H.vrt;
@@ -43,10 +43,10 @@ bool LambdaCCSDT<U>::run(TaskDAG& dag, const Arena& arena)
     this->puttmp("GAIBC", new SpinorbitalTensor   <U  >("G(ai,bc)", H.getAIBC()));
     this->puttmp("GIJAK", new SpinorbitalTensor   <U  >("G(ij,ak)", H.getIJAK()));
 
-    ExcitationOperator  <U,3>& T = this->template get   <ExcitationOperator  <U,3>>("T");
-    DeexcitationOperator<U,3>& L = this->template get   <DeexcitationOperator<U,3>>("L");
-    DeexcitationOperator<U,3>& Z = this->template gettmp<DeexcitationOperator<U,3>>("Z");
-    Denominator         <U  >& D = this->template gettmp<Denominator         <U  >>("D");
+    auto& T = this->template get   <ExcitationOperator  <U,3>>("T");
+    auto& L = this->template get   <DeexcitationOperator<U,3>>("L");
+    auto& Z = this->template gettmp<DeexcitationOperator<U,3>>("Z");
+    auto& D = this->template gettmp<Denominator         <U  >>("D");
 
     Z(0) = 0;
     L(0) = 1;
@@ -65,7 +65,7 @@ bool LambdaCCSDT<U>::run(TaskDAG& dag, const Arena& arena)
 template <typename U>
 void LambdaCCSDT<U>::iterate(const Arena& arena)
 {
-    const STTwoElectronOperator<U>& H = this->template get<STTwoElectronOperator<U> >("Hbar");
+    const auto& H = this->template get<STTwoElectronOperator<U>>("Hbar");
 
     const SpinorbitalTensor<U>&   FME =   H.getIA();
     const SpinorbitalTensor<U>&   FAE =   H.getAB();
@@ -79,19 +79,19 @@ void LambdaCCSDT<U>::iterate(const Arena& arena)
     const SpinorbitalTensor<U>& WAMIJ = H.getAIJK();
     const SpinorbitalTensor<U>& WAMEI = H.getAIBJ();
 
-    ExcitationOperator  <U,3>& T = this->template get   <ExcitationOperator  <U,3>>("T");
-    DeexcitationOperator<U,3>& L = this->template get   <DeexcitationOperator<U,3>>("L");
-    Denominator         <U  >& D = this->template gettmp<Denominator         <U  >>("D");
-    DeexcitationOperator<U,3>& Z = this->template gettmp<DeexcitationOperator<U,3>>("Z");
+    auto& T = this->template get   <ExcitationOperator  <U,3>>("T");
+    auto& L = this->template get   <DeexcitationOperator<U,3>>("L");
+    auto& D = this->template gettmp<Denominator         <U  >>("D");
+    auto& Z = this->template gettmp<DeexcitationOperator<U,3>>("Z");
 
-    SpinorbitalTensor<U>&   DIJ = this->template gettmp<SpinorbitalTensor<U>>(  "DIJ");
-    SpinorbitalTensor<U>&   DAB = this->template gettmp<SpinorbitalTensor<U>>(  "DAB");
-    SpinorbitalTensor<U>&   DAI = this->template gettmp<SpinorbitalTensor<U>>(  "DAI");
-    SpinorbitalTensor<U>& GABCD = this->template gettmp<SpinorbitalTensor<U>>("GABCD");
-    SpinorbitalTensor<U>& GAIBJ = this->template gettmp<SpinorbitalTensor<U>>("GAIBJ");
-    SpinorbitalTensor<U>& GIJKL = this->template gettmp<SpinorbitalTensor<U>>("GIJKL");
-    SpinorbitalTensor<U>& GAIBC = this->template gettmp<SpinorbitalTensor<U>>("GAIBC");
-    SpinorbitalTensor<U>& GIJAK = this->template gettmp<SpinorbitalTensor<U>>("GIJAK");
+    auto&   DIJ = this->template gettmp<SpinorbitalTensor<U>>(  "DIJ");
+    auto&   DAB = this->template gettmp<SpinorbitalTensor<U>>(  "DAB");
+    auto&   DAI = this->template gettmp<SpinorbitalTensor<U>>(  "DAI");
+    auto& GABCD = this->template gettmp<SpinorbitalTensor<U>>("GABCD");
+    auto& GAIBJ = this->template gettmp<SpinorbitalTensor<U>>("GAIBJ");
+    auto& GIJKL = this->template gettmp<SpinorbitalTensor<U>>("GIJKL");
+    auto& GAIBC = this->template gettmp<SpinorbitalTensor<U>>("GAIBC");
+    auto& GIJAK = this->template gettmp<SpinorbitalTensor<U>>("GIJAK");
 
     /***************************************************************************
      *
