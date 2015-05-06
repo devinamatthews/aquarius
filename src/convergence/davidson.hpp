@@ -128,8 +128,10 @@ class Davidson : public task::Destructible
             // cout << setprecision(10) <<"Inf Norm hc = " << hc[0]->norm(00) << endl;
             // cout << setprecision(10) <<"Inf Norm c = " << c[0]->norm(00) << endl;
 
-            assert(nvec == c.size() && nvec == hc.size());
+	    //cout << c[0].arena.rank  << endl;
 
+	    assert(nvec == c.size() && nvec == hc.size());
+	    
             assert(c.size() == nvec);
             assert(hc.size() == nvec);
 
@@ -405,7 +407,8 @@ class Davidson : public task::Destructible
                 if (nextrap > 1 && mode[j] != CLOSEST_ENERGY &&
                     aquarius::abs(previous[j]-real(l[root[j]])) < 1e-4)
                 {
-                    cout << "Locking root " << (j+1) << endl;
+		    if (c[0].arena.rank == 0)
+		      cout << "Locking root " << (j+1) << endl;
                     mode[j] = CLOSEST_ENERGY;
                     target[j] = real(l[root[j]]);
                 }
