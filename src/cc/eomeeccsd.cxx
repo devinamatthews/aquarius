@@ -168,7 +168,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
         else
         {
             auto& davidson = this->puttmp("Davidson",
-                new CGDavidson<ExcitationOperator<U,2>>(davidson_config));
+                new Davidson<ExcitationOperator<U,2>>(davidson_config));
 
             for (int j = 0;j < root_idx[i].size();j++)
             {
@@ -210,20 +210,16 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
                 if (!this->isConverged())
                 {
-                    Logger::error(arena) << "Root " << (j+1) << " did not converge." << endl;
+                    this->error(arena) << "Root " << (j+1) << " did not converge." << endl;
                 }
 
                 Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
                 ExcitationOperator<U,2>& V = Vs.back();
                 davidson.getSolution(0, V);
-                U myspin = scalar(V(1)({1,0},{0,1})*V(1)({0,0},{0,0}));
-                if (arena.rank == 0)
-                {
-                    if (myspin < 0)
-                        cout << "triplet solution found!" << endl;
-                    else
-                        cout << "singlet solution found!" << endl;
-                }
+                if (scalar(V(1)({1,0},{0,1})*V(1)({0,0},{0,0})) < 0)
+                    this->log(arena) << "triplet solution found!" << endl;
+                else
+                    this->log(arena) << "singlet solution found!" << endl;
 
                 if (print_vecs)
                 {
@@ -278,7 +274,7 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     auto& XAE = this->template gettmp<SpinorbitalTensor<U>>("XAE");
 
     auto& D = this->template gettmp<Denominator<U>>("D");
-    auto& davidson = this->template gettmp<CGDavidson<ExcitationOperator<U,2>>>("Davidson");
+    auto& davidson = this->template gettmp<Davidson<ExcitationOperator<U,2>>>("Davidson");
 
     auto& Rs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("R");
     auto& Zs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("Z");
@@ -358,9 +354,13 @@ davidson?
     start?
             int 1,
     order?
-            int 500,
+            int 10,
     jacobi?
-            bool false
+            bool false,
+    num_reduce?
+            int 3,
+    compaction?
+            enum { discrete, continuous },
 }
 
 )";
