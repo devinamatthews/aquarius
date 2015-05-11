@@ -89,7 +89,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 	      singlets_taken++;
 	      take_root = true;
 	    }
-	  if (this_spin == 1 and triplets_taken < ntriplet)
+	  if (this_spin == 1 && triplets_taken < ntriplet)
 	    {
 	      triplets_taken++;
 	      take_root = true;
@@ -167,8 +167,13 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
         }
         else
         {
+            auto& davidson = this->puttmp("Davidson",
+                new CGDavidson<ExcitationOperator<U,2>>(davidson_config));
+
             for (int j = 0;j < root_idx[i].size();j++)
             {
+                Logger::log(arena) << "Starting root number " << (j+1) << endl;
+
                 Rs.clear();
                 Zs.clear();
 
@@ -179,62 +184,67 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                 R(1) = TDAevecs[i][root_idx[i][j]];
                 R(2) = 0;
 
-		bool print_vecs;
-		print_vecs = false;
+                bool print_vecs;
+                print_vecs = false;
 
-		if (print_vecs) {
-		  vector<U> temp1;
-		  vector<U> temp2;
-		  R(1)({1,0},{0,1})({0,0}).getAllData(temp1);
-		  R(1)({0,0},{0,0})({0,0}).getAllData(temp2);
+                if (print_vecs)
+                {
+                    vector<U> temp1;
+                    vector<U> temp2;
+                    R(1)({1,0},{0,1})({0,0}).getAllData(temp1);
+                    R(1)({0,0},{0,0})({0,0}).getAllData(temp2);
 
-		  if (arena.rank == 0) {
-		    cout << " " << endl;
-		    cout << "Root " << j << " R1" << endl;
-		    for (int ii=0; ii<temp1.size(); ii++) {
-		      cout << ii << " " << temp1[ii] << " " << temp2[ii] << endl;
-		    }
-		    cout << " " << endl;
-		  }
-		}
-
-
-                auto& davidson = this->puttmp("Davidson",
-                    new Davidson<ExcitationOperator<U,2>>(davidson_config));
+                    if (arena.rank == 0)
+                    {
+                        cout << " " << endl;
+                        cout << "Root " << j << " R1" << endl;
+                        for (int ii=0; ii<temp1.size(); ii++)
+                        {
+                            cout << ii << " " << temp1[ii] << " " << temp2[ii] << endl;
+                        }
+                        cout << " " << endl;
+                    }
+                }
 
                 Iterative<U>::run(dag, arena);
 
-                if (this->isConverged())
+                if (!this->isConverged())
                 {
-                    Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
-                    ExcitationOperator<U,2>& V = Vs.back();
-                    davidson.getSolution(0, V);
-		    double myspin;
-		    myspin = scalar(V(1)({1,0},{0,1})*V(1)({0,0},{0,0}));
-		    if (arena.rank == 0) {
-		      if (myspin < 0)
-			cout << "triplet solution found!" << endl;
-		      else
-			cout << "singlet solution found!" << endl;
-		    }
-		    V /= sqrt(aquarius::abs(scalar(conj(V)*V)));
-		    
-		    if (print_vecs) {
-		      vector<U> temp1;
-		      vector<U> temp2;
-		      V(1)({1,0},{0,1})({0,0}).getAllData(temp1);
-		      V(1)({0,0},{0,0})({0,0}).getAllData(temp2);
+                    Logger::error(arena) << "Root " << (j+1) << " did not converge." << endl;
+                }
 
-		      if (arena.rank == 0) {
-			cout << " " << endl;
-			cout << "Root " << j << " V1" << endl;
-			for (int ii=0; ii<temp1.size(); ii++) {
-			  cout << ii << " " << temp1[ii] << " " << temp2[ii] << endl;
-			}
-			cout << " " << endl;
-		      }
-		    }
-		}
+                Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
+                ExcitationOperator<U,2>& V = Vs.back();
+                davidson.getSolution(0, V);
+                U myspin = scalar(V(1)({1,0},{0,1})*V(1)({0,0},{0,0}));
+                if (arena.rank == 0)
+                {
+                    if (myspin < 0)
+                        cout << "triplet solution found!" << endl;
+                    else
+                        cout << "singlet solution found!" << endl;
+                }
+
+                if (print_vecs)
+                {
+                    vector<U> temp1;
+                    vector<U> temp2;
+                    V(1)({1,0},{0,1})({0,0}).getAllData(temp1);
+                    V(1)({0,0},{0,0})({0,0}).getAllData(temp2);
+
+                    if (arena.rank == 0)
+                    {
+                        cout << " " << endl;
+                        cout << "Root " << j << " V1" << endl;
+                        for (int ii=0; ii<temp1.size(); ii++)
+                        {
+                            cout << ii << " " << temp1[ii] << " " << temp2[ii] << endl;
+                        }
+                        cout << " " << endl;
+                    }
+                }
+
+                davidson.clear();
             }
         }
     }
@@ -268,7 +278,7 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     auto& XAE = this->template gettmp<SpinorbitalTensor<U>>("XAE");
 
     auto& D = this->template gettmp<Denominator<U>>("D");
-    auto& davidson = this->template gettmp<Davidson<ExcitationOperator<U,2>>>("Davidson");
+    auto& davidson = this->template gettmp<CGDavidson<ExcitationOperator<U,2>>>("Davidson");
 
     auto& Rs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("R");
     auto& Zs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("Z");
@@ -282,7 +292,7 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
 
         for (auto& V : Vs)
         {
-            R -= scalar(conj(R)*V)*V;
+            R -= scalar(conj(V)*R)*V;
         }
         R /= sqrt(aquarius::abs(scalar(conj(R)*R)));
 

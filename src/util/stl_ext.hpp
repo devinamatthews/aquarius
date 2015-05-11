@@ -119,6 +119,7 @@ namespace aquarius
     using std::sort;
     using std::swap;
     using std::remove;
+    using std::rotate;
 
     using std::unique_ptr;
     using std::shared_ptr;

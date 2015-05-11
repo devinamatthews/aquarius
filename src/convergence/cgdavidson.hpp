@@ -1,5 +1,5 @@
-#ifndef _AQUARIUS_DAVIDSON_HPP_
-#define _AQUARIUS_DAVIDSON_HPP_
+#ifndef _AQUARIUS_CGDAVIDSON_HPP_
+#define _AQUARIUS_CGDAVIDSON_HPP_
 
 #include "util/global.hpp"
 
@@ -7,28 +7,20 @@
 #include "task/task.hpp"
 #include "operator/denominator.hpp"
 
+#include "davidson.hpp"
+
 namespace aquarius
 {
 namespace convergence
 {
 
-namespace
-{
-
-template <typename T> bool absGreaterThan(const T& a, const T& b)
-{
-    return aquarius::abs(a) > aquarius::abs(b);
-}
-
-}
-
 template<typename T>
-class Davidson : public task::Destructible
+class CGDavidson : public task::Destructible
 {
     private:
-        Davidson(const Davidson& other);
+        CGDavidson(const CGDavidson& other);
 
-        Davidson& operator=(const Davidson& other);
+        CGDavidson& operator=(const CGDavidson& other);
 
     protected:
         typedef typename T::dtype dtype;
@@ -45,6 +37,8 @@ class Davidson : public task::Destructible
         vector<int> root;
         vector<complex_type_t<dtype>> l;
         marray<dtype,3> vr;
+        vector<bool> lock;
+        vector<dtype> lock_e;
 
         enum {GUESS_OVERLAP, LOWEST_ENERGY, CLOSEST_ENERGY};
 
@@ -67,33 +61,36 @@ class Davidson : public task::Destructible
             root.resize(nvec);
             l.resize(nvec*maxextrap);
             vr.resize({nvec*maxextrap,nvec,maxextrap});
+
+            lock.resize(nvec, false);
+            lock_e.resize(nvec);
         }
 
     public:
-        Davidson(const input::Config& config, int nvec=1)
+        CGDavidson(const input::Config& config, int nvec=1)
         : nvec(nvec), mode(nvec,LOWEST_ENERGY), target(nvec), previous(nvec)
         { init(config); }
 
-        Davidson(const input::Config& config, dtype target)
+        CGDavidson(const input::Config& config, dtype target)
         : nvec(1), mode(1,CLOSEST_ENERGY), target(1,target), previous(1)
         { init(config); }
 
-        Davidson(const input::Config& config, vector<dtype>&& target)
+        CGDavidson(const input::Config& config, vector<dtype>&& target)
         : nvec(target.size()), mode(target.size(),CLOSEST_ENERGY),
           target(forward<vector<dtype>>(target)), previous(target.size())
         { init(config); }
 
-        Davidson(const input::Config& config, T&& guess)
+        CGDavidson(const input::Config& config, T&& guess)
         : guess(1,forward<T>(guess)), nvec(1), mode(1,GUESS_OVERLAP), target(1), previous(1)
         { init(config); }
 
-        Davidson(const input::Config& config, unique_vector<T>&& guess)
+        CGDavidson(const input::Config& config, unique_vector<T>&& guess)
         : guess(move(guess)), nvec(guess.size()), mode(guess.size(),GUESS_OVERLAP),
           target(guess.size()), previous(guess.size())
         { init(config); }
 
         template <typename guess_container>
-        Davidson(const input::Config& config, const guess_container& guess)
+        CGDavidson(const input::Config& config, const guess_container& guess)
         : nvec(guess.size()), mode(guess.size(),GUESS_OVERLAP),
           target(guess.size()), previous(guess.size())
         {
@@ -105,7 +102,7 @@ class Davidson : public task::Destructible
         }
 
         template <typename guess_container>
-        Davidson(const input::Config& config, guess_container&& guess)
+        CGDavidson(const input::Config& config, guess_container&& guess)
         : nvec(guess.size()), mode(guess.size(),GUESS_OVERLAP),
           target(guess.size()), previous(guess.size())
         {
@@ -330,20 +327,24 @@ class Davidson : public task::Destructible
                     }
                     if (found) continue;
 
-                    switch (mode[j])
+                    if (lock[j])
                     {
-                        case GUESS_OVERLAP:
-                            crit = 0.0;
-                            for (int m = 0;m < nextrap;m++)
-                                for (int k = 0;k < nvec;k++)
-                                    crit -= vr[i][k][m]*guess_overlap[j][k][m];
-                            break;
-                        case LOWEST_ENERGY:
-                            crit = real(l[i]);
-                            break;
-                        case CLOSEST_ENERGY:
-                            crit = aquarius::abs(real(l[i])-target[j]);
-                            break;
+                        crit = aquarius::abs(real(l[i])-lock_e[j]);
+                    }
+                    else if (mode[j] == GUESS_OVERLAP)
+                    {
+                        crit = 0.0;
+                        for (int m = 0;m < nextrap;m++)
+                            for (int k = 0;k < nvec;k++)
+                                crit -= vr[i][k][m]*guess_overlap[j][k][m];
+                    }
+                    else if (mode[j] == LOWEST_ENERGY)
+                    {
+                        crit = real(l[i]);
+                    }
+                    else if (mode[j] == CLOSEST_ENERGY)
+                    {
+                        crit = aquarius::abs(real(l[i])-target[j]);
                     }
 
                     if (crit < mincrit && aquarius::abs(imag(l[i])) < 1e-12)
@@ -355,13 +356,13 @@ class Davidson : public task::Destructible
 
                 assert(root[j] != -1);
 
-                if (nextrap > 1 && mode[j] != CLOSEST_ENERGY &&
+                if (nextrap > 1 && mode[j] != CLOSEST_ENERGY && !lock[j] &&
                     aquarius::abs(previous[j]-real(l[root[j]])) < 1e-4)
                 {
                     if (c[0].arena.rank == 0)
                         cout << "Locking root " << (j+1) << endl;
-                    mode[j] = CLOSEST_ENERGY;
-                    target[j] = real(l[root[j]]);
+                    lock[j] = true;
+                    lock_e[j] = real(l[root[j]]);
                 }
                 previous[j] = real(l[root[j]]);
             }
@@ -574,19 +575,35 @@ class Davidson : public task::Destructible
 
         void getSolution(int j, T& s)
         {
-            s = 0;
-            for (int i = nextrap-1;i >= 0;i--)
-            {
-                for (int k = nvec-1;k >= 0;k--)
-                {
-                    s += old_c[i][k]*vr[root[j]][k][i];
-                }
-            }
+            s = old_c[nextrap-1][j];
         }
 
         void clear()
         {
             nextrap = 0;
+            for (int k = 0;k < nvec;k++)
+            {
+                lock[k] = false;
+            }
+        }
+
+        void orthogonalizeToSolution()
+        {
+            nextrap--;
+
+            for (int k = 0;k < nvec;k++)
+            {
+                lock[k] = false;
+                for (int i = 0;i < nextrap;i++)
+                {
+                    dtype olap = scalar(conj(old_c[nextrap][k])*old_c[i][k]);
+                    old_c[i][k] -= olap*old_c[nextrap][k];
+                    old_hc[i][k] -= olap*old_hc[nextrap][k];
+                    dtype nrm = sqrt(aquarius::abs(scalar(conj(old_c[i][k])*old_c[i][k])));
+                    old_c[i][k] /= nrm;
+                    old_hc[i][k] /= nrm;
+                }
+            }
         }
 };
 

@@ -4,6 +4,7 @@
 #include "util/global.hpp"
 
 #include "convergence/davidson.hpp"
+#include "convergence/cgdavidson.hpp"
 #include "util/iterative.hpp"
 #include "operator/2eoperator.hpp"
 #include "operator/st2eoperator.hpp"

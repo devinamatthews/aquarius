@@ -19,3 +19,4 @@ config.log
 config.status
 .dirstamp
 stamp-h1
+.settings
