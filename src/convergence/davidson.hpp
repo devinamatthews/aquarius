@@ -182,6 +182,7 @@ class Davidson : public task::Destructible
 
             if (nextrap == maxextrap) // aka we've reached our maximum iteration
             {
+                cout << "Compacting..." << endl;
                 int M = 5; // Number of vectors to decrease the subspace by
                 int new_nextrap = nextrap - M;
 
@@ -217,6 +218,7 @@ class Davidson : public task::Destructible
                 info = geev('N', 'V', nextrap*nvec, tmp1.data(), nextrap*nvec,
                             l.data(), NULL, 1, tmp3.data(), nextrap*nvec);
                 if (info != 0) throw runtime_error(strprintf("davidson: Info in ggev: %d", info));
+
 
                 for (int k = 0;k < nvec*nextrap;k++)
                 {
@@ -311,11 +313,14 @@ class Davidson : public task::Destructible
                         }
 
                         assert(best_roots[w][j] != -1);
+                        cout << "best_roots["<< w << "][" << j << "] = " << best_roots[w][j] << endl;
+                        cout << "best_crits["<< w << "][" << j << "] = " << best_crits[w][j] << endl;
 
                     }
 
 
                 }
+
 
                 // Build new_old_c and new_old_hc from our best solutions
                 vector<unique_vector<T>> new_old_hc;
@@ -335,7 +340,7 @@ class Davidson : public task::Destructible
                         new_old_hc[w][j] = 0;
                         for (int i = nextrap-1;i >= 0;i--)
                         {
-                            for (int k = nvec-2;k >= 0;k--)
+                            for (int k = nvec-1;k >= 0;k--)
                             {
                                 new_old_c [w][j] +=  old_c[i][k]*vr[best_roots[w][j]][k][i]; // weight each old c by its evec value
                                 new_old_hc[w][j] += old_hc[i][k]*vr[best_roots[w][j]][k][i];
