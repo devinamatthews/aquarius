@@ -185,26 +185,26 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                 R(2) = 0;
 
                 bool print_vecs;
-                print_vecs = false;
+                print_vecs = true;
 
-                if (print_vecs)
-                {
-                    vector<U> temp1;
-                    vector<U> temp2;
-                    R(1)({1,0},{0,1})({0,0}).getAllData(temp1);
-                    R(1)({0,0},{0,0})({0,0}).getAllData(temp2);
+                // if (print_vecs)
+                // {
+                //     vector<U> temp1;
+                //     vector<U> temp2;
+                //     R(1)({1,0},{0,1})({0,0}).getAllData(temp1);
+                //     R(1)({0,0},{0,0})({0,0}).getAllData(temp2);
 
-                    if (arena.rank == 0)
-                    {
-                        cout << " " << endl;
-                        cout << "Root " << j << " R1" << endl;
-                        for (int ii=0; ii<temp1.size(); ii++)
-                        {
-                            cout << ii << " " << temp1[ii] << " " << temp2[ii] << endl;
-                        }
-                        cout << " " << endl;
-                    }
-                }
+                //     if (arena.rank == 0)
+                //     {
+                //         cout << " " << endl;
+                //         cout << "Root " << j << " R1" << endl;
+                //         for (int ii=0; ii<temp1.size(); ii++)
+                //         {
+                //             cout << ii << " " << temp1[ii] << " " << temp2[ii] << endl;
+                //         }
+                //         cout << " " << endl;
+                //     }
+                // }
 
                 Iterative<U>::run(dag, arena);
 
@@ -227,14 +227,24 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                     vector<U> temp2;
                     V(1)({1,0},{0,1})({0,0}).getAllData(temp1);
                     V(1)({0,0},{0,0})({0,0}).getAllData(temp2);
+                    vector<tuple<U,U,U,int>> amps_sorted;
+
+                    for (int ii=0; ii < temp1.size(); ii++)
+                        amps_sorted.emplace_back(-abs(temp1[ii]),temp1[ii],temp2[ii],ii);
+
+                    sort(amps_sorted);
+
+                    double norm = sqrt(aquarius::abs(scalar(conj(V)*V)));
 
                     if (arena.rank == 0)
                     {
                         cout << " " << endl;
+                        cout << "sqrt(aquarius::abs(scalar(conj(V)*V))) = " << norm << endl;
+                        cout << " " << endl;
                         cout << "Root " << j << " V1" << endl;
-                        for (int ii=0; ii<temp1.size(); ii++)
+                        for (int ii=0; ii<30; ii++)
                         {
-                            cout << ii << " " << temp1[ii] << " " << temp2[ii] << endl;
+                            cout << get<3>(amps_sorted[ii]) << " " << get<1>(amps_sorted[ii]) << " " << get<2>(amps_sorted[ii]) << endl;
                         }
                         cout << " " << endl;
                     }
