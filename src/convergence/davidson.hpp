@@ -33,6 +33,7 @@ class Davidson : public task::Destructible
     protected:
         typedef typename T::dtype dtype;
         unique_vector<T> soln;
+        vector<dtype> soln_e;
         vector<unique_vector<T>> old_c; // hold all R[k][i] where i is over nvec and k is over maxextrap
         vector<unique_vector<T>> old_hc; // hold all H*R[i] = Z[i] at every iteration aka Z[k][i]
         unique_vector<T> guess;
@@ -144,7 +145,7 @@ class Davidson : public task::Destructible
             return rt;
         }
 
-        vector<int> getBestRoots()
+        vector<int> getBestRoot()
         {
             return getBestRoots(1)[0];
         }
@@ -208,6 +209,40 @@ class Davidson : public task::Destructible
             nextrap++;
         }
 
+        void getRoot(int r, T& c, T& hc)
+        {
+            getRoot(r, c);
+
+            hc = 0;
+            for (int i = nextrap-1;i >= 0;i--)
+            {
+                for (int k = nvec-1;k >= 0;k--)
+                {
+                    hc += old_hc[i][k]*vr[r][k][i];
+                }
+            }
+            for (int i = 0;i < nsoln;i++)
+            {
+                hc += soln_e[i]*soln[i]*vr2[r][i];
+            }
+        }
+
+        void getRoot(int r, T& c)
+        {
+            c = 0;
+            for (int i = nextrap-1;i >= 0;i--)
+            {
+                for (int k = nvec-1;k >= 0;k--)
+                {
+                    c += old_c[i][k]*vr[r][k][i];
+                }
+            }
+            for (int i = 0;i < nsoln;i++)
+            {
+                c += soln[i]*vr2[r][i];
+            }
+        }
+
     public:
         template <typename... U>
         Davidson(const input::Config& config, U&&... args)
@@ -258,16 +293,7 @@ class Davidson : public task::Destructible
                     {
                         new_old_c[w].emplace_back(c[j]);
                         new_old_hc[w].emplace_back(hc[j]);
-                        new_old_c[w][j] = 0;
-                        new_old_hc[w][j] = 0;
-                        for (int i = nextrap-1;i >= 0;i--)
-                        {
-                            for (int k = nvec-1;k >= 0;k--)
-                            {
-                                new_old_c [w][j] +=  old_c[i][k]*vr[best_roots[w][j]][k][i]; // weight each old c by its evec value
-                                new_old_hc[w][j] += old_hc[i][k]*vr[best_roots[w][j]][k][i];
-                            }
-                        }
+                        getRoot(best_roots[w][j], new_old_c[w][j], new_old_hc[w][j]);
                     }
                 }
 
@@ -285,44 +311,47 @@ class Davidson : public task::Destructible
              */
             int info;
             vector<dtype> beta(nvec*nextrap);
-            marray<dtype,4> tmp1({nvec,nextrap,nvec,nextrap});
-            marray<dtype,4> tmp2({nvec,nextrap,nvec,nextrap});
-            marray<dtype,3> tmp3({nvec*nextrap,nvec,nextrap});
+            marray<dtype,4> e_(e, construct_copy);
+            marray<dtype,4> s_(s, construct_copy);
+            marray<dtype,3> vr_(nvec*nextrap, nvec, nextrap);
+            marray<dtype,2> vr2_(nvec*nextrap, nsoln);
+            marray<dtype,3> o_(o, construct_copy);
+            marray<dtype,2> q_(q, construct_copy);
 
-            for (int m = 0;m < nextrap;m++)
+            if (nsoln > 0)
             {
-                for (int k = 0;k < nvec;k++)
-                {
-                    for (int j = 0;j < nextrap;j++)
-                    {
-                        for (int i = 0;i < nvec;i++)
-                        {
-                            //printf("%15.12f ", e[i][j][k][m]);
-                            tmp1[i][j][k][m] = e[k][m][i][j];
-                            tmp2[i][j][k][m] = s[k][m][i][j];
-                        }
-                    }
-                    //printf("\n");
-                }
+                /*
+                 * Form projected overlap matrix S-O*Q^-1*O^T
+                 */
+                potrf('U', nsoln, q_.data(), nsoln);
+                trsm('L', 'U', 'N', 'N', nsoln, nvec*nextrap, dtype(1.0),
+                     q_.data(), nsoln, o_.data(), nsoln);
+                gemm('T', 'N', nvec*nextrap, nvec*nextrap, nsoln,
+                     dtype(-1.0), o_.data(), nsoln, o_.data(), nsoln,
+                     dtype(1.0), s_.data(), nvec*nextrap);
             }
 
-            info = ggev('N', 'V', nextrap*nvec, tmp1.data(), nextrap*nvec,
-                        tmp2.data(), nextrap*nvec, l.data(), beta.data(), NULL, 1,
-                        tmp3.data(), nextrap*nvec);
-            //info = geev('N', 'V', nextrap*nvec, tmp1.data(), nextrap*nvec,
-            //            l.data(), NULL, 1, tmp3.data(), nextrap*nvec);
+            info = ggev('V', 'N', nextrap*nvec, e_.data(), nextrap*nvec,
+                        s_.data(), nextrap*nvec, l.data(), beta.data(),
+                        vr_.data(), nextrap*nvec, NULL, 1);
             if (info != 0) throw runtime_error(strprintf("davidson: Info in ggev: %d", info));
 
-            for (int k = 0;k < nvec*nextrap;k++)
+            vr = vr_;
+            o_ = o;
+            q_ = q;
+
+            if (nsoln > 0)
             {
-                for (int j = 0;j < nextrap;j++)
-                {
-                    for (int i = 0;i < nvec;i++)
-                    {
-                        vr[k][i][j] = tmp3[k][i][j];
-                    }
-                }
+                /*
+                 * Form solution vectors in the projected space V' = -Q^-1*O^T*V
+                 */
+                gemm('N', 'T', nsoln, nvec*nextrap, nvec*nextrap,
+                     dtype(-1.0), o_.data(), nsoln, vr_.data(), nvec*nextrap,
+                     dtype(0.0), vr2_.data(), nsoln);
+                posv('U', nsoln, nvec*nextrap, q_.data(), nsoln, vr2_.data(), nsoln);
             }
+
+            vr2 = vr2_;
 
             /*
              * Fix sign of eigenvectors
@@ -337,6 +366,7 @@ class Davidson : public task::Destructible
                 if (real(vr[i][k][m]) < 0)
                 {
                     scal(nextrap*nvec, -1, vr[i].data(), 1);
+                    scal(nextrap*nvec, -1, vr2[i].data(), 1);
                 }
             }
 
@@ -355,7 +385,7 @@ class Davidson : public task::Destructible
             /*
              * Assign eigenvalues (exclusively) to states by the selected criterion
              */
-            root = getBestRoots();
+            root = getBestRoot();
 
             for (int j = 0; j < nvec; j++)
             {
@@ -377,17 +407,7 @@ class Davidson : public task::Destructible
                 /*
                  * Form current trial vector y and H*y = x
                  */
-                c [j] = 0;
-                hc[j] = 0;
-
-                for (int i = 0;i < nextrap;i++)
-                {
-                    for (int k = 0;k < nvec;k++)
-                    {
-                        c [j] +=  old_c[i][k]*vr[root[j]][k][i]; // weight each old c by its evec value
-                        hc[j] += old_hc[i][k]*vr[root[j]][k][i]; // same for old_hc. making the new state state
-                    }
-                }
+                getRoot(root[j], c[j], hc[j]);
 
                 if (continuous)
                 {
@@ -411,7 +431,7 @@ class Davidson : public task::Destructible
             {
                 /*
                  * Recompute the error and overlap elements for the last Krylov
-                 * vector (which was replace with the current solution).
+                 * vector (which was replaced with the current solution).
                  */
                 for (int j = 0;j < nvec;j++)
                 {
@@ -437,6 +457,19 @@ class Davidson : public task::Destructible
                         }
                         s[j][nextrap-1][jj][nextrap-1] = snew;
                         e[j][nextrap-1][jj][nextrap-1] = enew;
+                    }
+
+                    for (int jj = 0;jj < nsoln;jj++)
+                    {
+                        dtype onew = 0;
+                        for (int i = 0;i < nextrap;i++)
+                        {
+                            for (int k = 0;k < nvec;k++)
+                            {
+                                onew += o[k][i][jj]*vr[root[j]][k][i];
+                            }
+                        }
+                        o[j][nextrap-1][jj] = onew;
                     }
                 }
 
@@ -493,6 +526,11 @@ class Davidson : public task::Destructible
                     {
                         old_c[nextrap-2][k] -= old_c[nextrap-1][k];
                         old_hc[nextrap-2][k] -= old_hc[nextrap-1][k];
+
+                        for (int i = 0;i < nsoln;i++)
+                        {
+                            o[k][nextrap-2][i] -= o[k][nextrap-1][i];
+                        }
 
                         for (int kk = 0;kk < nvec;kk++)
                         {
@@ -551,6 +589,11 @@ class Davidson : public task::Destructible
                                     e[k][i][kk][ii] = e[k][i+1][kk][ii+1];
                                 }
                             }
+
+                            for (int ii = 0;ii < nsoln;ii++)
+                            {
+                                o[k][i][ii] = o[k][i+1][ii];
+                            }
                         }
                     }
 
@@ -575,18 +618,7 @@ class Davidson : public task::Destructible
             }
             else
             {
-                c = 0;
-                for (int i = nextrap-1;i >= 0;i--)
-                {
-                    for (int k = nvec-1;k >= 0;k--)
-                    {
-                        c += old_c[i][k]*vr[root[j]][k][i];
-                    }
-                }
-                for (int i = nsoln;i >= 0;i--)
-                {
-                    c += soln[i]*vr2[root[j]][i];
-                }
+                getRoot(root[j], c);
             }
         }
 
@@ -628,6 +660,7 @@ class Davidson : public task::Destructible
             q.resize(soln.size()+nvec, soln.size()+nvec);
             for (int i = 0;i < nvec;i++)
             {
+                soln_e.push_back(real(l[root[i]]));
                 soln.emplace_back(old_c[0][0]);
                 getSolution(i, soln.back());
 
