@@ -260,6 +260,8 @@ class Davidson : public task::Destructible
         template <typename c_container, typename hc_container>
         vector<dtype> extrapolate(c_container&& c, hc_container&& hc, const op::Denominator<dtype>& D)
         {
+            using slice::all;
+
             assert(nvec == c.size() && nvec == hc.size());
 	    
             assert(c.size() == nvec);
@@ -311,8 +313,8 @@ class Davidson : public task::Destructible
              */
             int info;
             vector<dtype> beta(nvec*nextrap);
-            marray<dtype,4> e_(e, construct_copy);
-            marray<dtype,4> s_(s, construct_copy);
+            marray<dtype,4> e_(e[all][range(nextrap)][all][range(nextrap)], construct_copy);
+            marray<dtype,4> s_(s[all][range(nextrap)][all][range(nextrap)], construct_copy);
             marray<dtype,3> vr_(nvec*nextrap, nvec, nextrap);
             marray<dtype,2> vr2_(nvec*nextrap, nsoln);
             marray<dtype,3> o_(o, construct_copy);
@@ -336,7 +338,7 @@ class Davidson : public task::Destructible
                         vr_.data(), nextrap*nvec, NULL, 1);
             if (info != 0) throw runtime_error(strprintf("davidson: Info in ggev: %d", info));
 
-            vr = vr_;
+            vr[range(nvec*nextrap)][all][range(nextrap)] = vr_;
             o_ = o;
             q_ = q;
 
@@ -351,7 +353,7 @@ class Davidson : public task::Destructible
                 posv('U', nsoln, nvec*nextrap, q_.data(), nsoln, vr2_.data(), nsoln);
             }
 
-            vr2 = vr2_;
+            vr2[range(nvec*nextrap)][all] = vr2_;
 
             /*
              * Fix sign of eigenvectors
