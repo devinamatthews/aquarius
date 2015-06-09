@@ -240,7 +240,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                     }
                 }
 
-                davidson.clear();
+                davidson.reset();
             }
         }
     }
