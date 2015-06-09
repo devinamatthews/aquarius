@@ -223,7 +223,7 @@ class Davidson : public task::Destructible
             }
             for (int i = 0;i < nsoln;i++)
             {
-                hc += soln_e[i]*soln[i]*vr2[r][i];
+                //hc += soln_e[i]*soln[i]*vr2[r][i];
             }
         }
 
@@ -239,7 +239,7 @@ class Davidson : public task::Destructible
             }
             for (int i = 0;i < nsoln;i++)
             {
-                c += soln[i]*vr2[r][i];
+                //c += soln[i]*vr2[r][i];
             }
         }
 
@@ -316,12 +316,12 @@ class Davidson : public task::Destructible
             marray<dtype,4> e_(e[all][range(nextrap)][all][range(nextrap)], construct_copy);
             marray<dtype,4> s_(s[all][range(nextrap)][all][range(nextrap)], construct_copy);
             marray<dtype,3> vr_(nvec*nextrap, nvec, nextrap);
-            marray<dtype,2> vr2_(nvec*nextrap, nsoln);
-            marray<dtype,3> o_(o, construct_copy);
-            marray<dtype,2> q_(q, construct_copy);
 
             if (nsoln > 0)
             {
+                marray<dtype,3> o_(o[all][range(nextrap)][all], construct_copy);
+                marray<dtype,2> q_(q, construct_copy);
+
                 /*
                  * Form projected overlap matrix S-O*Q^-1*O^T
                  */
@@ -339,11 +339,13 @@ class Davidson : public task::Destructible
             if (info != 0) throw runtime_error(strprintf("davidson: Info in ggev: %d", info));
 
             vr[range(nvec*nextrap)][all][range(nextrap)] = vr_;
-            o_ = o;
-            q_ = q;
 
             if (nsoln > 0)
             {
+                marray<dtype,2> vr2_(nvec*nextrap, nsoln);
+                marray<dtype,3> o_(o[all][range(nextrap)][all], construct_copy);
+                marray<dtype,2> q_(q, construct_copy);
+
                 /*
                  * Form solution vectors in the projected space V' = -Q^-1*O^T*V
                  */
@@ -351,9 +353,9 @@ class Davidson : public task::Destructible
                      dtype(-1.0), o_.data(), nsoln, vr_.data(), nvec*nextrap,
                      dtype(0.0), vr2_.data(), nsoln);
                 posv('U', nsoln, nvec*nextrap, q_.data(), nsoln, vr2_.data(), nsoln);
-            }
 
-            vr2[range(nvec*nextrap)][all] = vr2_;
+                vr2[range(nvec*nextrap)][all] = vr2_;
+            }
 
             /*
              * Fix sign of eigenvectors
@@ -368,7 +370,7 @@ class Davidson : public task::Destructible
                 if (real(vr[i][k][m]) < 0)
                 {
                     scal(nextrap*nvec, -1, vr[i].data(), 1);
-                    scal(nextrap*nvec, -1, vr2[i].data(), 1);
+                    if (nsoln > 0) scal(nsoln, -1, vr2[i].data(), 1);
                 }
             }
 
@@ -674,6 +676,7 @@ class Davidson : public task::Destructible
             }
             reset(forward<Args>(args)...);
             o.resize(nvec, maxextrap, nsoln);
+            vr2.resize(nvec*maxextrap, nsoln);
         }
 };
 

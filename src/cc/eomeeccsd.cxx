@@ -187,7 +187,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                 R(2) = 0;
 
                 bool print_vecs;
-                print_vecs = true;
+                print_vecs = false;
 
                 // if (print_vecs)
                 // {
