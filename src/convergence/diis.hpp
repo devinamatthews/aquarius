@@ -32,8 +32,8 @@ class DIIS
             start = config.get<int>("start");
             damping = config.get<double>("damping");
 
-            e.resize({nextrap+1,nextrap+1});
-            c.resize({nextrap+1});
+            e.resize(nextrap+1, nextrap+1);
+            c.resize(nextrap+1);
 
             old_x.resize(nextrap);
             old_dx.resize(nextrap);

@@ -32,46 +32,57 @@ class Davidson : public task::Destructible
 
     protected:
         typedef typename T::dtype dtype;
+        unique_vector<T> soln;
+        vector<dtype> soln_e;
         vector<unique_vector<T>> old_c; // hold all R[k][i] where i is over nvec and k is over maxextrap
         vector<unique_vector<T>> old_hc; // hold all H*R[i] = Z[i] at every iteration aka Z[k][i]
         unique_vector<T> guess;
         marray<dtype,3> guess_overlap;
-        marray<dtype,4> s, e; // e will hold chc[k]
-        vector<dtype> c;
-        int nvec, maxextrap, nreduce, nextrap; // number of energies, number of iterations
+        marray<dtype,4> s, e;
+        marray<dtype,3> o;
+        marray<dtype,2> q;
+        int nvec, maxextrap, nreduce, nextrap, nsoln; // number of energies, number of iterations
         vector<int> mode;
         vector<dtype> target;
         vector<dtype> previous;
         vector<int> root;
         vector<complex_type_t<dtype>> l;
         marray<dtype,3> vr;
+        marray<dtype,2> vr2;
         vector<bool> lock;
         vector<dtype> lock_e;
         bool continuous;
+        unique_vector<T> solutions;
+        vector<dtype> energies;
 
         enum {GUESS_OVERLAP, LOWEST_ENERGY, CLOSEST_ENERGY};
 
-        void init(const input::Config& config)
+        void parse(const input::Config& config)
         {
-            nextrap = 0;
-            maxextrap = config.get<int>("order"); // max number of iterations
+            nsoln = 0;
+            maxextrap = config.get<int>("order");
             nreduce = config.get<int>("num_reduce");
             continuous = config.get<string>("compaction") == "continuous";
 
-            assert(nvec > 0);
-            assert(maxextrap > 0);
-
-            guess_overlap.resize({nvec, nvec, maxextrap});
-            s.resize({nvec, maxextrap, nvec, maxextrap});
-            e.resize({nvec, maxextrap, nvec, maxextrap});
-            c.resize(maxextrap*nvec);
-
             old_c.resize(maxextrap);
             old_hc.resize(maxextrap);
+        }
+
+        void init(int nvec_, int mode_)
+        {
+            nextrap = 0;
+            nvec = nvec_;
+            mode = vector<int>(nvec, mode_);
+            target.resize(nvec);
+            previous.resize(nvec);
+
+            guess_overlap.resize(nvec, nvec, maxextrap);
+            s.resize(nvec, maxextrap, nvec, maxextrap);
+            e.resize(nvec, maxextrap, nvec, maxextrap);
 
             root.resize(nvec);
             l.resize(nvec*maxextrap);
-            vr.resize({nvec*maxextrap,nvec,maxextrap});
+            vr.resize(nvec*maxextrap, nvec, maxextrap);
 
             lock.resize(nvec, false);
             lock_e.resize(nvec);
@@ -134,56 +145,110 @@ class Davidson : public task::Destructible
             return rt;
         }
 
-        vector<int> getBestRoots()
+        vector<int> getBestRoot()
         {
             return getBestRoots(1)[0];
         }
 
-    public:
-        Davidson(const input::Config& config, int nvec=1)
-        : nvec(nvec), mode(nvec,LOWEST_ENERGY), target(nvec), previous(nvec)
-        { init(config); }
-
-        Davidson(const input::Config& config, dtype target)
-        : nvec(1), mode(1,CLOSEST_ENERGY), target(1,target), previous(1)
-        { init(config); }
-
-        Davidson(const input::Config& config, vector<dtype>&& target)
-        : nvec(target.size()), mode(target.size(),CLOSEST_ENERGY),
-          target(forward<vector<dtype>>(target)), previous(target.size())
-        { init(config); }
-
-        Davidson(const input::Config& config, T&& guess)
-        : guess(1,forward<T>(guess)), nvec(1), mode(1,GUESS_OVERLAP), target(1), previous(1)
-        { init(config); }
-
-        Davidson(const input::Config& config, unique_vector<T>&& guess)
-        : guess(move(guess)), nvec(guess.size()), mode(guess.size(),GUESS_OVERLAP),
-          target(guess.size()), previous(guess.size())
-        { init(config); }
-
-        template <typename guess_container>
-        Davidson(const input::Config& config, const guess_container& guess)
-        : nvec(guess.size()), mode(guess.size(),GUESS_OVERLAP),
-          target(guess.size()), previous(guess.size())
+        template <typename c_container, typename hc_container>
+        void addVectors(c_container&& c, hc_container&& hc)
         {
-            init(config);
-            for (auto& g : guess)
+            for (int i = 0;i < nvec;i++)
             {
-                this->guess.push_back(g);
+                if (i >= old_c[nextrap].size())
+                    old_c[nextrap].emplace_back(c[i]);
+                else
+                    old_c[nextrap][i] = c[i];
+
+                if (i >= old_hc[nextrap].size())
+                    old_hc[nextrap].emplace_back(hc[i]);
+                else
+                    old_hc[nextrap][i] = hc[i];
+            }
+
+            /*
+             * Augment the subspace matrix with the new vectors
+             */
+            for (int i = 0;i < nvec;i++)
+            {
+                /*
+                 * Compute and save overlap with guess for later
+                 */
+                if (!guess.empty())
+                {
+                    for (int j = 0;j < nvec;j++)
+                    {
+                        guess_overlap[j][i][nextrap] = aquarius::abs(scalar(conj(c[i])*guess[j]));
+                    }
+                }
+
+                for (int j = 0;j < nsoln;j++)
+                {
+                    o[i][nextrap][j] = scalar(conj(c[i])*soln[j]);
+                }
+
+                for (int j = 0;j < nvec;j++)
+                {
+                    // "Diagonal"
+                    e[i][nextrap][j][nextrap] = scalar(conj(c[i])*hc[j]);
+                    s[i][nextrap][j][nextrap] = scalar(conj(c[i])* c[j]);
+                    //printf("s %d %d %d %18.15f\n", nextrap, i, j, s[i][nextrap][j][nextrap]);
+
+                    // "Off-diagonal"
+                    for (int k = 0;k < nextrap;k++)
+                    {
+                        e[i][k][j][nextrap] = scalar(conj(old_c[k][i])*    hc   [j]);
+                        e[i][nextrap][j][k] = scalar(conj(    c   [i])*old_hc[k][j]);
+                        s[i][k][j][nextrap] = scalar(conj(old_c[k][i])*     c   [j]);
+                        s[i][nextrap][j][k] = scalar(conj(    c   [i])* old_c[k][j]);
+                        //printf("s %d %d %d %18.15f\n", k, i, j, s[i][nextrap][j][nextrap]);
+                    }
+                }
+            }
+
+            nextrap++;
+        }
+
+        void getRoot(int r, T& c, T& hc)
+        {
+            getRoot(r, c);
+
+            hc = 0;
+            for (int i = nextrap-1;i >= 0;i--)
+            {
+                for (int k = nvec-1;k >= 0;k--)
+                {
+                    hc += old_hc[i][k]*vr[r][k][i];
+                }
+            }
+            for (int i = 0;i < nsoln;i++)
+            {
+                //hc += soln_e[i]*soln[i]*vr2[r][i];
             }
         }
 
-        template <typename guess_container>
-        Davidson(const input::Config& config, guess_container&& guess)
-        : nvec(guess.size()), mode(guess.size(),GUESS_OVERLAP),
-          target(guess.size()), previous(guess.size())
+        void getRoot(int r, T& c)
         {
-            init(config);
-            for (auto& g : guess)
+            c = 0;
+            for (int i = nextrap-1;i >= 0;i--)
             {
-                this->guess.push_back(move(g));
+                for (int k = nvec-1;k >= 0;k--)
+                {
+                    c += old_c[i][k]*vr[r][k][i];
+                }
             }
+            for (int i = 0;i < nsoln;i++)
+            {
+                //c += soln[i]*vr2[r][i];
+            }
+        }
+
+    public:
+        template <typename... U>
+        Davidson(const input::Config& config, U&&... args)
+        {
+            parse(config);
+            reset(forward<U>(args)...);
         }
 
         dtype extrapolate(T& c, T& hc, const op::Denominator<dtype>& D)
@@ -195,6 +260,8 @@ class Davidson : public task::Destructible
         template <typename c_container, typename hc_container>
         vector<dtype> extrapolate(c_container&& c, hc_container&& hc, const op::Denominator<dtype>& D)
         {
+            using slice::all;
+
             assert(nvec == c.size() && nvec == hc.size());
 	    
             assert(c.size() == nvec);
@@ -228,186 +295,66 @@ class Davidson : public task::Destructible
                     {
                         new_old_c[w].emplace_back(c[j]);
                         new_old_hc[w].emplace_back(hc[j]);
-                        new_old_c[w][j] = 0;
-                        new_old_hc[w][j] = 0;
-                        for (int i = nextrap-1;i >= 0;i--)
-                        {
-                            for (int k = nvec-1;k >= 0;k--)
-                            {
-                                new_old_c [w][j] +=  old_c[i][k]*vr[best_roots[w][j]][k][i]; // weight each old c by its evec value
-                                new_old_hc[w][j] += old_hc[i][k]*vr[best_roots[w][j]][k][i];
-                            }
-                        }
+                        getRoot(best_roots[w][j], new_old_c[w][j], new_old_hc[w][j]);
                     }
                 }
 
-                // now fill old_c and old_hc with info from new_old_c and new_old_hc
-
+                nextrap = 0;
                 for (int w = 0; w < new_nextrap; w++)
                 {
-                    for (int i = 0;i < nvec;i++)
-                    {
-                        old_c[w][i] = new_old_c[w][i];
-                        old_hc[w][i] = new_old_hc[w][i];
-                    }
-                }
-
-                // Rebuild e, s, and guess_overlap from old_c and old_hc
-                for (int w = 0; w < new_nextrap; w++)
-                {
-                    for (int i = 0;i < nvec;i++)
-                    {
-                        /*
-                         * Compute and save overlap with guess for later
-                         */
-                        if (!guess.empty())
-                        {
-                            for (int j = 0;j < nvec;j++)
-                            {
-                                guess_overlap[j][i][w] = aquarius::abs(scalar(conj(old_c[w][i])*guess[j]));
-                            }
-                        }
-
-                        for (int j = 0;j < nvec;j++)
-                        {
-                            // "Diagonal"
-                            e[i][w][j][w] = scalar(conj(old_c[w][i])*old_hc[w][j]);
-                            s[i][w][j][w] = scalar(conj(old_c[w][i])*old_c[w][j]);
-                            //printf("s %d %d %d %18.15f\n", nextrap, i, j, s[i][nextrap][j][nextrap]);
-
-                            // "Off-diagonal"
-                            for (int k = 0;k < new_nextrap-1;k++)
-                            {
-                                e[i][k][j][w] = scalar(conj(old_c[k][i])*old_hc[w][j]);
-                                e[i][w][j][k] = scalar(conj(old_c[w][i])*old_hc[k][j]);
-                                s[i][k][j][w] = scalar(conj(old_c[k][i])*old_c[w][j]);
-                                s[i][w][j][k] = scalar(conj(old_c[w][i])*old_c[k][j]);
-                                //printf("s %d %d %d %18.15f\n", k, i, j, s[i][nextrap][j][nextrap]);
-                            }
-                        }
-                    }
-                }
-
-                nextrap = new_nextrap; // reset nextrap accordingly
-            }
-
-            /*
-             * Lazily allocate elements of old_c etc. so that we can
-             * just use the copy ctor and subclasses do not have to
-             * worry about allocation/deallocation
-             */
-
-            if (old_c[nextrap].empty())
-            {
-                for (int i = 0;i < nvec;i++)
-                {
-                    old_c[nextrap].emplace_back(c[i]);
-                }
-            }
-            else
-            {
-                // should only happen after compaction
-                for (int i = 0;i < nvec;i++)
-                {
-                    old_c[nextrap][i] = c[i];
+                    addVectors(new_old_c[w], new_old_hc[w]);
                 }
             }
 
-            if (old_hc[nextrap].empty())
-            {
-                for (int i = 0;i < nvec;i++)
-                {
-                    old_hc[nextrap].emplace_back(hc[i]);
-                }
-            }
-            else
-            {
-                // should only happen after compaction
-                for (int i = 0;i < nvec;i++)
-                {
-                    old_hc[nextrap][i] = hc[i];
-                }
-            }
-
-            /*
-             * Augment the subspace matrix with the new vectors
-             */
-            for (int i = 0;i < nvec;i++)
-            {
-                /*
-                 * Compute and save overlap with guess for later
-                 */
-                if (!guess.empty())
-                {
-                    for (int j = 0;j < nvec;j++)
-                    {
-                        guess_overlap[j][i][nextrap] = aquarius::abs(scalar(conj(c[i])*guess[j]));
-                    }
-                }
-
-                for (int j = 0;j < nvec;j++)
-                {
-                    // "Diagonal"
-                    e[i][nextrap][j][nextrap] = scalar(conj(c[i])*hc[j]);
-                    s[i][nextrap][j][nextrap] = scalar(conj(c[i])* c[j]);
-                    //printf("s %d %d %d %18.15f\n", nextrap, i, j, s[i][nextrap][j][nextrap]);
-
-                    // "Off-diagonal"
-                    for (int k = 0;k < nextrap;k++)
-                    {
-                        e[i][k][j][nextrap] = scalar(conj(old_c[k][i])*    hc   [j]);
-                        e[i][nextrap][j][k] = scalar(conj(    c   [i])*old_hc[k][j]);
-                        s[i][k][j][nextrap] = scalar(conj(old_c[k][i])*     c   [j]);
-                        s[i][nextrap][j][k] = scalar(conj(    c   [i])* old_c[k][j]);
-                        //printf("s %d %d %d %18.15f\n", k, i, j, s[i][nextrap][j][nextrap]);
-                    }
-                }
-            }
-
-            nextrap++;
+            addVectors(c, hc);
 
             /*
              * Diagonalize the subspace matrix to obtain approximate solutions
              */
             int info;
             vector<dtype> beta(nvec*nextrap);
-            marray<dtype,4> tmp1({nvec,nextrap,nvec,nextrap});
-            marray<dtype,4> tmp2({nvec,nextrap,nvec,nextrap});
-            marray<dtype,3> tmp3({nvec*nextrap,nvec,nextrap});
+            marray<dtype,4> e_(e[all][range(nextrap)][all][range(nextrap)], construct_copy);
+            marray<dtype,4> s_(s[all][range(nextrap)][all][range(nextrap)], construct_copy);
+            marray<dtype,3> vr_(nvec*nextrap, nvec, nextrap);
 
-            for (int m = 0;m < nextrap;m++)
+            if (nsoln > 0)
             {
-                for (int k = 0;k < nvec;k++)
-                {
-                    for (int j = 0;j < nextrap;j++)
-                    {
-                        for (int i = 0;i < nvec;i++)
-                        {
-                            //printf("%15.12f ", e[i][j][k][m]);
-                            tmp1[i][j][k][m] = e[k][m][i][j];
-                            tmp2[i][j][k][m] = s[k][m][i][j];
-                        }
-                    }
-                    //printf("\n");
-                }
+                marray<dtype,3> o_(o[all][range(nextrap)][all], construct_copy);
+                marray<dtype,2> q_(q, construct_copy);
+
+                /*
+                 * Form projected overlap matrix S-O*Q^-1*O^T
+                 */
+                potrf('U', nsoln, q_.data(), nsoln);
+                trsm('L', 'U', 'N', 'N', nsoln, nvec*nextrap, dtype(1.0),
+                     q_.data(), nsoln, o_.data(), nsoln);
+                gemm('T', 'N', nvec*nextrap, nvec*nextrap, nsoln,
+                     dtype(-1.0), o_.data(), nsoln, o_.data(), nsoln,
+                     dtype(1.0), s_.data(), nvec*nextrap);
             }
 
-            info = ggev('N', 'V', nextrap*nvec, tmp1.data(), nextrap*nvec,
-                        tmp2.data(), nextrap*nvec, l.data(), beta.data(), NULL, 1,
-                        tmp3.data(), nextrap*nvec);
-            //info = geev('N', 'V', nextrap*nvec, tmp1.data(), nextrap*nvec,
-            //            l.data(), NULL, 1, tmp3.data(), nextrap*nvec);
+            info = ggev('V', 'N', nextrap*nvec, e_.data(), nextrap*nvec,
+                        s_.data(), nextrap*nvec, l.data(), beta.data(),
+                        vr_.data(), nextrap*nvec, NULL, 1);
             if (info != 0) throw runtime_error(strprintf("davidson: Info in ggev: %d", info));
 
-            for (int k = 0;k < nvec*nextrap;k++)
+            vr[range(nvec*nextrap)][all][range(nextrap)] = vr_;
+
+            if (nsoln > 0)
             {
-                for (int j = 0;j < nextrap;j++)
-                {
-                    for (int i = 0;i < nvec;i++)
-                    {
-                        vr[k][i][j] = tmp3[k][i][j];
-                    }
-                }
+                marray<dtype,2> vr2_(nvec*nextrap, nsoln);
+                marray<dtype,3> o_(o[all][range(nextrap)][all], construct_copy);
+                marray<dtype,2> q_(q, construct_copy);
+
+                /*
+                 * Form solution vectors in the projected space V' = -Q^-1*O^T*V
+                 */
+                gemm('N', 'T', nsoln, nvec*nextrap, nvec*nextrap,
+                     dtype(-1.0), o_.data(), nsoln, vr_.data(), nvec*nextrap,
+                     dtype(0.0), vr2_.data(), nsoln);
+                posv('U', nsoln, nvec*nextrap, q_.data(), nsoln, vr2_.data(), nsoln);
+
+                vr2[range(nvec*nextrap)][all] = vr2_;
             }
 
             /*
@@ -423,6 +370,7 @@ class Davidson : public task::Destructible
                 if (real(vr[i][k][m]) < 0)
                 {
                     scal(nextrap*nvec, -1, vr[i].data(), 1);
+                    if (nsoln > 0) scal(nsoln, -1, vr2[i].data(), 1);
                 }
             }
 
@@ -441,7 +389,7 @@ class Davidson : public task::Destructible
             /*
              * Assign eigenvalues (exclusively) to states by the selected criterion
              */
-            root = getBestRoots();
+            root = getBestRoot();
 
             for (int j = 0; j < nvec; j++)
             {
@@ -463,17 +411,7 @@ class Davidson : public task::Destructible
                 /*
                  * Form current trial vector y and H*y = x
                  */
-                c [j] = 0;
-                hc[j] = 0;
-
-                for (int i = 0;i < nextrap;i++)
-                {
-                    for (int k = 0;k < nvec;k++)
-                    {
-                        c [j] +=  old_c[i][k]*vr[root[j]][k][i]; // weight each old c by its evec value
-                        hc[j] += old_hc[i][k]*vr[root[j]][k][i]; // same for old_hc. making the new state state
-                    }
-                }
+                getRoot(root[j], c[j], hc[j]);
 
                 if (continuous)
                 {
@@ -497,7 +435,7 @@ class Davidson : public task::Destructible
             {
                 /*
                  * Recompute the error and overlap elements for the last Krylov
-                 * vector (which was replace with the current solution).
+                 * vector (which was replaced with the current solution).
                  */
                 for (int j = 0;j < nvec;j++)
                 {
@@ -523,6 +461,19 @@ class Davidson : public task::Destructible
                         }
                         s[j][nextrap-1][jj][nextrap-1] = snew;
                         e[j][nextrap-1][jj][nextrap-1] = enew;
+                    }
+
+                    for (int jj = 0;jj < nsoln;jj++)
+                    {
+                        dtype onew = 0;
+                        for (int i = 0;i < nextrap;i++)
+                        {
+                            for (int k = 0;k < nvec;k++)
+                            {
+                                onew += o[k][i][jj]*vr[root[j]][k][i];
+                            }
+                        }
+                        o[j][nextrap-1][jj] = onew;
                     }
                 }
 
@@ -579,6 +530,11 @@ class Davidson : public task::Destructible
                     {
                         old_c[nextrap-2][k] -= old_c[nextrap-1][k];
                         old_hc[nextrap-2][k] -= old_hc[nextrap-1][k];
+
+                        for (int i = 0;i < nsoln;i++)
+                        {
+                            o[k][nextrap-2][i] -= o[k][nextrap-1][i];
+                        }
 
                         for (int kk = 0;kk < nvec;kk++)
                         {
@@ -637,6 +593,11 @@ class Davidson : public task::Destructible
                                     e[k][i][kk][ii] = e[k][i+1][kk][ii+1];
                                 }
                             }
+
+                            for (int ii = 0;ii < nsoln;ii++)
+                            {
+                                o[k][i][ii] = o[k][i+1][ii];
+                            }
                         }
                     }
 
@@ -653,54 +614,69 @@ class Davidson : public task::Destructible
             return myreturn;
         }
 
-        void getSolution(int j, T& s)
+        void getSolution(int j, T& c)
         {
             if (continuous)
             {
-                s = old_c[nextrap-1][j];
+                c = old_c[nextrap-1][j];
             }
             else
             {
-                s = 0;
-                for (int i = nextrap-1;i >= 0;i--)
-                {
-                    for (int k = nvec-1;k >= 0;k--)
-                    {
-                        s += old_c[i][k]*vr[root[j]][k][i];
-                    }
-                }
+                getRoot(root[j], c);
             }
         }
 
-        void clear()
+        void reset(int nvec = 1)
         {
-            nextrap = 0;
-            for (int k = 0;k < nvec;k++)
-            {
-                lock[k] = false;
-            }
+            init(nvec, LOWEST_ENERGY);
         }
 
-        void orthogonalizeToSolution()
+        void reset(dtype t)
         {
-            //TODO: discrete compaction
-            nextrap--;
+            init(1, CLOSEST_ENERGY);
+            target[0] = t;
+        }
 
-            for (int k = 0;k < nvec;k++)
+        void reset(const vector<dtype>& t)
+        {
+            init(target.size(), CLOSEST_ENERGY);
+            target = t;
+        }
+
+        void reset(const T& g)
+        {
+            init(1, GUESS_OVERLAP);
+            guess.push_back(g);
+        }
+
+        template <typename guess_container>
+        enable_if_t<is_same<typename guess_container::value_type,T>::value>
+        reset(const guess_container& gs)
+        {
+            init(guess.size(), GUESS_OVERLAP);
+            for (auto& g : gs) guess.push_back(g);
+        }
+
+        template <typename... Args>
+        void nextRoot(Args&&... args)
+        {
+            nsoln += nvec;
+            q.resize(soln.size()+nvec, soln.size()+nvec);
+            for (int i = 0;i < nvec;i++)
             {
-                lock[k] = false;
-                for (int i = 0;i < nextrap;i++)
+                soln_e.push_back(real(l[root[i]]));
+                soln.emplace_back(old_c[0][0]);
+                getSolution(i, soln.back());
+
+                for (int j = 0;j <= i;j++)
                 {
-                    dtype olap = scalar(conj(old_c[nextrap][k])*old_c[i][k]);
-                    old_c[i][k] -= olap*old_c[nextrap][k];
-                    old_hc[i][k] -= olap*old_hc[nextrap][k];
-                    dtype nrm = sqrt(aquarius::abs(scalar(conj(old_c[i][k])*old_c[i][k])));
-                    old_c[i][k] /= nrm;
-                    old_hc[i][k] /= nrm;
+                    q[i][j] = scalar(conj(soln[i])*soln[j]);
+                    q[j][i] = q[i][j];
                 }
             }
-
-            //TODO: update e, s, guess_overlap
+            reset(forward<Args>(args)...);
+            o.resize(nvec, maxextrap, nsoln);
+            vr2.resize(nvec*maxextrap, nsoln);
         }
 };
 

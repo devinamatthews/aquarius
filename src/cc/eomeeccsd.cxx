@@ -128,12 +128,12 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     // }
 
     auto& Rs = this->puttmp("R", new unique_vector<ExcitationOperator<U,2>>());
-    auto& Vs = this->puttmp("V", new unique_vector<ExcitationOperator<U,2>>());
+    //auto& Vs = this->puttmp("V", new unique_vector<ExcitationOperator<U,2>>());
     auto& Zs = this->puttmp("Z", new unique_vector<ExcitationOperator<U,2>>());
 
     for (int i = 0;i < nirrep;i++)
     {
-        Vs.clear();
+        //Vs.clear();
         Rs.clear();
         Zs.clear();
 
@@ -154,6 +154,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
             Iterative<U>::run(dag, arena, root_idx[i].size());
 
+            /*
             for (int j = 0;j < root_idx[i].size();j++)
             {
                 if (this->isConverged(j))
@@ -164,6 +165,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                     V /= sqrt(aquarius::abs(scalar(conj(V)*V)));
                 }
             }
+            */
         }
         else
         {
@@ -185,7 +187,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                 R(2) = 0;
 
                 bool print_vecs;
-                print_vecs = true;
+                print_vecs = false;
 
                 // if (print_vecs)
                 // {
@@ -213,10 +215,10 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                     this->error(arena) << "Root " << (j+1) << " did not converge." << endl;
                 }
 
-                Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
-                ExcitationOperator<U,2>& V = Vs.back();
-                davidson.getSolution(0, V);
-                if (scalar(V(1)({1,0},{0,1})*V(1)({0,0},{0,0})) < 0)
+                //Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
+                //ExcitationOperator<U,2>& V = Vs.back();
+                davidson.getSolution(0, R);
+                if (scalar(R(1)({1,0},{0,1})*R(1)({0,0},{0,0})) < 0)
                     this->log(arena) << "triplet solution found!" << endl;
                 else
                     this->log(arena) << "singlet solution found!" << endl;
@@ -225,8 +227,8 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                 {
                     vector<U> temp1;
                     vector<U> temp2;
-                    V(1)({1,0},{0,1})({0,0}).getAllData(temp1);
-                    V(1)({0,0},{0,0})({0,0}).getAllData(temp2);
+                    R(1)({1,0},{0,1})({0,0}).getAllData(temp1);
+                    R(1)({0,0},{0,0})({0,0}).getAllData(temp2);
                     vector<tuple<U,U,U,int>> amps_sorted;
 
                     for (int ii=0; ii < temp1.size(); ii++)
@@ -234,14 +236,14 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
                     sort(amps_sorted);
 
-                    double norm = sqrt(aquarius::abs(scalar(conj(V)*V)));
+                    double norm = sqrt(aquarius::abs(scalar(conj(R)*R)));
 
                     if (arena.rank == 0)
                     {
                         cout << " " << endl;
-                        cout << "sqrt(aquarius::abs(scalar(conj(V)*V))) = " << norm << endl;
+                        cout << "sqrt(aquarius::abs(scalar(conj(R)*R))) = " << norm << endl;
                         cout << " " << endl;
-                        cout << "Root " << j << " V1" << endl;
+                        cout << "Root " << j << " R1" << endl;
                         for (int ii=0; ii<30; ii++)
                         {
                             cout << get<3>(amps_sorted[ii]) << " " << get<1>(amps_sorted[ii]) << " " << get<2>(amps_sorted[ii]) << endl;
@@ -250,7 +252,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                     }
                 }
 
-                davidson.clear();
+                davidson.nextRoot();
             }
         }
     }
@@ -288,7 +290,7 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
 
     auto& Rs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("R");
     auto& Zs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("Z");
-    auto& Vs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("V");
+    //auto& Vs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("V");
 
     for (int root = 0;root < this->nsolution();root++)
     {
@@ -296,11 +298,13 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
         ExcitationOperator<U,2>& Z = Zs[root];
         Z = 0;
 
+        /*
         for (auto& V : Vs)
         {
             R -= scalar(conj(V)*R)*V;
         }
         R /= sqrt(aquarius::abs(scalar(conj(R)*R)));
+        */
 
          XMI[  "mi"]  =     WMNEJ["nmei"]*R(1)[  "en"];
          XMI[  "mi"] += 0.5*WMNEF["mnef"]*R(2)["efin"];
