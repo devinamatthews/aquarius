@@ -1676,7 +1676,7 @@ def print_basis(file,basis):
 def print_scf(file):
     file.write('1eints,\n')
     file.write('2eints,\n')
-    file.write('aoscf\n{\n')
+    file.write('localaoscf\n{\n')
     file.write('\tconvergence 1e-9,\n')
     file.write('\tfrozen_core on,\n')
     file.write('\tmax_iterations 100,\n')
