@@ -32,15 +32,12 @@ class Davidson : public task::Destructible
 
     protected:
         typedef typename T::dtype dtype;
-        unique_vector<T> soln;
         vector<dtype> soln_e;
         vector<unique_vector<T>> old_c; // hold all R[k][i] where i is over nvec and k is over maxextrap
         vector<unique_vector<T>> old_hc; // hold all H*R[i] = Z[i] at every iteration aka Z[k][i]
         unique_vector<T> guess;
         marray<dtype,3> guess_overlap;
         marray<dtype,4> s, e;
-        marray<dtype,3> o;
-        marray<dtype,2> q;
         int nvec, maxextrap, nreduce, nextrap, nsoln; // number of energies, number of iterations
         vector<int> mode;
         vector<dtype> target;
@@ -48,101 +45,156 @@ class Davidson : public task::Destructible
         vector<int> root;
         vector<complex_type_t<dtype>> l;
         marray<dtype,3> vr;
-        marray<dtype,2> vr2;
         vector<bool> lock;
         vector<dtype> lock_e;
         bool continuous;
-        unique_vector<T> solutions;
-        vector<dtype> energies;
 
         enum {GUESS_OVERLAP, LOWEST_ENERGY, CLOSEST_ENERGY};
 
         void parse(const input::Config& config)
         {
+            nextrap = 0;
             nsoln = 0;
             maxextrap = config.get<int>("order");
             nreduce = config.get<int>("num_reduce");
             continuous = config.get<string>("compaction") == "continuous";
-
-            old_c.resize(maxextrap);
-            old_hc.resize(maxextrap);
         }
 
         void init(int nvec_, int mode_)
         {
-            nextrap = 0;
+            nextrap = nsoln;
             nvec = nvec_;
-            mode = vector<int>(nvec, mode_);
+            mode.assign(nvec, mode_);
             target.resize(nvec);
-            previous.resize(nvec);
-
-            guess_overlap.resize(nvec, nvec, maxextrap);
-            s.resize(nvec, maxextrap, nvec, maxextrap);
-            e.resize(nvec, maxextrap, nvec, maxextrap);
-
+            previous.assign(nvec, 1e9);
             root.resize(nvec);
-            l.resize(nvec*maxextrap);
-            vr.resize(nvec*maxextrap, nvec, maxextrap);
-
-            lock.resize(nvec, false);
+            lock.assign(nvec, false);
             lock_e.resize(nvec);
+
+            guess_overlap.resize(nvec, nvec, nextrap);
+            s.resize(nvec, nextrap, nvec, nextrap);
+            e.resize(nvec, nextrap, nvec, nextrap);
+            l.resize(nvec*nextrap);
+            vr.resize(nvec*nextrap, nvec, nextrap);
         }
 
         vector<vector<int>> getBestRoots(int n)
         {
-            vector<vector<int>> rt(n, vector<int>(nvec, -1));
+            vector<vector<int>> roots(n, vector<int>(nvec, -1));
+            vector<int> solns(nsoln*nvec, -1);
 
-            for (int s = 0;s < n;s++)
+            for (int idx = 0;idx < nsoln*nvec;idx++)
             {
-                for (int j = 0;j < nvec;j++)
+                dtype crit = numeric_limits<dtype>::max();
+                dtype mincrit = numeric_limits<dtype>::max();
+
+                for (int rt = 0;rt < nextrap*nvec;rt++)
+                {
+                    bool found = false;
+
+                    /*
+                     * Make sure that this root hasn't already been selected
+                     */
+                    for (int idx2 = 0;idx2 < nvec*nsoln;idx2++)
+                    {
+                        if (solns[idx2] == rt)
+                        {
+                            //if (n == 1) printf("Root %d (%.12f) already picked\n", rt+1, real(l[rt]));
+                            found = true;
+                        }
+                    }
+
+                    if (found) continue;
+
+                    crit = aquarius::abs(real(l[rt])-soln_e[idx]);
+                    if (crit < mincrit && aquarius::abs(imag(l[rt])) < 1e-12)
+                    {
+                        //if (n == 1) printf("Solution %d (%.12f) matches root %d (%.12f)\n", idx+1, soln_e[idx], rt+1, real(l[rt]));
+                        mincrit = crit;
+                        solns[idx] = rt;
+                    }
+                }
+
+                assert(solns[idx] != -1);
+            }
+
+            for (int idx = 0;idx < n;idx++)
+            {
+                for (int vec = 0;vec < nvec;vec++)
                 {
                     dtype crit = numeric_limits<dtype>::max();
                     dtype mincrit = numeric_limits<dtype>::max();
 
-                    for (int i = 0;i < nextrap*nvec;i++)
+                    for (int rt = 0;rt < nextrap*nvec;rt++)
                     {
                         bool found = false;
-                        for (int ss = 0;ss < n;ss++)
+
+                        /*
+                         * Make sure that this root hasn't already been selected
+                         */
+                        for (int idx2 = 0;idx2 < n;idx2++)
                         {
-                            for (int jj = 0;jj < nvec;jj++)
+                            for (int vec2 = 0;vec2 < nvec;vec2++)
                             {
-                                if (rt[ss][jj] == i) found = true;
+                                if (roots[idx2][vec2] == rt)
+                                {
+                                    //if (n == 1) printf("Root %d (%.12f) already picked\n", rt+1, real(l[rt]));
+                                    found = true;
+                                }
                             }
                         }
+
+                        /*
+                         * And that it is not a previously converged root
+                         */
+                        for (int idx2 = 0;idx2 < nvec*nsoln;idx2++)
+                        {
+                            if (solns[idx2] == rt)
+                            {
+                                //if (n == 1) printf("Root %d (%.12f) matches solution %d (%.12f)\n", rt+1, real(l[rt]), idx2, soln_e[idx2]);
+                                found = true;
+                            }
+                        }
+
                         if (found) continue;
 
-                        if (lock[j])
+                        if (lock[vec])
                         {
-                            crit = aquarius::abs(real(l[i])-lock_e[j]);
+                            crit = aquarius::abs(real(l[rt])-lock_e[vec]);
                         }
-                        else if (mode[j] == GUESS_OVERLAP)
+                        else if (mode[vec] == GUESS_OVERLAP)
                         {
                             crit = 0.0;
                             for (int m = 0;m < nextrap;m++)
                                 for (int k = 0;k < nvec;k++)
-                                    crit -= vr[i][k][m]*guess_overlap[j][k][m];
+                                    crit -= vr[rt][k][m]*guess_overlap[vec][k][m];
                         }
-                        else if (mode[j] == LOWEST_ENERGY)
+                        else if (mode[vec] == LOWEST_ENERGY)
                         {
-                            crit = real(l[i]);
+                            crit = real(l[rt]);
                         }
-                        else if (mode[j] == CLOSEST_ENERGY)
+                        else if (mode[vec] == CLOSEST_ENERGY)
                         {
-                            crit = aquarius::abs(real(l[i])-target[j]);
+                            crit = aquarius::abs(real(l[rt])-target[vec]);
                         }
 
-                        if (crit < mincrit && aquarius::abs(imag(l[i])) < 1e-12)
+                        if (crit < mincrit && aquarius::abs(imag(l[rt])) < 1e-12)
                         {
+                            //if (n == 1) printf("Root %d (%.12f) picked\n", rt+1, real(l[rt]));
                             mincrit = crit;
-                            rt[s][j] = i;
+                            roots[idx][vec] = rt;
+                        }
+                        else
+                        {
+                            //if (n == 1) printf("Root %d (%.12f) not picked\n", rt+1, real(l[rt]));
                         }
                     }
 
-                    assert(rt[s][j] != -1);
+                    assert(roots[idx][vec] != -1);
                 }
             }
 
-            return rt;
+            return roots;
         }
 
         vector<int> getBestRoot()
@@ -153,93 +205,88 @@ class Davidson : public task::Destructible
         template <typename c_container, typename hc_container>
         void addVectors(c_container&& c, hc_container&& hc)
         {
-            for (int i = 0;i < nvec;i++)
-            {
-                if (i >= old_c[nextrap].size())
-                    old_c[nextrap].emplace_back(c[i]);
-                else
-                    old_c[nextrap][i] = c[i];
+            nextrap++;
 
-                if (i >= old_hc[nextrap].size())
-                    old_hc[nextrap].emplace_back(hc[i]);
+            old_c.resize(max((int)old_c.size(),nextrap));
+            old_hc.resize(max((int)old_hc.size(),nextrap));
+
+            guess_overlap.resize(nvec, nvec, nextrap);
+            s.resize(nvec, nextrap, nvec, nextrap);
+            e.resize(nvec, nextrap, nvec, nextrap);
+            l.resize(nvec*nextrap);
+            vr.resize(nvec*nextrap, nvec, nextrap);
+
+            for (int vec = 0;vec < nvec;vec++)
+            {
+                if (vec >= old_c[nextrap-1].size())
+                    old_c[nextrap-1].emplace_back(c[vec]);
                 else
-                    old_hc[nextrap][i] = hc[i];
+                    old_c[nextrap-1][vec] = c[vec];
+
+                if (vec >= old_hc[nextrap-1].size())
+                    old_hc[nextrap-1].emplace_back(hc[vec]);
+                else
+                    old_hc[nextrap-1][vec] = hc[vec];
+            }
+
+            /*
+             * Compute the overlap with the guess vectors
+             */
+            if (!guess.empty())
+            {
+                for (int cvec = 0;cvec < nvec;cvec++)
+                {
+                    for (int gvec = 0;gvec < nvec;gvec++)
+                    {
+                        guess_overlap[gvec][cvec][nextrap-1] = aquarius::abs(scalar(conj(c[cvec])*guess[gvec]));
+                    }
+                }
             }
 
             /*
              * Augment the subspace matrix with the new vectors
              */
-            for (int i = 0;i < nvec;i++)
+            for (int lvec = 0;lvec < nvec;lvec++)
             {
-                /*
-                 * Compute and save overlap with guess for later
-                 */
-                if (!guess.empty())
+                for (int rvec = 0;rvec < nvec;rvec++)
                 {
-                    for (int j = 0;j < nvec;j++)
+                    e[lvec][nextrap-1][rvec][nextrap-1] = scalar(conj(c[lvec])*hc[rvec]);
+                    s[lvec][nextrap-1][rvec][nextrap-1] = scalar(conj(c[lvec])* c[rvec]);
+
+                    for (int extrap = 0;extrap < nextrap;extrap++)
                     {
-                        guess_overlap[j][i][nextrap] = aquarius::abs(scalar(conj(c[i])*guess[j]));
-                    }
-                }
-
-                for (int j = 0;j < nsoln;j++)
-                {
-                    o[i][nextrap][j] = scalar(conj(c[i])*soln[j]);
-                }
-
-                for (int j = 0;j < nvec;j++)
-                {
-                    // "Diagonal"
-                    e[i][nextrap][j][nextrap] = scalar(conj(c[i])*hc[j]);
-                    s[i][nextrap][j][nextrap] = scalar(conj(c[i])* c[j]);
-                    //printf("s %d %d %d %18.15f\n", nextrap, i, j, s[i][nextrap][j][nextrap]);
-
-                    // "Off-diagonal"
-                    for (int k = 0;k < nextrap;k++)
-                    {
-                        e[i][k][j][nextrap] = scalar(conj(old_c[k][i])*    hc   [j]);
-                        e[i][nextrap][j][k] = scalar(conj(    c   [i])*old_hc[k][j]);
-                        s[i][k][j][nextrap] = scalar(conj(old_c[k][i])*     c   [j]);
-                        s[i][nextrap][j][k] = scalar(conj(    c   [i])* old_c[k][j]);
-                        //printf("s %d %d %d %18.15f\n", k, i, j, s[i][nextrap][j][nextrap]);
+                        e[lvec][   extrap][rvec][nextrap-1] = scalar(conj(old_c[extrap][lvec])*    hc        [rvec]);
+                        e[lvec][nextrap-1][rvec][   extrap] = scalar(conj(    c        [lvec])*old_hc[extrap][rvec]);
+                        s[lvec][   extrap][rvec][nextrap-1] = scalar(conj(old_c[extrap][lvec])*     c        [rvec]);
+                        s[lvec][nextrap-1][rvec][   extrap] = scalar(conj(    c        [lvec])* old_c[extrap][rvec]);
                     }
                 }
             }
-
-            nextrap++;
         }
 
-        void getRoot(int r, T& c, T& hc)
+        void getRoot(int rt, T& c, T& hc)
         {
-            getRoot(r, c);
+            getRoot(rt, c);
 
             hc = 0;
-            for (int i = nextrap-1;i >= 0;i--)
+            for (int extrap = nextrap-1;extrap >= 0;extrap--)
             {
-                for (int k = nvec-1;k >= 0;k--)
+                for (int vec = nvec-1;vec >= 0;vec--)
                 {
-                    hc += old_hc[i][k]*vr[r][k][i];
+                    hc += old_hc[extrap][vec]*vr[rt][vec][extrap];
                 }
-            }
-            for (int i = 0;i < nsoln;i++)
-            {
-                //hc += soln_e[i]*soln[i]*vr2[r][i];
             }
         }
 
-        void getRoot(int r, T& c)
+        void getRoot(int rt, T& c)
         {
             c = 0;
-            for (int i = nextrap-1;i >= 0;i--)
+            for (int extrap = nextrap-1;extrap >= 0;extrap--)
             {
-                for (int k = nvec-1;k >= 0;k--)
+                for (int vec = nvec-1;vec >= 0;vec--)
                 {
-                    c += old_c[i][k]*vr[r][k][i];
+                    c += old_c[extrap][vec]*vr[rt][vec][extrap];
                 }
-            }
-            for (int i = 0;i < nsoln;i++)
-            {
-                //c += soln[i]*vr2[r][i];
             }
         }
 
@@ -270,39 +317,53 @@ class Davidson : public task::Destructible
             /*
              * Check and normalize incoming c and H*c vectors
              */
-            for (int i = 0;i < nvec;i++)
+            for (int vec = 0;vec < nvec;vec++)
             {
-                dtype norm = sqrt(aquarius::abs(scalar(conj(c[i])*c[i])));
-                c[i] /= norm;
-                hc[i] /= norm;
-            }
-
-            if (nextrap == maxextrap) // aka we've reached our maximum iteration
-            {
-                task::Logger::log(c[0].arena) << "Compacting..." << endl;
-                int new_nextrap = max(1, nextrap-nreduce);
-
-                // Determine the new_nextrap best solutions
-                vector<vector<int>> best_roots = getBestRoots(new_nextrap);
-
-                // Build new_old_c and new_old_hc from our best solutions
-                vector<unique_vector<T>> new_old_hc(new_nextrap);
-                vector<unique_vector<T>> new_old_c(new_nextrap);
-
-                for (int w = 0; w < new_nextrap; w++)
+                for (int soln = 0;soln < nsoln;soln++)
                 {
-                    for (int j = 0;j < nvec;j++)
+                    for (int svec = 0;svec < nvec;svec++)
                     {
-                        new_old_c[w].emplace_back(c[j]);
-                        new_old_hc[w].emplace_back(hc[j]);
-                        getRoot(best_roots[w][j], new_old_c[w][j], new_old_hc[w][j]);
+                        dtype olap = aquarius::abs(scalar(conj(old_c[soln][svec])*c[vec]));
+                        c[vec] -= olap*old_c[soln][svec];
+                        hc[vec] -= olap*old_hc[soln][svec];
                     }
                 }
 
-                nextrap = 0;
-                for (int w = 0; w < new_nextrap; w++)
+                dtype norm = sqrt(aquarius::abs(scalar(conj(c[vec])*c[vec])));
+                c[vec] /= norm;
+                hc[vec] /= norm;
+            }
+
+            /*
+             * If the maximum size of the subspace has been reached, a smaller
+             * subspace must be constructed which contains the best approximation
+             * to the solution.
+             */
+            if (nextrap == maxextrap+nsoln)
+            {
+                task::Logger::log(c[0].arena) << "Compacting..." << endl;
+                int new_nextrap = max(nsoln+1, nextrap-nreduce);
+
+                vector<vector<int>> roots = getBestRoots(new_nextrap-nsoln);
+
+                vector<unique_vector<T>> new_c(new_nextrap-nsoln);
+                vector<unique_vector<T>> new_hc(new_nextrap-nsoln);
+
+                for (int extrap = 0; extrap < new_nextrap-nsoln; extrap++)
                 {
-                    addVectors(new_old_c[w], new_old_hc[w]);
+                    new_c[extrap].assign(c.begin(), c.end());
+                    new_hc[extrap].assign(hc.begin(), hc.end());
+
+                    for (int vec = 0;vec < nvec;vec++)
+                    {
+                        getRoot(roots[extrap][vec], new_c[extrap][vec], new_hc[extrap][vec]);
+                    }
+                }
+
+                nextrap = nsoln;
+                for (int extrap = 0; extrap < new_nextrap-nsoln; extrap++)
+                {
+                    addVectors(new_c[extrap], new_hc[extrap]);
                 }
             }
 
@@ -311,124 +372,80 @@ class Davidson : public task::Destructible
             /*
              * Diagonalize the subspace matrix to obtain approximate solutions
              */
-            int info;
             vector<dtype> beta(nvec*nextrap);
-            marray<dtype,4> e_(e[all][range(nextrap)][all][range(nextrap)], construct_copy);
-            marray<dtype,4> s_(s[all][range(nextrap)][all][range(nextrap)], construct_copy);
-            marray<dtype,3> vr_(nvec*nextrap, nvec, nextrap);
+            marray<dtype,4> e_tmp = copy(e);
+            marray<dtype,4> s_tmp = copy(s);
+            marray<dtype,3> vr_tmp = copy(vr);
 
-            if (nsoln > 0)
-            {
-                marray<dtype,3> o_(o[all][range(nextrap)][all], construct_copy);
-                marray<dtype,2> q_(q, construct_copy);
-
-                /*
-                 * Form projected overlap matrix S-O*Q^-1*O^T
-                 */
-                potrf('U', nsoln, q_.data(), nsoln);
-                trsm('L', 'U', 'N', 'N', nsoln, nvec*nextrap, dtype(1.0),
-                     q_.data(), nsoln, o_.data(), nsoln);
-                gemm('T', 'N', nvec*nextrap, nvec*nextrap, nsoln,
-                     dtype(-1.0), o_.data(), nsoln, o_.data(), nsoln,
-                     dtype(1.0), s_.data(), nvec*nextrap);
-            }
-
-            info = ggev('V', 'N', nextrap*nvec, e_.data(), nextrap*nvec,
-                        s_.data(), nextrap*nvec, l.data(), beta.data(),
-                        vr_.data(), nextrap*nvec, NULL, 1);
+            int info = ggev('V', 'N', nextrap*nvec, e_tmp.data(), nextrap*nvec,
+                        s_tmp.data(), nextrap*nvec, l.data(), beta.data(),
+                        vr_tmp.data(), nextrap*nvec, NULL, 1);
             if (info != 0) throw runtime_error(strprintf("davidson: Info in ggev: %d", info));
 
-            vr[range(nvec*nextrap)][all][range(nextrap)] = vr_;
-
-            if (nsoln > 0)
-            {
-                marray<dtype,2> vr2_(nvec*nextrap, nsoln);
-                marray<dtype,3> o_(o[all][range(nextrap)][all], construct_copy);
-                marray<dtype,2> q_(q, construct_copy);
-
-                /*
-                 * Form solution vectors in the projected space V' = -Q^-1*O^T*V
-                 */
-                gemm('N', 'T', nsoln, nvec*nextrap, nvec*nextrap,
-                     dtype(-1.0), o_.data(), nsoln, vr_.data(), nvec*nextrap,
-                     dtype(0.0), vr2_.data(), nsoln);
-                posv('U', nsoln, nvec*nextrap, q_.data(), nsoln, vr2_.data(), nsoln);
-
-                vr2[range(nvec*nextrap)][all] = vr2_;
-            }
+            vr = vr_tmp;
 
             /*
              * Fix sign of eigenvectors
              */
-            for (int i = 0;i < nextrap*nvec;i++)
+            for (int rt = 0;rt < nextrap*nvec;rt++)
             {
-                l[i] /= beta[i];
-                //printf("%15.12f\n", real(l[i]));
+                l[rt] /= beta[rt];
 
-                int k = i/nextrap;
-                int m = nextrap-1;
-                if (real(vr[i][k][m]) < 0)
+                int vec = rt/nextrap;
+                if (real(vr[rt][vec][nextrap-1]) < 0)
                 {
-                    scal(nextrap*nvec, -1, vr[i].data(), 1);
-                    if (nsoln > 0) scal(nsoln, -1, vr2[i].data(), 1);
+                    scal(nextrap*nvec, -1, vr[rt].data(), 1);
                 }
             }
-
-            // cout << "evec check:" << endl;
-            //  for (int i = 0;i < nextrap*nvec;i++)
-            // {
-            //     for (int m = 0;m < nextrap;m++)
-            //     {
-            //         for (int k = 0;k < nvec;k++)
-            //         {
-            //             cout << vr[i][k][m] << endl;
-            //         }
-            //     }
-            // }
 
             /*
              * Assign eigenvalues (exclusively) to states by the selected criterion
              */
             root = getBestRoot();
 
-            for (int j = 0; j < nvec; j++)
+            /*
+             * Check proximity to previous root and lock on if within tolerance
+             */
+            for (int vec = 0; vec < nvec; vec++)
             {
-                if (nextrap > 1 && mode[j] != CLOSEST_ENERGY && !lock[j] &&
-                    aquarius::abs(previous[j]-real(l[root[j]])) < 1e-4)
+                if (nextrap > 1 &&
+                    mode[vec] != CLOSEST_ENERGY &&
+                    !lock[vec] &&
+                    aquarius::abs(previous[vec]-real(l[root[vec]])) < 1e-4)
                 {
-                    task::Logger::log(c[0].arena) << "Locking root " << (j+1) << endl;
-                    lock[j] = true;
-                    lock_e[j] = real(l[root[j]]);
+                    task::Logger::log(c[0].arena) << "Locking root " << (vec+1) << endl;
+                    lock[vec] = true;
+                    lock_e[vec] = real(l[root[vec]]);
                 }
-                previous[j] = real(l[root[j]]);
+                previous[vec] = real(l[root[vec]]);
             }
 
             /*
              * Calculate residuals and apply Davidson correction
              */
-            for (int j = 0;j < nvec;j++)
+            for (int vec = 0;vec < nvec;vec++)
             {
                 /*
                  * Form current trial vector y and H*y = x
                  */
-                getRoot(root[j], c[j], hc[j]);
+                getRoot(root[vec], c[vec], hc[vec]);
 
                 if (continuous)
                 {
                     /*
                      * Save current solution as new vector in the Krylov subspace
                      */
-                    old_c[nextrap-1][j] = c[j];
-                    old_hc[nextrap-1][j] = hc[j];
+                    old_c[nextrap-1][vec] = c[vec];
+                    old_hc[nextrap-1][vec] = hc[vec];
                 }
 
                 /*
                  * Form residual and apply Davidson correction
                  */
-                hc[j] -= real(l[root[j]])*c[j];
-                c[j] = -hc[j];
-                c[j].weight(D, real(l[root[j]]));
-                c[j] /= sqrt(aquarius::abs(scalar(conj(c[j])*c[j])));
+                hc[vec] -= real(l[root[vec]])*c[vec];
+                c[vec] = -hc[vec];
+                c[vec].weight(D, real(l[root[vec]]));
+                c[vec] /= sqrt(aquarius::abs(scalar(conj(c[vec])*c[vec])));
             }
 
             if (continuous)
@@ -437,82 +454,69 @@ class Davidson : public task::Destructible
                  * Recompute the error and overlap elements for the last Krylov
                  * vector (which was replaced with the current solution).
                  */
-                for (int j = 0;j < nvec;j++)
+                for (int lvec = 0;lvec < nvec;lvec++)
                 {
                     //TODO: guess_overlap
 
-                    for (int jj = 0;jj < nvec;jj++)
+                    for (int rvec = 0;rvec < nvec;rvec++)
                     {
                         dtype snew = 0;
                         dtype enew = 0;
-                        for (int i = 0;i < nextrap;i++)
+                        for (int i = 0;i < nvec;i++)
                         {
-                            for (int k = 0;k < nvec;k++)
+                            for (int j = 0;j < nextrap;j++)
                             {
-                                for (int ii = 0;ii < nextrap;ii++)
+                                for (int k = 0;k < nvec;k++)
                                 {
-                                    for (int kk = 0;kk < nvec;kk++)
+                                    for (int l = 0;l < nextrap;l++)
                                     {
-                                        snew += s[k][i][kk][ii]*conj(vr[root[j]][k][i])*vr[root[jj]][kk][ii];
-                                        enew += e[k][i][kk][ii]*conj(vr[root[j]][k][i])*vr[root[jj]][kk][ii];
+                                        snew += conj(vr[root[lvec]][i][j])*s[i][j][k][l]*vr[root[rvec]][k][l];
+                                        enew += conj(vr[root[lvec]][i][j])*e[i][j][k][l]*vr[root[rvec]][k][l];
                                     }
                                 }
                             }
                         }
-                        s[j][nextrap-1][jj][nextrap-1] = snew;
-                        e[j][nextrap-1][jj][nextrap-1] = enew;
-                    }
-
-                    for (int jj = 0;jj < nsoln;jj++)
-                    {
-                        dtype onew = 0;
-                        for (int i = 0;i < nextrap;i++)
-                        {
-                            for (int k = 0;k < nvec;k++)
-                            {
-                                onew += o[k][i][jj]*vr[root[j]][k][i];
-                            }
-                        }
-                        o[j][nextrap-1][jj] = onew;
+                        s[lvec][nextrap-1][rvec][nextrap-1] = snew;
+                        e[lvec][nextrap-1][rvec][nextrap-1] = enew;
                     }
                 }
 
                 /*
                  * ...and the cross elements with the other vectors.
                  */
-                for (int j = 0;j < nvec;j++)
+                for (int vec = 0;vec < nvec;vec++)
                 {
                     //TODO: guess_overlap
 
-                    for (int i = 0;i < nextrap-1;i++)
+                    for (int i = 0;i < nvec;i++)
                     {
-                        for (int k = 0;k < nvec;k++)
+                        for (int j = 0;j < nextrap-1;j++)
                         {
                             dtype snew = 0;
                             dtype enew = 0;
-                            for (int ii = 0;ii < nextrap;ii++)
+                            for (int k = 0;k < nvec;k++)
                             {
-                                for (int kk = 0;kk < nvec;kk++)
+                                for (int l = 0;l < nextrap;l++)
                                 {
-                                    snew += s[k][i][kk][ii]*vr[root[j]][kk][ii];
-                                    enew += e[k][i][kk][ii]*vr[root[j]][kk][ii];
+                                    snew += s[i][j][k][l]*vr[root[vec]][k][l];
+                                    enew += e[i][j][k][l]*vr[root[vec]][k][l];
                                 }
                             }
-                            s[k][i][j][nextrap-1] = snew;
-                            e[k][i][j][nextrap-1] = enew;
+                            s[i][j][vec][nextrap-1] = snew;
+                            e[i][j][vec][nextrap-1] = enew;
 
                             snew = 0;
                             enew = 0;
-                            for (int ii = 0;ii < nextrap;ii++)
+                            for (int k = 0;k < nvec;k++)
                             {
-                                for (int kk = 0;kk < nvec;kk++)
+                                for (int l = 0;l < nextrap;l++)
                                 {
-                                    snew += s[kk][ii][k][i]*conj(vr[root[j]][kk][ii]);
-                                    enew += e[kk][ii][k][i]*conj(vr[root[j]][kk][ii]);
+                                    snew += conj(vr[root[vec]][k][l])*s[k][l][i][j];
+                                    enew += conj(vr[root[vec]][k][l])*e[k][l][i][j];
                                 }
                             }
-                            s[j][nextrap-1][k][i] = snew;
-                            e[j][nextrap-1][k][i] = enew;
+                            s[vec][nextrap-1][i][j] = snew;
+                            e[vec][nextrap-1][i][j] = enew;
                         }
                     }
                 }
@@ -522,53 +526,48 @@ class Davidson : public task::Destructible
                  * with the update vector (u_i = c_i+1 - c_i). Adjust error and
                  * overlap matrices to match.
                  */
-                if (nextrap > 1)
+                if (nextrap > nsoln+1)
                 {
                     //TODO: guess_overlap
 
-                    for (int k = 0;k < nvec;k++)
+                    for (int lvec = 0;lvec < nvec;lvec++)
                     {
-                        old_c[nextrap-2][k] -= old_c[nextrap-1][k];
-                        old_hc[nextrap-2][k] -= old_hc[nextrap-1][k];
+                        old_c[nextrap-2][lvec] -= old_c[nextrap-1][lvec];
+                        old_hc[nextrap-2][lvec] -= old_hc[nextrap-1][lvec];
 
-                        for (int i = 0;i < nsoln;i++)
+                        for (int rvec = 0;rvec < nvec;rvec++)
                         {
-                            o[k][nextrap-2][i] -= o[k][nextrap-1][i];
-                        }
-
-                        for (int kk = 0;kk < nvec;kk++)
-                        {
-                            for (int i = 0;i < nextrap-2;i++)
+                            for (int extrap = 0;extrap < nextrap-2;extrap++)
                             {
-                                s[k][i][kk][nextrap-2] = s[k][i][kk][nextrap-2] -
-                                                         s[k][i][kk][nextrap-1];
-                                e[k][i][kk][nextrap-2] = e[k][i][kk][nextrap-2] -
-                                                         e[k][i][kk][nextrap-1];
+                                s[lvec][extrap][rvec][nextrap-2] = s[lvec][extrap][rvec][nextrap-2] -
+                                                                   s[lvec][extrap][rvec][nextrap-1];
+                                e[lvec][extrap][rvec][nextrap-2] = e[lvec][extrap][rvec][nextrap-2] -
+                                                                   e[lvec][extrap][rvec][nextrap-1];
 
-                                s[k][nextrap-2][kk][i] = s[k][nextrap-2][kk][i] -
-                                                         s[k][nextrap-1][kk][i];
-                                e[k][nextrap-2][kk][i] = e[k][nextrap-2][kk][i] -
-                                                         e[k][nextrap-1][kk][i];
+                                s[lvec][nextrap-2][rvec][extrap] = s[lvec][nextrap-2][rvec][extrap] -
+                                                                   s[lvec][nextrap-1][rvec][extrap];
+                                e[lvec][nextrap-2][rvec][extrap] = e[lvec][nextrap-2][rvec][extrap] -
+                                                                   e[lvec][nextrap-1][rvec][extrap];
                             }
 
-                            s[k][nextrap-2][kk][nextrap-2] = s[k][nextrap-2][kk][nextrap-2] -
-                                                             s[k][nextrap-1][kk][nextrap-2] -
-                                                             s[k][nextrap-2][kk][nextrap-1] +
-                                                             s[k][nextrap-1][kk][nextrap-1];
-                            e[k][nextrap-2][kk][nextrap-2] = e[k][nextrap-2][kk][nextrap-2] -
-                                                             e[k][nextrap-1][kk][nextrap-2] -
-                                                             e[k][nextrap-2][kk][nextrap-1] +
-                                                             e[k][nextrap-1][kk][nextrap-1];
+                            s[lvec][nextrap-2][rvec][nextrap-2] = s[lvec][nextrap-2][rvec][nextrap-2] -
+                                                                  s[lvec][nextrap-1][rvec][nextrap-2] -
+                                                                  s[lvec][nextrap-2][rvec][nextrap-1] +
+                                                                  s[lvec][nextrap-1][rvec][nextrap-1];
+                            e[lvec][nextrap-2][rvec][nextrap-2] = e[lvec][nextrap-2][rvec][nextrap-2] -
+                                                                  e[lvec][nextrap-1][rvec][nextrap-2] -
+                                                                  e[lvec][nextrap-2][rvec][nextrap-1] +
+                                                                  e[lvec][nextrap-1][rvec][nextrap-1];
 
-                            s[k][nextrap-1][kk][nextrap-2] = s[k][nextrap-1][kk][nextrap-2] -
-                                                             s[k][nextrap-1][kk][nextrap-1];
-                            e[k][nextrap-1][kk][nextrap-2] = e[k][nextrap-1][kk][nextrap-2] -
-                                                             e[k][nextrap-1][kk][nextrap-1];
+                            s[lvec][nextrap-1][rvec][nextrap-2] = s[lvec][nextrap-1][rvec][nextrap-2] -
+                                                                  s[lvec][nextrap-1][rvec][nextrap-1];
+                            e[lvec][nextrap-1][rvec][nextrap-2] = e[lvec][nextrap-1][rvec][nextrap-2] -
+                                                                  e[lvec][nextrap-1][rvec][nextrap-1];
 
-                            s[k][nextrap-2][kk][nextrap-1] = s[k][nextrap-2][kk][nextrap-1] -
-                                                             s[k][nextrap-1][kk][nextrap-1];
-                            e[k][nextrap-2][kk][nextrap-1] = e[k][nextrap-2][kk][nextrap-1] -
-                                                             e[k][nextrap-1][kk][nextrap-1];
+                            s[lvec][nextrap-2][rvec][nextrap-1] = s[lvec][nextrap-2][rvec][nextrap-1] -
+                                                                  s[lvec][nextrap-1][rvec][nextrap-1];
+                            e[lvec][nextrap-2][rvec][nextrap-1] = e[lvec][nextrap-2][rvec][nextrap-1] -
+                                                                  e[lvec][nextrap-1][rvec][nextrap-1];
                         }
                     }
                 }
@@ -576,30 +575,14 @@ class Davidson : public task::Destructible
                 /*
                  * If the subspace is full, eject the oldest vector.
                  */
-                if (nextrap == maxextrap)
+                if (nextrap == maxextrap+nsoln)
                 {
-                    rotate(old_c.begin(), old_c.begin()+1, old_c.end());
-                    rotate(old_hc.begin(), old_hc.begin()+1, old_hc.end());
-
-                    for (int i = 0;i < nextrap-1;i++)
-                    {
-                        for (int k = 0;k < nvec;k++)
-                        {
-                            for (int ii = 0;ii < nextrap-1;ii++)
-                            {
-                                for (int kk = 0;kk < nvec;kk++)
-                                {
-                                    s[k][i][kk][ii] = s[k][i+1][kk][ii+1];
-                                    e[k][i][kk][ii] = e[k][i+1][kk][ii+1];
-                                }
-                            }
-
-                            for (int ii = 0;ii < nsoln;ii++)
-                            {
-                                o[k][i][ii] = o[k][i+1][ii];
-                            }
-                        }
-                    }
+                    rotate(old_c.begin()+nsoln, old_c.begin()+nsoln+1, old_c.end());
+                    rotate(old_hc.begin()+nsoln, old_hc.begin()+nsoln+1, old_hc.end());
+                    e[all][range(nsoln,nextrap)][all][all].rotate(0,1,0,0);
+                    s[all][range(nsoln,nextrap)][all][all].rotate(0,1,0,0);
+                    e[all][all][all][range(nsoln,nextrap)].rotate(0,0,0,1);
+                    s[all][all][all][range(nsoln,nextrap)].rotate(0,0,0,1);
 
                     //TODO: guess_overlap
 
@@ -660,23 +643,38 @@ class Davidson : public task::Destructible
         template <typename... Args>
         void nextRoot(Args&&... args)
         {
-            nsoln += nvec;
-            q.resize(soln.size()+nvec, soln.size()+nvec);
-            for (int i = 0;i < nvec;i++)
-            {
-                soln_e.push_back(real(l[root[i]]));
-                soln.emplace_back(old_c[0][0]);
-                getSolution(i, soln.back());
+            //if (!continuous)
+            //{
+                unique_vector<T> c(old_c[0].begin(), old_c[0].end());
+                unique_vector<T> hc(old_hc[0].begin(), old_hc[0].end());
 
-                for (int j = 0;j <= i;j++)
+                for (int vec = 0;vec < nvec;vec++)
                 {
-                    q[i][j] = scalar(conj(soln[i])*soln[j]);
-                    q[j][i] = q[i][j];
+                    getRoot(root[vec], c[vec], hc[vec]);
                 }
+
+                nextrap = nsoln;
+                addVectors(c, hc);
+            //}
+
+            /*
+            using slice::all;
+
+            rotate(old_c.begin()+nsoln, old_c.begin()+nextrap-1, old_c.end());
+            rotate(old_hc.begin()+nsoln, old_hc.begin()+nextrap-1, old_hc.end());
+            e[all][range(nsoln,nextrap)][all][all].rotate(0,-1,0,0);
+            s[all][range(nsoln,nextrap)][all][all].rotate(0,-1,0,0);
+            e[all][all][all][range(nsoln,nextrap)].rotate(0,0,0,-1);
+            s[all][all][all][range(nsoln,nextrap)].rotate(0,0,0,-1);
+            */
+
+            nsoln++;
+            for (int vec = 0;vec < nvec;vec++)
+            {
+                soln_e.push_back(real(l[root[vec]]));
             }
+
             reset(forward<Args>(args)...);
-            o.resize(nvec, maxextrap, nsoln);
-            vr2.resize(nvec*maxextrap, nsoln);
         }
 };
 

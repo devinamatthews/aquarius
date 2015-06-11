@@ -7,3 +7,9 @@
 [submodule "src/external/marray"]
 	path = src/external/marray
 	url = https://github.com/devinamatthews/marray.git
+[submodule "src.external.mpiwrap"]
+	branch = master
+[submodule "src.external.lawrap"]
+	branch = master
+[submodule "src.external.marray"]
+	branch = master

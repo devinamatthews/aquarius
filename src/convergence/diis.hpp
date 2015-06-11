@@ -58,6 +58,8 @@ class DIIS
              */
             rotate( old_x.begin(),  old_x.end()-1,  old_x.end());
             rotate(old_dx.begin(), old_dx.end()-1, old_dx.end());
+            e.rotate(-1, -1);
+            c.rotate(-1);
 
             /*
              * Lazily allocate elements of old_x etc. so that we can
@@ -92,19 +94,6 @@ class DIIS
                 {
                     old_dx[0][i] = dx[i];
                 }
-            }
-
-            /*
-             * Shift the previous error matrix (the last row and column will be discarded)
-             */
-            for (int i = nextrap-1;i > 0;i--)
-            {
-                for (int j = nextrap-1;j > 0;j--)
-                {
-                    e[i][j] = e[i-1][j-1];
-                }
-
-                c[i] = c[i-1];
             }
 
             e[0][0] = 0;

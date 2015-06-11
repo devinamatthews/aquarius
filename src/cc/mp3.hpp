@@ -5,11 +5,9 @@
 
 #include "time/time.hpp"
 #include "task/task.hpp"
-#include "util/iterative.hpp"
 #include "operator/2eoperator.hpp"
 #include "operator/excitationoperator.hpp"
 #include "operator/denominator.hpp"
-#include "convergence/diis.hpp"
 
 namespace aquarius
 {

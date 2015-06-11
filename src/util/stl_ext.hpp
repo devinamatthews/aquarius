@@ -137,6 +137,8 @@ namespace aquarius
     using std::remove_const;
     using std::conditional;
     using std::initializer_list;
+    using std::is_convertible;
+    using std::is_base_of;
 
     using std::iterator;
     using std::iterator_traits;
@@ -796,6 +798,12 @@ namespace aquarius
                     assign(il);
                 }
 
+                template <typename InputIterator>
+                ptr_vector_(InputIterator i0, InputIterator i1)
+                {
+                    assign(i0, i1);
+                }
+
                 ptr_vector_& operator=(const ptr_vector_&) = delete;
 
                 ptr_vector_& operator=(ptr_vector_&&) = default;
@@ -1102,6 +1110,32 @@ namespace aquarius
                     for (auto& ptr : il)
                     {
                         impl_.emplace_back(ptr);
+                    }
+                }
+
+                template <typename InputIterator>
+                enable_if_t<is_convertible<typename iterator_traits<InputIterator>::value_type,value_type>::value>
+                assign(InputIterator i0, InputIterator i1)
+                {
+                    impl_.clear();
+
+                    while (i0 != i1)
+                    {
+                        impl_.emplace_back(new value_type(*i0));
+                        i0++;
+                    }
+                }
+
+                template <typename InputIterator>
+                enable_if_t<is_convertible<typename iterator_traits<InputIterator>::value_type,ptr_type>::value>
+                assign(InputIterator i0, InputIterator i1)
+                {
+                    impl_.clear();
+
+                    while (i0 != i1)
+                    {
+                        impl_.emplace_back(*i0);
+                        i0++;
                     }
                 }
 
@@ -2138,7 +2172,7 @@ namespace aquarius
         vsnprintf(s.data(), n, fmt, list);
         va_end(list);
 
-        return string(s.begin(), s.end());
+        return string(s.begin(), s.end()-1);
     }
 
     template<typename T> string str(const T& t)
