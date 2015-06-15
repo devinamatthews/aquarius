@@ -1,15 +1,12 @@
-[submodule "src/external/mpiwrap"]
+[submodule "src.external.mpiwrap"]
 	path = src/external/mpiwrap
 	url = https://github.com/devinamatthews/mpiwrap.git
-[submodule "src/external/lawrap"]
-	path = src/external/lawrap
-	url = https://github.com/devinamatthews/lawrap.git
-[submodule "src/external/marray"]
-	path = src/external/marray
-	url = https://github.com/devinamatthews/marray.git
-[submodule "src.external.mpiwrap"]
 	branch = master
 [submodule "src.external.lawrap"]
+	path = src/external/lawrap
+	url = https://github.com/devinamatthews/lawrap.git
 	branch = master
 [submodule "src.external.marray"]
+	path = src/external/marray
+	url = https://github.com/devinamatthews/marray.git
 	branch = master
