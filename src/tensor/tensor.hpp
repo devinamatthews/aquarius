@@ -1,419 +1,631 @@
-#ifndef _AQUARIUS_TENSOR_HPP_
-#define _AQUARIUS_TENSOR_HPP_
+#ifndef _AQUARIUS_TENSOR_TENSOR_HPP_
+#define _AQUARIUS_TENSOR_TENSOR_HPP_
 
 #include "util/global.hpp"
+
+#include "ring.hpp"
 
 namespace aquarius
 {
 namespace tensor
 {
 
-template <class Derived, class T> class Tensor;
-template <class Derived, class T> class ScaledTensor;
-template <class Derived, class T> class InvertedTensor;
-template <class Derived, class T> class TensorMult;
-template <class Derived, class T> class TensorDiv;
+typedef uint64_t capability_type;
 
-class TensorError;
-class OutOfBoundsError;
-class LengthMismatchError;
-class IndexMismatchError;
-class InvalidNdimError;
-class InvalidLengthError;
-class InvalidLdError;
-class LdTooSmallError;
-class SymmetryMismatchError;
-class InvalidSymmetryError;
-class InvalidStartError;
+enum Capability : capability_type
+{
+    CONST_       = 0x8000000000000000u,
+    DIVISIBLE_   = 0x4000000000000000u,
+    INDEXABLE_   = 0x2000000000000000u,
+    BOUNDED_     = 0x1000000000000000u,
+    DISTRIBUTED_ = 0x0800000000000000u,
+    IPSYMMETRIC_ = 0x0400000000000000u,
+    PGSYMMETRIC_ = 0x0200000000000000u,
+    SPINORBITAL_ = 0x0100000000000000u,
 
-#define INHERIT_FROM_TENSOR(Derived,T) \
-    public: \
-        using aquarius::tensor::Tensor< Derived,T >::getDerived; \
-        using aquarius::tensor::Tensor< Derived,T >::operator=; \
-        using aquarius::tensor::Tensor< Derived,T >::operator+=; \
-        using aquarius::tensor::Tensor< Derived,T >::operator-=; \
-        using aquarius::tensor::Tensor< Derived,T >::operator*=; \
-        using aquarius::tensor::Tensor< Derived,T >::operator/=; \
-        using aquarius::tensor::Tensor< Derived,T >::operator*; \
-        using aquarius::tensor::Tensor< Derived,T >::operator/; \
-        using aquarius::tensor::Tensor< Derived,T >::name; \
-        Derived & operator=(const Derived & other) \
-        { \
-            sum((T)1, false, other, (T)0); \
-            return *this; \
-        } \
-    private:
+    DIVISIBLE    = DIVISIBLE_,
+    INDEXABLE    = INDEXABLE_,
+    BOUNDED      = (BOUNDED_|INDEXABLE),
+    DISTRIBUTED  = DISTRIBUTED_,
+    IPSYMMETRIC  = (IPSYMMETRIC_|INDEXABLE),
+    PGSYMMETRIC  = PGSYMMETRIC_,
+    SPINORBITAL  = (SPINORBITAL_|IPSYMMETRIC|BOUNDED),
+};
 
-template <class Derived, typename T>
-class Tensor
+/*******************************************************************************
+ *
+ * Macro Helpers
+ *
+ ******************************************************************************/
+
+#define IS_POWER_OF_TWO(x) ((x) > 0 && ((x)&(x-1)) == 0)
+#define LOW_BIT(x) ((x)^((x)&((x)-1)))
+
+#define ARE_DISTINCT(a,b) (((a)&(b))==0)
+#define IS_SUPERSET_OF(a,b) (((a)&(b))==(b))
+#define IS_STRICT_SUPERSET_OF(a,b) (IS_SUPERSET_OF(a,b)&&((a)!=(b)))
+
+#define TREE_BASE(TreeBase,Base,Root,cargs,pargs,bargs,...) \
+template <capability_type C, capability_type C_=C, capability_type C__=0> \
+struct TreeBase : public TreeBase<C, (C_-C__), LOW_BIT(C_-C__)>, Base<C__> \
+{ TreeBase cargs : TreeBase<C, (C_-C__), LOW_BIT(C_-C__)> pargs , Base<C__> bargs __VA_ARGS__ }; \
+\
+template <capability_type C> \
+struct TreeBase<C, 0, 0> : public Root<C> { TreeBase cargs : Root<C> pargs {} }; \
+\
+template <capability_type C, capability_type C_> \
+struct TreeBase<C, C_, 0> : public TreeBase<C, C_, LOW_BIT(C_)> \
+{ TreeBase cargs : TreeBase<C, C_, LOW_BIT(C_)> pargs {} };
+
+#define INLINE_BASE(InlineBase,Base,Root,cargs,pargs,...) \
+template <capability_type C, capability_type C_=C, capability_type C__=0> \
+struct InlineBase : public Base<C, C__, InlineBase<C, (C_-C__), LOW_BIT(C_-C__)>> \
+{ InlineBase cargs : Base<C, C__, InlineBase<C, (C_-C__), LOW_BIT(C_-C__)>> pargs __VA_ARGS__ }; \
+\
+template <capability_type C> \
+struct InlineBase<C, 0, 0> : public Root<C> { InlineBase cargs : Root<C> pargs {} }; \
+\
+template <capability_type C, capability_type C_> \
+struct InlineBase<C, C_, 0> : public InlineBase<C, C_, LOW_BIT(C_)> \
+{ InlineBase cargs : InlineBase<C, C_, LOW_BIT(C_)> pargs {} };
+
+#define DONT_NEED_INITIALIZATION (CONST_|DIVISIBLE)
+#define INITIALIZER_TYPE(C) TensorInitializerList<((C)&(~DONT_NEED_INITIALIZATION))>
+
+#define TENSOR_INTERFACE(C_) \
+template <> class TensorInterface<C_> : public Destructible
+
+#define TENSOR_DEFINITION(C_) \
+template <capability_type C, class Base> \
+class TensorDefinition<C, C_, Base> : public Base
+
+#define TENSOR_WRAPPER(C_) \
+template <capability_type C, class Base> \
+class TensorWrapper<C, C_, Base> : public Base
+
+/*******************************************************************************
+ *
+ * Forward Declarations
+ *
+ ******************************************************************************/
+
+class ConstScaledTensor;
+class ScaledTensor;
+class TensorMult;
+
+template <capability_type C=0> class Tensor;
+template <capability_type C=0> class ConstTensor;
+
+template <capability_type C=0, typename=void> class TensorImplementation;
+
+template <capability_type C=0> class TensorInitializer {};
+template <capability_type C> class TensorInitializerList;
+
+template <capability_type C> class TensorInterface {};
+
+template <capability_type C, capability_type C_, class Base> class TensorDefinition : public Base
 {
     public:
-        typedef T dtype;
+        TensorDefinition(const INITIALIZER_TYPE(C)& ilist) : Base(ilist) {}
+};
+
+template <capability_type C, capability_type C_, class Base> class TensorWrapper {};
+
+/**************************************************************************************************
+ *
+ * Tensor Initialization
+ *
+ *************************************************************************************************/
+
+/*
+ * Class to hold initialization data for the base Tensor class.
+ */
+class TensorInitializer_ : public Destructible
+{
+    public:
         const string name;
-        
-        Tensor(const string& name) : name(name) {}
+        const Field F;
+        const Ring R;
 
-        virtual ~Tensor() {}
+        TensorInitializer_(const string& name, Field F, Ring R)
+        : name(name), F(F), R(R) {}
+};
 
-        Derived& getDerived() { return static_cast<Derived&>(*this); }
+/*
+ * Generic initializer type which stores any number of specialized initializers.
+ * This type is constructed from TensorInitializer by concatenation with the << operator.
+ */
+template <capability_type C=0> class TensorInitializerList
+: public map<capability_type, shared_ptr<Destructible>>
+{
+    template <capability_type C_> friend class TensorInitializerList;
 
-        const Derived& getDerived() const { return static_cast<const Derived&>(*this); }
-
-        /**********************************************************************
-         *
-         * Operators with scalars
-         *
-         *********************************************************************/
-        Derived& operator=(const T val)
+    protected:
+        template <capability_type C_>
+        enable_if_t<IS_POWER_OF_TWO(C_)>
+        addInitializer(const TensorInitializer<C_>& init)
         {
-            sum(val, (T)0);
-            return getDerived();
+            (*this)[C_].reset(new TensorInitializer<C_>(init));
         }
 
-        Derived& operator+=(const T val)
+        template <capability_type C_,
+                  capability_type C__=C_,
+                  capability_type C___=0>
+        struct AddInitializer : AddInitializer<C_, (C__-C___), LOW_BIT(C__-C___)>
         {
-            sum(val, (T)1);
-            return getDerived();
+            AddInitializer(TensorInitializerList& parent, const TensorInitializerList<C_>& ilist)
+            : AddInitializer<C_, (C__-C___), LOW_BIT(C__-C___)>(parent, ilist)
+            {
+                parent.addInitializer(static_cast<const TensorInitializer<C___>&>(*ilist.at(C___)));
+            }
+
+            AddInitializer(TensorInitializerList& parent, const TensorImplementation<C_>& impl)
+            : AddInitializer<C_, (C__-C___), LOW_BIT(C__-C___)>(parent, impl)
+            {
+                parent.addInitializer(static_cast<const TensorInitializer<C___>&>(impl));
+            }
+        };
+
+        template <capability_type C_>
+        struct AddInitializer<C_, 0, 0>
+        {
+            AddInitializer(TensorInitializerList& parent, const TensorInitializerList<C_>& ilist)
+            {
+                auto it1 = parent.find(0);
+                auto it2 = ilist.find(0);
+
+                if (it2 != ilist.end())
+                {
+                    assert(it1 == parent.end());
+                    parent[0] = ilist.at(0);
+                }
+            }
+
+            AddInitializer(TensorInitializerList& parent, const TensorImplementation<C_>& impl)
+            {
+                parent[0].reset(new TensorInitializer_(impl));
+            }
+        };
+
+        template <capability_type C_, capability_type C__>
+        struct AddInitializer<C_, C__, 0> : AddInitializer<C_, C__, LOW_BIT(C__)>
+        {
+            AddInitializer(TensorInitializerList& parent, const TensorInitializerList<C_>& ilist)
+            : AddInitializer<C_, C__, LOW_BIT(C__)>(parent, ilist) {}
+
+            AddInitializer(TensorInitializerList& parent, const TensorImplementation<C_>& impl)
+            : AddInitializer<C_, C__, LOW_BIT(C__)>(parent, impl) {}
+        };
+
+        template <capability_type C_>
+        void addInitializer(const TensorInitializerList<C_>& ilist)
+        {
+            AddInitializer<C_>(*this, ilist);
         }
 
-        Derived& operator-=(const T val)
-        {
-            sum(-val, (T)1);
-            return getDerived();
-        }
+    public:
+        /*
+         * Allow initialization of a new initializer list from another which has a
+         * subset of capabilities.
+         */
+        template <capability_type C_>
+        TensorInitializerList(const TensorInitializerList<C_>& other,
+                              enable_if_t<IS_STRICT_SUPERSET_OF(C,C_)>* = 0)
+        : map<capability_type, shared_ptr<Destructible>>(other) {}
 
-        Derived& operator*=(const T val)
-        {
-            mult(val);
-            return getDerived();
-        }
-
-        Derived& operator/=(const T val)
-        {
-            mult(1.0/val);
-            return getDerived();
-        }
-
-        /**********************************************************************
-         *
-         * Binary operations (multiplication and division)
-         *
-         *********************************************************************/
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator=(const TensorMult<cvDerived,T>& other)
-        {
-            mult(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)0);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator+=(const TensorMult<cvDerived,T>& other)
-        {
-            mult(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)1);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator-=(const TensorMult<cvDerived,T>& other)
-        {
-            mult(-other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)1);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator=(const TensorDiv<cvDerived,T>& other)
-        {
-            div(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)0);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator+=(const TensorDiv<cvDerived,T>& other)
-        {
-            div(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)1);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator-=(const TensorDiv<cvDerived,T>& other)
-        {
-            div(-other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)1);
-            return getDerived();
-        }
-
-        /**********************************************************************
-         *
-         * Unary operations (assignment, summation, multiplication, and division)
-         *
-         *********************************************************************/
+        TensorInitializerList() {}
 
         /*
-         * Automatically generated assignment operator exists in spite of
-         * (and precedes) template assignment operator, so a non-template
-         * one must be given
+         * Allow initialization of a new initializer list from another which has
+         * the same set or a superset of capabilities.
          */
-        Derived& operator=(const Derived& other)
+        template <capability_type C_>
+        TensorInitializerList(const TensorInitializerList<C_>& other,
+                              enable_if_t<IS_SUPERSET_OF(C_,C)>* = 0)
         {
-            sum((T)1, false, other, (T)0);
-            return getDerived();
+            for (auto& i : other)
+            {
+                if (!i.first || !ARE_DISTINCT(i.first,C)) (*this)[i.first] = i.second;
+            }
         }
-
-        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
-        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator=(cvDerived& other)
-        {
-            sum((T)1, false, other, (T)0);
-            return getDerived();
-        }
-
-        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
-        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator+=(cvDerived& other)
-        {
-            sum((T)1, false, other, (T)1);
-            return getDerived();
-        }
-
-        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
-        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator-=(cvDerived& other)
-        {
-            sum((T)(-1), false, other, (T)1);
-            return getDerived();
-        }
-
-        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
-        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator*=(cvDerived& other)
-        {
-            mult((T)1, false, getDerived(), false, other, (T)0);
-            return getDerived();
-        }
-
-        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
-        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator/=(cvDerived& other)
-        {
-            div((T)1, false, getDerived(), false, other, (T)0);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator=(const ScaledTensor<cvDerived,T>& other)
-        {
-            sum(other.factor_, other.conj_, other.tensor_, (T)0);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator+=(const ScaledTensor<cvDerived,T>& other)
-        {
-            sum(other.factor_, other.conj_, other.tensor_, (T)1);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator-=(const ScaledTensor<cvDerived,T>& other)
-        {
-            sum(-other.factor_, other.conj_, other.tensor_, (T)1);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator*=(const ScaledTensor<cvDerived,T>& other)
-        {
-            mult(other.factor_, false, getDerived(), other.conj_, other.tensor_, (T)0);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator/=(const ScaledTensor<cvDerived,T>& other)
-        {
-            div((T)1/other.factor_, false, getDerived(), other.conj_, other.tensor_, (T)0);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator=(const InvertedTensor<cvDerived,T>& other)
-        {
-            invert(other.factor_, other.conj_, other.tensor_, (T)0);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator+=(const InvertedTensor<cvDerived,T>& other)
-        {
-            invert(other.factor_, other.conj_, other.tensor_, (T)1);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator-=(const InvertedTensor<cvDerived,T>& other)
-        {
-            invert(-other.factor_, other.conj_, other.tensor_, (T)0);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator*=(const InvertedTensor<cvDerived,T>& other)
-        {
-            div(other.factor_, false, getDerived(), other.conj_, other.tensor_, (T)0);
-            return getDerived();
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator/=(const InvertedTensor<cvDerived,T>& other)
-        {
-            mult((T)1/other.factor_, false, getDerived(), other.conj_, other.tensor_, (T)0);
-            return getDerived();
-        }
-
-        /**********************************************************************
-         *
-         * Intermediate operations
-         *
-         *********************************************************************/
-        friend ScaledTensor<Derived,T> operator*(const T factor, Derived& other)
-        {
-            return ScaledTensor<Derived,T>(other.getDerived(), factor);
-        }
-
-        friend ScaledTensor<const Derived,T> operator*(const T factor, const Derived& other)
-        {
-            return ScaledTensor<const Derived,T>(other.getDerived(), factor);
-        }
-
-        ScaledTensor<Derived,T> operator*(const T factor)
-        {
-            return ScaledTensor<Derived,T>(getDerived(), factor);
-        }
-
-        ScaledTensor<const Derived,T> operator*(const T factor) const
-        {
-            return ScaledTensor<const Derived,T>(getDerived(), factor);
-        }
-
-        friend InvertedTensor<const Derived,T> operator/(const T factor, const Derived& other)
-        {
-            return InvertedTensor<const Derived,T>(other.getDerived(), factor);
-        }
-
-        ScaledTensor<Derived,T> operator/(const T factor)
-        {
-            return ScaledTensor<Derived,T>(getDerived(), (T)1/factor);
-        }
-
-        ScaledTensor<const Derived,T> operator/(const T factor) const
-        {
-            return ScaledTensor<const Derived,T>(getDerived(), (T)1/factor);
-        }
-
-        ScaledTensor<Derived,T> operator-()
-        {
-            return ScaledTensor<Derived,T>(getDerived(), (T)(-1));
-        }
-
-        ScaledTensor<const Derived,T> operator-() const
-        {
-            return ScaledTensor<const Derived,T>(getDerived(), (T)(-1));
-        }
-
-        friend ScaledTensor<const Derived,T> conj(const Derived& t)
-        {
-            return ScaledTensor<const Derived,T>(t.getDerived(), (T)1, true);
-        }
-
-        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, TensorMult<Derived,T>>
-        //ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
-        operator*(const cvDerived& other) const
-        {
-            return TensorMult<Derived,T>(ScaledTensor<const Derived,T>(getDerived(), (T)1),
-                                         ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
-        }
-
-        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, TensorDiv<Derived,T>>
-        //ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorDiv<Derived,T>))
-        operator/(const cvDerived& other) const
-        {
-            return TensorDiv<Derived,T>(ScaledTensor<const Derived,T>(getDerived(), (T)1),
-                                        ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
-        }
-
-        /**********************************************************************
-         *
-         * Stubs
-         *
-         *********************************************************************/
 
         /*
-         * this = alpha*this + beta*A*B
+         * Allow initialization of a new initializer list from an existing
+         * implementation which has the same or a superset of capabilities.
          */
-        virtual void mult(const T alpha, bool conja, const Derived& A,
-                                         bool conjb, const Derived& B, const T beta) = 0;
+        template <capability_type C_>
+        TensorInitializerList(const TensorImplementation<C_>& other,
+                              enable_if_t<IS_SUPERSET_OF(C_,C)>* = 0)
+        {
+            AddInitializer<C_>(*this, other);
+            for (capability_type C__ = CONST_;C__ > 0;C__ >>= 1)
+            {
+                if (ARE_DISTINCT(C__,C)) erase(C__);
+            }
+        }
+
+        /*
+         * Additional initializers may be added to the list by the << operator,
+         * although the new initializer may not already be present.
+         *
+         * Checking for IS_POWER_OF_TWO(C_) ensures that the new initializar represents
+         * only one capability, and that this specialization is not selected for something
+         * like class TensorInitializer<A|B> : TensorInitializerList<A|B>.
+         */
+        template <capability_type C_>
+        enable_if_t<IS_POWER_OF_TWO(C_)&&ARE_DISTINCT(C,C_),TensorInitializerList<C|C_>>
+        operator<<(const TensorInitializer<C_>& init) const
+        {
+            /*
+             * Can't use ret.swap(*this) since *this is const
+             * (a non-member function taking rvalue-refs would be ideal).
+             */
+            TensorInitializerList<C|C_> ret(*this);
+            ret.addInitializer(init);
+            return ret;
+        }
+
+        /*
+         * Initializer lists may also be concatenated providing they
+         * provide distinct capabilities.
+         */
+        template <capability_type C_>
+        enable_if_t<ARE_DISTINCT(C,C_),TensorInitializerList<C|C_>>
+        operator<<(const TensorInitializerList<C_>& ilist) const
+        {
+            TensorInitializerList<C|C_> ret(*this);
+            typename TensorInitializerList<C|C_>::template AddInitializer<C_>(ret, ilist);
+            return ret;
+        }
+
+        template <capability_type C_>
+        TensorInitializer<C_>& as()
+        {
+            return const_cast<TensorInitializer<C_>&>(const_cast<const TensorInitializerList<C>&>(*this).as<C_>());
+        }
+
+        template <capability_type C_>
+        const TensorInitializer<C_>& as() const
+        {
+            return static_cast<const TensorInitializer<C_>&>(*this->at(C_));
+        }
+};
+
+/*
+ * Convenience function since << should be commutative for this purpose.
+ */
+template <capability_type C1, capability_type C2>
+enable_if_t<IS_POWER_OF_TWO(C1),TensorInitializerList<C1|C2>>
+operator<<(const TensorInitializer<C1>& init, const TensorInitializerList<C2>& ilist)
+{
+    return ilist << init;
+}
+
+/*
+ * Convenience function.
+ */
+template <capability_type C1, capability_type C2>
+enable_if_t<IS_POWER_OF_TWO(C1)&&IS_POWER_OF_TWO(C2),TensorInitializerList<C1|C2>>
+operator<<(const TensorInitializer<C1>& init1, const TensorInitializer<C2>& init2)
+{
+    return TensorInitializerList<>() << init1 << init2;
+}
+
+/*
+ * Thin wrapper which just creates a TensorInitializer_. Since this derives from
+ * TensorInitializerList<> with a public constructor, this is the only way to
+ * generate an initializer list, ensuring this information is present (alas, it
+ * does not guarantee that it is not provided multiple times, in which case the behavior
+ * is undefined).
+ */
+template <> class TensorInitializer<> : public TensorInitializerList<>
+{
+    public:
+        TensorInitializer() : TensorInitializerList<>()
+        {
+            Field F(Field::DOUBLE);
+            (*this)[0] = shared_ptr<Destructible>(new TensorInitializer_("?", F, F));
+        }
+
+        TensorInitializer(Field F) : TensorInitializerList<>()
+        {
+            (*this)[0] = shared_ptr<Destructible>(new TensorInitializer_("?", F, F));
+        }
+
+        TensorInitializer(Field F, Ring R) : TensorInitializerList<>()
+        {
+            (*this)[0] = shared_ptr<Destructible>(new TensorInitializer_("?", F, R));
+        }
+
+        TensorInitializer(const string& name) : TensorInitializerList<>()
+        {
+            Field F(Field::DOUBLE);
+            (*this)[0] = shared_ptr<Destructible>(new TensorInitializer_(name, F, F));
+        }
+
+        TensorInitializer(const string& name, Field F) : TensorInitializerList<>()
+        {
+            (*this)[0] = shared_ptr<Destructible>(new TensorInitializer_(name, F, F));
+        }
+
+        TensorInitializer(const string& name, Field F, Ring R) : TensorInitializerList<>()
+        {
+            (*this)[0] = shared_ptr<Destructible>(new TensorInitializer_(name, F, R));
+        }
+};
+
+/**************************************************************************************************
+ *
+ * Tensor Implementation Base Specialization
+ *
+ *************************************************************************************************/
+
+/*
+ * No-capability specialization; this provides the operations universal to all
+ * tensor types
+ *
+ * This also serves as a type-erased base class for return values and
+ * capability-agnostic storage
+ */
+template <>
+class TensorImplementation<> : public TensorInitializer_
+{
+    template <capability_type C_> friend class ConstTensor;
+
+    protected:
+        map<capability_type,void*> ptr;
+
+        virtual Tensor<> construct(const map<capability_type,shared_ptr<Destructible>>& ilist) = 0;
+
+    public:
+        const capability_type C;
+
+        template <capability_type C__>
+        TensorImplementation(capability_type C_, const TensorInitializerList<C__>& ilist)
+        : TensorInitializer_(static_cast<const TensorInitializer_&>(*ilist.at(0))),
+          C(C_)
+        {
+            assert(R == F); //for now
+        }
+
+        template <capability_type C>
+        enable_if_t<IS_POWER_OF_TWO(C),TensorInterface<C>&> as()
+        {
+            return const_cast<TensorInterface<C>&>(const_cast<const TensorImplementation<>&>(*this).as<C>());
+        }
+
+        template <capability_type C>
+        enable_if_t<IS_POWER_OF_TWO(C),const TensorInterface<C>&> as() const
+        {
+            auto i = ptr.find(C);
+            assert(i != ptr.end());
+            return *static_cast<const TensorInterface<C>*>(i->second);
+        }
+
+        /*
+         * this = a
+         */
+        TensorImplementation<>& operator=(const Scalar& a);
+
+        /*
+         * this = beta*this + alpha*A*B
+         */
+        virtual void mult(const Scalar& alpha, bool conja, const TensorImplementation<>& A,
+                                               bool conjb, const TensorImplementation<>& B, const Scalar& beta) = 0;
+
+        /*
+         * this = beta*this + alpha*A
+         */
+        virtual void sum(const Scalar& alpha, bool conja, const TensorImplementation<>& A, const Scalar& beta) = 0;
 
         /*
          * this = alpha*this
          */
-        virtual void mult(const T alpha) = 0;
-
-        /*
-         * this = alpha*this + beta*A/B
-         */
-        virtual void div(const T alpha, bool conja, const Derived& A,
-                                        bool conjb, const Derived& B, const T beta) = 0;
-
-        /*
-         * this = alpha*this + beta*A
-         */
-        virtual void sum(const T alpha, bool conja, const Derived& A, const T beta) = 0;
-
-        /*
-         * this = alpha*this + beta
-         */
-        virtual void sum(const T alpha, const T beta) = 0;
-
-        /*
-         * this = alpha*this + beta/A
-         */
-        virtual void invert(const T alpha, bool conja, const Derived& A, const T beta) = 0;
+        virtual void scale(const Scalar& alpha) = 0;
 
         /*
          * scalar = A*this
          */
-        virtual T dot(bool conja, const Derived& A, bool conjb) const = 0;
+        virtual Scalar dot(bool conja, const TensorImplementation<>& A, bool conjb) const = 0;
 };
 
-template <class Derived, typename T>
-class ScaledTensor
+/**************************************************************************************************
+ *
+ * Intermediate Wrappers
+ *
+ *************************************************************************************************/
+
+class TensorMult
 {
+    private:
+        const TensorMult& operator=(const TensorMult& other);
+
     public:
-        Derived& tensor_;
-        T factor_;
-        bool conj_;
+        const TensorImplementation<>& A;
+        const TensorImplementation<>& B;
+        bool conja;
+        bool conjb;
+        Scalar factor;
 
-        template <typename cvDerived>
-        ScaledTensor(const ScaledTensor<cvDerived,T>& other)
-        : tensor_(other.tensor_), factor_(other.factor_), conj_(other.conj_) {}
+        TensorMult(const TensorImplementation<>& A, const TensorImplementation<>& B,
+                   bool conja, bool conjb, const Scalar& factor)
+        : A(A), B(B), conja(conja), conjb(conjb), factor(factor) {}
 
-        ScaledTensor(Derived& tensor, const T factor, const bool conj_=false)
-        : tensor_(tensor), factor_(factor), conj_(conj_) {}
+        template <capability_type C>
+        TensorMult(const ConstTensor<C>& A, const TensorImplementation<>& B,
+                   bool conja, bool conjb, const Scalar& factor)
+        : A(A.impl()), B(B), conja(conja), conjb(conjb), factor(factor) {}
+
+        template <capability_type C>
+        TensorMult(const TensorImplementation<>& A, const ConstTensor<C>& B,
+                   bool conja, bool conjb, const Scalar& factor)
+        : A(A), B(B.impl()), conja(conja), conjb(conjb), factor(factor) {}
+
+        template <capability_type C1, capability_type C2>
+        TensorMult(const ConstTensor<C1>& A, const ConstTensor<C2>& B,
+                   bool conja, bool conjb, const Scalar& factor)
+        : A(A.impl()), B(B.impl()), conja(conja), conjb(conjb), factor(factor) {}
 
         /**********************************************************************
          *
          * Unary negation, conjugation
          *
          *********************************************************************/
-        ScaledTensor<Derived,T> operator-() const
+
+        TensorMult operator-() const
         {
-            ScaledTensor<Derived,T> ret(*this);
-            ret.factor_ = -ret.factor_;
+            TensorMult ret(*this);
+            ret.factor = -ret.factor;
             return ret;
         }
 
-        friend ScaledTensor<const Derived,T> conj(const ScaledTensor<Derived,T>& st)
+        TensorMult conj() const
         {
-            ScaledTensor<Derived,T> ret(st);
+            TensorMult ret(*this);
+            ret.conja = !ret.conja;
+            ret.conjb = !ret.conjb;
+            return ret;
+        }
+
+        friend TensorMult conj(const TensorMult& tm)
+        {
+            return tm.conj();
+        }
+
+        /**********************************************************************
+         *
+         * Operations with scalars
+         *
+         *********************************************************************/
+
+        TensorMult operator*(const Scalar& factor) const
+        {
+            TensorMult ret(*this);
+            ret.factor *= factor;
+            return ret;
+        }
+
+        TensorMult operator/(const Scalar& factor) const
+        {
+            TensorMult ret(*this);
+            ret.factor /= factor;
+            return ret;
+        }
+
+        friend TensorMult operator*(const Scalar& factor, const TensorMult& other)
+        {
+            return other*factor;
+        }
+};
+
+class ConstScaledTensor
+{
+    public:
+        TensorImplementation<>& tensor;
+        Scalar factor;
+        bool conj_;
+
+        ConstScaledTensor(const TensorImplementation<>& tensor, const Scalar& factor, bool conj=false)
+        : tensor(const_cast<TensorImplementation<>&>(tensor)), factor(factor), conj_(conj) {}
+
+        /**********************************************************************
+         *
+         * Unary negation, conjugation
+         *
+         *********************************************************************/
+
+        ConstScaledTensor operator-() const
+        {
+            ConstScaledTensor ret(*this);
+            ret.factor = -ret.factor;
+            return ret;
+        }
+
+        ConstScaledTensor conj() const
+        {
+            ConstScaledTensor ret(*this);
             ret.conj_ = !ret.conj_;
+            return ret;
+        }
+
+        friend ConstScaledTensor conj(const ConstScaledTensor& st)
+        {
+            return st.conj();
+        }
+
+        /**********************************************************************
+         *
+         * Binary tensor operations
+         *
+         *********************************************************************/
+
+        TensorMult operator*(const ConstScaledTensor& other) const
+        {
+            return TensorMult(tensor, other.tensor, conj_, other.conj_, factor*other.factor);
+        }
+
+        template <capability_type C>
+        TensorMult operator*(const ConstTensor<C>& other) const
+        {
+            return TensorMult(tensor, other, conj_, false, factor);
+        }
+
+        template <capability_type C>
+        friend TensorMult operator*(const ConstTensor<C>& t, const ConstScaledTensor& other)
+        {
+            return TensorMult(t, other.tensor, false, other.conj_, other.factor);
+        }
+
+        /**********************************************************************
+         *
+         * Operations with scalars
+         *
+         *********************************************************************/
+
+        ConstScaledTensor operator*(const Scalar& factor) const
+        {
+            ConstScaledTensor it(*this);
+            it.factor *= factor;
+            return it;
+        }
+
+        friend ConstScaledTensor operator*(const Scalar& factor, const ConstScaledTensor& other)
+        {
+            return other*factor;
+        }
+
+        ConstScaledTensor operator/(const Scalar& factor) const
+        {
+            ConstScaledTensor it(*this);
+            it.factor /= factor;
+            return it;
+        }
+};
+
+class ScaledTensor : public ConstScaledTensor
+{
+    public:
+        ScaledTensor(const ConstScaledTensor& other)
+        : ConstScaledTensor(other) {}
+
+        ScaledTensor(const ScaledTensor& other)
+        : ConstScaledTensor(other) {}
+
+        ScaledTensor(const TensorImplementation<>& tensor, const Scalar& factor, bool conj=false)
+        : ConstScaledTensor(tensor, factor, conj) {}
+
+        /**********************************************************************
+         *
+         * Unary negation, conjugation
+         *
+         *********************************************************************/
+
+        using ConstScaledTensor::operator-;
+
+        ScaledTensor operator-()
+        {
+            ScaledTensor ret(*this);
+            ret.factor = -ret.factor;
             return ret;
         }
 
@@ -422,114 +634,55 @@ class ScaledTensor
          * Unary tensor operations
          *
          *********************************************************************/
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator=(const cvDerived& other)
+
+        template <capability_type C>
+        ScaledTensor& operator+=(const ConstTensor<C>& other)
         {
-            tensor_.sum((T)1, false, other, (T)0);
+            tensor.sum(1, conj_, other.impl(), factor);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator+=(const cvDerived& other)
+        template <capability_type C>
+        ScaledTensor& operator-=(const ConstTensor<C>& other)
         {
-            tensor_.sum((T)1, false, other, factor_);
+            tensor.sum(-1, conj_, other.impl(), factor);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator-=(const cvDerived& other)
+        template <capability_type C>
+        ScaledTensor& operator*=(const ConstTensor<C>& other)
         {
-            tensor_.sum((T)(-1), false, other, factor_);
+            tensor.mult(factor, conj_, tensor, conj_, other.impl(), 0);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator*=(const cvDerived& other)
+        ScaledTensor& operator=(const ScaledTensor& other)
         {
-            tensor_.mult(factor_, false, tensor_, false, other, (T)0);
+            tensor.sum(other.factor, conj_ != other.conj_, other.tensor, 0);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator/=(const cvDerived& other)
+        ScaledTensor& operator=(const ConstScaledTensor& other)
         {
-            tensor_.div(factor_, false, tensor_, false, other, (T)0);
+            tensor.sum(other.factor, conj_ != other.conj_, other.tensor, 0);
             return *this;
         }
 
-        ScaledTensor<Derived,T>& operator=(const ScaledTensor<Derived,T>& other)
+        ScaledTensor& operator+=(const ConstScaledTensor& other)
         {
-            tensor_.sum(other.factor_, other.conj_, other.tensor_, (T)0);
+            tensor.sum(other.factor, conj_ != other.conj_, other.tensor, factor);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator=(const ScaledTensor<cvDerived,T>& other)
+        ScaledTensor& operator-=(const ConstScaledTensor& other)
         {
-            tensor_.sum(other.factor_, other.conj_, other.tensor_, (T)0);
+            tensor.sum(-other.factor, conj_ != other.conj_, other.tensor, factor);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator+=(const ScaledTensor<cvDerived,T>& other)
+        ScaledTensor& operator*=(const ConstScaledTensor& other)
         {
-            tensor_.sum(other.factor_, other.conj_, other.tensor_, factor_);
-            return *this;
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator-=(const ScaledTensor<cvDerived,T>& other)
-        {
-            tensor_.sum(-other.factor_, other.conj_, other.tensor_, factor_);
-            return *this;
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator*=(const ScaledTensor<cvDerived,T>& other)
-        {
-            tensor_.mult(factor_*other.factor_, false, tensor_, other.conj_, other.tensor_, (T)0);
-            return *this;
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator/=(const ScaledTensor<cvDerived,T>& other)
-        {
-            tensor_.div(factor_/other.factor_, false, tensor_, other.conj_, other.tensor_, (T)0);
-            return *this;
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator=(const InvertedTensor<cvDerived,T>& other)
-        {
-            tensor_.invert(other.factor_, other.conj_, other.tensor_, (T)0);
-            return *this;
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator+=(const InvertedTensor<cvDerived,T>& other)
-        {
-            tensor_.invert(other.factor_, other.conj_, other.tensor_, factor_);
-            return *this;
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator-=(const InvertedTensor<cvDerived,T>& other)
-        {
-            tensor_.invert(-other.factor_, other.conj_, other.tensor_, factor_);
-            return *this;
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator*=(const InvertedTensor<cvDerived,T>& other)
-        {
-            tensor_.div(factor_*other.factor_, false, tensor_, other.conj_, other.tensor_, (T)0);
-            return *this;
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator/=(const InvertedTensor<cvDerived,T>& other)
-        {
-            tensor_.mult(factor_/other.factor_, false, tensor_, other.conj_, other.tensor_, (T)0);
+            tensor.mult(factor*other.factor, conj_, tensor, conj_ != other.conj_, other.tensor, 0);
             return *this;
         }
 
@@ -538,70 +691,23 @@ class ScaledTensor
          * Binary tensor operations
          *
          *********************************************************************/
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator=(const TensorMult<cvDerived,T>& other)
+
+        ScaledTensor& operator=(const TensorMult& other)
         {
-            tensor_.mult(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)0);
+            tensor.mult(other.factor, conj_ != other.conja, other.A, conj_ != other.conjb, other.B, 0);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator+=(const TensorMult<cvDerived,T>& other)
+        ScaledTensor& operator+=(const TensorMult& other)
         {
-            tensor_.mult(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, factor_);
+            tensor.mult(other.factor, conj_ != other.conja, other.A, conj_ != other.conjb, other.B, factor);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator-=(const TensorMult<cvDerived,T>& other)
+        ScaledTensor& operator-=(const TensorMult& other)
         {
-            tensor_.mult(-other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, factor_);
+            tensor.mult(-other.factor, conj_ != other.conja, other.A, conj_ != other.conjb, other.B, factor);
             return *this;
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator=(const TensorDiv<cvDerived,T>& other)
-        {
-            tensor_.div(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)0);
-            return *this;
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator+=(const TensorDiv<cvDerived,T>& other)
-        {
-            tensor_.div(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, factor_);
-            return *this;
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator-=(const TensorDiv<cvDerived,T>& other)
-        {
-            tensor_.div(-other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, factor_);
-            return *this;
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
-        operator*(const ScaledTensor<cvDerived,T>& other) const
-        {
-            return TensorMult<Derived,T>(*this, other);
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
-        operator*(const cvDerived& other) const
-        {
-            return TensorMult<Derived,T>(*this, ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorDiv<Derived,T>))
-        operator/(const ScaledTensor<cvDerived,T>& other) const
-        {
-            return TensorDiv<Derived,T>(*this, other);
-        }
-
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorDiv<Derived,T>))
-        operator/(const cvDerived& other) const
-        {
-            return TensorDiv<Derived,T>(*this, ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
         }
 
         /**********************************************************************
@@ -609,329 +715,663 @@ class ScaledTensor
          * Operations with scalars
          *
          *********************************************************************/
-        ScaledTensor<Derived,T> operator*(const T factor) const
+
+        using ConstScaledTensor::operator*;
+
+        ScaledTensor operator*(const Scalar& factor)
         {
-            ScaledTensor<Derived,T> it(*this);
-            it.factor_ *= factor;
+            ScaledTensor it(*this);
+            it.factor *= factor;
             return it;
         }
 
-        friend ScaledTensor<Derived,T> operator*(const T factor, const ScaledTensor<Derived,T>& other)
+        friend ScaledTensor operator*(const Scalar& factor, ScaledTensor& other)
         {
             return other*factor;
         }
 
-        ScaledTensor<Derived,T> operator/(const T factor) const
+        friend ScaledTensor operator*(const Scalar& factor, ScaledTensor&& other)
         {
-            ScaledTensor<Derived,T> it(*this);
-            it.factor_ /= factor;
+            return other*factor;
+        }
+
+        using ConstScaledTensor::operator/;
+
+        ScaledTensor operator/(const Scalar& factor)
+        {
+            ScaledTensor it(*this);
+            it.factor /= factor;
             return it;
         }
 
-        friend InvertedTensor<Derived,T> operator/(const T factor, const ScaledTensor<Derived,T>& other)
+        ScaledTensor& operator*=(const Scalar& val)
         {
-            return InvertedTensor<Derived,T>(other.tensor_, factor/other.factor_);
-        }
-
-        ScaledTensor<Derived,T>& operator=(const T val)
-        {
-            tensor_.sum(val, (T)0);
+            tensor.scale(val*factor);
             return *this;
         }
 
-        ScaledTensor<Derived,T>& operator+=(const T val)
+        ScaledTensor& operator/=(const Scalar& val)
         {
-            tensor_.sum(val, factor_);
-            return *this;
-        }
-
-        ScaledTensor<Derived,T>& operator-=(const T val)
-        {
-            tensor_.sum(-val, factor_);
-            return *this;
-        }
-
-        ScaledTensor<Derived,T>& operator*=(const T val)
-        {
-            tensor_.mult(val);
-            return *this;
-        }
-
-        ScaledTensor<Derived,T>& operator/=(const T val)
-        {
-            tensor_.mult((T)1/val);
+            tensor.scale(factor/val);
             return *this;
         }
 };
 
-template <class Derived1, class Derived2, class T>
-//enable_if_t<is_same<const Derived1, const Derived2>::value,TensorMult<Derived1,T>>
-TensorMult<Derived1,T>
-operator*(const Derived1& t1, const ScaledTensor<Derived2,T>& t2)
+/*******************************************************************************
+ *
+ * Automatic Inheritance Classes
+ *
+ ******************************************************************************/
+
+template <capability_type C>
+struct TensorImplRoot : TensorImplementation<C&(~C)>
 {
-    return TensorMult<Derived1,T>(ScaledTensor<const Derived1,T>(t1.getDerived(), (T)1), t2);
+    TensorImplRoot(const INITIALIZER_TYPE(C)& ilist)
+    : TensorImplementation<C&(~C)>(C, ilist) {}
+};
+
+template <capability_type C, capability_type C_>
+enable_if_t<C_&DONT_NEED_INITIALIZATION,TensorInitializer<C_>>
+getInitializer(const INITIALIZER_TYPE(C)& ilist)
+{
+    return TensorInitializer<C_>();
 }
 
-template <class Derived1, class Derived2, class T>
-//enable_if_t<is_same<const Derived1, const Derived2>::value,TensorDiv<Derived1,T>>
-TensorDiv<Derived1,T>
-operator/(const Derived1& t1, const ScaledTensor<Derived2,T>& t2)
+template <capability_type C, capability_type C_>
+enable_if_t<!(C_&DONT_NEED_INITIALIZATION),const TensorInitializer<C_>&>
+getInitializer(const INITIALIZER_TYPE(C)& ilist)
 {
-    return TensorDiv<Derived1,T>(ScaledTensor<const Derived1,T>(t1.getDerived(), (T)1), t2);
+    return ilist.template as<C_>();
 }
 
-template <class Derived, typename T>
-class InvertedTensor
+/*
+ * Tree inheritance chain to include all of the initialization data (which
+ * is used later on by the implementation).
+ */
+TREE_BASE
+(
+    TensorInitBase,
+    TensorInitializer,
+    TensorImplRoot,
+    (const INITIALIZER_TYPE(C)& ilist),
+    (ilist),
+    (getInitializer<C,C__>(ilist)),
+    {}
+)
+
+template <capability_type C>
+struct TensorConstructor : TensorInitBase<C>
 {
-    private:
-        const InvertedTensor& operator=(const InvertedTensor<Derived,T>& other);
+    TensorConstructor(const INITIALIZER_TYPE(C)& ilist)
+    : TensorInitBase<C>(ilist) {}
+
+    Tensor<(C&~C)> construct(const map<capability_type,shared_ptr<Destructible>>& m)
+    {
+        INITIALIZER_TYPE(C) ilist(static_cast<const TensorImplementation<C>&>(*this));
+
+        for (auto& p : m)
+        {
+            auto i = ilist.find(p.first);
+            assert(i != ilist.end());
+            i->second = p.second;
+        }
+
+        return Tensor<C>::construct(ilist);
+    }
+};
+
+/*
+ * Tree inheritance chain to include all of the implemented interfaces
+ * and to collect appropriate pointers for later casting.
+ */
+TREE_BASE
+(
+    TensorIfaceBase,
+    TensorInterface,
+    TensorConstructor,
+    (const INITIALIZER_TYPE(C)& ilist),
+    (ilist),
+    (),
+    {
+        this->ptr[C__] = static_cast<void*>(static_cast<TensorInterface<C__>*>(this));
+    }
+)
+
+/*
+ * In-line inheritance chain to include all TensorImpls needed for C
+ */
+INLINE_BASE
+(
+    TensorImplBase,
+    TensorDefinition,
+    TensorIfaceBase,
+    (const INITIALIZER_TYPE(C)& ilist),
+    (ilist),
+    {}
+)
+
+template <capability_type C_>
+class TensorRoot
+{
+    friend class ConstScaledTensor;
+    friend class ScaledTensor;
+    friend class TensorMult;
+    template <capability_type C, capability_type C__, class Base> friend class TensorDefinition;
+
+    protected:
+        /*
+         * Use shared_ptr to ensure clean-up
+         */
+        shared_ptr<TensorImplementation<>> ptr;
+
+        TensorImplementation<>& impl()
+        {
+            return *ptr;
+        }
+
+        const TensorImplementation<>& impl() const
+        {
+            return *ptr;
+        }
 
     public:
-        Derived& tensor_;
-        T factor_;
-        bool conj_;
+        const capability_type C;
 
-        InvertedTensor(Derived& tensor, const T factor, const bool conj_=false)
-        : tensor_(tensor), factor_(factor), conj_(conj_) {}
+        template <capability_type C__>
+        TensorInterface<C__>& impl()
+        {
+            return impl().template as<C__>();
+        }
+
+        template <capability_type C__>
+        const TensorInterface<C__>& impl() const
+        {
+            return impl().template as<C__>();
+        }
+
+        TensorRoot() : C(C_) {}
+
+        operator const ConstTensor<C_>&() const
+        {
+            return static_cast<ConstTensor<C_>&>(*this);
+        }
+
+        template <capability_type C__=C_, typename=enable_if_t<!(C__&CONST_)>>
+        operator Tensor<C_>&()
+        {
+            return static_cast<Tensor<C_>&>(*this);
+        }
+};
+
+INLINE_BASE
+(
+    TensorWrapperBase,
+    TensorWrapper,
+    TensorRoot,
+    (),
+    (),
+    {}
+)
+
+/*******************************************************************************
+ *
+ * Generic Tensor Implementation
+ *
+ ******************************************************************************/
+
+/*
+ * Base class for all final implementations; provides automatic derivation from each of
+ * the needed TensorImpl classes, safe destruction for type-erasure within Tensor,
+ * and automatic initialization of TensorImpl base classes from an initialization list.
+ */
+template <capability_type C>
+class TensorImplementation<C, enable_if_t<(C>0)>> : public TensorImplBase<C>
+{
+    public:
+        /*
+         * Constructor need only initiate automatic initialization chain
+         */
+        TensorImplementation(const INITIALIZER_TYPE(C)& ilist)
+        : TensorImplBase<C>(ilist)
+        {
+        	assert(ilist.find(0) != ilist.end());
+        }
+};
+
+/*******************************************************************************
+ *
+ * Tensor Wrapper Base Specialization
+ *
+ ******************************************************************************/
+
+namespace detail
+{
+    template <capability_type C, typename=void> struct Construct;
+}
+
+template <capability_type C>
+class ConstTensor : public TensorWrapperBase<C^CONST_>
+{
+    template <capability_type C_> friend class ConstTensor;
+
+    public:
+        /*
+         * Initialize from an actual implementation. It will be destroyed when
+         * the last wrapper referencing it dies.
+         */
+        ConstTensor(TensorImplementation<>* t)
+        {
+            assert(IS_SUPERSET_OF(t->C, C&~CONST_));
+            this->ptr.reset(t);
+            const_cast<capability_type&>(this->C) = t->C;
+        }
+
+        /*
+         * Re-wrap another Tensor wrapper. Capabilities are checked at
+         * run-time to enable "remembering" lost capabilties.
+         */
+        template <capability_type C_>
+        ConstTensor(const ConstTensor<C_>& t)
+        {
+            assert(IS_SUPERSET_OF(t.C, C&~CONST_));
+            this->ptr = t.ptr;
+            const_cast<capability_type&>(this->C) = t.C;
+        }
+
+        static Tensor<C&(~CONST_)> construct(const INITIALIZER_TYPE(C)& init)
+        {
+            return detail::Construct<C&(~CONST_)>::construct(init);
+        }
+
+        struct Factory
+        {
+            Tensor<C&(~CONST_)> operator()(const INITIALIZER_TYPE(C)& init)
+            {
+                return construct(init);
+            }
+        };
+
+        Tensor<C&(~CONST_)> construct()
+        {
+            return this->ptr->construct(TensorInitializer<>(this->ptr->name, this->ptr->F, this->ptr->R));
+        }
+
+        template <capability_type C_>
+        enable_if_t<IS_POWER_OF_TWO(C_),Tensor<C&(~CONST_)>>
+        construct(const TensorInitializer<C_>& init)
+        {
+            return this->ptr->construct(TensorInitializer<>(this->ptr->name, this->ptr->F, this->ptr->R) << init);
+        }
+
+        template <capability_type C_>
+        enable_if_t<!IS_POWER_OF_TWO(C_),Tensor<C&(~CONST_)>>
+        construct(const TensorInitializerList<C_>& ilist)
+        {
+            return this->ptr->construct(TensorInitializer<>(this->ptr->name, this->ptr->F, this->ptr->R) << ilist);
+        }
+
+        Tensor<C&(~CONST_)> construct(const string& name)
+        {
+            return this->ptr->construct(TensorInitializer<>(name, this->ptr->F, this->ptr->R));
+        }
+
+        template <capability_type C_>
+        enable_if_t<IS_POWER_OF_TWO(C_),Tensor<C&(~CONST_)>>
+        construct(const string& name, const TensorInitializer<C_>& init)
+        {
+            return this->ptr->construct(TensorInitializer<>(name, this->ptr->F, this->ptr->R) << init);
+        }
+
+        template <capability_type C_>
+        enable_if_t<!IS_POWER_OF_TWO(C_),Tensor<C&(~CONST_)>>
+        construct(const string& name, const TensorInitializerList<C_>& ilist)
+        {
+            return this->ptr->construct(TensorInitializer<>(name, this->ptr->F, this->ptr->R) << ilist);
+        }
 
         /**********************************************************************
          *
-         * Unary negation, conjugation
+         * Intermediate operations
          *
          *********************************************************************/
-        InvertedTensor<Derived,T> operator-() const
-        {
-            InvertedTensor<Derived,T> ret(*this);
-            ret.factor_ = -ret.factor_;
-            return *this;
-        }
 
-        friend InvertedTensor<Derived,T> conj(const InvertedTensor<Derived,T>& tm)
-        {
-            InvertedTensor<Derived,T> ret(tm);
-            ret.conj_ = !ret.conj_;
-            return ret;
-        }
-
-        /**********************************************************************
-         *
-         * Operations with scalars
-         *
-         *********************************************************************/
-        InvertedTensor<Derived,T> operator*(const T factor) const
-        {
-            InvertedTensor<Derived,T> ret(*this);
-            ret.factor_ *= factor;
-            return ret;
-        }
-
-        InvertedTensor<Derived,T> operator/(const T factor) const
-        {
-            InvertedTensor<Derived,T> ret(*this);
-            ret.factor_ /= factor;
-            return ret;
-        }
-
-        friend InvertedTensor<Derived,T> operator*(const T factor, const InvertedTensor<Derived,T>& other)
+        friend ConstScaledTensor operator*(const Scalar& factor, const ConstTensor& other)
         {
             return other*factor;
         }
+
+        ConstScaledTensor operator*(const Scalar& factor) const
+        {
+            return ConstScaledTensor(this->impl(), factor);
+        }
+
+        ConstScaledTensor operator/(const Scalar& factor) const
+        {
+            return (*this)*(1/factor);
+        }
+
+        ConstScaledTensor operator-() const
+        {
+            return (*this)*(-1);
+        }
+
+        ConstScaledTensor conj() const
+        {
+            return ConstScaledTensor(this->impl(), 1, true);
+        }
+
+        friend ConstScaledTensor conj(const ConstTensor& other)
+        {
+            return other.conj();
+        }
+
+        template <capability_type C_>
+        TensorMult operator*(const ConstTensor<C_>& other) const
+        {
+            return TensorMult(this->impl(), other.impl(), false, false, 1);
+        }
 };
 
-template <class Derived, typename T>
-class TensorMult
+template <capability_type C>
+class Tensor : public ConstTensor<C|CONST_>
 {
-    private:
-        const TensorMult& operator=(const TensorMult<Derived,T>& other);
-
     public:
-        ScaledTensor<const Derived,T> A_;
-        ScaledTensor<const Derived,T> B_;
-        T factor_;
+        /*
+         * Initialize from an actual implementation. It will be destroyed when
+         * the last wrapper referencing it dies.
+         */
+        Tensor(TensorImplementation<>* t) : ConstTensor<C|CONST_>(t) {}
 
-        template <class Derived1, class Derived2>
-        TensorMult(const ScaledTensor<Derived1,T>& A, const ScaledTensor<Derived2,T>& B)
-        : A_(A), B_(B), factor_(A.factor_*B.factor_) {}
+        /*
+         * Re-wrap another Tensor wrapper. Capabilities are checked at
+         * run-time to enable "remembering" lost capabilties.
+         */
+        template <capability_type C_>
+        Tensor(Tensor<C_>& t) : ConstTensor<C|CONST_>(t) {}
 
-        /**********************************************************************
-         *
-         * Unary negation, conjugation
-         *
-         *********************************************************************/
-        TensorMult<Derived,T> operator-() const
-        {
-            TensorMult<Derived,T> ret(*this);
-            ret.factor_ = -ret.factor_;
-            return ret;
-        }
+        template <capability_type C_>
+        Tensor(Tensor<C_>&& t) : ConstTensor<C|CONST_>(t) {}
 
-        friend TensorMult<Derived,T> conj(const TensorMult<Derived,T>& tm)
-        {
-            TensorMult<Derived,T> ret(tm);
-            ret.A_.conj_ = !ret.A_.conj_;
-            ret.B_.conj_ = !ret.B_.conj_;
-            return ret;
-        }
+        using typename ConstTensor<C|CONST_>::Factory;
+
+        using ConstTensor<C|CONST_>::construct;
 
         /**********************************************************************
          *
-         * Operations with scalars
+         * Intermediate operations
          *
          *********************************************************************/
-        TensorMult<Derived,T> operator*(const T factor) const
-        {
-            TensorMult<Derived,T> ret(*this);
-            ret.factor_ *= factor;
-            return ret;
-        }
 
-        TensorMult<Derived,T> operator/(const T factor) const
-        {
-            TensorMult<Derived,T> ret(*this);
-            ret.factor_ /= factor;
-            return ret;
-        }
-
-        friend TensorMult<Derived,T> operator*(const T factor, const TensorMult<Derived,T>& other)
+        friend ScaledTensor operator*(const Scalar& factor, Tensor& other)
         {
             return other*factor;
         }
-};
 
-template <class Derived, typename T>
-class TensorDiv
-{
-    private:
-        const TensorDiv& operator=(const TensorDiv<Derived,T>& other);
-
-    public:
-        ScaledTensor<const Derived,T> A_;
-        ScaledTensor<const Derived,T> B_;
-        T factor_;
-
-        template <class Derived1, class Derived2>
-        TensorDiv(const ScaledTensor<Derived1,T>& A, const ScaledTensor<Derived2,T>& B)
-        : A_(A), B_(B), factor_(A.factor_/B.factor_) {}
-
-        /**********************************************************************
-         *
-         * Unary negation, conjugation
-         *
-         *********************************************************************/
-        TensorDiv<Derived,T> operator-() const
-        {
-            TensorDiv<Derived,T> ret(*this);
-            ret.factor_ = -ret.factor_;
-            return ret;
-        }
-
-        friend TensorDiv<Derived,T> conj(const TensorDiv<Derived,T>& tm)
-        {
-            TensorDiv<Derived,T> ret(tm);
-            ret.A_.conj_ = !ret.A_.conj_;
-            ret.B_.conj_ = !ret.B_.conj_;
-            return ret;
-        }
-
-        /**********************************************************************
-         *
-         * Operations with scalars
-         *
-         *********************************************************************/
-        TensorDiv<Derived,T> operator*(const T factor) const
-        {
-            TensorDiv<Derived,T> ret(*this);
-            ret.factor_ *= factor;
-            return ret;
-        }
-
-        TensorDiv<Derived,T> operator/(const T factor) const
-        {
-            TensorDiv<Derived,T> ret(*this);
-            ret.factor_ /= factor;
-            return ret;
-        }
-
-        friend TensorDiv<Derived,T> operator*(const T factor, const TensorDiv<Derived,T>& other)
+        friend ScaledTensor operator*(const Scalar& factor, Tensor&& other)
         {
             return other*factor;
         }
+
+        ScaledTensor operator*(const Scalar& factor)
+        {
+            return ScaledTensor(this->impl(), factor);
+        }
+
+        ScaledTensor operator/(const Scalar& factor)
+        {
+            return (*this)*(1/factor);
+        }
+
+        ScaledTensor operator-()
+        {
+            return (*this)*(-1);
+        }
+
+        ScaledTensor conj() const
+        {
+            return ScaledTensor(this->impl(), 1, true);
+        }
+
+        friend ScaledTensor conj(const Tensor& other)
+        {
+            return other.conj();
+        }
+
+        /**********************************************************************
+         *
+         * Operators with scalars
+         *
+         *********************************************************************/
+
+        Tensor& operator*=(const Scalar& val)
+        {
+            this->impl().scale(val);
+            return *this;
+        }
+
+        Tensor& operator/=(const Scalar& val)
+        {
+            return (*this) *= (1/val);
+        }
+
+        /**********************************************************************
+         *
+         * Binary operations (multiplication and division)
+         *
+         *********************************************************************/
+
+        Tensor& operator=(const TensorMult& other)
+        {
+            this->impl().mult(other.factor, other.conja, other.A, other.conjb, other.B, 0);
+            return *this;
+        }
+
+        Tensor& operator+=(const TensorMult& other)
+        {
+            this->impl().mult(other.factor, other.conja, other.A, other.conjb, other.B, 1);
+            return *this;
+        }
+
+        Tensor& operator-=(const TensorMult& other)
+        {
+            this->impl().mult(-other.factor, other.conja, other.A, other.conjb, other.B, 1);
+            return *this;
+        }
+
+        /**********************************************************************
+         *
+         * Unary operations (assignment, summation, scaling, and inversion)
+         *
+         *********************************************************************/
+
+        Tensor& operator=(const Tensor& other)
+        {
+            this->impl().sum(1, false, other.impl(), 0);
+            return *this;
+        }
+
+        template <capability_type C_>
+        Tensor& operator=(const ConstTensor<C_>& other)
+        {
+            this->impl().sum(1, false, other.impl(), 0);
+            return *this;
+        }
+
+        template <capability_type C_>
+        Tensor& operator+=(const ConstTensor<C_>& other)
+        {
+            this->impl().sum(1, false, other.impl(), 1);
+            return *this;
+        }
+
+        template <capability_type C_>
+        Tensor& operator-=(const ConstTensor<C_>& other)
+        {
+            this->impl().sum(-1, false, other.impl(), 1);
+            return *this;
+        }
+
+        template <capability_type C_>
+        Tensor& operator*=(const ConstTensor<C_>& other)
+        {
+            this->impl().mult(1, false, this->impl(), false, other.impl(), 0);
+            return *this;
+        }
+
+        Tensor& operator=(const ConstScaledTensor& other)
+        {
+            this->impl().sum(other.factor, other.conj_, other.tensor, 0);
+            return *this;
+        }
+
+        Tensor& operator+=(const ConstScaledTensor& other)
+        {
+            this->impl().sum(other.factor, other.conj_, other.tensor, 1);
+            return *this;
+        }
+
+        Tensor& operator-=(const ConstScaledTensor& other)
+        {
+            this->impl().sum(-other.factor, other.conj_, other.tensor, 1);
+            return *this;
+        }
+
+        Tensor& operator*=(const ConstScaledTensor& other)
+        {
+            this->impl().mult(other.factor, false, this->impl(), other.conj_, other.tensor, 0);
+            return *this;
+        }
 };
 
-class TensorError : public exception
+inline Scalar scalar(const TensorMult& tm)
 {
-    public:
-        virtual const char* what() const throw() = 0;
+    return tm.factor*tm.B.dot(tm.conja, tm.A, tm.conjb);
+}
+
+}
+}
+
+#include "tensor/capabilities/divisible.hpp"
+#include "tensor/capabilities/indexable.hpp"
+#include "tensor/capabilities/ipsymmetric.hpp"
+#include "tensor/capabilities/bounded.hpp"
+#include "tensor/capabilities/distributed.hpp"
+#include "tensor/capabilities/pgsymmetric.hpp"
+#include "tensor/capabilities/spinorbital.hpp"
+
+#include "tensor/implementations/symblocked_tensor.hpp"
+#include "tensor/implementations/spinblocked_tensor.hpp"
+#include "tensor/implementations/ctf_tensor.hpp"
+
+namespace aquarius
+{
+namespace tensor
+{
+namespace detail
+{
+
+/*******************************************************************************
+ *
+ * Generic Tensor Construction
+ *
+ ******************************************************************************/
+
+template <capability_type C>
+struct Construct<C, enable_if_t<IS_SUPERSET_OF(C,SPINORBITAL)>>
+{
+    static Tensor<C> construct(const INITIALIZER_TYPE(C)& ilist)
+    {
+        return new SpinBlockedTensor<C>(ilist);
+    }
 };
 
-class OutOfBoundsError : public TensorError
+template <capability_type C>
+struct Construct<C, enable_if_t<!IS_SUPERSET_OF(C,SPINORBITAL)&&
+                                 IS_SUPERSET_OF(C,PGSYMMETRIC)&&
+                                 IS_SUPERSET_OF(C,IPSYMMETRIC)>>
 {
-    public:
-        virtual const char* what() const throw() { return "out-of-bounds read or write"; }
+    static Tensor<C> construct(const INITIALIZER_TYPE(C)& ilist)
+    {
+        return new SymmetryBlockedTensor<C>(ilist);
+    }
 };
 
-class LengthMismatchError : public TensorError
+template <capability_type C>
+struct Construct<C, enable_if_t<!IS_SUPERSET_OF(C,SPINORBITAL)&&
+                                 IS_SUPERSET_OF(C,PGSYMMETRIC)&&
+                                !IS_SUPERSET_OF(C,IPSYMMETRIC)>>
 {
-    public:
-        virtual const char* what() const throw() { return "length mismatch error"; }
+    static Tensor<C> construct(const INITIALIZER_TYPE(C)& ilist)
+    {
+        int ndim = ilist.template as<INDEXABLE>().ndim;
+
+        return new SymmetryBlockedTensor<C|IPSYMMETRIC>(ilist <<
+            TensorInitializer<IPSYMMETRIC_>(vector<int>(ndim, NS)));
+    }
 };
 
-class IndexMismatchError : public TensorError
+template <capability_type C>
+struct Construct<C, enable_if_t<!IS_SUPERSET_OF(C,SPINORBITAL)&&
+                                !IS_SUPERSET_OF(C,PGSYMMETRIC)&&
+                                 IS_SUPERSET_OF(C,IPSYMMETRIC)&&
+                                 IS_SUPERSET_OF(C,DISTRIBUTED)>>
 {
-    public:
-        virtual const char* what() const throw() { return "index mismatch error"; }
+    static Tensor<C> construct(const INITIALIZER_TYPE(C)& ilist)
+    {
+        return new CTFTensor(ilist);
+    }
 };
 
-class InvalidNdimError : public TensorError
+template <capability_type C>
+struct Construct<C, enable_if_t<!IS_SUPERSET_OF(C,SPINORBITAL)&&
+                                !IS_SUPERSET_OF(C,PGSYMMETRIC)&&
+                                 IS_SUPERSET_OF(C,IPSYMMETRIC)&&
+                                !IS_SUPERSET_OF(C,DISTRIBUTED)>>
 {
-    public:
-        virtual const char* what() const throw() { return "invalid number of dimensions"; }
+    static Tensor<C> construct(const INITIALIZER_TYPE(C)& ilist)
+    {
+        Arena arena;
+
+        return new CTFTensor(ilist << TensorInitializer<DISTRIBUTED>(arena));
+    }
 };
 
-class InvalidLengthError : public TensorError
+template <capability_type C>
+struct Construct<C, enable_if_t<!IS_SUPERSET_OF(C,SPINORBITAL)&&
+                                !IS_SUPERSET_OF(C,PGSYMMETRIC)&&
+                                !IS_SUPERSET_OF(C,IPSYMMETRIC)&&
+                                 IS_SUPERSET_OF(C,BOUNDED)&&
+                                 IS_SUPERSET_OF(C,DISTRIBUTED)>>
 {
-    public:
-        virtual const char* what() const throw() { return "invalid length"; }
+    static Tensor<C> construct(const INITIALIZER_TYPE(C)& ilist)
+    {
+        int ndim = ilist.template as<INDEXABLE>().ndim;
+
+        return new CTFTensor(ilist <<
+                             TensorInitializer<IPSYMMETRIC_>(vector<int>(ndim, NS)));
+    }
 };
 
-class InvalidLdError : public TensorError
+template <capability_type C>
+struct Construct<C, enable_if_t<!IS_SUPERSET_OF(C,SPINORBITAL)&&
+                                !IS_SUPERSET_OF(C,PGSYMMETRIC)&&
+                                !IS_SUPERSET_OF(C,IPSYMMETRIC)&&
+                                 IS_SUPERSET_OF(C,BOUNDED)&&
+                                !IS_SUPERSET_OF(C,DISTRIBUTED)>>
 {
-    public:
-        virtual const char* what() const throw() { return "invalid leading dimension"; }
-};
+    static Tensor<C> construct(const INITIALIZER_TYPE(C)& ilist)
+    {
+        Arena arena;
+        int ndim = ilist.template as<INDEXABLE>().ndim;
 
-class LdTooSmallError : public TensorError
-{
-    public:
-        virtual const char* what() const throw() { return "leading dimension is too small"; }
-};
-
-class SymmetryMismatchError : public TensorError
-{
-    public:
-        virtual const char* what() const throw() { return "symmetry mismatch error"; }
-};
-
-class InvalidSymmetryError : public TensorError
-{
-    public:
-        virtual const char* what() const throw() { return "invalid symmetry value"; }
-};
-
-class InvalidStartError : public TensorError
-{
-    public:
-        virtual const char* what() const throw() { return "invalid start value"; }
+        return new CTFTensor(ilist <<
+                             TensorInitializer<DISTRIBUTED>(arena) <<
+                             TensorInitializer<IPSYMMETRIC_>(vector<int>(ndim, NS)));
+    }
 };
 
 }
-
-template <class Derived, typename T>
-T scalar(const tensor::TensorMult<Derived,T>& tm)
-{
-    return tm.factor_*tm.B_.tensor_.dot(tm.A_.conj_, tm.A_.tensor_, tm.B_.conj_);
 }
-
 }
 
 #endif

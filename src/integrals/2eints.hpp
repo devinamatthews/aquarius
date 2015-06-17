@@ -104,7 +104,7 @@ class TwoElectronIntegrals
         void prim2contr4l(size_t nother, double* buf1, double* buf2);
 };
 
-class ERI : public task::Destructible, public Distributed
+class ERI : public Distributed
 {
     public:
         const symmetry::PointGroup& group;
@@ -112,8 +112,6 @@ class ERI : public task::Destructible, public Distributed
         deque<idx4_t> idxs;
 
         ERI(const Arena& arena, const symmetry::PointGroup& group) : Distributed(arena), group(group) {}
-
-        void print(task::Printer& p) const;
 };
 
 template <typename ERIType>

@@ -11,9 +11,9 @@ namespace aquarius
 namespace scf
 {
 
-template <typename T, template <typename T_> class WhichUHF>
-CholeskyUHF<T,WhichUHF>::CholeskyUHF(const string& name, Config& config)
-: WhichUHF<T>(name, config)
+template <class WhichUHF>
+CholeskyUHF<WhichUHF>::CholeskyUHF(const string& name, Config& config)
+: WhichUHF(name, config)
 {
     for (Product& p : products)
     {
@@ -21,8 +21,8 @@ CholeskyUHF<T,WhichUHF>::CholeskyUHF(const string& name, Config& config)
     }
 }
 
-template <typename T, template <typename T_> class WhichUHF>
-bool CholeskyUHF<T,WhichUHF>::run(TaskDAG& dag, const Arena& arena)
+template <class WhichUHF>
+bool CholeskyUHF<WhichUHF>::run(TaskDAG& dag, const Arena& arena)
 {
     const auto& molecule = this->template get<Molecule>("molecule");
     const auto& chol = this->template get<CholeskyIntegrals<T>>("cholesky");
@@ -46,11 +46,11 @@ bool CholeskyUHF<T,WhichUHF>::run(TaskDAG& dag, const Arena& arena)
     this->puttmp("LDa_occ", new SymmetryBlockedTensor<T>("LDpI", arena, group, 3, sizenOr, shapeNNN, false));
     this->puttmp("LDb_occ", new SymmetryBlockedTensor<T>("LDpi", arena, group, 3, sizenor, shapeNNN, false));
 
-    return UHF<T>::run(dag, arena);
+    return UHF::run(dag, arena);
 }
 
-template <typename T, template <typename T_> class WhichUHF>
-void CholeskyUHF<T,WhichUHF>::buildFock()
+template <class WhichUHF>
+void CholeskyUHF<WhichUHF>::buildFock()
 {
     const auto& molecule = this->template get<Molecule>("molecule");
 

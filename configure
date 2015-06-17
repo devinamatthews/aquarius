@@ -7619,7 +7619,7 @@ See \`config.log' for more details" "$LINENO" 5; }
 fi
 
 
-topdir=\"`(cd $srcdir && pwd)`\"
+topdir="\"`(cd $srcdir && pwd)`\""
 
 cat >>confdefs.h <<_ACEOF
 #define TOPDIR $topdir
@@ -8357,6 +8357,63 @@ else
   HAVE_LIBINT2_FALSE=
 fi
 
+
+#
+# Check for MArray
+#
+
+CPPFLAGS_SAVE=$CPPFLAGS
+CPPFLAGS="$CXXFLAGS -I$srcdir/src/external/marray"
+ac_fn_cxx_check_header_mongrel "$LINENO" "marray.hpp" "ac_cv_header_marray_hpp" "$ac_includes_default"
+if test "x$ac_cv_header_marray_hpp" = xyes; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find marray.hpp, have you checked out the submodules?.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+
+CPPFLAGS=$CPPFLAGS_SAVE
+
+#
+# Check for MPIWrap
+#
+
+CPPFLAGS_SAVE=$CPPFLAGS
+CPPFLAGS="$CXXFLAGS -I$srcdir/src/external/mpiwrap"
+ac_fn_cxx_check_header_mongrel "$LINENO" "mpiwrap.hpp" "ac_cv_header_mpiwrap_hpp" "$ac_includes_default"
+if test "x$ac_cv_header_mpiwrap_hpp" = xyes; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find mpiwrap.hpp, have you checked out the submodules?.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+
+CPPFLAGS=$CPPFLAGS_SAVE
+
+#
+# Check for LAWrap
+#
+
+CPPFLAGS_SAVE=$CPPFLAGS
+CPPFLAGS="$CXXFLAGS -I$srcdir/src/external/lawrap"
+ac_fn_cxx_check_header_mongrel "$LINENO" "lapack.h" "ac_cv_header_lapack_h" "$ac_includes_default"
+if test "x$ac_cv_header_lapack_h" = xyes; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find lapack.h, have you checked out the submodules?.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+
+CPPFLAGS=$CPPFLAGS_SAVE
 
 ac_config_files="$ac_config_files Makefile"
 

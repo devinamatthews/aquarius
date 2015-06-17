@@ -71,50 +71,35 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
     sort(tda_sorted);
 
+    ntriplet = min(ntriplet, tot_triplet);
+    int nsinglet = min(tot_singlet, nroot-ntriplet);
+    assert (nsinglet + ntriplet == nroot);
+    int singlets_taken = 0;
+    int triplets_taken = 0;
+    int index = 0;
     vector<vector<int>> root_idx(nirrep);
-    if (ntriplet != 0) {
-      ntriplet = min(ntriplet, tot_triplet);
-      int nsinglet = min(tot_singlet, nroot-ntriplet);
-      assert (nsinglet + ntriplet == nroot);
-      int singlets_taken = 0;
-      int triplets_taken = 0;
-      int index = 0;
-      
-      while (singlets_taken + triplets_taken < nroot)
-	{
-	  bool take_root = false;
-	  int this_spin = get<1>(tda_sorted[index]);
-	  if (this_spin == 0 and singlets_taken < nsinglet)
-	    {
-	      singlets_taken++;
-	      take_root = true;
-	    }
-	  if (this_spin == 1 && triplets_taken < ntriplet)
-	    {
-	      triplets_taken++;
-	      take_root = true;
-	    }
-	  if (take_root)
-	    {
-	      root_idx[get<2>(tda_sorted[index])].push_back(get<3>(tda_sorted[index]));
-	      if (arena.rank == 0)
+
+    while (singlets_taken + triplets_taken < nroot)
+    {
+        bool take_root = false;
+        int this_spin = get<1>(tda_sorted[index]);
+        if (this_spin == 0 and singlets_taken < nsinglet)
+        {
+            singlets_taken++;
+            take_root = true;
+        }
+        if (this_spin == 1 and triplets_taken < ntriplet)
+        {
+            triplets_taken++;
+            take_root = true;
+        }
+        if (take_root)
+        {
+            root_idx[get<2>(tda_sorted[index])].push_back(get<3>(tda_sorted[index]));
+            if (arena.rank == 0)
                 cout << "Took root " << index << " with spin " << this_spin << endl;
-	    }
-	  index++;
-	}
-    }
-    else {
-      int roots_taken = 0;
-      int index = 0;
-      while (roots_taken < nroot)
-	{
-	  int this_spin = get<1>(tda_sorted[index]);
-	  root_idx[get<2>(tda_sorted[index])].push_back(get<3>(tda_sorted[index]));
-	  roots_taken++;
-	  if (arena.rank == 0)
-	    cout << "Took root " << index << " with spin " << this_spin << endl;
-	  index++;
-	}
+        }
+        index++;
     }
 
     // for (int i = 0;i < nsinglet;i++)
@@ -128,12 +113,12 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     // }
 
     auto& Rs = this->puttmp("R", new unique_vector<ExcitationOperator<U,2>>());
-    //auto& Vs = this->puttmp("V", new unique_vector<ExcitationOperator<U,2>>());
+    auto& Vs = this->puttmp("V", new unique_vector<ExcitationOperator<U,2>>());
     auto& Zs = this->puttmp("Z", new unique_vector<ExcitationOperator<U,2>>());
 
     for (int i = 0;i < nirrep;i++)
     {
-        //Vs.clear();
+        Vs.clear();
         Rs.clear();
         Zs.clear();
 
@@ -154,7 +139,6 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
             Iterative<U>::run(dag, arena, root_idx[i].size());
 
-            /*
             for (int j = 0;j < root_idx[i].size();j++)
             {
                 if (this->isConverged(j))
@@ -165,17 +149,11 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                     V /= sqrt(aquarius::abs(scalar(conj(V)*V)));
                 }
             }
-            */
         }
         else
         {
-            auto& davidson = this->puttmp("Davidson",
-                new Davidson<ExcitationOperator<U,2>>(davidson_config));
-
             for (int j = 0;j < root_idx[i].size();j++)
             {
-                Logger::log(arena) << "Starting root number " << (j+1) << endl;
-
                 Rs.clear();
                 Zs.clear();
 
@@ -186,73 +164,18 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                 R(1) = TDAevecs[i][root_idx[i][j]];
                 R(2) = 0;
 
-                bool print_vecs;
-                print_vecs = false;
-
-                // if (print_vecs)
-                // {
-                //     vector<U> temp1;
-                //     vector<U> temp2;
-                //     R(1)({1,0},{0,1})({0,0}).getAllData(temp1);
-                //     R(1)({0,0},{0,0})({0,0}).getAllData(temp2);
-
-                //     if (arena.rank == 0)
-                //     {
-                //         cout << " " << endl;
-                //         cout << "Root " << j << " R1" << endl;
-                //         for (int ii=0; ii<temp1.size(); ii++)
-                //         {
-                //             cout << ii << " " << temp1[ii] << " " << temp2[ii] << endl;
-                //         }
-                //         cout << " " << endl;
-                //     }
-                // }
+                auto& davidson = this->puttmp("Davidson",
+                    new Davidson<ExcitationOperator<U,2>>(davidson_config));
 
                 Iterative<U>::run(dag, arena);
 
-                if (!this->isConverged())
+                if (this->isConverged())
                 {
-                    this->error(arena) << "Root " << (j+1) << " did not converge." << endl;
+                    Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
+                    ExcitationOperator<U,2>& V = Vs.back();
+                    davidson.getSolution(0, V);
+                    V /= sqrt(aquarius::abs(scalar(conj(V)*V)));
                 }
-
-                //Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
-                //ExcitationOperator<U,2>& V = Vs.back();
-                davidson.getSolution(0, R);
-                if (scalar(R(1)({1,0},{0,1})*R(1)({0,0},{0,0})) < 0)
-                    this->log(arena) << "triplet solution found!" << endl;
-                else
-                    this->log(arena) << "singlet solution found!" << endl;
-
-                if (print_vecs)
-                {
-                    vector<U> temp1;
-                    vector<U> temp2;
-                    R(1)({1,0},{0,1})({0,0}).getAllData(temp1);
-                    R(1)({0,0},{0,0})({0,0}).getAllData(temp2);
-                    vector<tuple<U,U,U,int>> amps_sorted;
-
-                    for (int ii=0; ii < temp1.size(); ii++)
-                        amps_sorted.emplace_back(-abs(temp1[ii]),temp1[ii],temp2[ii],ii);
-
-                    sort(amps_sorted);
-
-                    double norm = sqrt(aquarius::abs(scalar(conj(R)*R)));
-
-                    if (arena.rank == 0)
-                    {
-                        cout << " " << endl;
-                        cout << "sqrt(aquarius::abs(scalar(conj(R)*R))) = " << norm << endl;
-                        cout << " " << endl;
-                        cout << "Root " << j << " R1" << endl;
-                        for (int ii=0; ii<30; ii++)
-                        {
-                            cout << get<3>(amps_sorted[ii]) << " " << get<1>(amps_sorted[ii]) << " " << get<2>(amps_sorted[ii]) << endl;
-                        }
-                        cout << " " << endl;
-                    }
-                }
-
-                davidson.nextRoot();
             }
         }
     }
@@ -290,7 +213,7 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
 
     auto& Rs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("R");
     auto& Zs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("Z");
-    //auto& Vs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("V");
+    auto& Vs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("V");
 
     for (int root = 0;root < this->nsolution();root++)
     {
@@ -298,13 +221,11 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
         ExcitationOperator<U,2>& Z = Zs[root];
         Z = 0;
 
-        /*
         for (auto& V : Vs)
         {
-            R -= scalar(conj(V)*R)*V;
+            R -= scalar(conj(R)*V)*V;
         }
         R /= sqrt(aquarius::abs(scalar(conj(R)*R)));
-        */
 
          XMI[  "mi"]  =     WMNEJ["nmei"]*R(1)[  "en"];
          XMI[  "mi"] += 0.5*WMNEF["mnef"]*R(2)["efin"];
@@ -368,13 +289,9 @@ davidson?
     start?
             int 1,
     order?
-            int 10,
+            int 500,
     jacobi?
-            bool false,
-    num_reduce?
-            int 3,
-    compaction?
-            enum { discrete, continuous },
+            bool false
 }
 
 )";

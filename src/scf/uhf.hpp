@@ -3,29 +3,27 @@
 
 #include "util/global.hpp"
 
-#include "tensor/symblocked_tensor.hpp"
+#include "tensor/tensor.hpp"
 #include "integrals/1eints.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
 #include "util/iterative.hpp"
 #include "convergence/diis.hpp"
 #include "task/task.hpp"
-#include "operator/space.hpp"
 
 namespace aquarius
 {
 namespace scf
 {
 
-template <typename T>
-class UHF : public Iterative<T>
+class UHF : public Iterative
 {
     protected:
         bool frozen_core;
-        T damping;
+        double damping;
         vector<int> occ_alpha, occ_beta;
-        vector<vector<real_type_t<T>>> E_alpha, E_beta;
-        convergence::DIIS<tensor::SymmetryBlockedTensor<T>> diis;
+        vector<vector<tensor::Scalar>> E_alpha, E_beta;
+        convergence::DIIS diis;
 
     public:
         UHF(const string& name, input::Config& config);

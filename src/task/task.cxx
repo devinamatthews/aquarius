@@ -499,6 +499,7 @@ void TaskDAG::execute(Arena& world)
                 timer.start();
                 //try
                 //{
+                    t.arena_ = &world;
                     done = t.run(*this, world);
                 //}
                 //catch (runtime_error& e)

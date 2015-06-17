@@ -11,6 +11,7 @@
 #include "operator/st2eoperator.hpp"
 #include "operator/denominator.hpp"
 #include "convergence/diis.hpp"
+#include "convergence/crop.hpp"
 
 namespace aquarius
 {

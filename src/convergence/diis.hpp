@@ -5,22 +5,20 @@
 
 #include "input/config.hpp"
 #include "task/task.hpp"
+#include "tensor/tensor.hpp"
 
 namespace aquarius
 {
 namespace convergence
 {
 
-template<typename T, typename U = T>
 class DIIS
 {
     protected:
-        typedef typename T::dtype dtype;
-
-        vector<unique_vector<T>> old_x;
-        vector<unique_vector<U>> old_dx;
-        marray<dtype,1> c;
-        marray<dtype,2> e;
+        vector<vector<tensor::Tensor<>>> old_x;
+        vector<vector<tensor::Tensor<>>> old_dx;
+        marray<tensor::Scalar,1> c;
+        marray<tensor::Scalar,2> e;
         int nextrap, start, nx, ndx;
         double damping;
 
@@ -39,13 +37,12 @@ class DIIS
             old_dx.resize(nextrap);
         }
 
-        void extrapolate(T& x, U& dx)
+        void extrapolate(tensor::Tensor<>& x, tensor::Tensor<>& dx)
         {
-            extrapolate(ptr_vector<T>{&x}, ptr_vector<U>{&dx});
+            extrapolate({x}, {dx});
         }
 
-        template <typename x_container, typename dx_container>
-        void extrapolate(x_container&& x, dx_container&& dx)
+        void extrapolate(vector<tensor::Tensor<>>&& x, vector<tensor::Tensor<>>&& dx)
         {
             assert(x.size() == nx);
             assert(dx.size() == ndx);
@@ -58,8 +55,6 @@ class DIIS
              */
             rotate( old_x.begin(),  old_x.end()-1,  old_x.end());
             rotate(old_dx.begin(), old_dx.end()-1, old_dx.end());
-            e.rotate(-1, -1);
-            c.rotate(-1);
 
             /*
              * Lazily allocate elements of old_x etc. so that we can
@@ -94,6 +89,19 @@ class DIIS
                 {
                     old_dx[0][i] = dx[i];
                 }
+            }
+
+            /*
+             * Shift the previous error matrix (the last row and column will be discarded)
+             */
+            for (int i = nextrap-1;i > 0;i--)
+            {
+                for (int j = nextrap-1;j > 0;j--)
+                {
+                    e[i][j] = e[i-1][j-1];
+                }
+
+                c[i] = c[i-1];
             }
 
             e[0][0] = 0;
@@ -163,23 +171,33 @@ class DIIS
 
             {
                 int info;
-                marray<dtype,2> tmp(e);
+                marray<double,2> tmp(nextrap+1,nextrap+1);
+                marray<double,1> ctmp(nextrap+1);
                 vector<integer> ipiv(nextrap+1);
 
+                for (int i = 0;i < nextrap+1;i++)
+                    for (int j = 0;j < nextrap+1;j++)
+                        tmp[i][j] = e[i][j].to<double>();
                 info = hesv('U', nextrap_real+1, 1, tmp.data(), nextrap+1, ipiv.data(),
-                            c.data(), nextrap+1);
+                            ctmp.data(), nextrap+1);
+                for (int i = 0;i < nextrap+1;i++)
+                    c[i] = ctmp[i];
 
                 /*
                  * Attempt to stave off singularity due to "exact" convergence
                  */
                 if (info > 0)
                 {
-                    dtype eps = e[nextrap_real-1][nextrap_real-1]*
-                                numeric_limits<real_type_t<dtype>>::epsilon();
-                    tmp = e;
-                    axpy(nextrap_real, 1.0, &eps, 0, tmp.data(), nextrap+1);
+                    double eps = abs(e[nextrap_real-1][nextrap_real-1]).to<double>()*
+                                 numeric_limits<double>::epsilon();
+
+                    for (int i = 0;i < nextrap+1;i++)
+                        for (int j = 0;j < nextrap+1;j++)
+                            tmp[i][j] = e[i][j].to<double>() + (i == j ? eps : 0);
                     info = hesv('U', nextrap_real+1, 1, tmp.data(), nextrap+1, ipiv.data(),
-                                c.data(), nextrap+1);
+                                ctmp.data(), nextrap+1);
+                    for (int i = 0;i < nextrap+1;i++)
+                        c[i] = ctmp[i];
                 }
 
                 if (info != 0) throw runtime_error(strprintf("DIIS: Info in hesv: %d", info));

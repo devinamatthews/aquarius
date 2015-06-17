@@ -63,8 +63,8 @@ bool LambdaCCSDTQ<U>::run(TaskDAG& dag, const Arena& arena)
     L(0) = 1;
     L(1)[      "ia"] = T(1)[      "ai"];
     L(2)[    "ijab"] = T(2)[    "abij"];
-    L(3)[  "ijkabc"] = 0;//T(3)[  "abcijk"];
-    L(4)["ijklabcd"] = 0;//T(4)["abcdijkl"];
+    L(3)[  "ijkabc"] = T(3)[  "abcijk"];
+    L(4)["ijklabcd"] = T(4)["abcdijkl"];
 
     const SpinorbitalTensor<U>&   FME =   H.getIA();
     const SpinorbitalTensor<U>& WMNEF = H.getIJAB();
@@ -152,8 +152,8 @@ void LambdaCCSDTQ<U>::iterate(const Arena& arena)
      *
      * Intermediates for Lambda-CCSD
      */
-    DIJ["ij"]  =  0.5*T(2)["efjm"]*L(2)["imef"];
-    DAB["ab"]  = -0.5*T(2)["aemn"]*L(2)["mnbe"];
+    DIJ["ij"] =  0.5*T(2)["efjm"]*L(2)["imef"];
+    DAB["ab"] = -0.5*T(2)["aemn"]*L(2)["mnbe"];
     /*
      **************************************************************************/
 
@@ -191,15 +191,15 @@ void LambdaCCSDTQ<U>::iterate(const Arena& arena)
       DIJ[  "ij"]  =  (1.0/12.0)*T(3)["efgjmn"]* L(3)["imnefg"];
       DAB[  "ab"]  = -(1.0/12.0)*T(3)["aefmno"]* L(3)["mnobef"];
 
-    GABCD["abcd"]  =   (1.0/6.0)*T(3)["abemno"]* L(3)["mnocde"];
-    GAIBJ["aibj"]  =       -0.25*T(3)["aefjmn"]* L(3)["imnbef"];
-    GIJKL["ijkl"]  =   (1.0/6.0)*T(3)["efgklm"]* L(3)["ijmefg"];
+    GABCD["abcd"]  =  (1.0/ 6.0)*T(3)["abemno"]* L(3)["mnocde"];
+    GAIBJ["aibj"]  = -(1.0/ 4.0)*T(3)["aefjmn"]* L(3)["imnbef"];
+    GIJKL["ijkl"]  =  (1.0/ 6.0)*T(3)["efgklm"]* L(3)["ijmefg"];
 
-    GIJAK["ijak"]  =         0.5*T(2)[  "efkm"]* L(3)["ijmaef"];
-    GAIBC["aibc"]  =        -0.5*T(2)[  "aemn"]* L(3)["minbce"];
+    GIJAK["ijak"]  =  (1.0/ 2.0)*T(2)[  "efkm"]* L(3)["ijmaef"];
+    GAIBC["aibc"]  = -(1.0/ 2.0)*T(2)[  "aemn"]* L(3)["minbce"];
 
-      DAI[  "ai"]  =        0.25*T(3)["aefimn"]* L(2)[  "mnef"];
-      DAI[  "ai"] -=         0.5*T(2)[  "eamn"]*GIJAK[  "mnei"];
+      DAI[  "ai"]  =  (1.0/ 4.0)*T(3)["aefimn"]* L(2)[  "mnef"];
+      DAI[  "ai"] -=  (1.0/ 2.0)*T(2)[  "eamn"]*GIJAK[  "mnei"];
     /*
      **************************************************************************/
 
@@ -247,39 +247,37 @@ void LambdaCCSDTQ<U>::iterate(const Arena& arena)
     /*
      **************************************************************************/
 
-    cout << "??????????" << endl;
-
     /***************************************************************************
      *
      * Intermediates for Lambda-CCSDTQ
      */
-        //DIJ[    "ij"]  =  (1.0/144.0)* T(4)["efghjmno"]*   L(4)["imnoefgh"];
-        //DAB[    "ab"]  = -(1.0/144.0)* T(4)["aefgmnop"]*   L(4)["mnopbefg"];
+        DIJ[    "ij"]  =  (1.0/144.0)* T(4)["efghjmno"]*   L(4)["imnoefgh"];
+        DAB[    "ab"]  = -(1.0/144.0)* T(4)["aefgmnop"]*   L(4)["mnopbefg"];
 
-      //GIJAK[  "ijak"]  =  (1.0/ 12.0)* T(3)[  "efgkmn"]*   L(4)["ijmnaefg"];
-      //GAIBC[  "aibc"]  = -(1.0/ 12.0)* T(3)[  "aefmno"]*   L(4)["minobcef"];
+      GIJAK[  "ijak"]  =  (1.0/ 12.0)* T(3)[  "efgkmn"]*   L(4)["ijmnaefg"];
+      GAIBC[  "aibc"]  = -(1.0/ 12.0)* T(3)[  "aefmno"]*   L(4)["minobcef"];
 
-      //GAIJK[  "aijk"]  =  (1.0/ 12.0)* T(4)["aefgjkmn"]*   L(3)[  "imnefg"];
-      //GABCI[  "abci"]  = -(1.0/ 12.0)* T(4)["abefmino"]*   L(3)[  "mnocef"];
+      GAIJK[  "aijk"]  =  (1.0/ 12.0)* T(4)["aefgjkmn"]*   L(3)[  "imnefg"];
+      GABCI[  "abci"]  = -(1.0/ 12.0)* T(4)["abefmino"]*   L(3)[  "mnocef"];
 
-    //GIJKABL["ijkabl"]  =  (1.0/  2.0)* T(2)[    "eflm"]*   L(4)["ijkmabef"];
-    //GAIJBCD["aijbcd"]  = -(1.0/  2.0)* T(2)[    "aemn"]*   L(4)["mijnbcde"];
-    //GIJKALM["ijkalm"]  =  (1.0/  6.0)* T(3)[  "efglmn"]*   L(4)["ijknaefg"];
+    GIJKABL["ijkabl"]  =  (1.0/  2.0)* T(2)[    "eflm"]*   L(4)["ijkmabef"];
+    GAIJBCD["aijbcd"]  = -(1.0/  2.0)* T(2)[    "aemn"]*   L(4)["mijnbcde"];
+    GIJKALM["ijkalm"]  =  (1.0/  6.0)* T(3)[  "efglmn"]*   L(4)["ijknaefg"];
 
-      //GABCD[  "abcd"]  =  (1.0/ 48.0)* T(4)["abefmnop"]*   L(4)["mnopcdef"];
+      GABCD[  "abcd"]  =  (1.0/ 48.0)* T(4)["abefmnop"]*   L(4)["mnopcdef"];
       //GABCD[  "abcd"] +=  (1.0/  4.0)* T(2)[    "bemn"]*GAIJBCD[  "amncde"];
 
       //doit = true;
-      //GAIBJ[  "aibj"]  = -(1.0/ 36.0)* T(4)["aefgjmno"]*   L(4)["imnobefg"];
+      GAIBJ[  "aibj"]  = -(1.0/ 36.0)* T(4)["aefgjmno"]*   L(4)["imnobefg"];
       //doit = false;
       //GAIBJ[  "aibj"] -=  (1.0/  2.0)* T(2)[    "eamn"]*GIJKABL[  "imnbej"];
 
-      //GIJKL[  "ijkl"]  =  (1.0/ 48.0)* T(4)["efghklmn"]*   L(4)["ijmnefgh"];
+      GIJKL[  "ijkl"]  =  (1.0/ 48.0)* T(4)["efghklmn"]*   L(4)["ijmnefgh"];
       //GIJKL[  "ijkl"] +=  (1.0/  4.0)* T(2)[    "efmk"]*GIJKABL[  "mijefl"];
 
-        //DAI[    "ai"]  =  (1.0/ 36.0)* T(4)["aefgimno"]*   L(3)[  "mnoefg"];
-        //DAI[    "ai"] -=  (1.0/ 12.0)* T(2)[    "eamn"]*  GIJAK[    "mnei"];
-        //DAI[    "ai"] +=  (1.0/ 12.0)* T(2)[    "efim"]*  GAIBC[    "amef"];
+        DAI[    "ai"]  =  (1.0/ 36.0)* T(4)["aefgimno"]*   L(3)[  "mnoefg"];
+        DAI[    "ai"] -=  (1.0/ 12.0)* T(2)[    "eamn"]*  GIJAK[    "mnei"];
+        DAI[    "ai"] +=  (1.0/ 12.0)* T(2)[    "efim"]*  GAIBC[    "amef"];
     /*
      **************************************************************************/
 

@@ -9,16 +9,12 @@ namespace aquarius
 namespace scf
 {
 
-template <typename T>
-class ElementalUHF : public UHF<T>
+class ElementalUHF : public UHF
 {
     public:
         ElementalUHF(const string& name, input::Config& config);
 
     protected:
-        using UHF<T>::E_alpha;
-        using UHF<T>::E_beta;
-
         void calcSMinusHalf();
 
         void diagonalizeFock();

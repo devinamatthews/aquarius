@@ -29,13 +29,13 @@ OneElectronIntegrals::OneElectronIntegrals(const Shell& a, const Shell& b)
     fcb = (lb+1)*(lb+2)/2;
 
     int nints = 0;
-    for (int j = 0;j < fsb;j++)
+    for (int i = 0;i < fsa;i++)
     {
-        for (int i = 0;i < fsa;i++)
+        for (int j = 0;j < fsb;j++)
         {
-            for (int s = 0;s < db;s++)
+            for (int r = 0;r < da;r++)
             {
-                for (int r = 0;r < da;r++)
+                for (int s = 0;s < db;s++)
                 {
                     const Representation& w = group.getIrrep(a.getIrrepOfFunc(i, r));
                     const Representation& x = group.getIrrep(b.getIrrepOfFunc(j, s));
@@ -61,22 +61,22 @@ size_t OneElectronIntegrals::process(const Context& ctx, const vector<int>& idxa
 
     size_t m = 0;
     size_t n = 0;
-    for (int j = 0;j < fsb;j++)
+    for (int i = 0;i < fsa;i++)
     {
-        for (int i = 0;i < fsa;i++)
+        for (int j = 0;j < fsb;j++)
         {
-            for (int s = 0;s < db;s++)
+            for (int r = 0;r < da;r++)
             {
-                for (int r = 0;r < da;r++)
+                for (int s = 0;s < db;s++)
                 {
                     const Representation w = group.getIrrep(sa.getIrrepOfFunc(i,r));
                     const Representation x = group.getIrrep(sb.getIrrepOfFunc(j,s));
 
                     if (!(w*x).isTotallySymmetric()) continue;
 
-                    for (int f = 0;f < mb;f++)
+                    for (int e = 0;e < ma;e++)
                     {
-                        for (int e = 0;e < ma;e++)
+                        for (int f = 0;f < mb;f++)
                         {
                             if (num_processed > m)
                             {
@@ -114,14 +114,12 @@ void OneElectronIntegrals::prim(const vec3& posa, int e,
 void OneElectronIntegrals::prims(const vec3& posa, const vec3& posb,
                                  double* integrals)
 {
-    #pragma omp parallel
+    #pragma omp parallel for collapse(2)
+    for (int e = 0;e < na;e++)
     {
-        #pragma omp for
-        for (int m = 0;m < na*nb;m++)
+        for (int f = 0;f < nb;f++)
         {
-            int f = m/na;
-            int e = m%na;
-            prim(posa, e, posb, f, integrals+fca*fcb*m);
+            prim(posa, e, posb, f, integrals+fca*fcb*(e*nb+f));
         }
     }
 }
@@ -164,13 +162,13 @@ void OneElectronIntegrals::so(double* integrals)
 
 void OneElectronIntegrals::ao2so2(size_t nother, int r, double* aointegrals, double* sointegrals)
 {
-    for (int j = 0;j < fsb;j++)
+    for (int i = 0;i < fsa;i++)
     {
-        for (int i = 0;i < fsa;i++)
+        for (int j = 0;j < fsb;j++)
         {
-            for (int f = 0;f < db;f++)
+            for (int e = 0;e < da;e++)
             {
-                for (int e = 0;e < da;e++)
+                for (int f = 0;f < db;f++)
                 {
                     int w = sa.getIrrepOfFunc(i,e);
                     int x = sb.getIrrepOfFunc(j,f);
@@ -192,33 +190,29 @@ void OneElectronIntegrals::cart2spher2r(size_t nother, double* buf1, double* buf
 {
     size_t m, n, k;
 
-    m = fsb;
-    n = fca*nother;
-    k = fcb;
-
-    if (sb.isSpherical())
-    {
-        // [b,j]' x [xa,b]' = [j,xa]
-        gemm('T', 'T', m, n, k, 1.0, sb.getCart2Spher().data(), k, buf1, n, 0.0, buf2, m);
-    }
-    else
-    {
-        // [xa,j]' = [j,xa]
-        transpose(n, m, 1.0, buf1, n, 0.0, buf2, m);
-    }
-
     m = fsa;
-    n = fsb*nother;
+    n = fcb*nother;
     k = fca;
 
     if (sa.isSpherical())
     {
-        // [a,i]' x [jx,a]' = [i,jx]
-        gemm('T', 'T', m, n, k, 1.0, sa.getCart2Spher().data(), k, buf2, n, 0.0, buf1, m);
+        gemm('T', 'T', m, n, k, 1.0, sa.getCart2Spher().data(), k, buf1, n, 0.0, buf2, m);
     }
     else
     {
-        // [jx,i]' = [i,jx]
+        transpose(n, m, 1.0, buf1, n, 0.0, buf2, m);
+    }
+
+    m = fsb;
+    n = fsa*nother;
+    k = fcb;
+
+    if (sb.isSpherical())
+    {
+        gemm('T', 'T', m, n, k, 1.0, sb.getCart2Spher().data(), k, buf2, n, 0.0, buf1, m);
+    }
+    else
+    {
         transpose(n, m, 1.0, buf2, n, 0.0, buf1, m);
     }
 
@@ -229,33 +223,29 @@ void OneElectronIntegrals::cart2spher2l(size_t nother, double* buf1, double* buf
 {
     size_t m, n, k;
 
-    n = fsa;
-    m = fcb*nother;
-    k = fca;
-
-    if (sa.isSpherical())
-    {
-        // [a,bx]' x [a,i]  = [bx,i]
-        gemm('T', 'N', m, n, k, 1.0, buf1, k, sb.getCart2Spher().data(), k, 0.0, buf2, m);
-    }
-    else
-    {
-        // [i,bx]' = [bx,i]
-        transpose(n, m, 1.0, buf1, n, 0.0, buf2, m);
-    }
-
     n = fsb;
-    m = fsa*nother;
+    m = fca*nother;
     k = fcb;
 
     if (sb.isSpherical())
     {
-        // [b,xi]' x [b,j] = [xi,j]
+        gemm('T', 'N', m, n, k, 1.0, buf1, k, sb.getCart2Spher().data(), k, 0.0, buf2, m);
+    }
+    else
+    {
+        transpose(n, m, 1.0, buf1, n, 0.0, buf2, m);
+    }
+
+    n = fsa;
+    m = fsb*nother;
+    k = fcb;
+
+    if (sa.isSpherical())
+    {
         gemm('T', 'N', m, n, k, 1.0, buf2, k, sa.getCart2Spher().data(), k, 0.0, buf1, m);
     }
     else
     {
-        // [j,xi]' = [xi,j]
         transpose(n, m, 1.0, buf2, n, 0.0, buf1, m);
     }
 
@@ -266,17 +256,15 @@ void OneElectronIntegrals::prim2contr2r(size_t nother, double* buf1, double* buf
 {
     size_t m, n, k;
 
-    // [b,j]' x [xa,b]' = [j,xa]
-    m = mb;
-    n = na*nother;
-    k = nb;
-    gemm('T', 'T', m, n, k, 1.0, sb.getCoefficients().data(), k, buf1, n, 0.0, buf2, m);
-
-    // [a,i]' x [jx,a]' = [i,jx]
     m = ma;
-    n = mb*nother;
+    n = nb*nother;
     k = na;
-    gemm('T', 'T', m, n, k, 1.0, sa.getCoefficients().data(), k, buf2, n, 0.0, buf1, m);
+    gemm('T', 'T', m, n, k, 1.0, sa.getCoefficients().data(), k, buf1, n, 0.0, buf2, m);
+
+    m = mb;
+    n = ma*nother;
+    k = nb;
+    gemm('T', 'T', m, n, k, 1.0, sb.getCoefficients().data(), k, buf2, n, 0.0, buf1, m);
 
     copy(m*n, buf1, 1, buf2, 1);
 }
@@ -285,16 +273,14 @@ void OneElectronIntegrals::prim2contr2l(size_t nother, double* buf1, double* buf
 {
     size_t m, n, k;
 
-    // [a,bx]' x [a,i] = [bx,i]
-    m = ma;
-    n = nb*nother;
-    k = na;
+    m = mb;
+    n = na*nother;
+    k = nb;
     gemm('T', 'N', m, n, k, 1.0, buf1, k, sb.getCoefficients().data(), k, 0.0, buf2, m);
 
-    // [b,xi]' x [b,j] = [xi,j]
-    m = mb;
-    n = ma*nother;
-    k = nb;
+    m = ma;
+    n = mb*nother;
+    k = na;
     gemm('T', 'N', m, n, k, 1.0, buf2, k, sa.getCoefficients().data(), k, 0.0, buf1, m);
 
     copy(m*n, buf1, 1, buf2, 1);

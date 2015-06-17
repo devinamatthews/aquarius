@@ -2,6 +2,8 @@
 
 #include "fmgamma.hpp"
 
+using MArray::slice::all;
+
 namespace aquarius
 {
 namespace integrals
@@ -50,11 +52,7 @@ void OSERI::prim(const vec3& posa, int e, const vec3& posb, int f,
     marray<double,5> xtable(ld+1, lc+1, lb+1, la+1, vmax+1);
 
     Fm fm;
-    fm(Z, vmax, xtable[0][0][0][0].data());
-    for (int v = 0;v <= vmax;v++)
-    {
-        xtable[0][0][0][0][v] *= A0;
-    }
+    fm(A0, Z, xtable[0][0][0][0][all]);
 
     marray<double,4> integral((ld+1)*(ld+2)/2, (lc+1)*(lc+2)/2,
                               (lb+1)*(lb+2)/2, (la+1)*(la+2)/2, integrals);

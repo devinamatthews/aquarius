@@ -95,12 +95,6 @@ class Printer
         }
 };
 
-class Destructible
-{
-    public:
-        virtual ~Destructible() {}
-};
-
 template <typename T>
 class Resource : public Destructible
 {
@@ -200,6 +194,8 @@ class TaskDAG;
 
 class Task
 {
+    friend class TaskDAG;
+
     protected:
         typedef unique_ptr<Task> (*factory_func)(const string&, input::Config&);
 
@@ -208,8 +204,11 @@ class Task
         vector<Product> products;
         vector<Product> temporaries;
         input::Config config;
+        Arena* arena_ = NULL;
 
         static map<string,tuple<input::Schema,factory_func>>& tasks();
+
+        const Arena& arena() const { return *arena_; }
 
         void addProduct(const Product& product)
         {
@@ -239,6 +238,11 @@ class Task
 
             temporaries.push_back(Product("temporary", name));
             return temporaries.back().put(resource);
+        }
+
+        template <typename T> decay_t<T>& puttmp(const string& name, T&& resource)
+        {
+            return puttmp(name, new decay_t<T>(forward<T>(resource)));
         }
 
         template <typename T> T& gettmp(const string& name)
@@ -296,6 +300,11 @@ class Task
         template <typename T> T& put(const string& name, T* resource)
         {
             return getProduct(name).put(resource);
+        }
+
+        template <typename T> decay_t<T>& put(const string& name, T&& resource)
+        {
+            return put(name, new decay_t<T>(forward<T>(resource)));
         }
 
         template <typename T> T& get(const string& name)

@@ -1,6 +1,5 @@
 #include "util/global.hpp"
 
-#include "tensor/symblocked_tensor.hpp"
 #include "time/time.hpp"
 #include "task/task.hpp"
 
@@ -22,7 +21,6 @@ int main(int argc, char **argv)
 
     #ifdef HAVE_LIBINT2
     libint2_static_init();
-    printf("sdflkjsdf\n");
     #endif
 
     if (getenv("OMP_NUM_THREADS") == NULL)

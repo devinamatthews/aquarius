@@ -5,7 +5,6 @@ using namespace aquarius::input;
 using namespace aquarius::integrals;
 using namespace aquarius::task;
 using namespace aquarius::time;
-using namespace aquarius::op;
 using namespace aquarius::symmetry;
 
 namespace aquarius
@@ -13,9 +12,8 @@ namespace aquarius
 namespace scf
 {
 
-template <typename T>
-UHF<T>::UHF(const string& name, Config& config)
-: Iterative<T>(name, config), frozen_core(config.get<bool>("frozen_core")),
+UHF::UHF(const string& name, Config& config)
+: Iterative(name, config), frozen_core(config.get<bool>("frozen_core")),
   diis(config.get("diis"), 2)
 {
     vector<Requirement> reqs;
@@ -36,8 +34,7 @@ UHF<T>::UHF(const string& name, Config& config)
     this->addProduct(Product("Db", "Db", reqs));
 }
 
-template <typename T>
-bool UHF<T>::run(TaskDAG& dag, const Arena& arena)
+bool UHF::run(TaskDAG& dag, const Arena& arena)
 {
     const Molecule& molecule = this->template get<Molecule>("molecule");
     const PointGroup& group = molecule.getGroup();
@@ -46,20 +43,21 @@ bool UHF<T>::run(TaskDAG& dag, const Arena& arena)
     int nalpha = molecule.getNumAlphaElectrons();
     int nbeta = molecule.getNumBetaElectrons();
 
-    vector<int> shapeNN = {NS,NS};
-    vector<vector<int>> sizenn = {norb,norb};
+    auto init = TensorInitializer<>("Ca", Field::DOUBLE) <<
+                TensorInitializer<PGSYMMETRIC|BOUNDED>(group, {norb,norb}) <<
+                TensorInitializer<DISTRIBUTED>(arena);
+    Tensor<BOUNDED|PGSYMMETRIC> Ca = this->puttmp<Tensor<>>("Ca", Tensor<PGSYMMETRIC|BOUNDED|DISTRIBUTED>::construct(init));
+    Tensor<BOUNDED|PGSYMMETRIC> Cb = this->puttmp<Tensor<>>("Cb", Ca.construct("Cb"));
 
-    this->put("Fa", new SymmetryBlockedTensor<T>("Fa", arena, group, 2, sizenn, shapeNN, false));
-    this->put("Fb", new SymmetryBlockedTensor<T>("Fb", arena, group, 2, sizenn, shapeNN, false));
-    this->put("Da", new SymmetryBlockedTensor<T>("Da", arena, group, 2, sizenn, shapeNN, true));
-    this->put("Db", new SymmetryBlockedTensor<T>("Db", arena, group, 2, sizenn, shapeNN, true));
+    this->puttmp<Tensor<>>("dF",     Ca.construct("dF"));
+    this->puttmp<Tensor<>>("dDa",    Ca.construct("dDa"));
+    this->puttmp<Tensor<>>("dDb",    Ca.construct("dDb"));
+    this->puttmp<Tensor<>>("S^-1/2", Ca.construct("S^-1/2"));
 
-    this->puttmp("dF",     new SymmetryBlockedTensor<T>("dF",     arena, group, 2, sizenn, shapeNN, false));
-    this->puttmp("Ca",     new SymmetryBlockedTensor<T>("Ca",     arena, group, 2, sizenn, shapeNN, false));
-    this->puttmp("Cb",     new SymmetryBlockedTensor<T>("Cb",     arena, group, 2, sizenn, shapeNN, false));
-    this->puttmp("dDa",    new SymmetryBlockedTensor<T>("dDa",    arena, group, 2, sizenn, shapeNN, false));
-    this->puttmp("dDb",    new SymmetryBlockedTensor<T>("dDb",    arena, group, 2, sizenn, shapeNN, false));
-    this->puttmp("S^-1/2", new SymmetryBlockedTensor<T>("S^-1/2", arena, group, 2, sizenn, shapeNN, false));
+    this->put<Tensor<>>("Fa", Ca.construct("Fa"));
+    this->put<Tensor<>>("Fb", Ca.construct("Fb"));
+    this->put<Tensor<>>("Da", Ca.construct("Da"));
+    this->put<Tensor<>>("Db", Ca.construct("Db"));
 
     occ_alpha.resize(group.getNumIrreps());
     occ_beta.resize(group.getNumIrreps());
@@ -77,16 +75,11 @@ bool UHF<T>::run(TaskDAG& dag, const Arena& arena)
 
     CTF_Timer_epoch ep(this->name.c_str());
     ep.begin();
-    Iterative<T>::run(dag, arena);
+    Iterative::run(dag, arena);
     ep.end();
 
-    if (this->isUsed("S2") || this->isUsed("multiplicity"))
-    {
-        calcS2();
-    }
-
-    this->put("energy", new T(this->energy()));
-    this->put("convergence", new T(this->conv()));
+    this->put("energy", this->energy());
+    this->put("convergence", this->conv());
 
     int nfrozen = 0;
     if (frozen_core)
@@ -106,17 +99,17 @@ bool UHF<T>::run(TaskDAG& dag, const Arena& arena)
     if (nfrozen > nalpha || nfrozen > nbeta)
         Logger::error(arena) << "There are not enough valence electrons for this multiplicity" << endl;
 
-    vector<pair<real_type_t<T>,int>> E_alpha_occ;
-    vector<pair<real_type_t<T>,int>> E_beta_occ;
+    vector<pair<Scalar,int>> E_alpha_occ;
+    vector<pair<Scalar,int>> E_beta_occ;
     for (int i = 0;i < group.getNumIrreps();i++)
     {
         for (int j = 0;j < occ_alpha[i];j++)
         {
-            E_alpha_occ.push_back(make_pair(E_alpha[i][j],i));
+            E_alpha_occ.emplace_back(E_alpha[i][j], i);
         }
         for (int j = 0;j < occ_beta[i];j++)
         {
-            E_beta_occ.push_back(make_pair(E_beta[i][j],i));
+            E_beta_occ.emplace_back(E_beta[i][j], i);
         }
     }
     assert(E_alpha_occ.size() == nalpha);
@@ -149,29 +142,19 @@ bool UHF<T>::run(TaskDAG& dag, const Arena& arena)
         occ_beta[i] -= nfrozen_beta[i];
     }
 
-    vector<int> zero(norb.size(), 0);
-    this->put("occ", new MOSpace<T>(SymmetryBlockedTensor<T>("CI", this->template gettmp<SymmetryBlockedTensor<T>>("Ca"),
-                                                             {zero,nfrozen_alpha},
-                                                             {norb,occ_alpha}),
-                                    SymmetryBlockedTensor<T>("Ci", this->template gettmp<SymmetryBlockedTensor<T>>("Cb"),
-                                                             {zero,nfrozen_beta},
-                                                             {norb,occ_beta})));
+    Tensor<BOUNDED|PGSYMMETRIC> Ca_occ = this->put<Tensor<>>("CI", Ca.construct("CI", TensorInitializer<PGSYMMETRIC|BOUNDED>(group, {norb,occ_alpha})));
+    Tensor<BOUNDED|PGSYMMETRIC> Cb_occ = this->put<Tensor<>>("Ci", Ca.construct("Ci", TensorInitializer<PGSYMMETRIC|BOUNDED>(group, {norb,occ_beta})));
+    Tensor<BOUNDED|PGSYMMETRIC> Ca_vrt = this->put<Tensor<>>("CA", Ca.construct("CA", TensorInitializer<PGSYMMETRIC|BOUNDED>(group, {norb,vrt_alpha})));
+    Tensor<BOUNDED|PGSYMMETRIC> Cb_vrt = this->put<Tensor<>>("Ca", Ca.construct("Ca", TensorInitializer<PGSYMMETRIC|BOUNDED>(group, {norb,vrt_beta})));
 
-   	this->put("vrt", new MOSpace<T>(SymmetryBlockedTensor<T>("CA", this->template gettmp<SymmetryBlockedTensor<T>>("Ca"),
-                                                             {zero,vrt0_alpha},
-                                                             {norb,vrt_alpha}),
-   	                                SymmetryBlockedTensor<T>("Ca", this->template gettmp<SymmetryBlockedTensor<T>>("Cb"),
-                                                             {zero,vrt0_beta},
-                                                             {norb,vrt_beta})));
+    vector<int> zero(group.getNumIrreps());
+    Ca_occ.slice({zero,zero}, Ca);
+    Cb_occ.slice({zero,zero}, Cb);
+    Ca_vrt.slice({zero,vrt0_alpha}, Ca);
+    Cb_vrt.slice({zero,vrt0_beta}, Cb);
 
-    vector<int> shapeN{NS};
-    vector<vector<int>> sizena{norb};
-    vector<vector<int>> sizenb{norb};
-    for (int i = 0;i < group.getNumIrreps();i++) sizena[0][i] -= nfrozen_alpha[i];
-    for (int i = 0;i < group.getNumIrreps();i++) sizenb[0][i] -= nfrozen_beta[i];
-
-    auto& Ea = this->put("Ea", new vector<vector<real_type_t<T>>>(group.getNumIrreps()));
-    auto& Eb = this->put("Eb", new vector<vector<real_type_t<T>>>(group.getNumIrreps()));
+    auto& Ea = this->put("Ea", new vector<vector<Scalar>>(group.getNumIrreps()));
+    auto& Eb = this->put("Eb", new vector<vector<Scalar>>(group.getNumIrreps()));
 
     for (int i = 0;i < group.getNumIrreps();i++)
     {
@@ -185,11 +168,15 @@ bool UHF<T>::run(TaskDAG& dag, const Arena& arena)
         Eb[i].assign(E_beta[i].begin()+nfrozen_beta[i], E_beta[i].end());
     }
 
+    if (this->isUsed("S2") || this->isUsed("multiplicity"))
+    {
+        calcS2();
+    }
+
     return true;
 }
 
-template <typename T>
-void UHF<T>::iterate(const Arena& arena)
+void UHF::iterate(const Arena& arena)
 {
     const Molecule& molecule = this->template get<Molecule>("molecule");
 
@@ -203,8 +190,8 @@ void UHF<T>::iterate(const Arena& arena)
     calcEnergy();
     diagonalizeFock();
 
-    vector<pair<real_type_t<T>,int>> E_alpha_sorted;
-    vector<pair<real_type_t<T>,int>> E_beta_sorted;
+    vector<pair<Scalar,int>> E_alpha_sorted;
+    vector<pair<Scalar,int>> E_beta_sorted;
     for (int i = 0;i < molecule.getGroup().getNumIrreps();i++)
     {
         occ_alpha[i] = 0;
@@ -235,68 +222,64 @@ void UHF<T>::iterate(const Arena& arena)
 
     calcDensity();
 
-    auto& dDa = this->template gettmp<SymmetryBlockedTensor<T>>("dDa");
-    auto& dDb = this->template gettmp<SymmetryBlockedTensor<T>>("dDb");
+    Tensor<BOUNDED> dDa = this->template gettmp<Tensor<>>("dDa");
+    Tensor<BOUNDED> dDb = this->template gettmp<Tensor<>>("dDb");
 
     switch (this->convtype)
     {
-        case Iterative<T>::MAX_ABS:
-            this->conv() = max(dDa.norm(00), dDb.norm(00));
+        case Iterative::MAX_ABS:
+            this->conv() = max(dDa.norm(00), dDb.norm(00)).to<double>();
             break;
-        case Iterative<T>::RMSD:
-            this->conv() = (dDa.norm(2)+dDb.norm(2))/sqrt(2*norbtot*norbtot);
+        case Iterative::RMSD:
+            this->conv() = (dDa.norm(2)+dDb.norm(2)).to<double>()/sqrt(2*norbtot*norbtot);
             break;
-        case Iterative<T>::MAD:
-            this->conv() = (dDa.norm(1)+dDb.norm(1))/(2*norbtot*norbtot);
+        case Iterative::MAD:
+            this->conv() = (dDa.norm(1)+dDb.norm(1)).to<double>()/(2*norbtot*norbtot);
             break;
     }
 }
 
-template <typename T>
-void UHF<T>::calcS2()
+void UHF::calcS2()
 {
     const auto& molecule = this->template get<Molecule>("molecule");
     const PointGroup& group = molecule.getGroup();
 
     const vector<int>& norb = molecule.getNumOrbitals();
-    int nalpha = molecule.getNumAlphaElectrons();
-    int nbeta = molecule.getNumBetaElectrons();
 
-    auto& S = this->template get<SymmetryBlockedTensor<T>>("S");
+    Tensor<BOUNDED> S = this->template get<Tensor<>>("S");
 
-    vector<int> zero(norb.size(), 0);
-    SymmetryBlockedTensor<T> Ca_occ("CI", this->template gettmp<SymmetryBlockedTensor<T>>("Ca"),
-                                    {zero,zero}, {norb,occ_alpha});
-    SymmetryBlockedTensor<T> Cb_occ("Ci", this->template gettmp<SymmetryBlockedTensor<T>>("Cb"),
-                                    {zero,zero}, {norb,occ_beta});
+    Tensor<BOUNDED|PGSYMMETRIC> Ca_occ = this->get<Tensor<>>("CI");
+    Tensor<BOUNDED|PGSYMMETRIC> Cb_occ = this->get<Tensor<>>("Ci");
 
-    SymmetryBlockedTensor<T> Delta("Delta", S.arena, group, 2, {{nalpha},{nbeta}}, {NS,NS}, false);
-    SymmetryBlockedTensor<T> tmp("tmp", S.arena, group, 2, {{nalpha},norb}, {NS,NS}, false);
+    vector<int> nalpha = Ca_occ.getLengthsPerIrrep()[1];
+    vector<int> nbeta = Cb_occ.getLengthsPerIrrep()[1];
 
-    int ndiff = abs(nalpha-nbeta);
-    int nmin = min(nalpha, nbeta);
+    Tensor<BOUNDED> Delta = S.construct("Delta", TensorInitializer<BOUNDED|PGSYMMETRIC>(group, {nalpha,nbeta}));
+    Tensor<BOUNDED> tmp = Cb_occ.construct("tmp");
 
-    double S2 = ((ndiff/2)*(ndiff/2+1) + nmin);
+    int ndiff = abs(sum(nalpha) - sum(nbeta));
+    int nmin = min(sum(nalpha), sum(nbeta));
 
-    tmp["ai"] = Ca_occ["ja"]*S["ij"];
-    Delta["ab"] = tmp["ai"]*Cb_occ["ib"];
+    Scalar S2 = double((ndiff/2)*(ndiff/2+1) + nmin);
 
-    S2 -= aquarius::abs(scalar(Delta*conj(Delta)));
+    tmp["ib"] = S["ij"]*Cb_occ["jb"];
+    Delta["ab"] = tmp["ib"]*Ca_occ["ia"];
 
-    this->put("S2", new T(S2));
-    this->put("multiplicity", new T(sqrt(4*S2+1)));
+    S2 -= abs(scalar(Delta*conj(Delta)));
+
+    this->put("S^2", S2);
+    this->put("multiplicity", sqrt(4*S2+1));
 }
 
-template <typename T>
-void UHF<T>::calcEnergy()
+void UHF::calcEnergy()
 {
     const Molecule& molecule = this->template get<Molecule>("molecule");
 
-    auto& H  = this->template get<SymmetryBlockedTensor<T>>("H");
-    auto& Fa = this->template get<SymmetryBlockedTensor<T>>("Fa");
-    auto& Fb = this->template get<SymmetryBlockedTensor<T>>("Fb");
-    auto& Da = this->template get<SymmetryBlockedTensor<T>>("Da");
-    auto& Db = this->template get<SymmetryBlockedTensor<T>>("Db");
+    Tensor<BOUNDED> H  = this->template get<Tensor<>>("H");
+    Tensor<BOUNDED> Fa = this->template get<Tensor<>>("Fa");
+    Tensor<BOUNDED> Fb = this->template get<Tensor<>>("Fb");
+    Tensor<BOUNDED> Da = this->template get<Tensor<>>("Da");
+    Tensor<BOUNDED> Db = this->template get<Tensor<>>("Db");
 
     /*
      * E = (1/2)Tr[D(F+H)]
@@ -312,25 +295,25 @@ void UHF<T>::calcEnergy()
     Fb["ab"] -= H["ab"];
 }
 
-template <typename T>
-void UHF<T>::calcDensity()
+void UHF::calcDensity()
 {
     const Molecule& molecule = this->template get<Molecule>("molecule");
-
+    const PointGroup& group = molecule.getGroup();
     const vector<int>& norb = molecule.getNumOrbitals();
-    int nalpha = molecule.getNumAlphaElectrons();
-    int nbeta = molecule.getNumBetaElectrons();
 
-    auto& dDa = this->template gettmp<SymmetryBlockedTensor<T>>("dDa");
-    auto& dDb = this->template gettmp<SymmetryBlockedTensor<T>>("dDb");
-    auto& Da  = this->template get   <SymmetryBlockedTensor<T>>("Da");
-    auto& Db  = this->template get   <SymmetryBlockedTensor<T>>("Db");
+    Tensor<BOUNDED> dDa = this->template gettmp<Tensor<>>("dDa");
+    Tensor<BOUNDED> dDb = this->template gettmp<Tensor<>>("dDb");
+    Tensor<BOUNDED> Da  = this->template get   <Tensor<>>("Da");
+    Tensor<BOUNDED> Db  = this->template get   <Tensor<>>("Db");
 
-    vector<int> zero(norb.size(), 0);
-    SymmetryBlockedTensor<T> Ca_occ("CI", this->template gettmp<SymmetryBlockedTensor<T>>("Ca"),
-                                    {zero,zero}, {norb,occ_alpha});
-    SymmetryBlockedTensor<T> Cb_occ("Ci", this->template gettmp<SymmetryBlockedTensor<T>>("Cb"),
-                                    {zero,zero}, {norb,occ_beta});
+    Tensor<BOUNDED|PGSYMMETRIC> Ca  = this->template gettmp<Tensor<>>("Ca");
+    Tensor<BOUNDED|PGSYMMETRIC> Cb  = this->template gettmp<Tensor<>>("Cb");
+    Tensor<BOUNDED|PGSYMMETRIC> Ca_occ = Ca.construct("CI", TensorInitializer<PGSYMMETRIC|BOUNDED>(group, {norb,occ_alpha}));
+    Tensor<BOUNDED|PGSYMMETRIC> Cb_occ = Ca.construct("Ci", TensorInitializer<PGSYMMETRIC|BOUNDED>(group, {norb,occ_beta}));
+
+    vector<int> zero(group.getNumIrreps());
+    Ca_occ.slice({zero,zero}, Ca);
+    Cb_occ.slice({zero,zero}, Cb);
 
     /*
      * D[ab] = C[ai]*C[bi]
@@ -343,16 +326,15 @@ void UHF<T>::calcDensity()
     dDb["ab"] -= Db["ab"];
 }
 
-template <typename T>
-void UHF<T>::DIISExtrap()
+void UHF::DIISExtrap()
 {
-    auto& S      = this->template get   <SymmetryBlockedTensor<T>>("S");
-    auto& Smhalf = this->template gettmp<SymmetryBlockedTensor<T>>("S^-1/2");
-    auto& dF     = this->template gettmp<SymmetryBlockedTensor<T>>("dF");
-    auto& Fa     = this->template get   <SymmetryBlockedTensor<T>>("Fa");
-    auto& Fb     = this->template get   <SymmetryBlockedTensor<T>>("Fb");
-    auto& Da     = this->template get   <SymmetryBlockedTensor<T>>("Da");
-    auto& Db     = this->template get   <SymmetryBlockedTensor<T>>("Db");
+    Tensor<BOUNDED> S      = this->template get   <Tensor<>>("S");
+    Tensor<BOUNDED> Smhalf = this->template gettmp<Tensor<>>("S^-1/2");
+    Tensor<BOUNDED> dF     = this->template gettmp<Tensor<>>("dF");
+    Tensor<BOUNDED> Fa     = this->template get   <Tensor<>>("Fa");
+    Tensor<BOUNDED> Fb     = this->template get   <Tensor<>>("Fb");
+    Tensor<BOUNDED> Da     = this->template get   <Tensor<>>("Da");
+    Tensor<BOUNDED> Db     = this->template get   <Tensor<>>("Db");
 
     /*
      * Generate the residual:
@@ -381,8 +363,8 @@ void UHF<T>::DIISExtrap()
      *     = [F,D] = 0 at convergence.
      */
     {
-        SymmetryBlockedTensor<T> tmp1("tmp", Fa);
-        SymmetryBlockedTensor<T> tmp2("tmp", Fa);
+        auto tmp1 = Fa.construct("tmp");
+        auto tmp2 = Fa.construct("tmp");
 
         tmp1["ab"]  =     Fa["ac"]*    Da["cb"];
         tmp2["ab"]  =   tmp1["ac"]*     S["cb"];
@@ -399,11 +381,8 @@ void UHF<T>::DIISExtrap()
           dF["ab"] +=   tmp1["ac"]*Smhalf["cb"];
     }
 
-    diis.extrapolate(ptr_vector<SymmetryBlockedTensor<T>>{&Fa, &Fb},
-                     ptr_vector<SymmetryBlockedTensor<T>>{&dF});
+    diis.extrapolate({Fa, Fb}, {dF});
 }
-
-INSTANTIATE_SPECIALIZATIONS(UHF);
 
 }
 }

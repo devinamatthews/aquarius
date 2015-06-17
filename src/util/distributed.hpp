@@ -16,22 +16,10 @@ namespace aquarius
 
 using namespace MPIWrap;
 
-namespace tensor
-{
-
-template <typename T> class CTFTensor;
-template <typename T> class SymmetryBlockedTensor;
-template <typename T> class SpinorbitalTensor;
-
-}
-
 class Arena
 {
     protected:
-        //global_ptr<tCTF_World<float>> ctfs;
-        global_ptr<tCTF_World<double>> ctfd;
-        //global_ptr<tCTF_World<complex<float>>> ctfc;
-        //global_ptr<tCTF_World<complex<double>>> ctfz;
+        global_ptr<CTF::World> ctf_;
         shared_ptr<Intracomm> comm_;
 
     public:
@@ -47,47 +35,17 @@ class Arena
 
         const Intracomm& comm() const { return *comm_; }
 
-        template <typename T>
-        tCTF_World<T>& ctf();
-
-        template <typename T>
-        const tCTF_World<T>& ctf() const
+        CTF::World& ctf()
         {
-            return const_cast<const tCTF_World<T>&>(const_cast<Arena&>(*this).ctf<T>());
+            if (!ctf_) ctf_.reset(new CTF::World(*comm_));
+            return *ctf_;
+        }
+
+        const CTF::World& ctf() const
+        {
+            return const_cast<const CTF::World&>(const_cast<Arena&>(*this).ctf());
         }
 };
-
-/*
-template <>
-inline tCTF_World<float>& Arena::ctf<float>()
-{
-    if (!ctfs) ctfs = new tCTF_World<float>(*comm_);
-    return *ctfs;
-}
-*/
-
-template <>
-inline tCTF_World<double>& Arena::ctf<double>()
-{
-    if (!ctfd) ctfd.reset(new tCTF_World<double>(*comm_));
-    return *ctfd;
-}
-
-/*
-template <>
-inline tCTF_World<complex<float>>& Arena::ctf<complex<float>>()
-{
-    if (!ctfc) ctfc = new tCTF_World<complex<float>>(*comm_);
-    return *ctfc;
-}
-
-template <>
-inline tCTF_World<complex<double>>& Arena::ctf<complex<double>>()
-{
-    if (!ctfz) ctfz = new tCTF_World<complex<double>>(*comm_);
-    return *ctfz;
-}
-*/
 
 class Distributed
 {

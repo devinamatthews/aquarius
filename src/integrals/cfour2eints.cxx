@@ -3,7 +3,6 @@
 using namespace aquarius::input;
 using namespace aquarius::symmetry;
 using namespace aquarius::task;
-using namespace aquarius::tensor;
 
 namespace aquarius
 {
@@ -56,7 +55,6 @@ bool CFOURTwoElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
         char label[9] = {};
         ifs.read(label, 8);
         ifs.seekg(intsize, ifstream::cur);
-        SymmetryBlockedTensor<double> *tensor = NULL;
         if (strcmp(label, "TWOELSUP") != 0) continue;
 
         while (true)

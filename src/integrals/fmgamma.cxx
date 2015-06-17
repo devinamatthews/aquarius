@@ -90,27 +90,5 @@ void Fm::calcTable()
     inited = true;
 }
 
-void Fm::operator()(double T, int n, double* array)
-{
-    if (T > TMAX[n])
-    {
-        array[n] = asymptotic(T, n);
-    }
-    else
-    {
-        array[n] = taylor(T, n);
-    }
-
-    if (n == 0) return;
-
-    double emt = exp(-T);
-    double twoT = 2*T;
-
-    for (int i = n;i > 0;i--)
-    {
-        array[i-1] = (twoT*array[i] + emt) / (2*i-1);
-    }
-}
-
 }
 }

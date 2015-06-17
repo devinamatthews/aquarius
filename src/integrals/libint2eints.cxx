@@ -59,7 +59,7 @@ void Libint2eIntegrals::prims(const vec3& posa, const vec3& posb, const vec3& po
         int nt = omp_get_num_threads();
         int i = omp_get_thread_num();
         int len = fca*fcb*fcc*fcd;
-        for (int64_t j = i;j < len;j += nt)
+        for (int64_t j = i;j < na*nb*nc*nd;j += nt)
         {
             int h = j/(na*nb*nc);
             int r = j%(na*nb*nc);
@@ -125,8 +125,7 @@ void Libint2eIntegrals::prims(const vec3& posa, const vec3& posb, const vec3& po
             inteval[i].roe[0] = gfac/s1fac;
             inteval[i].roz[0] = gfac/s2fac;
 
-            fm(Z, la+lb+lc+ld, inteval[i]._aB_s___0__s___1___TwoPRep_s___0__s___1___Ab__up_0);
-            scal(la+lb+lc+ld+1, A0, inteval[i]._aB_s___0__s___1___TwoPRep_s___0__s___1___Ab__up_0, 1);
+            fm(A0, Z, la+lb+lc+ld, inteval[i]._aB_s___0__s___1___TwoPRep_s___0__s___1___Ab__up_0);
 
             if (swappq)
                 if (swapab)
@@ -143,7 +142,7 @@ void Libint2eIntegrals::prims(const vec3& posa, const vec3& posb, const vec3& po
                     if (swapcd) libint2_build_eri[la][lb][ld][lc](&inteval[i]);
                     else        libint2_build_eri[la][lb][lc][ld](&inteval[i]);
 
-            array<unsigned, 4> perm = {3,2,1,0};
+            array<int, 4> perm = {3,2,1,0};
             if (swappq)
             {
                 swap(perm[0], perm[2]);
@@ -152,8 +151,8 @@ void Libint2eIntegrals::prims(const vec3& posa, const vec3& posb, const vec3& po
             if (swapab) swap(perm[2], perm[3]);
             if (swapcd) swap(perm[0], perm[1]);
 
-            array<marray<double, 4>::idx_type, 4> to_len = {fcd, fcc, fcb, fca};
-            array<marray<double, 4>::idx_type, 4> from_len;
+            array<int, 4> to_len = {fcd, fcc, fcb, fca};
+            array<int, 4> from_len;
             from_len[perm[0]] = to_len[0];
             from_len[perm[1]] = to_len[1];
             from_len[perm[2]] = to_len[2];
@@ -161,7 +160,7 @@ void Libint2eIntegrals::prims(const vec3& posa, const vec3& posb, const vec3& po
 
             marray<double, 4> from(from_len, inteval[i].targets[0]);
             marray<double, 4> to(to_len, integrals+j*len);
-            copy(from.permute(perm), to);
+            to = from.permute(perm);
 
             PROFILE_FLOPS(inteval[i].nflops[0]);
         }

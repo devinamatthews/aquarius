@@ -28,7 +28,7 @@ AC_OPENMP
 AX_BLAS([], [AC_MSG_FAILURE([Could not find BLAS library.])])
 AX_LAPACK([], [AC_MSG_FAILURE([Could not find LAPACK library.])])
 
-topdir=\"`(cd $srcdir && pwd)`\"
+topdir="\"`(cd $srcdir && pwd)`\""
 AC_DEFINE_UNQUOTED([TOPDIR], [$topdir], [The top source directory.])
 
 AC_DEFINE([LOWER_NO_UNDERSCORE], [1], [FORTRAN name-mangling scheme.])
@@ -150,6 +150,33 @@ fi
 
 AS_IF([test x"$have_libint2" = xyes], [AC_DEFINE([HAVE_LIBINT2], [1], [Define if libint2 is to be used.])])
 AM_CONDITIONAL([HAVE_LIBINT2], [test x"$have_libint2" = xyes])
+
+#
+# Check for MArray
+#
+
+CPPFLAGS_SAVE=$CPPFLAGS
+CPPFLAGS="$CXXFLAGS -I$srcdir/src/external/marray"
+AC_CHECK_HEADER([marray.hpp], [], [AC_MSG_FAILURE([Could not find marray.hpp, have you checked out the submodules?.])])
+CPPFLAGS=$CPPFLAGS_SAVE
+
+#
+# Check for MPIWrap
+#
+
+CPPFLAGS_SAVE=$CPPFLAGS
+CPPFLAGS="$CXXFLAGS -I$srcdir/src/external/mpiwrap"
+AC_CHECK_HEADER([mpiwrap.hpp], [], [AC_MSG_FAILURE([Could not find mpiwrap.hpp, have you checked out the submodules?.])])
+CPPFLAGS=$CPPFLAGS_SAVE
+
+#
+# Check for LAWrap
+#
+
+CPPFLAGS_SAVE=$CPPFLAGS
+CPPFLAGS="$CXXFLAGS -I$srcdir/src/external/lawrap"
+AC_CHECK_HEADER([lapack.h], [], [AC_MSG_FAILURE([Could not find lapack.h, have you checked out the submodules?.])])
+CPPFLAGS=$CPPFLAGS_SAVE
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

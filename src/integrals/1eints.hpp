@@ -4,7 +4,7 @@
 #include "util/global.hpp"
 
 #include "symmetry/symmetry.hpp"
-#include "tensor/symblocked_tensor.hpp"
+#include "tensor/tensor.hpp"
 #include "task/task.hpp"
 #include "input/molecule.hpp"
 #include "input/config.hpp"
@@ -88,42 +88,6 @@ class OneElectronIntegrals
         void prim2contr2l(size_t nother, double* buf1, double* buf2);
 };
 
-class OneElectronIntegral : public tensor::SymmetryBlockedTensor<double>
-{
-    protected:
-        string name;
-
-    public:
-        OneElectronIntegral(const Arena& arena, const string& name,
-                            const symmetry::PointGroup& group, const vector<int>& norb)
-        : tensor::SymmetryBlockedTensor<double>(name, arena, group, 2, {norb,norb}, {NS,NS}, true),
-          name(name) {}
-};
-
-struct OVI : public OneElectronIntegral
-{
-    OVI(const Arena& arena, const symmetry::PointGroup& group, const vector<int>& norb)
-    : OneElectronIntegral(arena, "S", group, norb) {}
-};
-
-struct NAI : public OneElectronIntegral
-{
-    NAI(const Arena& arena, const symmetry::PointGroup& group, const vector<int>& norb)
-    : OneElectronIntegral(arena, "G", group, norb) {}
-};
-
-struct KEI : public OneElectronIntegral
-{
-    KEI(const Arena& arena, const symmetry::PointGroup& group, const vector<int>& norb)
-    : OneElectronIntegral(arena, "T", group, norb) {}
-};
-
-struct OneElectronHamiltonian : public OneElectronIntegral
-{
-    OneElectronHamiltonian(const Arena& arena, const symmetry::PointGroup& group, const vector<int>& norb)
-    : OneElectronIntegral(arena, "H", group, norb) {}
-};
-
 template <typename OVIType, typename KEIType, typename NAIType>
 class OneElectronIntegralsTask : public task::Task
 {
@@ -141,6 +105,8 @@ class OneElectronIntegralsTask : public task::Task
 
         bool run(task::TaskDAG& dag, const Arena& arena)
         {
+            using namespace aquarius::tensor;
+
             const input::Molecule& molecule = get<input::Molecule>("molecule");
 
             Context ctx(Context::ISCF);
@@ -156,7 +122,9 @@ class OneElectronIntegralsTask : public task::Task
 
             vector<vector<int>> idx = Shell::setupIndices(ctx, molecule);
             vector<Shell> shells(molecule.getShellsBegin(), molecule.getShellsEnd());
-            vector<vector<tkv_pair<double>>> ovi_pairs(n), nai_pairs(n), kei_pairs(n);
+            vector<KeyValueVector> ovi_pairs(n, KeyValueVector(Field::DOUBLE));
+            vector<KeyValueVector> nai_pairs(n, KeyValueVector(Field::DOUBLE));
+            vector<KeyValueVector> kei_pairs(n, KeyValueVector(Field::DOUBLE));
             vector<Center> centers;
 
             for (auto& atom : molecule.getAtoms())
@@ -193,8 +161,8 @@ class OneElectronIntegralsTask : public task::Task
                             uint16_t i = idxs[k].i-start[irr];
                             uint16_t j = idxs[k].j-start[irr];
 
-                                        ovi_pairs[irr].push_back(tkv_pair<double>(i*N[irr]+j, ints[k]));
-                            if (i != j) ovi_pairs[irr].push_back(tkv_pair<double>(j*N[irr]+i, ints[k]));
+                                        ovi_pairs[irr].push_back(i*N[irr]+j, ints[k]);
+                            if (i != j) ovi_pairs[irr].push_back(j*N[irr]+i, ints[k]);
                         }
 
                         nproc = t.process(ctx, idx[a], idx[b], nint, ints.data(), idxs.data());
@@ -206,8 +174,8 @@ class OneElectronIntegralsTask : public task::Task
                             uint16_t i = idxs[k].i-start[irr];
                             uint16_t j = idxs[k].j-start[irr];
 
-                                        kei_pairs[irr].push_back(tkv_pair<double>(i*N[irr]+j, ints[k]));
-                            if (i != j) kei_pairs[irr].push_back(tkv_pair<double>(j*N[irr]+i, ints[k]));
+                                        kei_pairs[irr].push_back(i*N[irr]+j, ints[k]);
+                            if (i != j) kei_pairs[irr].push_back(j*N[irr]+i, ints[k]);
                         }
 
                         nproc = g.process(ctx, idx[a], idx[b], nint, ints.data(), idxs.data());
@@ -219,8 +187,8 @@ class OneElectronIntegralsTask : public task::Task
                             uint16_t i = idxs[k].i-start[irr];
                             uint16_t j = idxs[k].j-start[irr];
 
-                                        nai_pairs[irr].push_back(tkv_pair<double>(i*N[irr]+j, ints[k]));
-                            if (i != j) nai_pairs[irr].push_back(tkv_pair<double>(j*N[irr]+i, ints[k]));
+                                        nai_pairs[irr].push_back(i*N[irr]+j, ints[k]);
+                            if (i != j) nai_pairs[irr].push_back(j*N[irr]+i, ints[k]);
                         }
                     }
 
@@ -228,25 +196,24 @@ class OneElectronIntegralsTask : public task::Task
                 }
             }
 
-            OVI *ovi = new OVI(arena, molecule.getGroup(), N);
-            KEI *kei = new KEI(arena, molecule.getGroup(), N);
-            NAI *nai = new NAI(arena, molecule.getGroup(), N);
-            OneElectronHamiltonian *oeh = new OneElectronHamiltonian(arena, molecule.getGroup(), N);
+            auto init = TensorInitializer<>("S", tensor::Field::DOUBLE) <<
+                        TensorInitializer<DISTRIBUTED>(arena) <<
+                        TensorInitializer<PGSYMMETRIC|BOUNDED>(molecule.getGroup(), {N,N});
+            Tensor<BOUNDED|PGSYMMETRIC> S = put<Tensor<>>("S", Tensor<DISTRIBUTED|PGSYMMETRIC|BOUNDED>::construct(init));
+
+            Tensor<BOUNDED|PGSYMMETRIC> T = put<Tensor<>>("T", S.construct("T"));
+            Tensor<BOUNDED|PGSYMMETRIC> G = put<Tensor<>>("G", S.construct("G"));
+            Tensor<BOUNDED|PGSYMMETRIC> H = put<Tensor<>>("H", S.construct("H"));
 
             for (int i = 0;i < n;i++)
             {
-                vector<int> irreps(2,i);
-                (*ovi).writeRemoteData(irreps, ovi_pairs[i]);
-                (*kei).writeRemoteData(irreps, kei_pairs[i]);
-                (*nai).writeRemoteData(irreps, nai_pairs[i]);
-                (*oeh).writeRemoteData(irreps, kei_pairs[i]);
-                (*oeh).writeRemoteData(irreps, 1.0, 1.0, nai_pairs[i]);
+                vector<int> irreps = {i,i};
+                S.setDataByIrrep(irreps, ovi_pairs[i]);
+                T.setDataByIrrep(irreps, kei_pairs[i]);
+                G.setDataByIrrep(irreps, nai_pairs[i]);
+                H.setDataByIrrep(irreps, kei_pairs[i]);
+                H.addDataByIrrep(irreps, 1, nai_pairs[i], 1);
             }
-
-            put("S", ovi);
-            put("T", kei);
-            put("G", nai);
-            put("H", oeh);
 
             return true;
         }

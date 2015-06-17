@@ -210,7 +210,7 @@ void Molecule::initGeometry(Config& config, vector<AtomCartSpec>& cartpos)
                 posc = cartpos[a.angleFrom].pos;
 
                 vec3 cb = unit(posb-posc);
-                pos[2] = posb[2]-cb[2]*a.distance*cos(rad*a.angle);
+                pos[2] = cb[2]*(1+a.distance*cos(rad*a.angle));
                 pos[1] = a.distance*sin(rad*a.angle);
             }
             else if (a.distanceFrom != -1)

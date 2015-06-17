@@ -8,8 +8,7 @@ namespace aquarius
 namespace scf
 {
 
-template <typename T>
-SCF<T>::SCF(const string& name, Config& config)
+SCF::SCF(const string& name, Config& config)
 : Task(name, config)
 {
     vector<Requirement> reqs;
@@ -30,13 +29,10 @@ SCF<T>::SCF(const string& name, Config& config)
     this->addProduct(Product("Db", "Db", reqs));
 }
 
-template <typename T>
-bool SCF<T>::run(TaskDAG& dag, const Arena& arena)
+bool SCF::run(TaskDAG& dag, const Arena& arena)
 {
     return true;
 }
-
-INSTANTIATE_SPECIALIZATIONS(SCF);
 
 }
 }

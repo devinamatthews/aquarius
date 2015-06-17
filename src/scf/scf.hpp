@@ -11,7 +11,6 @@ namespace aquarius
 namespace scf
 {
 
-template <typename T>
 class SCF : public task::Task
 {
     public:

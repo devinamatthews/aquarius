@@ -12,8 +12,8 @@ void IshidaKEI::prim(const vec3& posa, int e,
 
     int vmax = la+lb;
 
-    marray<double,3> stable(3, lb+2, la+2);
-    marray<double,3> ttable(3, lb+1, la+1);
+    marray<double,3> stable(3, la+2, lb+2);
+    marray<double,3> ttable(3, la+1, lb+1);
 
     double zp = za[e] + zb[f];
     double A0 = PI_32*exp(-za[e]*zb[f]*norm2(posa-posb)/zp)/pow(zp,1.5);
@@ -25,86 +25,76 @@ void IshidaKEI::prim(const vec3& posa, int e,
 
     for (int xyz = 0;xyz < 3;xyz++)
     {
-        stable[xyz][0][0] = 1.0;
-        stable[xyz][0][1] = afac[xyz];
-        stable[xyz][1][0] = bfac[xyz];
+        stable[xyz][0][0] = (xyz == 0 ? A0 : 1);
 
-        for (int b = 1;b <= lb;b++)
+        for (int a = 0;a <= la+1;a++)
         {
-            stable[xyz][b+1][0] =   bfac[xyz]*stable[xyz][  b][0] +
-                                  b*gfac     *stable[xyz][b-1][0];
-        }
-
-        for (int a = 1;a <= la;a++)
-        {
-            stable[xyz][0][a+1] =   afac[xyz]*stable[xyz][0][  a] +
-                                  a*gfac     *stable[xyz][0][a-1];
-        }
-
-        for (int a = 1;a <= la+1;a++)
-        {
-            stable[xyz][1][a] =   bfac[xyz]*stable[xyz][0][  a] +
-                                a*gfac     *stable[xyz][0][a-1];
-
-            for (int b = 1;b <= lb;b++)
+            if (a < la+1)
             {
-                stable[xyz][b+1][a] =   bfac[xyz]*stable[xyz][  b][  a] +
-                                      a*gfac     *stable[xyz][  b][a-1] +
-                                      b*gfac     *stable[xyz][b-1][  a];
+                stable[xyz][a+1][0] = afac[xyz]*stable[xyz][a][0];
+
+                if (a > 0)
+                {
+                    stable[xyz][a+1][0] += a*gfac*stable[xyz][a-1][0];
+                }
+            }
+
+            for (int b = 0;b < lb+1;b++)
+            {
+                stable[xyz][a][b+1] = bfac[xyz]*stable[xyz][a][b];
+
+                if (a > 0)
+                {
+                    stable[xyz][a][b+1] += a*gfac*stable[xyz][a-1][b];
+                }
+
+                if (b > 0)
+                {
+                    stable[xyz][a][b+1] += b*gfac*stable[xyz][a][b-1];
+                }
             }
         }
 
-        ttable[xyz][0][0] = 2*za[e]*zb[f]*stable[xyz][1][1];
-
-        for (int b = 1;b <= lb;b++)
-        {
-            ttable[xyz][b][0] = 2*za[e]*zb[f]*stable[xyz][b+1][1] -
-                                  za[e]*    b*stable[xyz][b-1][1];
-        }
-
-        for (int a = 1;a <= la;a++)
-        {
-            ttable[xyz][0][a] = 2*za[e]*zb[f]*stable[xyz][1][a+1] -
-                                      a*zb[f]*stable[xyz][1][a-1];
-        }
-
-        for (int a = 1;a <= la;a++)
-        {
-            for (int b = 1;b <= lb;b++)
-            {
-                ttable[xyz][b][a] = 2*za[e]*zb[f]*stable[xyz][b+1][a+1] -
-                                          a*zb[f]*stable[xyz][b+1][a-1] -
-                                      za[e]*    b*stable[xyz][b-1][a+1] +
-                                          a*    b*stable[xyz][b-1][a-1]/2;
-            }
-        }
-    }
-
-    for (int b = 0;b <= lb;b++)
-    {
         for (int a = 0;a <= la;a++)
         {
-            stable[0][b][a] *= A0;
-            ttable[0][b][a] *= A0;
+            for (int b = 0;b <= lb;b++)
+            {
+                ttable[xyz][a][b] = 2*za[e]*zb[f]*stable[xyz][a+1][b+1];
+
+                if (a > 0)
+                {
+                    ttable[xyz][a][b] -= a*zb[f]*stable[xyz][a-1][b+1];
+                }
+
+                if (b > 0)
+                {
+                    ttable[xyz][a][b] -= za[e]*b*stable[xyz][a+1][b-1];
+                }
+
+                if (a > 0 && b > 0)
+                {
+                    ttable[xyz][a][b] += 0.5*a*b*stable[xyz][a-1][b-1];
+                }
+            }
         }
     }
 
-    matrix<double> integral((lb+1)*(lb+2)/2, (la+1)*(la+2)/2, integrals);
+    matrix<double> integral(fca, fcb, integrals);
 
-    for (int bx = lb;bx >= 0;bx--)
+    for (int ax = la;ax >= 0;ax--)
     {
-        for (int by = lb-bx;by >= 0;by--)
+        for (int ay = la-ax;ay >= 0;ay--)
         {
-            int bz = lb-bx-by;
-            for (int ax = la;ax >= 0;ax--)
+            int az = la-ax-ay;
+            for (int bx = lb;bx >= 0;bx--)
             {
-                for (int ay = la-ax;ay >= 0;ay--)
+                for (int by = lb-bx;by >= 0;by--)
                 {
-                    int az = la-ax-ay;
-                    integral[XYZ(bx,by,bz)][XYZ(ax,ay,az)] =
-                        ttable[0][bx][ax]*stable[1][by][ay]*stable[2][bz][az] +
-                        stable[0][bx][ax]*ttable[1][by][ay]*stable[2][bz][az] +
-                        stable[0][bx][ax]*stable[1][by][ay]*ttable[2][bz][az];
+                    int bz = lb-bx-by;
+                    integral[XYZ(ax,ay,az)][XYZ(bx,by,bz)] =
+                        ttable[0][ax][bx]*stable[1][ay][by]*stable[2][az][bz] +
+                        stable[0][ax][bx]*ttable[1][ay][by]*stable[2][az][bz] +
+                        stable[0][ax][bx]*stable[1][ay][by]*ttable[2][az][bz];
                 }
             }
         }

@@ -43,11 +43,39 @@ class Fm
 
         static void calcTable();
 
-        void operator()(double T, int n, double* array);
-
-        void operator()(double T, vector<double>& array)
+        template <typename Container>
+        void operator()(double A0, double T, Container&& array) const
         {
-            operator()(T, array.size()-1, array.data());
+            operator()(A0, T, array.size()-1, array);
+        }
+
+        template <typename Container>
+        void operator()(double A0, double T, int n, Container&& array) const
+        {
+            if (T > TMAX[n])
+            {
+                array[n] = asymptotic(T, n);
+            }
+            else
+            {
+                array[n] = taylor(T, n);
+            }
+
+            if (n == 0)
+            {
+                array[0] *= A0;
+                return;
+            }
+
+            double emt = exp(-T);
+            double twoT = 2*T;
+
+            for (int i = n;i > 0;i--)
+            {
+                array[i-1] = (twoT*array[i] + emt) / (2*i-1);
+                array[i] *= A0;
+            }
+            array[0] *= A0;
         }
 };
 

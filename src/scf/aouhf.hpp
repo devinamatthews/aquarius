@@ -13,8 +13,8 @@ namespace aquarius
 namespace scf
 {
 
-template <typename T, template <typename T_> class WhichUHF>
-class AOUHF : public WhichUHF<T>
+template <class WhichUHF>
+class AOUHF : public WhichUHF
 {
     protected:
         void buildFock();

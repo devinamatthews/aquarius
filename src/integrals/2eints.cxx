@@ -513,11 +513,6 @@ void TwoElectronIntegrals::prim2contr4l(size_t nother, double* buf1, double* buf
     copy(m*n, buf1, 1, buf2, 1);
 }
 
-void ERI::print(Printer& p) const
-{
-    //TODO
-}
-
 }
 }
 

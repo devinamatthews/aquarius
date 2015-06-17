@@ -10,9 +10,9 @@ namespace aquarius
 namespace scf
 {
 
-template <typename T, template <typename T_> class WhichUHF>
-AOUHF<T,WhichUHF>::AOUHF(const string& name, Config& config)
-: WhichUHF<T>(name, config)
+template <class WhichUHF>
+AOUHF<WhichUHF>::AOUHF(const string& name, Config& config)
+: WhichUHF(name, config)
 {
     for (vector<Product>::iterator i = this->products.begin();i != this->products.end();++i)
     {
@@ -20,8 +20,8 @@ AOUHF<T,WhichUHF>::AOUHF(const string& name, Config& config)
     }
 }
 
-template <typename T, template <typename T_> class WhichUHF>
-void AOUHF<T,WhichUHF>::buildFock()
+template <class WhichUHF>
+void AOUHF<WhichUHF>::buildFock()
 {
     const Molecule& molecule =this->template get<Molecule>("molecule");
     const ERI& ints = this->template get<ERI>("I");
@@ -35,49 +35,48 @@ void AOUHF<T,WhichUHF>::buildFock()
     vector<int> start(nirrep,0);
     for (int i = 1;i < nirrep;i++) start[i] = start[i-1]+norb[i-1];
 
-    auto& H  = this->template get<SymmetryBlockedTensor<T>>("H");
-    auto& Da = this->template get<SymmetryBlockedTensor<T>>("Da");
-    auto& Db = this->template get<SymmetryBlockedTensor<T>>("Db");
-    auto& Fa = this->template get<SymmetryBlockedTensor<T>>("Fa");
-    auto& Fb = this->template get<SymmetryBlockedTensor<T>>("Fb");
+    Tensor<BOUNDED|PGSYMMETRIC> H  = this->template get<Tensor<>>("H");
+    Tensor<BOUNDED|PGSYMMETRIC> Da = this->template get<Tensor<>>("Da");
+    Tensor<BOUNDED|PGSYMMETRIC> Db = this->template get<Tensor<>>("Db");
+    Tensor<BOUNDED|PGSYMMETRIC> Fa = this->template get<Tensor<>>("Fa");
+    Tensor<BOUNDED|PGSYMMETRIC> Fb = this->template get<Tensor<>>("Fb");
 
-    Arena& arena = H.arena;
-
-    vector<vector<T>> focka(nirrep), fockb(nirrep);
-    vector<vector<T>> densa(nirrep), densb(nirrep);
-    vector<vector<T>> densab(nirrep);
+    vector<vector<double>> focka(nirrep), fockb(nirrep);
+    vector<vector<double>> densa(nirrep), densb(nirrep);
+    vector<vector<double>> densab(nirrep);
 
     for (int i = 0;i < nirrep;i++)
     {
-        vector<int> irreps(2,i);
+        vector<int> irreps = {i,i};
 
-        if (arena.rank == 0)
+        focka[i].resize(norb[i]*norb[i]);
+        KeyValueVector kv = H.getAllDataByIrrep(irreps);
+        for (int j = 0;j < kv.size();j++)
         {
-            H.getAllData(irreps, focka[i], 0);
-            assert(focka[i].size() == norb[i]*norb[i]);
-            fockb[i] = focka[i];
+            focka[i][kv.key(j)] = kv.value<double>(j);
         }
-        else
+        if (this->arena().rank != 0)
         {
-            H.getAllData(irreps, 0);
-            focka[i].resize(norb[i]*norb[i], (T)0);
-            fockb[i].resize(norb[i]*norb[i], (T)0);
+            fill(focka[i].begin(), focka[i].end(), 0);
+        }
+        fockb[i] = focka[i];
+
+        Da.getAllDataByIrrep(irreps, kv);
+        assert(kv.size() == norb[i]*norb[i]);
+        for (int j = 0;j < kv.size();j++)
+        {
+            densa[i][kv.key(j)] = kv.value<double>(j);
         }
 
-        Da.getAllData(irreps, densa[i]);
-        assert(densa[i].size() == norb[i]*norb[i]);
-        Db.getAllData(irreps, densb[i]);
-        assert(densa[i].size() == norb[i]*norb[i]);
+        Db.getAllDataByIrrep(irreps, kv);
+        assert(kv.size() == norb[i]*norb[i]);
+        for (int j = 0;j < kv.size();j++)
+        {
+            densb[i][kv.key(j)] = kv.value<double>(j);
+        }
 
         densab[i] = densa[i];
-        //PROFILE_FLOPS(norb[i]*norb[i]);
         axpy(norb[i]*norb[i], 1.0, densb[i].data(), 1, densab[i].data(), 1);
-
-        if (Da.norm(2) > 1e-10)
-        {
-            //fill(focka[i].begin(), focka[i].end(), 0.0);
-            //fill(fockb[i].begin(), fockb[i].end(), 0.0);
-        }
     }
 
     auto& eris = ints.ints;
@@ -93,13 +92,13 @@ void AOUHF<T,WhichUHF>::buildFock()
         size_t n0 = (neris*tid)/nt;
         size_t n1 = (neris*(tid+1))/nt;
 
-        vector<vector<T>> focka_local(nirrep);
-        vector<vector<T>> fockb_local(nirrep);
+        vector<vector<double>> focka_local(nirrep);
+        vector<vector<double>> fockb_local(nirrep);
 
         for (int i = 0;i < nirrep;i++)
         {
-            focka_local[i].resize(norb[i]*norb[i], (T)0);
-            fockb_local[i].resize(norb[i]*norb[i], (T)0);
+            focka_local[i].resize(norb[i]*norb[i]);
+            fockb_local[i].resize(norb[i]*norb[i]);
         }
 
         auto iidx = idxs.begin()+n0;
@@ -147,7 +146,7 @@ void AOUHF<T,WhichUHF>::buildFock()
              * Exchange contribution: Fa(ac) -= Da(bd)*(ab|cd)
              */
 
-            T e = 2.0*(*iint)*(ijeqkl ? 0.5 : 1.0);
+            double e = 2.0*(*iint)*(ijeqkl ? 0.5 : 1.0);
 
             if (irri == irrk && irrj == irrl)
             {
@@ -198,16 +197,14 @@ void AOUHF<T,WhichUHF>::buildFock()
             for (int irr = 0;irr < nirrep;irr++)
             {
                 flops += 2*norb[irr]*norb[irr];
-                axpy(norb[irr]*norb[irr], (T)1, focka_local[irr].data(), 1, focka[irr].data(), 1);
-                axpy(norb[irr]*norb[irr], (T)1, fockb_local[irr].data(), 1, fockb[irr].data(), 1);
+                axpy(norb[irr]*norb[irr], 1.0, focka_local[irr].data(), 1, focka[irr].data(), 1);
+                axpy(norb[irr]*norb[irr], 1.0, fockb_local[irr].data(), 1, fockb[irr].data(), 1);
             }
         }
     }
-    //PROFILE_FLOPS(flops);
 
     for (int irr = 0;irr < nirrep;irr++)
     {
-        //PROFILE_FLOPS(2*norb[irr]*(norb[irr]-1));
         for (int i = 0;i < norb[irr];i++)
         {
             for (int j = 0;j < i;j++)
@@ -222,41 +219,28 @@ void AOUHF<T,WhichUHF>::buildFock()
 
     for (int i = 0;i < nirrep;i++)
     {
-        vector<int> irreps(2,i);
+        vector<int> irreps = {i,i};
 
-        if (arena.rank == 0)
+        this->arena().comm().Reduce(focka[i], MPI_SUM, 0);
+        this->arena().comm().Reduce(fockb[i], MPI_SUM, 0);
+
+        KeyValueVector kv(Field::DOUBLE, norb[i]*norb[i]);
+
+        for (int p = 0;p < norb[i]*norb[i];p++)
         {
-            //PROFILE_FLOPS(2*norb[i]*norb[i]);
-            arena.comm().Reduce(focka[i], MPI_SUM);
-            arena.comm().Reduce(fockb[i], MPI_SUM);
-
-            vector<tkv_pair<T>> pairs(norb[i]*norb[i]);
-
-            for (int p = 0;p < norb[i]*norb[i];p++)
-            {
-                pairs[p].d = focka[i][p];
-                pairs[p].k = p;
-            }
-
-            Fa.writeRemoteData(irreps, pairs);
-
-            for (int p = 0;p < norb[i]*norb[i];p++)
-            {
-                pairs[p].d = fockb[i][p];
-                pairs[p].k = p;
-            }
-
-            Fb.writeRemoteData(irreps, pairs);
+            kv.key(p) = p;
+            kv.value(p, focka[i][p]);
         }
-        else
+
+        Fa.setDataByIrrep(irreps, kv);
+
+        for (int p = 0;p < norb[i]*norb[i];p++)
         {
-            //PROFILE_FLOPS(2*norb[i]*norb[i]);
-            arena.comm().Reduce(focka[i], MPI_SUM, 0);
-            arena.comm().Reduce(fockb[i], MPI_SUM, 0);
-
-            Fa.writeRemoteData(irreps);
-            Fb.writeRemoteData(irreps);
+            kv.key(p) = p;
+            kv.value(p, fockb[i][p]);
         }
+
+        Fb.setDataByIrrep(irreps, kv);
     }
 }
 
@@ -287,10 +271,10 @@ static const char* spec = R"(
 
 )";
 
-INSTANTIATE_SPECIALIZATIONS_2(aquarius::scf::AOUHF, aquarius::scf::LocalUHF);
-REGISTER_TASK(CONCAT(aquarius::scf::AOUHF<double,aquarius::scf::LocalUHF>), "localaoscf",spec);
+template class aquarius::scf::AOUHF<aquarius::scf::LocalUHF>;
+REGISTER_TASK(CONCAT(aquarius::scf::AOUHF<aquarius::scf::LocalUHF>), "localaoscf",spec);
 
 #if HAVE_ELEMENTAL
-INSTANTIATE_SPECIALIZATIONS_2(aquarius::scf::AOUHF, aquarius::scf::ElementalUHF);
-REGISTER_TASK(CONCAT(aquarius::scf::AOUHF<double,aquarius::scf::ElementalUHF>), "elementalaoscf",spec);
+template class aquarius::scf::AOUHF<aquarius::scf::ElementalUHF>;
+REGISTER_TASK(CONCAT(aquarius::scf::AOUHF<aquarius::scf::ElementalUHF>), "elementalaoscf",spec);
 #endif

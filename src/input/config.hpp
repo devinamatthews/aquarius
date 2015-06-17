@@ -97,10 +97,10 @@ class Config
         string readEntry(istream& is, string& line, int& lineno);
 
         template<typename T>
-        void emit(ostream& os, T& x) const;
+        void emit(ostream& os, const T& x) const;
 
         template<typename T>
-        void emit(ostream& os, vector<T>& x) const;
+        void emit(ostream& os, const vector<T>& x) const;
 
         template<typename T>
         class Parser
@@ -298,9 +298,9 @@ T Config::Extractor<T>::extract(Node& node, int which)
 }
 
 template<typename T>
-void Config::emit(ostream& os, vector<T>& x) const
+void Config::emit(ostream& os, const vector<T>& x) const
 {
-    typename vector<T>::iterator i;
+    typename vector<T>::const_iterator i;
 
     if (!(os << '[')) throw BadValueError();
     for (i = x.begin();i != x.end();)
@@ -315,7 +315,7 @@ void Config::emit(ostream& os, vector<T>& x) const
 }
 
 template<typename T>
-void Config::emit(ostream& os, T& x) const
+void Config::emit(ostream& os, const T& x) const
 {
     if (!(os << x)) throw BadValueError();
 }
@@ -334,9 +334,9 @@ void Config::set<string>(const string& path, const string& data, int which, bool
 template<typename T>
 void Config::set(const string& path, const T& data, int which, bool create)
 {
-    string s;
-    emit(ostringstream(s), data);
-    set(path, s, create);
+    ostringstream oss;
+    emit(oss, data);
+    set(path, oss.str(), create);
 }
 
 template<typename T>

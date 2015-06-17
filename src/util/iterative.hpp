@@ -3,21 +3,18 @@
 
 #include "time/time.hpp"
 #include "task/task.hpp"
-
-#include "distributed.hpp"
-#include "tensor/ctf_tensor.hpp"
+#include "tensor/tensor.hpp"
 
 namespace aquarius
 {
 
-template <typename U>
 class Iterative : public task::Task
 {
     public:
         enum ConvergenceType {MAX_ABS, RMSD, MAD};
 
     private:
-        vector<U> energy_;
+        vector<tensor::Scalar> energy_;
         vector<double> conv_;
         double convtol;
         int iter_;
@@ -48,13 +45,13 @@ class Iterative : public task::Task
     protected:
         const ConvergenceType convtype;
 
-        U& energy()
+        tensor::Scalar& energy()
         {
             assert(energy_.size() == 1);
             return energy_[0];
         }
 
-        U& energy(int i)
+        tensor::Scalar& energy(int i)
         {
             assert(i >= 0 && i < energy_.size());
             return energy_[i];
@@ -72,13 +69,13 @@ class Iterative : public task::Task
             return conv_[i];
         }
 
-        const U& energy() const
+        const tensor::Scalar& energy() const
         {
             assert(energy_.size() == 1);
             return energy_[0];
         }
 
-        const U& energy(int i) const
+        const tensor::Scalar& energy(int i) const
         {
             assert(i >= 0 && i < energy_.size());
             return energy_[i];
@@ -116,8 +113,6 @@ class Iterative : public task::Task
           nsolution_(0),
           convtype(getConvType(config)) {}
 
-        virtual ~Iterative() {}
-
         bool run(task::TaskDAG& dag, const Arena& arena)
         {
             return run(dag, arena, 1);
@@ -127,7 +122,7 @@ class Iterative : public task::Task
         {
             nsolution_ = nsolution;
             energy_.resize(nsolution);
-            conv_.assign(nsolution, numeric_limits<U>::max());
+            conv_.assign(nsolution, numeric_limits<double>::max());
 
             for (iter_ = 1;iter_ <= maxiter && !isConverged();iter_++)
             {

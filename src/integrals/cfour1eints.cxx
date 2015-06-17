@@ -42,12 +42,14 @@ bool CFOUROneElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
     int batchsize = 600;
     vector<double> ints(batchsize);
     vector<int64_t> idxs(batchsize);
-    vector<tkv_pair<double>> pairs;
+    KeyValueVector pairs(Field::DOUBLE);
 
-    OVI *ovi = new OVI(arena, molecule.getGroup(), N);
-    KEI *kei = new KEI(arena, molecule.getGroup(), N);
-    NAI *nai = new NAI(arena, molecule.getGroup(), N);
-    OneElectronHamiltonian *oeh = new OneElectronHamiltonian(arena, molecule.getGroup(), N);
+    auto init = TensorInitializer<>("S", tensor::Field::DOUBLE) <<
+                TensorInitializer<PGSYMMETRIC|BOUNDED>(molecule.getGroup(), {N,N});
+    Tensor<BOUNDED|PGSYMMETRIC> S = put<Tensor<>>("S", Tensor<PGSYMMETRIC|BOUNDED>::construct(init));
+    Tensor<BOUNDED|PGSYMMETRIC> T = put<Tensor<>>("T", S.construct("T"));
+    Tensor<BOUNDED|PGSYMMETRIC> G = put<Tensor<>>("G", S.construct("G"));
+    Tensor<BOUNDED|PGSYMMETRIC> H = put<Tensor<>>("H", S.construct("H"));
 
     ifs.seekg(0);
     while (ifs)
@@ -63,20 +65,10 @@ bool CFOUROneElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
         char label[9] = {};
         ifs.read(label, 8);
         ifs.seekg(intsize, ifstream::cur);
-        SymmetryBlockedTensor<double> *tensor = NULL;
-        if (strcmp(label, "OVERLAP ") == 0)
-        {
-            tensor = static_cast<SymmetryBlockedTensor<double>*>(ovi);
-        }
-        else if (strcmp(label, "ONEHAMIL") == 0)
-        {
-            tensor = static_cast<SymmetryBlockedTensor<double>*>(oeh);
-        }
-        else if (strcmp(label, "KINETINT") == 0)
-        {
-            tensor = static_cast<SymmetryBlockedTensor<double>*>(kei);
-        }
-        else continue;
+        auto& tensor = strcmp(label, "OVERLAP ") == 0 ? S :
+                       strcmp(label, "ONEHAMIL") == 0 ? H :
+                       strcmp(label, "KINETINT") == 0 ? T : G;
+        if (&tensor == &G) continue;
 
         while (true)
         {
@@ -102,22 +94,19 @@ bool CFOUROneElectronIntegralsTask::run(TaskDAG& dag, const Arena& arena)
                     pq += p+1;
                 }
                 q = idxs[i]-pq;
-                pairs.push_back(tkv_pair<double>(p+q*N[0], ints[i]));
+                pairs.push_back(p+q*N[0], ints[i]);
                 if (p != q)
-                pairs.push_back(tkv_pair<double>(q+p*N[0], ints[i]));
+                {
+                    pairs.push_back(q+p*N[0], ints[i]);
+                }
             }
 
-            tensor->writeRemoteData({0,0}, pairs);
+            tensor.setDataByIrrep({0,0}, pairs);
         }
     }
 
-    (*nai)["PQ"]  = (*oeh)["PQ"];
-    (*nai)["PQ"] -= (*kei)["PQ"];
-
-    put("S", ovi);
-    put("T", kei);
-    put("G", nai);
-    put("H", oeh);
+    G["PQ"]  = H["PQ"];
+    G["PQ"] -= T["PQ"];
 
     return true;
 }

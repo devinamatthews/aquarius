@@ -92,7 +92,6 @@ do \
 
 namespace aquarius
 {
-
     using std::string;
     using std::tuple;
     using std::map;
@@ -109,6 +108,7 @@ namespace aquarius
     using std::complex;
     using std::numeric_limits;
 
+    using std::conj;
     using std::min;
     using std::max;
     using std::abs;
@@ -119,7 +119,6 @@ namespace aquarius
     using std::sort;
     using std::swap;
     using std::remove;
-    using std::rotate;
 
     using std::unique_ptr;
     using std::shared_ptr;
@@ -134,11 +133,12 @@ namespace aquarius
     using std::is_const;
     using std::is_integral;
     using std::is_floating_point;
+    using std::is_arithmetic;
     using std::remove_const;
     using std::conditional;
     using std::initializer_list;
-    using std::is_convertible;
-    using std::is_base_of;
+    using std::true_type;
+    using std::false_type;
 
     using std::iterator;
     using std::iterator_traits;
@@ -798,12 +798,6 @@ namespace aquarius
                     assign(il);
                 }
 
-                template <typename InputIterator>
-                ptr_vector_(InputIterator i0, InputIterator i1)
-                {
-                    assign(i0, i1);
-                }
-
                 ptr_vector_& operator=(const ptr_vector_&) = delete;
 
                 ptr_vector_& operator=(ptr_vector_&&) = default;
@@ -1110,32 +1104,6 @@ namespace aquarius
                     for (auto& ptr : il)
                     {
                         impl_.emplace_back(ptr);
-                    }
-                }
-
-                template <typename InputIterator>
-                enable_if_t<is_convertible<typename iterator_traits<InputIterator>::value_type,value_type>::value>
-                assign(InputIterator i0, InputIterator i1)
-                {
-                    impl_.clear();
-
-                    while (i0 != i1)
-                    {
-                        impl_.emplace_back(new value_type(*i0));
-                        i0++;
-                    }
-                }
-
-                template <typename InputIterator>
-                enable_if_t<is_convertible<typename iterator_traits<InputIterator>::value_type,ptr_type>::value>
-                assign(InputIterator i0, InputIterator i1)
-                {
-                    impl_.clear();
-
-                    while (i0 != i1)
-                    {
-                        impl_.emplace_back(*i0);
-                        i0++;
                     }
                 }
 
@@ -2125,6 +2093,15 @@ namespace aquarius
     template <typename T>
     using global_list = detail::ptr_list_<list<global_ptr<T>>>;
 
+    /*
+     * Generic base class with virtual destructor so that
+     * shared_ptr etc. can be used safely
+     */
+    struct Destructible
+    {
+        virtual ~Destructible() {}
+    };
+
     namespace detail
     {
 
@@ -2172,7 +2149,7 @@ namespace aquarius
         vsnprintf(s.data(), n, fmt, list);
         va_end(list);
 
-        return string(s.begin(), s.end()-1);
+        return string(s.begin(), s.end());
     }
 
     template<typename T> string str(const T& t)
@@ -3142,9 +3119,56 @@ namespace aquarius
         return s;
     }
 
+    template<typename RAIterator>
+    int relative_sign(RAIterator s1b, RAIterator s1e, RAIterator s2b, RAIterator s2e)
+    {
+        int sz = s1e-s1b;
+        assert(sz == (int)(s2e-s2b));
+        int i, k;
+        int sign = 1;
+        std::vector<bool> seen(sz);
+
+        for (i = 0;i < sz;i++) seen[i] = false;
+
+        for (i = 0;i < sz;i++)
+        {
+            if (seen[i]) continue;
+            int j = i;
+            while (true)
+            {
+                for (k = 0;k < sz && (!(s1b[k] == s2b[j]) || seen[k]);k++);
+                assert(k < sz);
+                j = k;
+                seen[j] = true;
+                if (j == i) break;
+                sign = -sign;
+            }
+        }
+
+        return sign;
+    }
+
+    template <typename Container>
+    int relative_sign(Container&& a, Container&& b)
+    {
+        return relative_sign(a.begin(), a.end(), b.begin(), b.end());
+    }
+
+    template <typename T> struct is_void : false_type {};
+    template <>           struct is_void<void> : true_type {};
+
+    template <typename T> struct is_complex : false_type {};
+    template <typename T> struct is_complex<complex<T>> : true_type {};
+
     inline       float conj(      float v) { return v; }
     inline      double conj(     double v) { return v; }
     inline long double conj(long double v) { return v; }
+
+    template <typename T>
+    T conj(const T& val, bool conj_)
+    {
+        return (conj_ ? conj(val) : val);
+    }
 
     inline       float real(      float v) { return v; }
     inline      double real(     double v) { return v; }
@@ -3187,10 +3211,58 @@ namespace aquarius
 
 namespace std
 {
+    template <typename T>
+    bool operator<(const std::complex<T>& a, const std::complex<T>& b)
+    {
+        return a.real()+a.imag() < b.real()+b.imag();
+    }
+
+    template <typename T>
+    bool operator>(const std::complex<T>& a, const std::complex<T>& b)
+    {
+        return b < a;
+    }
+
+    template <typename T>
+    bool operator<=(const std::complex<T>& a, const std::complex<T>& b)
+    {
+        return !(b < a);
+    }
+
+    template <typename T>
+    bool operator>=(const std::complex<T>& a, const std::complex<T>& b)
+    {
+        return !(a < b);
+    }
 
     inline std::complex<float> operator*(const std::complex<float>& f, double d)
     {
         return f*(float)d;
+    }
+
+    inline std::complex<float> operator*(const std::complex<float>& f, long double d)
+    {
+        return f*(float)d;
+    }
+
+    inline std::complex<double> operator*(const std::complex<double>& f, float d)
+    {
+        return f*(double)d;
+    }
+
+    inline std::complex<double> operator*(const std::complex<double>& f, long double d)
+    {
+        return f*(double)d;
+    }
+
+    inline std::complex<long double> operator*(const std::complex<long double>& f, float d)
+    {
+        return f*(long double)d;
+    }
+
+    inline std::complex<long double> operator*(const std::complex<long double>& f, double d)
+    {
+        return f*(long double)d;
     }
 
     inline std::complex<float> operator*(double d, const std::complex<float>& f)
@@ -3198,14 +3270,89 @@ namespace std
         return f*(float)d;
     }
 
+    inline std::complex<float> operator*(long double d, const std::complex<float>& f)
+    {
+        return f*(float)d;
+    }
+
+    inline std::complex<double> operator*(float d, const std::complex<double>& f)
+    {
+        return f*(double)d;
+    }
+
+    inline std::complex<double> operator*(long double d, const std::complex<double>& f)
+    {
+        return f*(double)d;
+    }
+
+    inline std::complex<long double> operator*(float d, const std::complex<long double>& f)
+    {
+        return f*(long double)d;
+    }
+
+    inline std::complex<long double> operator*(double d, const std::complex<long double>& f)
+    {
+        return f*(long double)d;
+    }
+
     inline std::complex<float> operator/(const std::complex<float>& f, double d)
     {
         return f/(float)d;
     }
 
+    inline std::complex<float> operator/(const std::complex<float>& f, long double d)
+    {
+        return f/(float)d;
+    }
+
+    inline std::complex<double> operator/(const std::complex<double>& f, float d)
+    {
+        return f/(double)d;
+    }
+
+    inline std::complex<double> operator/(const std::complex<double>& f, long double d)
+    {
+        return f/(double)d;
+    }
+
+    inline std::complex<long double> operator/(const std::complex<long double>& f, float d)
+    {
+        return f/(long double)d;
+    }
+
+    inline std::complex<long double> operator/(const std::complex<long double>& f, double d)
+    {
+        return f/(long double)d;
+    }
+
     inline std::complex<float> operator/(double d, const std::complex<float>& f)
     {
         return std::complex<float>((float)d)/f;
+    }
+
+    inline std::complex<float> operator/(long double d, const std::complex<float>& f)
+    {
+        return std::complex<float>((float)d)/f;
+    }
+
+    inline std::complex<double> operator/(float d, const std::complex<double>& f)
+    {
+        return std::complex<double>((double)d)/f;
+    }
+
+    inline std::complex<double> operator/(long double d, const std::complex<double>& f)
+    {
+        return std::complex<double>((double)d)/f;
+    }
+
+    inline std::complex<long double> operator/(float d, const std::complex<long double>& f)
+    {
+        return std::complex<long double>((long double)d)/f;
+    }
+
+    inline std::complex<long double> operator/(double d, const std::complex<long double>& f)
+    {
+        return std::complex<long double>((long double)d)/f;
     }
 
     template <class F, class I>

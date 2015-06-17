@@ -182,14 +182,15 @@ void CCSD<U>::iterate(const Arena& arena)
      *************************************************************************/
 
     Z.weight(D);
+    //T += Z;
+
+    diis.extrapolate(T, Z);
     T += Z;
 
     Tau["abij"]  = T(2)["abij"];
     Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
     this->energy() = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
     this->conv() = Z.norm(00);
-
-    diis.extrapolate(T, Z);
 }
 
 /*
