@@ -398,6 +398,9 @@ void CTFTensor::getAllData(KeyValueVector& kv) const
     }
 
     CTF_int::cdealloc(d);
+
+    getAllKeys(kv.keys());
+    assert(kv.keys().size() == n);
 }
 
 void CTFTensor::getLocalKeys(KeyVector& keys) const

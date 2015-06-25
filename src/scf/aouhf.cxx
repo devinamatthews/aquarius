@@ -61,6 +61,7 @@ void AOUHF<WhichUHF>::buildFock()
         }
         fockb[i] = focka[i];
 
+        densa[i].resize(norb[i]*norb[i]);
         Da.getAllDataByIrrep(irreps, kv);
         assert(kv.size() == norb[i]*norb[i]);
         for (int j = 0;j < kv.size();j++)
@@ -68,6 +69,7 @@ void AOUHF<WhichUHF>::buildFock()
             densa[i][kv.key(j)] = kv.value<double>(j);
         }
 
+        densb[i].resize(norb[i]*norb[i]);
         Db.getAllDataByIrrep(irreps, kv);
         assert(kv.size() == norb[i]*norb[i]);
         for (int j = 0;j < kv.size();j++)
@@ -221,8 +223,16 @@ void AOUHF<WhichUHF>::buildFock()
     {
         vector<int> irreps = {i,i};
 
-        this->arena().comm().Reduce(focka[i], MPI_SUM, 0);
-        this->arena().comm().Reduce(fockb[i], MPI_SUM, 0);
+        if (this->arena().rank != 0)
+        {
+            this->arena().comm().Reduce(focka[i], MPI_SUM, 0);
+            this->arena().comm().Reduce(fockb[i], MPI_SUM, 0);
+        }
+        else
+        {
+            this->arena().comm().Reduce(focka[i], MPI_SUM);
+            this->arena().comm().Reduce(fockb[i], MPI_SUM);
+        }
 
         KeyValueVector kv(Field::DOUBLE, norb[i]*norb[i]);
 

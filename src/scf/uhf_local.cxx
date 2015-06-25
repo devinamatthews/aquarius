@@ -89,11 +89,9 @@ void LocalUHF::diagonalizeFock()
         vector<int> irreps = {i,i};
         vector<double> e(norb[i]);
 
-        vector<double> s;
-
+        vector<double> s(norb[i]*norb[i]);
         KeyValueVector kv = S.getAllDataByIrrep(irreps);
         assert(kv.size() == norb[i]*norb[i]);
-
         for (int j = 0;j < norb[i]*norb[i];j++)
         {
             s[kv.key(j)] = kv.value<double>(j);
@@ -111,7 +109,12 @@ void LocalUHF::diagonalizeFock()
 
             F.getAllDataByIrrep(irreps, kv);
             assert(kv.size() == norb[i]*norb[i]);
-            //PROFILE_FLOPS(9*norb[i]*norb[i]*norb[i]);
+            double nrm = 0;
+            for (int j = 0;j < norb[i]*norb[i];j++)
+            {
+                fock[kv.key(j)] = kv.value<double>(j);
+            }
+
             info = hegv(AXBX, 'V', 'U', norb[i], fock.data(), norb[i], tmp.data(), norb[i], e.data());
             assert(info == 0);
             arena().comm().Bcast(e);
@@ -128,7 +131,6 @@ void LocalUHF::diagonalizeFock()
                         break;
                     }
                 }
-                //PROFILE_FLOPS(norb[i]);
                 scal(norb[i], sign, &fock[j*norb[i]], 1);
             }
 
