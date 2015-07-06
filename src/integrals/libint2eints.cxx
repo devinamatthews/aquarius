@@ -32,30 +32,30 @@ void Libint2eIntegrals::prims(const vec3& posa, const vec3& posb, const vec3& po
 
     matrix<double> Kab(na, nb), Kcd(nc, nd);
 
+    #pragma omp parallel for
+    for (int64_t j = 0;j < na*nb;j++)
+    {
+        int f = j/na;
+        int e = j%na;
+
+        double zp = za[e]+zb[f];
+        Kab[e][f] = exp(-za[e]*zb[f]*norm2(posa-posb)/zp)/zp;
+    }
+
+    #pragma omp parallel for
+    for (int64_t j = 0;j < nc*nd;j++)
+    {
+        int h = j/nc;
+        int g = j%nc;
+
+        double zq = zc[g]+zd[h];
+        Kcd[g][h] = exp(-zc[g]*zd[h]*norm2(posc-posd)/zq)/zq;
+    }
+
     accuracy_ = 1e-13;
 
     #pragma omp parallel
     {
-        #pragma omp for
-        for (int64_t j = 0;j < na*nb;j++)
-        {
-            int f = j/na;
-            int e = j%na;
-
-            double zp = za[e]+zb[f];
-            Kab[e][f] = exp(-za[e]*zb[f]*norm2(posa-posb)/zp)/zp;
-        }
-
-        #pragma omp for
-        for (int64_t j = 0;j < nc*nd;j++)
-        {
-            int h = j/nc;
-            int g = j%nc;
-
-            double zq = zc[g]+zd[h];
-            Kcd[g][h] = exp(-zc[g]*zd[h]*norm2(posc-posd)/zq)/zq;
-        }
-
         int nt = omp_get_num_threads();
         int i = omp_get_thread_num();
         int len = fca*fcb*fcc*fcd;

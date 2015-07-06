@@ -12,7 +12,6 @@ __top_builddir__bin_aquarius_SOURCES = \
 	src/cc/1edensity.cxx \
 	src/cc/2edensity.cxx \
 	src/cc/ccd.cxx \
-	src/cc/ccsd_t.cxx \
 	src/cc/ccsd_t_n_opt.cxx \
 	src/cc/ccsd_t_n.cxx \
 	src/cc/ccsd_tq_n_opt.cxx \
@@ -74,9 +73,8 @@ __top_builddir__bin_aquarius_SOURCES = \
 	
 VPATH += $(srcdir)
 
-AM_CPPFLAGS = -I$(srcdir)/src -I$(ctfdir)/include
-__top_builddir__bin_aquarius_LDADD = -L$(ctfdir)/lib -lctf
-AM_CXXFLAGS = $(OPENMP_CXXFLAGS)
+AM_CPPFLAGS = -I$(srcdir)/src @ctf_INCLUDES@ @marray_INCLUDES@ @mpiwrap_INCLUDES@ @lawrap_INCLUDES@
+__top_builddir__bin_aquarius_LDADD = @ctf_LIBS@
 	
 if HAVE_ELEMENTAL
 AM_CPPFLAGS += @elemental_INCLUDES@
@@ -94,8 +92,10 @@ endif
 
 __top_builddir__bin_aquarius_LDADD += $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
 
-$(PROGRAMS): $(ctfdir)/lib/libctf.a
+if CTF_IS_LOCAL
+$(PROGRAMS): src/external/ctf/lib/libctf.a
 
 .PHONY: ALWAYS
-$(ctfdir)/lib/libctf.a: ALWAYS
-	$(MAKE) -C $(ctfdir)
+src/external/ctf/lib/libctf.a: ALWAYS
+	$(MAKE) -C src/external/ctf
+endif

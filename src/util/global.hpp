@@ -4,6 +4,14 @@
 #include <omp.h>
 
 #include "config.h"
+
+#include "marray.hpp"
+
+namespace aquarius
+{
+using namespace MArray;
+}
+
 #include "stl_ext.hpp"
 #include "math_ext.hpp"
 #include "distributed.hpp"

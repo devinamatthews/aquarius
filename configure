@@ -627,16 +627,33 @@ LTLIBOBJS
 LIBOBJS
 HAVE_LIBINT2_FALSE
 HAVE_LIBINT2_TRUE
-libint2_INCLUDES
 libint2_LIBS
+libint2_INCLUDES
 HAVE_ELEMENTAL_FALSE
 HAVE_ELEMENTAL_TRUE
-elemental_INCLUDES
 elemental_LIBS
+elemental_INCLUDES
+CTF_IS_LOCAL_FALSE
+CTF_IS_LOCAL_TRUE
+HAVE_CTF_FALSE
+HAVE_CTF_TRUE
+ctf_LIBS
+ctf_INCLUDES
+HAVE_MPIWRAP_FALSE
+HAVE_MPIWRAP_TRUE
+mpiwrap_LIBS
+mpiwrap_INCLUDES
+HAVE_MARRAY_FALSE
+HAVE_MARRAY_TRUE
+marray_LIBS
+marray_INCLUDES
+HAVE_LAWRAP_FALSE
+HAVE_LAWRAP_TRUE
+lawrap_LIBS
+lawrap_INCLUDES
 EGREP
 GREP
 CXXCPP
-ctfdir
 LAPACK_LIBS
 BLAS_LIBS
 FLIBS
@@ -755,10 +772,15 @@ enable_dependency_tracking
 enable_openmp
 with_blas
 with_lapack
+with_lawrap
+with_marray
+with_mpiwrap
 with_ctf
+with_ctf_libs
 with_elemental
 with_elemental_libs
 with_libint2
+with_libint2_libs
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1410,14 +1432,17 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-blas=<lib>       use BLAS library <lib>
   --with-lapack=<lib>     use LAPACK library <lib>
-  --with-ctf=<dir>        Specify the location of CTF. Otherwise, it will be
-                          downloaded.
-  --with-elemental=<dir>  Enable the use of the distributed-memory Elemental
-                          library.
-  --with-elemental-libs=<lib>
-                          Specify the libraries to link to use Elemental.
-  --with-libint2=<dir>    Enable the use of the libint2 atomic integral
-                          library.
+  --with-lawrap=<dir>     Specify the location of LAWrap.
+  --with-marray=<dir>     Specify the location of MArray.
+  --with-mpiwrap=<dir>    Specify the location of MPIWrap.
+  --with-ctf=<dir>        Specify the location of CTF.
+  --with-ctf-libs=<...>   Specify the libraries to link for CTF.
+  --with-elemental=<dir>  Specify the location of Elemental.
+  --with-elemental-libs=<...>
+                          Specify the libraries to link for Elemental.
+  --with-libint2=<dir>    Specify the location of libint2.
+  --with-libint2-libs=<...>
+                          Specify the libraries to link for libint2.
 
 Some influential environment variables:
   MPICC       MPI C compiler command
@@ -1797,6 +1822,37 @@ $as_echo "$ac_res" >&6; }
 
 } # ac_fn_cxx_check_func
 
+# ac_fn_cxx_check_header_compile LINENO HEADER VAR INCLUDES
+# ---------------------------------------------------------
+# Tests whether HEADER exists and can be compiled using the include files in
+# INCLUDES, setting the cache variable VAR accordingly.
+ac_fn_cxx_check_header_compile ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
+$as_echo_n "checking for $2... " >&6; }
+if eval \${$3+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$4
+#include <$2>
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  eval "$3=yes"
+else
+  eval "$3=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+eval ac_res=\$$3
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+
+} # ac_fn_cxx_check_header_compile
+
 # ac_fn_cxx_try_cpp LINENO
 # ------------------------
 # Try to preprocess conftest.$ac_ext, and return whether this succeeded.
@@ -1833,97 +1889,6 @@ fi
   as_fn_set_status $ac_retval
 
 } # ac_fn_cxx_try_cpp
-
-# ac_fn_cxx_check_header_mongrel LINENO HEADER VAR INCLUDES
-# ---------------------------------------------------------
-# Tests whether HEADER exists, giving a warning if it cannot be compiled using
-# the include files in INCLUDES and setting the cache variable VAR
-# accordingly.
-ac_fn_cxx_check_header_mongrel ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  if eval \${$3+:} false; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
-if eval \${$3+:} false; then :
-  $as_echo_n "(cached) " >&6
-fi
-eval ac_res=\$$3
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-else
-  # Is the header compilable?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 usability" >&5
-$as_echo_n "checking $2 usability... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-$4
-#include <$2>
-_ACEOF
-if ac_fn_cxx_try_compile "$LINENO"; then :
-  ac_header_compiler=yes
-else
-  ac_header_compiler=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_compiler" >&5
-$as_echo "$ac_header_compiler" >&6; }
-
-# Is the header present?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 presence" >&5
-$as_echo_n "checking $2 presence... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <$2>
-_ACEOF
-if ac_fn_cxx_try_cpp "$LINENO"; then :
-  ac_header_preproc=yes
-else
-  ac_header_preproc=no
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_preproc" >&5
-$as_echo "$ac_header_preproc" >&6; }
-
-# So?  What about this header?
-case $ac_header_compiler:$ac_header_preproc:$ac_cxx_preproc_warn_flag in #((
-  yes:no: )
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&5
-$as_echo "$as_me: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
-    ;;
-  no:yes:* )
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: present but cannot be compiled" >&5
-$as_echo "$as_me: WARNING: $2: present but cannot be compiled" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     check for missing prerequisite headers?" >&5
-$as_echo "$as_me: WARNING: $2:     check for missing prerequisite headers?" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: see the Autoconf documentation" >&5
-$as_echo "$as_me: WARNING: $2: see the Autoconf documentation" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&5
-$as_echo "$as_me: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
-( $as_echo "## ----------------------------------- ##
-## Report this to dmatthews@utexas.edu ##
-## ----------------------------------- ##"
-     ) | sed "s/^/$as_me: WARNING:     /" >&2
-    ;;
-esac
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
-if eval \${$3+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  eval "$3=\$ac_header_compiler"
-fi
-eval ac_res=\$$3
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-fi
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-
-} # ac_fn_cxx_check_header_mongrel
 
 # ac_fn_cxx_try_run LINENO
 # ------------------------
@@ -1966,37 +1931,6 @@ fi
   as_fn_set_status $ac_retval
 
 } # ac_fn_cxx_try_run
-
-# ac_fn_cxx_check_header_compile LINENO HEADER VAR INCLUDES
-# ---------------------------------------------------------
-# Tests whether HEADER exists and can be compiled using the include files in
-# INCLUDES, setting the cache variable VAR accordingly.
-ac_fn_cxx_check_header_compile ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
-if eval \${$3+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-$4
-#include <$2>
-_ACEOF
-if ac_fn_cxx_try_compile "$LINENO"; then :
-  eval "$3=yes"
-else
-  eval "$3=no"
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-fi
-eval ac_res=\$$3
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-
-} # ac_fn_cxx_check_header_compile
 cat >config.log <<_ACEOF
 This file contains any messages produced by compilers while
 running configure, to aid debugging if configure makes a mistake.
@@ -2349,7 +2283,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-am__api_version='1.14'
+am__api_version='1.15'
 
 ac_aux_dir=
 for ac_dir in "$srcdir" "$srcdir/.." "$srcdir/../.."; do
@@ -2550,8 +2484,8 @@ test "$program_suffix" != NONE &&
 ac_script='s/[\\$]/&&/g;s/;s,x,x,$//'
 program_transform_name=`$as_echo "$program_transform_name" | sed "$ac_script"`
 
-# expand $ac_aux_dir to an absolute path
-am_aux_dir=`cd $ac_aux_dir && pwd`
+# Expand $ac_aux_dir to an absolute path.
+am_aux_dir=`cd "$ac_aux_dir" && pwd`
 
 if test x"${MISSING+set}" != xset; then
   case $am_aux_dir in
@@ -2570,7 +2504,7 @@ else
 $as_echo "$as_me: WARNING: 'missing' script is too old or missing" >&2;}
 fi
 
-if test x"${install_sh}" != xset; then
+if test x"${install_sh+set}" != xset; then
   case $am_aux_dir in
   *\ * | *\	*)
     install_sh="\${SHELL} '$am_aux_dir/install-sh'" ;;
@@ -2898,8 +2832,8 @@ MAKEINFO=${MAKEINFO-"${am_missing_run}makeinfo"}
 # <http://lists.gnu.org/archive/html/automake/2012-07/msg00014.html>
 mkdir_p='$(MKDIR_P)'
 
-# We need awk for the "check" target.  The system "awk" is bad on
-# some platforms.
+# We need awk for the "check" target (and possibly the TAP driver).  The
+# system "awk" is bad on some platforms.
 # Always define AMTAR for backward compatibility.  Yes, it's still used
 # in the wild :-(  We should find a proper way to deprecate it ...
 AMTAR='$${TAR-tar}'
@@ -2956,6 +2890,7 @@ END
     as_fn_error $? "Your 'rm' program is bad, sorry." "$LINENO" 5
   fi
 fi
+
 # Check whether --enable-silent-rules was given.
 if test "${enable_silent_rules+set}" = set; then :
   enableval=$enable_silent_rules;
@@ -5219,6 +5154,9 @@ $as_echo "$ac_cv_prog_cxx_openmp" >&6; }
   fi
 
 
+
+CPPFLAGS="$CPPFLAGS $OPENMP_CXXFLAGS"
+LDFLAGS="$LDFLAGS $OPENMP_CXXFLAGS"
 
 ac_ext=f
 ac_compile='$F77 -c $FFLAGS conftest.$ac_ext >&5'
@@ -7619,7 +7557,7 @@ See \`config.log' for more details" "$LINENO" 5; }
 fi
 
 
-topdir=\"`(cd $srcdir && pwd)`\"
+topdir="\"`(cd $srcdir && pwd)`\""
 
 cat >>confdefs.h <<_ACEOF
 #define TOPDIR $topdir
@@ -7680,69 +7618,9 @@ $as_echo "#define F77_NAME UPPER_UNDERSCORE" >>confdefs.h
 fi
 
 #
-# Configure CTF
+# Configure LAWrap
 #
-
-# Check whether --with-ctf was given.
-if test "${with_ctf+set}" = set; then :
-  withval=$with_ctf;
-else
-  with_ctf=./ctf
-fi
-
-
-ctfdir=$with_ctf
-if test x"$ctfdir" = "x./ctf" && ! test -d $ctfdir; then
-    if (command -v git >/dev/null 2>&1); then
-        echo -e "Downloading CTF from external Git repository...\n"
-        if ! git clone https://github.com/solomonik/ctf $ctfdir; then
-            echo -e "Could not download CTF repository.\n"
-            exit 1
-        fi
-        echo
-    else
-        echo 'An existing installation of CTF is not found and cannot be downloaded.'
-        echo 'Install Git (www.git-scm.com) or download CTF and specify the location.'
-        echo
-        exit 1
-    fi
-fi
-ctfdir=$ctfdir
-
-
-#
-# Check for Elemental
-#
-
-# Check whether --with-elemental was given.
-if test "${with_elemental+set}" = set; then :
-  withval=$with_elemental;
-else
-  with_elemental=no
-fi
-
-
-# Check whether --with-elemental-libs was given.
-if test "${with_elemental_libs+set}" = set; then :
-  withval=$with_elemental_libs;
-else
-  with_elemental_libs="-lEl -lpmrrr"
-fi
-
-
-elemental_libs=$with_elemental_libs
-if test x"$with_elemental" != xno; then
-    LDFLAGS_SAVE=$LDFLAGS
-    CPPFLAGS_SAVE=$CPPFLAGS
-    LDFLAGS=
-    CPPFLAGS=$CXXFLAGS
-
-    if test x"$with_elemental" != xyes; then
-        LDFLAGS+=" -L$with_elemental/lib -L$with_elemental/lib64"
-        CPPFLAGS+=" -I$with_elemental/include"
-    fi
-
-    ac_ext=cpp
+ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
@@ -8143,94 +8021,566 @@ fi
 done
 
 
-ac_fn_cxx_check_header_mongrel "$LINENO" "El.hpp" "ac_cv_header_El_hpp" "$ac_includes_default"
-if test "x$ac_cv_header_El_hpp" = xyes; then :
 
+
+# Check whether --with-lawrap was given.
+if test "${with_lawrap+set}" = set; then :
+  withval=$with_lawrap;
 else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "Elemental requested, but could not find El.hpp.
-See \`config.log' for more details" "$LINENO" 5; }
+  download=yes
 fi
 
 
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ElInitialize in -lEl" >&5
-$as_echo_n "checking for ElInitialize in -lEl... " >&6; }
-if ${ac_cv_lib_El_ElInitialize+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lEl $elemental_libs $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char ElInitialize ();
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-int
-main ()
-{
-return ElInitialize ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_link "$LINENO"; then :
-  ac_cv_lib_El_ElInitialize=yes
-else
-  ac_cv_lib_El_ElInitialize=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_El_ElInitialize" >&5
-$as_echo "$ac_cv_lib_El_ElInitialize" >&6; }
-if test "x$ac_cv_lib_El_ElInitialize" = xyes; then :
-  true
-else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "Elemental requested, but could not find -lEl.
-See \`config.log' for more details" "$LINENO" 5; }
-fi
-
-
-    LDFLAGS=$LDFLAGS_SAVE
-    CPPFLAGS=$CPPFLAGS_SAVE
-
-    have_elemental=yes
-
-    if test x"$with_elemental" != xyes; then
-        elemental_LIBS="-L$with_elemental/lib -L$with_elemental/lib64 $elemental_libs"
-
-        elemental_INCLUDES="-I$with_elemental/include"
-
+    pkg_dir=$with_lawrap
+    if test x"$pkg_dir" = xno; then
+        as_fn_error $? "LAWrap is a required package." "$LINENO" 5
+        include_package=no
+    elif test x"$download" = xyes && test x"https://github.com/devinamatthews/lawrap" = x; then
+        include_package=no
     else
-        elemental_LIBS="$elemental_libs"
+        if test x"$download" = xyes && test x"https://github.com/devinamatthews/lawrap" != x; then
+            pkg_dir=src/external/lawrap
+            if ! test -d $pkg_dir; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: downloading LAWrap from external Git repository..." >&5
+$as_echo "$as_me: downloading LAWrap from external Git repository..." >&6;}
+                if ! git clone -q https://github.com/devinamatthews/lawrap $pkg_dir; then
+                    as_fn_error $? "could not download LAWrap repository" "$LINENO" 5
+                fi
+            fi
+            if test -f $pkg_dir/configure; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: configuring LAWrap in $pkg_dir" >&5
+$as_echo "$as_me: configuring LAWrap in $pkg_dir" >&6;}
+                ( cd $pkg_dir && ./configure )
+                { $as_echo "$as_me:${as_lineno-$LINENO}: done configuring LAWrap" >&5
+$as_echo "$as_me: done configuring LAWrap" >&6;}
+            fi
+            downloaded=yes
+        fi
 
+            include_flags=
+            for dir_path in .; do
+                as_fn_append include_flags " -I$pkg_dir/$dir_path"
+            done
+            for header in blas.h lapack.h; do
+                  ac_save_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$CPPFLAGS $include_flags"
+  as_ac_Header=`$as_echo "ac_cv_header_$header" | $as_tr_sh`
+ac_fn_cxx_check_header_compile "$LINENO" "$header" "$as_ac_Header" "$ac_includes_default
+"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
 
-    fi
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find $header.
+See \`config.log' for more details" "$LINENO" 5; }
 fi
 
-if test x"$have_elemental" = xyes; then :
+
+  CPPFLAGS="$ac_save_CPPFLAGS"
+
+            done
+            lawrap_INCLUDES=$include_flags
+
+
+        if test x"$downloaded" != xyes && test x"" != x; then
+            lib_flags=
+            for dir_path in lib lib64; do
+                as_fn_append lib_flags " -L$pkg_dir/$dir_path"
+            done
+            as_fn_append lib_flags " $libraries"
+            for symbol in ; do
+                  ac_save_LIBS="$LIBS"
+  LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
+  as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
+ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find $symbol in $libraries.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+  LIBS="$ac_save_LIBS"
+
+            done
+            lawrap_LIBS=$lib_flags
+
+        fi
+        include_package=yes
+    fi
+    if test x"$include_package" = xyes; then :
+
+$as_echo "#define HAVE_LAWRAP 1" >>confdefs.h
+
+fi
+     if test x"$include_package" = xyes; then
+  HAVE_LAWRAP_TRUE=
+  HAVE_LAWRAP_FALSE='#'
+else
+  HAVE_LAWRAP_TRUE='#'
+  HAVE_LAWRAP_FALSE=
+fi
+
+
+
+#
+# Configure MArray
+#
+
+
+# Check whether --with-marray was given.
+if test "${with_marray+set}" = set; then :
+  withval=$with_marray;
+else
+  download=yes
+fi
+
+
+    pkg_dir=$with_marray
+    if test x"$pkg_dir" = xno; then
+        as_fn_error $? "MArray is a required package." "$LINENO" 5
+        include_package=no
+    elif test x"$download" = xyes && test x"https://github.com/devinamatthews/marray" = x; then
+        include_package=no
+    else
+        if test x"$download" = xyes && test x"https://github.com/devinamatthews/marray" != x; then
+            pkg_dir=src/external/marray
+            if ! test -d $pkg_dir; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: downloading MArray from external Git repository..." >&5
+$as_echo "$as_me: downloading MArray from external Git repository..." >&6;}
+                if ! git clone -q https://github.com/devinamatthews/marray $pkg_dir; then
+                    as_fn_error $? "could not download MArray repository" "$LINENO" 5
+                fi
+            fi
+            if test -f $pkg_dir/configure; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: configuring MArray in $pkg_dir" >&5
+$as_echo "$as_me: configuring MArray in $pkg_dir" >&6;}
+                ( cd $pkg_dir && ./configure )
+                { $as_echo "$as_me:${as_lineno-$LINENO}: done configuring MArray" >&5
+$as_echo "$as_me: done configuring MArray" >&6;}
+            fi
+            downloaded=yes
+        fi
+
+            include_flags=
+            for dir_path in .; do
+                as_fn_append include_flags " -I$pkg_dir/$dir_path"
+            done
+            for header in marray.hpp; do
+                  ac_save_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$CPPFLAGS $include_flags"
+  as_ac_Header=`$as_echo "ac_cv_header_$header" | $as_tr_sh`
+ac_fn_cxx_check_header_compile "$LINENO" "$header" "$as_ac_Header" "$ac_includes_default
+"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find $header.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+
+  CPPFLAGS="$ac_save_CPPFLAGS"
+
+            done
+            marray_INCLUDES=$include_flags
+
+
+        if test x"$downloaded" != xyes && test x"" != x; then
+            lib_flags=
+            for dir_path in lib lib64; do
+                as_fn_append lib_flags " -L$pkg_dir/$dir_path"
+            done
+            as_fn_append lib_flags " $libraries"
+            for symbol in ; do
+                  ac_save_LIBS="$LIBS"
+  LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
+  as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
+ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find $symbol in $libraries.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+  LIBS="$ac_save_LIBS"
+
+            done
+            marray_LIBS=$lib_flags
+
+        fi
+        include_package=yes
+    fi
+    if test x"$include_package" = xyes; then :
+
+$as_echo "#define HAVE_MARRAY 1" >>confdefs.h
+
+fi
+     if test x"$include_package" = xyes; then
+  HAVE_MARRAY_TRUE=
+  HAVE_MARRAY_FALSE='#'
+else
+  HAVE_MARRAY_TRUE='#'
+  HAVE_MARRAY_FALSE=
+fi
+
+
+
+#
+# Configure MPIWrap
+#
+
+
+# Check whether --with-mpiwrap was given.
+if test "${with_mpiwrap+set}" = set; then :
+  withval=$with_mpiwrap;
+else
+  download=yes
+fi
+
+
+    pkg_dir=$with_mpiwrap
+    if test x"$pkg_dir" = xno; then
+        as_fn_error $? "MPIWrap is a required package." "$LINENO" 5
+        include_package=no
+    elif test x"$download" = xyes && test x"https://github.com/devinamatthews/mpiwrap" = x; then
+        include_package=no
+    else
+        if test x"$download" = xyes && test x"https://github.com/devinamatthews/mpiwrap" != x; then
+            pkg_dir=src/external/mpiwrap
+            if ! test -d $pkg_dir; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: downloading MPIWrap from external Git repository..." >&5
+$as_echo "$as_me: downloading MPIWrap from external Git repository..." >&6;}
+                if ! git clone -q https://github.com/devinamatthews/mpiwrap $pkg_dir; then
+                    as_fn_error $? "could not download MPIWrap repository" "$LINENO" 5
+                fi
+            fi
+            if test -f $pkg_dir/configure; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: configuring MPIWrap in $pkg_dir" >&5
+$as_echo "$as_me: configuring MPIWrap in $pkg_dir" >&6;}
+                ( cd $pkg_dir && ./configure )
+                { $as_echo "$as_me:${as_lineno-$LINENO}: done configuring MPIWrap" >&5
+$as_echo "$as_me: done configuring MPIWrap" >&6;}
+            fi
+            downloaded=yes
+        fi
+
+            include_flags=
+            for dir_path in include; do
+                as_fn_append include_flags " -I$pkg_dir/$dir_path"
+            done
+            for header in mpiwrap.hpp; do
+                  ac_save_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$CPPFLAGS $include_flags"
+  as_ac_Header=`$as_echo "ac_cv_header_$header" | $as_tr_sh`
+ac_fn_cxx_check_header_compile "$LINENO" "$header" "$as_ac_Header" "$ac_includes_default
+"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find $header.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+
+  CPPFLAGS="$ac_save_CPPFLAGS"
+
+            done
+            mpiwrap_INCLUDES=$include_flags
+
+
+        if test x"$downloaded" != xyes && test x"" != x; then
+            lib_flags=
+            for dir_path in lib lib64; do
+                as_fn_append lib_flags " -L$pkg_dir/$dir_path"
+            done
+            as_fn_append lib_flags " $libraries"
+            for symbol in ; do
+                  ac_save_LIBS="$LIBS"
+  LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
+  as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
+ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find $symbol in $libraries.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+  LIBS="$ac_save_LIBS"
+
+            done
+            mpiwrap_LIBS=$lib_flags
+
+        fi
+        include_package=yes
+    fi
+    if test x"$include_package" = xyes; then :
+
+$as_echo "#define HAVE_MPIWRAP 1" >>confdefs.h
+
+fi
+     if test x"$include_package" = xyes; then
+  HAVE_MPIWRAP_TRUE=
+  HAVE_MPIWRAP_FALSE='#'
+else
+  HAVE_MPIWRAP_TRUE='#'
+  HAVE_MPIWRAP_FALSE=
+fi
+
+
+
+#
+# Configure CTF
+#
+
+
+# Check whether --with-ctf was given.
+if test "${with_ctf+set}" = set; then :
+  withval=$with_ctf;
+else
+  download=yes
+fi
+
+
+
+# Check whether --with-ctf-libs was given.
+if test "${with_ctf_libs+set}" = set; then :
+  withval=$with_ctf_libs;
+else
+  libraries="-lctf"
+fi
+
+        if test x"$libraries" == x; then
+            libraries=$with_ctf_libs
+        fi
+
+    pkg_dir=$with_ctf
+    if test x"$pkg_dir" = xno; then
+        as_fn_error $? "CTF is a required package." "$LINENO" 5
+        include_package=no
+    elif test x"$download" = xyes && test x"https://github.com/solomonik/ctf" = x; then
+        include_package=no
+    else
+        if test x"$download" = xyes && test x"https://github.com/solomonik/ctf" != x; then
+            pkg_dir=src/external/ctf
+            if ! test -d $pkg_dir; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: downloading CTF from external Git repository..." >&5
+$as_echo "$as_me: downloading CTF from external Git repository..." >&6;}
+                if ! git clone -q https://github.com/solomonik/ctf $pkg_dir; then
+                    as_fn_error $? "could not download CTF repository" "$LINENO" 5
+                fi
+            fi
+            if test -f $pkg_dir/configure; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: configuring CTF in $pkg_dir" >&5
+$as_echo "$as_me: configuring CTF in $pkg_dir" >&6;}
+                ( cd $pkg_dir && ./configure )
+                { $as_echo "$as_me:${as_lineno-$LINENO}: done configuring CTF" >&5
+$as_echo "$as_me: done configuring CTF" >&6;}
+            fi
+            downloaded=yes
+        fi
+
+            include_flags=
+            for dir_path in include; do
+                as_fn_append include_flags " -I$pkg_dir/$dir_path"
+            done
+            for header in ctf.hpp; do
+                  ac_save_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$CPPFLAGS $include_flags"
+  as_ac_Header=`$as_echo "ac_cv_header_$header" | $as_tr_sh`
+ac_fn_cxx_check_header_compile "$LINENO" "$header" "$as_ac_Header" "$ac_includes_default
+"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find $header.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+
+  CPPFLAGS="$ac_save_CPPFLAGS"
+
+            done
+            ctf_INCLUDES=$include_flags
+
+
+        if test x"$downloaded" != xyes && test x"CTF_linked" != x; then
+            lib_flags=
+            for dir_path in lib lib64; do
+                as_fn_append lib_flags " -L$pkg_dir/$dir_path"
+            done
+            as_fn_append lib_flags " $libraries"
+            for symbol in CTF_linked; do
+                  ac_save_LIBS="$LIBS"
+  LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
+  as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
+ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find $symbol in $libraries.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+  LIBS="$ac_save_LIBS"
+
+            done
+            ctf_LIBS=$lib_flags
+
+        fi
+        include_package=yes
+    fi
+    if test x"$include_package" = xyes; then :
+
+$as_echo "#define HAVE_CTF 1" >>confdefs.h
+
+fi
+     if test x"$include_package" = xyes; then
+  HAVE_CTF_TRUE=
+  HAVE_CTF_FALSE='#'
+else
+  HAVE_CTF_TRUE='#'
+  HAVE_CTF_FALSE=
+fi
+
+
+ if test x"$ctf_INCLUDES" = x" -Isrc/external/ctf/include"; then
+  CTF_IS_LOCAL_TRUE=
+  CTF_IS_LOCAL_FALSE='#'
+else
+  CTF_IS_LOCAL_TRUE='#'
+  CTF_IS_LOCAL_FALSE=
+fi
+
+
+#
+# Check for Elemental
+#
+
+
+# Check whether --with-elemental was given.
+if test "${with_elemental+set}" = set; then :
+  withval=$with_elemental;
+else
+  download=yes
+fi
+
+
+
+# Check whether --with-elemental-libs was given.
+if test "${with_elemental_libs+set}" = set; then :
+  withval=$with_elemental_libs;
+else
+  libraries="-lEl -lpmrrr"
+fi
+
+        if test x"$libraries" == x; then
+            libraries=$with_elemental_libs
+        fi
+
+    pkg_dir=$with_elemental
+    if test x"$pkg_dir" = xno; then
+
+        include_package=no
+    elif test x"$download" = xyes && test x"" = x; then
+        include_package=no
+    else
+        if test x"$download" = xyes && test x"" != x; then
+            pkg_dir=src/external/elemental
+            if ! test -d $pkg_dir; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: downloading Elemental from external Git repository..." >&5
+$as_echo "$as_me: downloading Elemental from external Git repository..." >&6;}
+                if ! git clone -q  $pkg_dir; then
+                    as_fn_error $? "could not download Elemental repository" "$LINENO" 5
+                fi
+            fi
+            if test -f $pkg_dir/configure; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: configuring Elemental in $pkg_dir" >&5
+$as_echo "$as_me: configuring Elemental in $pkg_dir" >&6;}
+                ( cd $pkg_dir && ./configure )
+                { $as_echo "$as_me:${as_lineno-$LINENO}: done configuring Elemental" >&5
+$as_echo "$as_me: done configuring Elemental" >&6;}
+            fi
+            downloaded=yes
+        fi
+
+            include_flags=
+            for dir_path in include; do
+                as_fn_append include_flags " -I$pkg_dir/$dir_path"
+            done
+            for header in El.hpp; do
+                  ac_save_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$CPPFLAGS $include_flags"
+  as_ac_Header=`$as_echo "ac_cv_header_$header" | $as_tr_sh`
+ac_fn_cxx_check_header_compile "$LINENO" "$header" "$as_ac_Header" "$ac_includes_default
+"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find $header.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+
+  CPPFLAGS="$ac_save_CPPFLAGS"
+
+            done
+            elemental_INCLUDES=$include_flags
+
+
+        if test x"$downloaded" != xyes && test x"ElInitialize" != x; then
+            lib_flags=
+            for dir_path in lib lib64; do
+                as_fn_append lib_flags " -L$pkg_dir/$dir_path"
+            done
+            as_fn_append lib_flags " $libraries"
+            for symbol in ElInitialize; do
+                  ac_save_LIBS="$LIBS"
+  LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
+  as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
+ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find $symbol in $libraries.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+  LIBS="$ac_save_LIBS"
+
+            done
+            elemental_LIBS=$lib_flags
+
+        fi
+        include_package=yes
+    fi
+    if test x"$include_package" = xyes; then :
 
 $as_echo "#define HAVE_ELEMENTAL 1" >>confdefs.h
 
 fi
- if test x"$have_elemental" = xyes; then
+     if test x"$include_package" = xyes; then
   HAVE_ELEMENTAL_TRUE=
   HAVE_ELEMENTAL_FALSE='#'
 else
@@ -8239,117 +8589,118 @@ else
 fi
 
 
+
 #
 # Check for libint2
 #
+
 
 # Check whether --with-libint2 was given.
 if test "${with_libint2+set}" = set; then :
   withval=$with_libint2;
 else
-  with_libint2=no
+  download=yes
 fi
 
 
-if test x"$with_libint2" != xno; then
-    LDFLAGS_SAVE=$LDFLAGS
-    CPPFLAGS_SAVE=$CPPFLAGS
-    LDFLAGS=
-    CPPFLAGS=$CXXFLAGS
 
-    if test x"$with_libint2" != xyes; then
-        LDFLAGS+=" -L$with_libint2/lib -L$with_libint2/lib64"
-        CPPFLAGS+=" -I$with_libint2/include -I$with_libint2/include/libint2"
-    fi
-
-    ac_fn_cxx_check_header_mongrel "$LINENO" "libint2.h" "ac_cv_header_libint2_h" "$ac_includes_default"
-if test "x$ac_cv_header_libint2_h" = xyes; then :
-
+# Check whether --with-libint2-libs was given.
+if test "${with_libint2_libs+set}" = set; then :
+  withval=$with_libint2_libs;
 else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "libint2 requested, but could not find libint2.h.
-See \`config.log' for more details" "$LINENO" 5; }
+  libraries="-lint2"
 fi
 
+        if test x"$libraries" == x; then
+            libraries=$with_libint2_libs
+        fi
 
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for libint2_static_init in -lint2" >&5
-$as_echo_n "checking for libint2_static_init in -lint2... " >&6; }
-if ${ac_cv_lib_int2_libint2_static_init+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lint2  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
+    pkg_dir=$with_libint2
+    if test x"$pkg_dir" = xno; then
 
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char libint2_static_init ();
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-int
-main ()
-{
-return libint2_static_init ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_link "$LINENO"; then :
-  ac_cv_lib_int2_libint2_static_init=yes
-else
-  ac_cv_lib_int2_libint2_static_init=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_int2_libint2_static_init" >&5
-$as_echo "$ac_cv_lib_int2_libint2_static_init" >&6; }
-if test "x$ac_cv_lib_int2_libint2_static_init" = xyes; then :
-  true
-else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "libint2 requested, but could not find -lint2.
-See \`config.log' for more details" "$LINENO" 5; }
-fi
-
-
-    LDFLAGS=$LDFLAGS_SAVE
-    CPPFLAGS=$CPPFLAGS_SAVE
-
-    have_libint2=yes
-
-    if test x"$with_libint2" != xyes; then
-        libint2_LIBS="-L$with_libint2/lib -L$with_libint2/lib64 -lint2"
-
-        libint2_INCLUDES="-I$with_libint2/include -I$with_libint2/include/libint2"
-
+        include_package=no
+    elif test x"$download" = xyes && test x"" = x; then
+        include_package=no
     else
-        libint2_LIBS="-lint2"
+        if test x"$download" = xyes && test x"" != x; then
+            pkg_dir=src/external/libint2
+            if ! test -d $pkg_dir; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: downloading libint2 from external Git repository..." >&5
+$as_echo "$as_me: downloading libint2 from external Git repository..." >&6;}
+                if ! git clone -q  $pkg_dir; then
+                    as_fn_error $? "could not download libint2 repository" "$LINENO" 5
+                fi
+            fi
+            if test -f $pkg_dir/configure; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: configuring libint2 in $pkg_dir" >&5
+$as_echo "$as_me: configuring libint2 in $pkg_dir" >&6;}
+                ( cd $pkg_dir && ./configure )
+                { $as_echo "$as_me:${as_lineno-$LINENO}: done configuring libint2" >&5
+$as_echo "$as_me: done configuring libint2" >&6;}
+            fi
+            downloaded=yes
+        fi
 
+            include_flags=
+            for dir_path in include; do
+                as_fn_append include_flags " -I$pkg_dir/$dir_path"
+            done
+            for header in libint2.h; do
+                  ac_save_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$CPPFLAGS $include_flags"
+  as_ac_Header=`$as_echo "ac_cv_header_$header" | $as_tr_sh`
+ac_fn_cxx_check_header_compile "$LINENO" "$header" "$as_ac_Header" "$ac_includes_default
+"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
 
-    fi
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find $header.
+See \`config.log' for more details" "$LINENO" 5; }
 fi
 
-if test x"$have_libint2" = xyes; then :
+
+  CPPFLAGS="$ac_save_CPPFLAGS"
+
+            done
+            libint2_INCLUDES=$include_flags
+
+
+        if test x"$downloaded" != xyes && test x"libint2_static_init" != x; then
+            lib_flags=
+            for dir_path in lib lib64; do
+                as_fn_append lib_flags " -L$pkg_dir/$dir_path"
+            done
+            as_fn_append lib_flags " $libraries"
+            for symbol in libint2_static_init; do
+                  ac_save_LIBS="$LIBS"
+  LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
+  as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
+ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find $symbol in $libraries.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+  LIBS="$ac_save_LIBS"
+
+            done
+            libint2_LIBS=$lib_flags
+
+        fi
+        include_package=yes
+    fi
+    if test x"$include_package" = xyes; then :
 
 $as_echo "#define HAVE_LIBINT2 1" >>confdefs.h
 
 fi
- if test x"$have_libint2" = xyes; then
+     if test x"$include_package" = xyes; then
   HAVE_LIBINT2_TRUE=
   HAVE_LIBINT2_FALSE='#'
 else
@@ -8357,6 +8708,9 @@ else
   HAVE_LIBINT2_FALSE=
 fi
 
+
+
+mkdir -p bin
 
 ac_config_files="$ac_config_files Makefile"
 
@@ -8498,6 +8852,26 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCXX_TRUE}" && test -z "${am__fastdepCXX_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCXX\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${HAVE_LAWRAP_TRUE}" && test -z "${HAVE_LAWRAP_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_LAWRAP\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${HAVE_MARRAY_TRUE}" && test -z "${HAVE_MARRAY_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_MARRAY\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${HAVE_MPIWRAP_TRUE}" && test -z "${HAVE_MPIWRAP_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_MPIWRAP\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${HAVE_CTF_TRUE}" && test -z "${HAVE_CTF_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_CTF\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${CTF_IS_LOCAL_TRUE}" && test -z "${CTF_IS_LOCAL_FALSE}"; then
+  as_fn_error $? "conditional \"CTF_IS_LOCAL\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_ELEMENTAL_TRUE}" && test -z "${HAVE_ELEMENTAL_FALSE}"; then

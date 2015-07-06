@@ -133,19 +133,6 @@ class DIIS
             e[nextrap_real][nextrap_real] = 0.0;
             c[nextrap_real] = -1.0;
 
-            /*
-            for (int i = 0;i < nextrap_real;i++)
-            {
-                for (int j = 0;j < nextrap_real;j++)
-                {
-                    printf("%+.3e ", e[i+j*(nextrap+1)]);
-                }
-
-                printf(": %+.3e\n", c[i]);
-            }
-            printf("\n");
-            */
-
             if (nextrap_real == 1) return;
 
             if (--start > 1)
@@ -184,6 +171,19 @@ class DIIS
 
                 if (info != 0) throw runtime_error(strprintf("DIIS: Info in hesv: %d", info));
             }
+
+            /*
+            for (int i = 0;i < nextrap_real;i++)
+            {
+                for (int j = 0;j < nextrap_real;j++)
+                {
+                    printf("%+.3e ", e[i][j]);
+                }
+
+                printf(": %+.3e\n", c[i]);
+            }
+            printf("\n");
+            */
 
             //for (int i = 0;i <= nextrap_real;i++) printf("%+11e ", c[i]); printf("\n");
 

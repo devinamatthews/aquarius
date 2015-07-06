@@ -13,9 +13,9 @@
 #error "Unsupported Fortran naming convention"
 #endif
 
-#include "external/lawrap/fortran.h"
-#include "external/lawrap/blas.h"
-#include "external/lawrap/lapack.h"
+#include "fortran.h"
+#include "blas.h"
+#include "lapack.h"
 
 namespace aquarius
 {

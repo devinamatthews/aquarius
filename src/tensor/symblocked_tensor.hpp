@@ -3,12 +3,6 @@
 
 #include "util/global.hpp"
 
-#if CTF_VERSION >= 120
-#include "../src/symmetry/sym_indices.h"
-#else
-#include "../src/dist_tensor/sym_indices.hxx"
-#endif
-
 #include "symmetry/symmetry.hpp"
 #include "task/task.hpp"
 

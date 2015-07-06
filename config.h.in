@@ -18,6 +18,9 @@
 /* Define if you have a BLAS library. */
 #undef HAVE_BLAS
 
+/* Define if CTF is to be used. */
+#undef HAVE_CTF
+
 /* define if the compiler supports basic C++11 syntax */
 #undef HAVE_CXX11
 
@@ -30,14 +33,23 @@
 /* Define if you have LAPACK library. */
 #undef HAVE_LAPACK
 
+/* Define if LAWrap is to be used. */
+#undef HAVE_LAWRAP
+
 /* Define if libint2 is to be used. */
 #undef HAVE_LIBINT2
+
+/* Define if MArray is to be used. */
+#undef HAVE_MARRAY
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
 /* Define if you have the MPI library. */
 #undef HAVE_MPI
+
+/* Define if MPIWrap is to be used. */
+#undef HAVE_MPIWRAP
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
