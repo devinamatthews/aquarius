@@ -8083,14 +8083,15 @@ fi
             lawrap_INCLUDES=$include_flags
 
 
-        if test x"$downloaded" != xyes && test x"" != x; then
+        if test x"" != x; then
             lib_flags=
             for dir_path in lib lib64; do
                 as_fn_append lib_flags " -L$pkg_dir/$dir_path"
             done
             as_fn_append lib_flags " $libraries"
-            for symbol in ; do
-                  ac_save_LIBS="$LIBS"
+            if test x"$downloaded" != xyes; then
+                for symbol in ; do
+                      ac_save_LIBS="$LIBS"
   LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
   as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
 ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
@@ -8105,7 +8106,8 @@ fi
 
   LIBS="$ac_save_LIBS"
 
-            done
+                done
+            fi
             lawrap_LIBS=$lib_flags
 
         fi
@@ -8191,14 +8193,15 @@ fi
             marray_INCLUDES=$include_flags
 
 
-        if test x"$downloaded" != xyes && test x"" != x; then
+        if test x"" != x; then
             lib_flags=
             for dir_path in lib lib64; do
                 as_fn_append lib_flags " -L$pkg_dir/$dir_path"
             done
             as_fn_append lib_flags " $libraries"
-            for symbol in ; do
-                  ac_save_LIBS="$LIBS"
+            if test x"$downloaded" != xyes; then
+                for symbol in ; do
+                      ac_save_LIBS="$LIBS"
   LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
   as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
 ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
@@ -8213,7 +8216,8 @@ fi
 
   LIBS="$ac_save_LIBS"
 
-            done
+                done
+            fi
             marray_LIBS=$lib_flags
 
         fi
@@ -8299,14 +8303,15 @@ fi
             mpiwrap_INCLUDES=$include_flags
 
 
-        if test x"$downloaded" != xyes && test x"" != x; then
+        if test x"" != x; then
             lib_flags=
             for dir_path in lib lib64; do
                 as_fn_append lib_flags " -L$pkg_dir/$dir_path"
             done
             as_fn_append lib_flags " $libraries"
-            for symbol in ; do
-                  ac_save_LIBS="$LIBS"
+            if test x"$downloaded" != xyes; then
+                for symbol in ; do
+                      ac_save_LIBS="$LIBS"
   LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
   as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
 ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
@@ -8321,7 +8326,8 @@ fi
 
   LIBS="$ac_save_LIBS"
 
-            done
+                done
+            fi
             mpiwrap_LIBS=$lib_flags
 
         fi
@@ -8419,14 +8425,15 @@ fi
             ctf_INCLUDES=$include_flags
 
 
-        if test x"$downloaded" != xyes && test x"CTF_linked" != x; then
+        if test x"CTF_linked" != x; then
             lib_flags=
             for dir_path in lib lib64; do
                 as_fn_append lib_flags " -L$pkg_dir/$dir_path"
             done
             as_fn_append lib_flags " $libraries"
-            for symbol in CTF_linked; do
-                  ac_save_LIBS="$LIBS"
+            if test x"$downloaded" != xyes; then
+                for symbol in CTF_linked; do
+                      ac_save_LIBS="$LIBS"
   LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
   as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
 ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
@@ -8441,7 +8448,8 @@ fi
 
   LIBS="$ac_save_LIBS"
 
-            done
+                done
+            fi
             ctf_LIBS=$lib_flags
 
         fi
@@ -8547,14 +8555,15 @@ fi
             elemental_INCLUDES=$include_flags
 
 
-        if test x"$downloaded" != xyes && test x"ElInitialize" != x; then
+        if test x"ElInitialize" != x; then
             lib_flags=
             for dir_path in lib lib64; do
                 as_fn_append lib_flags " -L$pkg_dir/$dir_path"
             done
             as_fn_append lib_flags " $libraries"
-            for symbol in ElInitialize; do
-                  ac_save_LIBS="$LIBS"
+            if test x"$downloaded" != xyes; then
+                for symbol in ElInitialize; do
+                      ac_save_LIBS="$LIBS"
   LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
   as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
 ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
@@ -8569,7 +8578,8 @@ fi
 
   LIBS="$ac_save_LIBS"
 
-            done
+                done
+            fi
             elemental_LIBS=$lib_flags
 
         fi
@@ -8667,14 +8677,15 @@ fi
             libint2_INCLUDES=$include_flags
 
 
-        if test x"$downloaded" != xyes && test x"libint2_static_init" != x; then
+        if test x"libint2_static_init" != x; then
             lib_flags=
             for dir_path in lib lib64; do
                 as_fn_append lib_flags " -L$pkg_dir/$dir_path"
             done
             as_fn_append lib_flags " $libraries"
-            for symbol in libint2_static_init; do
-                  ac_save_LIBS="$LIBS"
+            if test x"$downloaded" != xyes; then
+                for symbol in libint2_static_init; do
+                      ac_save_LIBS="$LIBS"
   LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
   as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
 ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
@@ -8689,7 +8700,8 @@ fi
 
   LIBS="$ac_save_LIBS"
 
-            done
+                done
+            fi
             libint2_LIBS=$lib_flags
 
         fi

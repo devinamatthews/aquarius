@@ -71,18 +71,20 @@ AC_DEFUN([AQ_WITH_PACKAGE],
             m4_tolower(AS_TR_SH([$1]))_INCLUDES=$include_flags
             AC_SUBST(m4_tolower(AS_TR_SH([$1]))_INCLUDES)
         ])
-        if test x"$downloaded" != xyes && test x"$5" != x; then
+        if test x"$5" != x; then
             lib_flags=
             for dir_path in m4_default([$7],[lib lib64]); do
                 AS_VAR_APPEND([lib_flags],[" -L$pkg_dir/$dir_path"])
             done
             AS_VAR_APPEND([lib_flags], [" $libraries"])
-            for symbol in $5; do
-                AQ_CHECK_FUNC_WITH_PATH([$symbol],
-                                        [],
-                                        [AC_MSG_FAILURE([Could not find $symbol in $libraries.])],
-                                        [$lib_flags $LAPACK_LIBS $BLAS_LIBS])
-            done
+            if test x"$downloaded" != xyes; then
+                for symbol in $5; do
+                    AQ_CHECK_FUNC_WITH_PATH([$symbol],
+                                            [],
+                                            [AC_MSG_FAILURE([Could not find $symbol in $libraries.])],
+                                            [$lib_flags $LAPACK_LIBS $BLAS_LIBS])
+                done
+            fi
             m4_tolower(AS_TR_SH([$1]))_LIBS=$lib_flags
             AC_SUBST(m4_tolower(AS_TR_SH([$1]))_LIBS)
         fi
