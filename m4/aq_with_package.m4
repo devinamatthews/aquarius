@@ -17,6 +17,8 @@
 
 AC_DEFUN([AQ_WITH_PACKAGE],
 [
+    download=no
+    downloaded=no
     AC_ARG_WITH(m4_tolower([$1]),
                 [AS_HELP_STRING([--with-]m4_tolower([$1])[=<dir>],
                                 [Specify the location of $1.])],

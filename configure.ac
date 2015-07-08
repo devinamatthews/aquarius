@@ -76,7 +76,7 @@ AM_CONDITIONAL([CTF_IS_LOCAL], [test x"$ctf_INCLUDES" = x" -Isrc/external/ctf/in
 #
 AQ_WITH_PACKAGE([Elemental], [],
                 [El.hpp], [],
-                [ElInitialize], [-lEl -lpmrrr])
+                [ElInitialize], [-lEl -lpmrrr -lmetis])
 
 #
 # Check for libint2

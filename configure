@@ -8022,6 +8022,8 @@ done
 
 
 
+    download=no
+    downloaded=no
 
 # Check whether --with-lawrap was given.
 if test "${with_lawrap+set}" = set; then :
@@ -8132,6 +8134,8 @@ fi
 # Configure MArray
 #
 
+    download=no
+    downloaded=no
 
 # Check whether --with-marray was given.
 if test "${with_marray+set}" = set; then :
@@ -8242,6 +8246,8 @@ fi
 # Configure MPIWrap
 #
 
+    download=no
+    downloaded=no
 
 # Check whether --with-mpiwrap was given.
 if test "${with_mpiwrap+set}" = set; then :
@@ -8352,6 +8358,8 @@ fi
 # Configure CTF
 #
 
+    download=no
+    downloaded=no
 
 # Check whether --with-ctf was given.
 if test "${with_ctf+set}" = set; then :
@@ -8483,6 +8491,8 @@ fi
 # Check for Elemental
 #
 
+    download=no
+    downloaded=no
 
 # Check whether --with-elemental was given.
 if test "${with_elemental+set}" = set; then :
@@ -8498,7 +8508,7 @@ fi
 if test "${with_elemental_libs+set}" = set; then :
   withval=$with_elemental_libs;
 else
-  libraries="-lEl -lpmrrr"
+  libraries="-lEl -lpmrrr -lmetis"
 fi
 
         if test x"$libraries" == x; then
@@ -8606,6 +8616,8 @@ fi
 # Check for libint2
 #
 
+    download=no
+    downloaded=no
 
 # Check whether --with-libint2 was given.
 if test "${with_libint2+set}" = set; then :
