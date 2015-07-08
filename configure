@@ -8361,6 +8361,7 @@ else
 fi
 
 
+        libraries=
 
 # Check whether --with-ctf-libs was given.
 if test "${with_ctf_libs+set}" = set; then :
@@ -8491,6 +8492,7 @@ else
 fi
 
 
+        libraries=
 
 # Check whether --with-elemental-libs was given.
 if test "${with_elemental_libs+set}" = set; then :
@@ -8613,6 +8615,7 @@ else
 fi
 
 
+        libraries=
 
 # Check whether --with-libint2-libs was given.
 if test "${with_libint2_libs+set}" = set; then :

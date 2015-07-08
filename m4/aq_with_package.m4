@@ -24,6 +24,7 @@ AC_DEFUN([AQ_WITH_PACKAGE],
                 [download=yes])
     m4_ifval([$6],
     [
+        libraries=
         AC_ARG_WITH(m4_tolower([$1])[-libs],
                     [AS_HELP_STRING([--with-]m4_tolower([$1])[-libs=<...>],
                                     [Specify the libraries to link for $1.])],
