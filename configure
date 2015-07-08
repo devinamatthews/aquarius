@@ -8508,7 +8508,7 @@ fi
 if test "${with_elemental_libs+set}" = set; then :
   withval=$with_elemental_libs;
 else
-  libraries="-lEl -lpmrrr -lmetis"
+  libraries="-lEl -lpmrrr -lmetis -lkiss_fft"
 fi
 
         if test x"$libraries" == x; then
