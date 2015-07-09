@@ -296,7 +296,6 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
 
     auto& Rs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("R");
     auto& Zs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("Z");
-    //auto& Vs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("V");
 
     for (int root = 0;root < this->nsolution();root++)
     {
@@ -306,13 +305,22 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
 
         bool triplet = scalar(R(1)({1,0},{0,1})*R(1)({0,0},{0,0})) < 0;
 
-        /*
-        for (auto& V : Vs)
+        if (triplet)
         {
-            R -= scalar(conj(V)*R)*V;
+            0.5*R(1)({0,0},{0,0})[  "ai"] -= 0.5*R(1)({1,0},{0,1})[  "ai"];
+                R(1)({1,0},{0,1})[  "ai"]  =    -R(1)({0,0},{0,0})[  "ai"];
+            0.5*R(2)({1,0},{0,1})["abij"] -= 0.5*R(2)({1,0},{0,1})["baji"];
+            0.5*R(2)({0,0},{0,0})["abij"] -= 0.5*R(2)({2,0},{0,2})["abij"];
+                R(2)({2,0},{0,2})["abij"]  =    -R(2)({0,0},{0,0})["abij"];
         }
-        R /= sqrt(aquarius::abs(scalar(conj(R)*R)));
-        */
+        else
+        {
+            0.5*R(1)({0,0},{0,0})[  "ai"] += 0.5*R(1)({1,0},{0,1})[  "ai"];
+                R(1)({1,0},{0,1})[  "ai"]  =     R(1)({0,0},{0,0})[  "ai"];
+            0.5*R(2)({1,0},{0,1})["abij"] += 0.5*R(2)({1,0},{0,1})["baji"];
+            0.5*R(2)({0,0},{0,0})["abij"] += 0.5*R(2)({2,0},{0,2})["abij"];
+                R(2)({2,0},{0,2})["abij"]  =     R(2)({0,0},{0,0})["abij"];
+        }
 
          XMI[  "mi"]  =     WMNEJ["nmei"]*R(1)[  "en"];
          XMI[  "mi"] += 0.5*WMNEF["mnef"]*R(2)["efin"];
@@ -335,23 +343,6 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
         Z(2)["abij"] += 0.5*WMNIJ["mnij"]*R(2)["abmn"];
         Z(2)["abij"] += 0.5*WABEF["abef"]*R(2)["efij"];
         Z(2)["abij"] -=     WAMEI["amei"]*R(2)["ebmj"];
-
-        if (triplet)
-        {
-            0.5*Z(1)({0,0},{0,0})[  "ai"] -= 0.5*Z(1)({1,0},{0,1})[  "ai"];
-                Z(1)({1,0},{0,1})[  "ai"]  =    -Z(1)({0,0},{0,0})[  "ai"];
-            0.5*Z(2)({1,0},{0,1})["abij"] -= 0.5*Z(2)({1,0},{0,1})["baji"];
-            0.5*Z(2)({0,0},{0,0})["abij"] -= 0.5*Z(2)({2,0},{0,2})["abij"];
-                Z(2)({2,0},{0,2})["abij"]  =    -Z(2)({0,0},{0,0})["abij"];
-        }
-        else
-        {
-            0.5*Z(1)({0,0},{0,0})[  "ai"] += 0.5*Z(1)({1,0},{0,1})[  "ai"];
-                Z(1)({1,0},{0,1})[  "ai"]  =     Z(1)({0,0},{0,0})[  "ai"];
-            0.5*Z(2)({1,0},{0,1})["abij"] += 0.5*Z(2)({1,0},{0,1})["baji"];
-            0.5*Z(2)({0,0},{0,0})["abij"] += 0.5*Z(2)({2,0},{0,2})["abij"];
-                Z(2)({2,0},{0,2})["abij"]  =     Z(2)({0,0},{0,0})["abij"];
-        }
     }
 
     vector<U> energies = davidson.extrapolate(Rs, Zs, D);
