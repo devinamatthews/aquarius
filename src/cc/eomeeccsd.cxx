@@ -192,6 +192,8 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                 R(1) = TDAevecs[i][root_idx[i][j]];
                 R(2) = 0;
 
+                triplet = scalar(R(1)({1,0},{0,1})*R(1)({0,0},{0,0})) < 0;
+
                 bool print_vecs;
                 print_vecs = false;
 
@@ -302,8 +304,6 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
         ExcitationOperator<U,2>& R = Rs[root];
         ExcitationOperator<U,2>& Z = Zs[root];
         Z = 0;
-
-        bool triplet = scalar(R(1)({1,0},{0,1})*R(1)({0,0},{0,0})) < 0;
 
         if (triplet)
         {
