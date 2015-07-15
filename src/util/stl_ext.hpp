@@ -139,6 +139,8 @@ namespace aquarius
     using std::initializer_list;
     using std::is_convertible;
     using std::is_base_of;
+    using std::false_type;
+    using std::true_type;
 
     using std::iterator;
     using std::iterator_traits;
@@ -178,6 +180,9 @@ namespace aquarius
     using std::logic_error;
     using std::runtime_error;
     using std::out_of_range;
+
+    template <typename T>
+    using remove_const_t = typename remove_const<T>::type;
 
     template <bool T, typename U=void>
     using enable_if_t = typename enable_if<T,U>::type;
@@ -754,10 +759,14 @@ namespace aquarius
             public:
                 typedef typename vector_::value_type ptr_type;
                 typedef decay_t<decltype(*declval<ptr_type>())> value_type;
-                typedef value_type& reference;
-                typedef const value_type& const_reference;
-                typedef value_type* pointer;
                 typedef const value_type* const_pointer;
+                typedef conditional_t<is_same<ptr_type,const_pointer>::value,
+                                      const value_type*,
+                                      value_type*> pointer;
+                typedef const value_type& const_reference;
+                typedef conditional_t<is_same<ptr_type,const_pointer>::value,
+                                      const value_type&,
+                                      value_type&> reference;
                 typedef iterator_<pointer> iterator;
                 typedef iterator_<const_pointer> const_iterator;
                 typedef std::reverse_iterator<iterator> reverse_iterator;
@@ -1470,10 +1479,14 @@ namespace aquarius
             public:
                 typedef typename list_::value_type ptr_type;
                 typedef decay_t<decltype(*declval<ptr_type>())> value_type;
-                typedef value_type& reference;
-                typedef const value_type& const_reference;
-                typedef value_type* pointer;
                 typedef const value_type* const_pointer;
+                typedef conditional_t<is_same<ptr_type,const_pointer>::value,
+                                      const value_type*,
+                                      value_type*> pointer;
+                typedef const value_type& const_reference;
+                typedef conditional_t<is_same<ptr_type,const_pointer>::value,
+                                      const value_type&,
+                                      value_type&> reference;
                 typedef iterator_<pointer> iterator;
                 typedef iterator_<const_pointer> const_iterator;
                 typedef std::reverse_iterator<iterator> reverse_iterator;
@@ -3183,6 +3196,54 @@ namespace aquarius
 
     template <typename T>
     using complex_type_t = typename complex_type<T>::type;
+
+    template <typename T> struct is_complex             : false_type {};
+    template <typename T> struct is_complex<complex<T>> : true_type {};
+
+    namespace detail
+    {
+        template <typename T>
+        struct sigfig_printer
+        {
+            T val;
+            int sigfigs;
+        };
+
+        template <typename T>
+        enable_if_t<!is_complex<T>::value,ostream&>
+        operator<<(ostream& os, const sigfig_printer<T>& p)
+        {
+            auto flags = os.flags();
+            double l = log10(fabs(p.val));
+            int d = (int)(l < 0 ? l-1+1e-15 : l);
+            if (abs(d) > 2)
+            {
+                os << scientific << setprecision(p.sigfigs) << p.val;
+            }
+            else
+            {
+                os << fixed << setprecision(p.sigfigs-d) << p.val;
+            }
+            os.flags(flags);
+            return os;
+        }
+
+        template <typename T>
+        enable_if_t<is_complex<T>::value,ostream&>
+        operator<<(ostream& os, const sigfig_printer<T>& p)
+        {
+            typedef real_type_t<T> R;
+            return os << '(' << sigfig_printer<R>{p.val.real(), p.sigfigs} << ", " <<
+                                sigfig_printer<R>{p.val.imag(), p.sigfigs} << ')';
+        }
+    }
+
+    template <typename T>
+    detail::sigfig_printer<T> printToAccuracy(const T& value, double accuracy)
+    {
+        int sigfigs = (int)(ceil(-log10(accuracy))+0.5);
+        return detail::sigfig_printer<T>{value, sigfigs};
+    }
 }
 
 namespace std

@@ -17,6 +17,7 @@ __top_builddir__bin_aquarius_SOURCES = \
 	src/cc/ccsd_tq_n_opt.cxx \
 	src/cc/ccsd_tq_n.cxx \
 	src/cc/ccsd.cxx \
+	src/cc/ccsdipgf.cxx \
 	src/cc/ccsdt_q_n_opt.cxx \
 	src/cc/ccsdt_q_n.cxx \
 	src/cc/ccsdt.cxx \

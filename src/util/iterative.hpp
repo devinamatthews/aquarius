@@ -127,7 +127,7 @@ class Iterative : public task::Task
         {
             nsolution_ = nsolution;
             energy_.resize(nsolution);
-            conv_.assign(nsolution, numeric_limits<U>::max());
+            conv_.assign(nsolution, numeric_limits<double>::max());
 
             for (iter_ = 1;iter_ <= maxiter && !isConverged();iter_++)
             {
@@ -137,8 +137,6 @@ class Iterative : public task::Task
                 timer.stop();
                 double dt = timer.seconds(arena);
 
-                int ndigit = (int)(ceil(-log10(convtol))+0.5);
-
                 log(arena) << "Iteration " << iter_ << " took " << fixed <<
                               setprecision(3) << dt << " s" << endl;
 
@@ -147,17 +145,16 @@ class Iterative : public task::Task
                     if (nsolution > 1)
                     {
                         log(arena) << "Iteration " << iter_ << " sol'n " << (i+1) <<
-                                      " energy = " << fixed << setprecision(ndigit) << energy_[i] <<
+                                      " energy = " << printToAccuracy(energy_[i], convtol) <<
                                       ", convergence = " << scientific << setprecision(3) << conv_[i] << endl;
                     }
                     else
                     {
                         log(arena) << "Iteration " << iter_ <<
-                                      " energy = " << fixed << setprecision(ndigit) << energy_[i] <<
+                                      " energy = " << printToAccuracy(energy_[i], convtol) <<
                                       ", convergence = " << scientific << setprecision(3) << conv_[i] << endl;
                     }
                 }
-
             }
 
             if (!isConverged())

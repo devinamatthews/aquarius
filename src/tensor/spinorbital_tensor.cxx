@@ -189,7 +189,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const Arena& arena,
 
     for (int alphaout = 0;alphaout <= nouttot;alphaout++)
     {
-        int alphain = alphaout + (nouttot-nintot-spin)/2;
+        int alphain = alphaout + (nintot-nouttot-spin)/2;
         if (alphain < 0 || alphain > nintot) continue;
 
         fill(whichout.begin(), whichout.end(), 0);
@@ -760,6 +760,13 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
             conv_idx(idx_A_, idx_A__,
                      idx_B_, idx_B__,
                      idx_C_, idx_C__);
+
+            int spin_A = (2*aquarius::sum(alpha_out_A)-out_A.size()) -
+                         (2*aquarius::sum( alpha_in_A)- in_A.size());
+            int spin_B = (2*aquarius::sum(alpha_out_B)-out_B.size()) -
+                         (2*aquarius::sum( alpha_in_B)- in_B.size());
+
+            if (spin_A != A.spin || spin_B != B.spin) continue;
 
             const SymmetryBlockedTensor<T>& tensor_A = A(alpha_out_A, alpha_in_A);
             const SymmetryBlockedTensor<T>& tensor_B = B(alpha_out_B, alpha_in_B);

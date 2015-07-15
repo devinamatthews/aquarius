@@ -78,9 +78,9 @@ class ExcitationOperator
         {
             T s = (T)0;
 
-            for (int i = 0;i <= min(np,nh);i++)
+            for (int i = abs(np-nh);i <= max(np,nh);i++)
             {
-                s += (*this)(i).dot(conja, A(i), conjb)/(T)factorial(i)/(T)factorial(i+abs(np-nh));
+                s += (*this)(i).dot(conja, A(i), conjb)/(T)factorial(i)/(T)factorial(i-abs(np-nh));
             }
 
             return s;
@@ -93,7 +93,7 @@ class ExcitationOperator
         {
             real_type_t<T> nrm = 0;
 
-            for (int i = 0;i <= min(np,nh);i++)
+            for (int i = abs(np-nh);i <= max(np,nh);i++)
             {
                 nrm = max(nrm,(*this)(i).norm(p));
             }

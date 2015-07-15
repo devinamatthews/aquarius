@@ -40,7 +40,7 @@ class DeexcitationOperator
 
                 tensors[ex+abs(np-nh)].isAlloced = true;
                 tensors[ex+abs(np-nh)].tensor =
-                    new tensor::SpinorbitalTensor<T>(name, arena, occ.group, {vrt,occ}, {0,nv}, {no,0}, spin);
+                    new tensor::SpinorbitalTensor<T>(name, arena, occ.group, {vrt,occ}, {0,no}, {nv,0}, spin);
             }
         }
 
@@ -58,7 +58,7 @@ class DeexcitationOperator
 
                 tensors[ex+abs(np-nh)].isAlloced = true;
                 tensors[ex+abs(np-nh)].tensor =
-                    new tensor::SpinorbitalTensor<T>(name, arena, occ.group, rep, {vrt,occ}, {0,nv}, {no,0}, spin);
+                    new tensor::SpinorbitalTensor<T>(name, arena, occ.group, rep, {vrt,occ}, {0,no}, {nv,0}, spin);
             }
         }
 
@@ -78,9 +78,9 @@ class DeexcitationOperator
         {
             T s = (T)0;
 
-            for (int i = 0;i <= min(np,nh);i++)
+            for (int i = abs(np-nh);i <= max(np,nh);i++)
             {
-                s += (*this)(i).dot(conja, A(i), conjb)/(T)factorial(i)/(T)factorial(i+abs(np-nh));
+                s += (*this)(i).dot(conja, A(i), conjb)/(T)factorial(i)/(T)factorial(i-abs(np-nh));
             }
 
             return s;
@@ -93,7 +93,7 @@ class DeexcitationOperator
         {
             real_type_t<T> nrm = 0;
 
-            for (int i = 0;i <= min(np,nh);i++)
+            for (int i = abs(np-nh);i <= max(np,nh);i++)
             {
                 nrm = max(nrm,(*this)(i).norm(p));
             }

@@ -43,6 +43,12 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,S
 
         ~SpinorbitalTensor();
 
+        const vector<int>& getNumOut() const { return nout; }
+
+        const vector<int>& getNumIn() const { return nin; }
+
+        int getSpin() const { return spin; }
+
         const symmetry::PointGroup& getGroup() const { return group; }
 
         SymmetryBlockedTensor<T>& operator()(const vector<int>& alpha_out,
