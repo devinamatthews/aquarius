@@ -323,7 +323,7 @@ class Davidson : public task::Destructible
                 {
                     for (int svec = 0;svec < nvec;svec++)
                     {
-                        dtype olap = scalar(conj(old_c[soln][svec])*c[vec]);
+		        dtype olap = scalar(conj(old_c[soln][svec])*c[vec]);
                         c[vec] -= olap*old_c[soln][svec];
                         hc[vec] -= olap*old_hc[soln][svec];
                     }
@@ -429,6 +429,16 @@ class Davidson : public task::Destructible
                  * Form current trial vector y and H*y = x
                  */
                 getRoot(root[vec], c[vec], hc[vec]);
+
+		bool triplet (scalar(c[vec](1)({1,0},{0,1})*c[vec](1)({0,0},{0,0})) < 0);
+		if (triplet)
+		  {
+		    task::Logger::log(c[0].arena) << "Spin: Triplet" << endl;
+		  }
+		else
+		  {
+		    task::Logger::log(c[0].arena) << "Spin: Singlet" << endl;
+		  }
 
                 if (continuous)
                 {

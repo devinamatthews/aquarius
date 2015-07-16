@@ -194,6 +194,15 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
                 triplet = scalar(R(1)({1,0},{0,1})*R(1)({0,0},{0,0})) < 0;
 
+		if (triplet) 
+		  {
+		    Logger::log(arena) << "Triplet initial guess" << endl;
+		  }
+		else
+		  {
+		    Logger::log(arena)<< "Singlet initial guess" << endl;
+		  }
+
                 bool print_vecs;
                 print_vecs = false;
 
@@ -226,10 +235,15 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                 //Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
                 //ExcitationOperator<U,2>& V = Vs.back();
                 davidson.getSolution(0, R);
-                if (scalar(R(1)({1,0},{0,1})*R(1)({0,0},{0,0})) < 0)
+		bool temp = scalar(R(1)({1,0},{0,1})*R(1)({0,0},{0,0})) < 0;
+                if (temp)
                     this->log(arena) << "triplet solution found!" << endl;
                 else
                     this->log(arena) << "singlet solution found!" << endl;
+		if (triplet != temp)
+		  {
+		    this->log(arena) << "WARNING: Spin character different from initial guess!" << endl;
+		  }
 
                 if (print_vecs)
                 {
