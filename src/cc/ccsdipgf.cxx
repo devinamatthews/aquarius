@@ -54,7 +54,6 @@ bool CCSDIPGF<U>::run(TaskDAG& dag, const Arena& arena)
     auto& T = this->template get<ExcitationOperator  <U,2>>("T");
     auto& L = this->template get<DeexcitationOperator<U,2>>("L");
 
-    cout << orbital << " " << nI << endl;
     bool isalpha = false;
     bool isvrt = false;
     if (orbital > 0)
@@ -76,7 +75,6 @@ bool CCSDIPGF<U>::run(TaskDAG& dag, const Arena& arena)
             orbital -= ni;
         }
     }
-    cout << orbital << " " << isalpha << " " << isvrt << endl;
 
     auto& Rr = this->puttmp("Rr", new ExcitationOperator  <U,1,2>("Rr", arena, occ, vrt, isalpha ? -1 : 1));
     auto& Ri = this->puttmp("Ri", new ExcitationOperator  <U,1,2>("Ri", arena, occ, vrt, isalpha ? -1 : 1));

@@ -52,6 +52,8 @@ __top_builddir__bin_aquarius_SOURCES = \
 	src/integrals/ovi.cxx \
 	src/integrals/shell.cxx \
 	\
+	src/jellium/jellium.cxx \
+	\
 	src/main/main.cxx \
 	\
 	src/operator/2eoperator.cxx \

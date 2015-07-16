@@ -160,14 +160,14 @@ bool CCSDTIPGF<U>::run(TaskDAG& dag, const Arena& arena)
         e(3)["ijkab"] -= Gijkabl["ijkabm"]*apt["m"];
     }
 
-    printf("<E1|E1>: %.15f\n",            scalar(e(1)*e(1)));
-    printf("<E2|E2>: %.15f\n", (1.0/ 2.0)*scalar(e(2)*e(2)));
-    printf("<E3|E3>: %.15f\n", (1.0/12.0)*scalar(e(3)*e(3)));
-    printf("<E|E>: %.15f\n", scalar(e*e));
-    printf("<B|B>: %.15f\n", scalar(b*b));
-    printf("<E|B>: %.15f\n",            scalar(e(1)[    "m"]*b(1)[    "m"]) +
-                             (1.0/ 2.0)*scalar(e(2)[  "mne"]*b(2)[  "emn"]) +
-                             (1.0/12.0)*scalar(e(3)["mnoef"]*b(3)["efmno"]));
+    //printf("<E1|E1>: %.15f\n",            scalar(e(1)*e(1)));
+    //printf("<E2|E2>: %.15f\n", (1.0/ 2.0)*scalar(e(2)*e(2)));
+    //printf("<E3|E3>: %.15f\n", (1.0/12.0)*scalar(e(3)*e(3)));
+    //printf("<E|E>: %.15f\n", scalar(e*e));
+    //printf("<B|B>: %.15f\n", scalar(b*b));
+    //printf("<E|B>: %.15f\n",            scalar(e(1)[    "m"]*b(1)[    "m"]) +
+    //                         (1.0/ 2.0)*scalar(e(2)[  "mne"]*b(2)[  "emn"]) +
+    //                         (1.0/12.0)*scalar(e(3)["mnoef"]*b(3)["efmno"]));
 
     auto& D = this->puttmp("D", new ComplexDenominator<U>(H));
 
@@ -243,9 +243,8 @@ void CCSDTIPGF<U>::iterate(const Arena& arena)
           XE[    "e"]  = -0.5*WMNEF["mnfe"]*R(2)[   "fmn"];
 
         XMIJ[  "mij"]  =     -WMNIJ["mnij"]*R(1)[     "n"];
-        //XMIJ[  "mij"] +=      WMNEJ["nmei"]*R(2)[   "enj"];
-
-        printf("MJK: %.15f\n", 0.5*scalar(XMIJ*XMIJ));
+        XMIJ[  "mij"] +=      WMNEJ["nmei"]*R(2)[   "enj"];
+        XMIJ[  "mij"] +=  0.5*WMNEF["mnef"]*R(3)[ "efinj"];
 
         XAEI[  "aei"]  =     -WAMEI["amei"]*R(1)[     "m"];
         XAEI[  "aei"] +=      WAMEF["amef"]*R(2)[   "fmi"];
@@ -276,7 +275,7 @@ void CCSDTIPGF<U>::iterate(const Arena& arena)
         Z(3)["abijk"]  =      WABEJ["abej"]*R(2)[   "eik"];
         Z(3)["abijk"] -=      WAMIJ["amij"]*R(2)[   "bmk"];
         Z(3)["abijk"] -=       XMIJ[ "mik"]*T(2)[  "abmj"];
-        //Z(3)["abijk"] +=       XAEI[ "aei"]*T(2)[  "bejk"];
+        Z(3)["abijk"] -=       XAEI[ "aei"]*T(2)[  "bejk"];
         Z(3)["abijk"] +=        FAE[  "ae"]*R(3)[ "ebijk"];
         Z(3)["abijk"] -=        FMI[  "mi"]*R(3)[ "abmjk"];
         Z(3)["abijk"] -=      WAMEI["amei"]*R(3)[ "ebmjk"];

@@ -323,7 +323,7 @@ class Davidson : public task::Destructible
                 {
                     for (int svec = 0;svec < nvec;svec++)
                     {
-		        dtype olap = scalar(conj(old_c[soln][svec])*c[vec]);
+                        dtype olap = scalar(conj(old_c[soln][svec])*c[vec]);
                         c[vec] -= olap*old_c[soln][svec];
                         hc[vec] -= olap*old_hc[soln][svec];
                     }

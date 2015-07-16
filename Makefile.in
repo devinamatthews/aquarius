@@ -140,10 +140,10 @@ am____top_builddir__bin_aquarius_SOURCES_DIST = src/autocc/autocc.cxx \
 	src/integrals/fmgamma.cxx src/integrals/kei.cxx \
 	src/integrals/nai.cxx src/integrals/os.cxx \
 	src/integrals/ovi.cxx src/integrals/shell.cxx \
-	src/main/main.cxx src/operator/2eoperator.cxx \
-	src/operator/aomoints.cxx src/operator/moints.cxx \
-	src/operator/sparseaomoints.cxx src/scf/aouhf.cxx \
-	src/scf/uhf_local.cxx src/scf/uhf.cxx \
+	src/jellium/jellium.cxx src/main/main.cxx \
+	src/operator/2eoperator.cxx src/operator/aomoints.cxx \
+	src/operator/moints.cxx src/operator/sparseaomoints.cxx \
+	src/scf/aouhf.cxx src/scf/uhf_local.cxx src/scf/uhf.cxx \
 	src/symmetry/symmetry.cxx src/task/task.cxx \
 	src/tensor/ctf_tensor.cxx src/tensor/spinorbital_tensor.cxx \
 	src/tensor/symblocked_tensor.cxx src/time/time.cxx \
@@ -181,7 +181,8 @@ am___top_builddir__bin_aquarius_OBJECTS = src/autocc/autocc.$(OBJEXT) \
 	src/integrals/fmgamma.$(OBJEXT) src/integrals/kei.$(OBJEXT) \
 	src/integrals/nai.$(OBJEXT) src/integrals/os.$(OBJEXT) \
 	src/integrals/ovi.$(OBJEXT) src/integrals/shell.$(OBJEXT) \
-	src/main/main.$(OBJEXT) src/operator/2eoperator.$(OBJEXT) \
+	src/jellium/jellium.$(OBJEXT) src/main/main.$(OBJEXT) \
+	src/operator/2eoperator.$(OBJEXT) \
 	src/operator/aomoints.$(OBJEXT) src/operator/moints.$(OBJEXT) \
 	src/operator/sparseaomoints.$(OBJEXT) src/scf/aouhf.$(OBJEXT) \
 	src/scf/uhf_local.$(OBJEXT) src/scf/uhf.$(OBJEXT) \
@@ -417,10 +418,10 @@ __top_builddir__bin_aquarius_SOURCES = src/autocc/autocc.cxx \
 	src/integrals/fmgamma.cxx src/integrals/kei.cxx \
 	src/integrals/nai.cxx src/integrals/os.cxx \
 	src/integrals/ovi.cxx src/integrals/shell.cxx \
-	src/main/main.cxx src/operator/2eoperator.cxx \
-	src/operator/aomoints.cxx src/operator/moints.cxx \
-	src/operator/sparseaomoints.cxx src/scf/aouhf.cxx \
-	src/scf/uhf_local.cxx src/scf/uhf.cxx \
+	src/jellium/jellium.cxx src/main/main.cxx \
+	src/operator/2eoperator.cxx src/operator/aomoints.cxx \
+	src/operator/moints.cxx src/operator/sparseaomoints.cxx \
+	src/scf/aouhf.cxx src/scf/uhf_local.cxx src/scf/uhf.cxx \
 	src/symmetry/symmetry.cxx src/task/task.cxx \
 	src/tensor/ctf_tensor.cxx src/tensor/spinorbital_tensor.cxx \
 	src/tensor/symblocked_tensor.cxx src/time/time.cxx \
@@ -645,6 +646,14 @@ src/integrals/ovi.$(OBJEXT): src/integrals/$(am__dirstamp) \
 	src/integrals/$(DEPDIR)/$(am__dirstamp)
 src/integrals/shell.$(OBJEXT): src/integrals/$(am__dirstamp) \
 	src/integrals/$(DEPDIR)/$(am__dirstamp)
+src/jellium/$(am__dirstamp):
+	@$(MKDIR_P) src/jellium
+	@: > src/jellium/$(am__dirstamp)
+src/jellium/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) src/jellium/$(DEPDIR)
+	@: > src/jellium/$(DEPDIR)/$(am__dirstamp)
+src/jellium/jellium.$(OBJEXT): src/jellium/$(am__dirstamp) \
+	src/jellium/$(DEPDIR)/$(am__dirstamp)
 src/main/$(am__dirstamp):
 	@$(MKDIR_P) src/main
 	@: > src/main/$(am__dirstamp)
@@ -735,6 +744,7 @@ mostlyclean-compile:
 	-rm -f src/cc/*.$(OBJEXT)
 	-rm -f src/input/*.$(OBJEXT)
 	-rm -f src/integrals/*.$(OBJEXT)
+	-rm -f src/jellium/*.$(OBJEXT)
 	-rm -f src/main/*.$(OBJEXT)
 	-rm -f src/operator/*.$(OBJEXT)
 	-rm -f src/scf/*.$(OBJEXT)
@@ -796,6 +806,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/integrals/$(DEPDIR)/os.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/integrals/$(DEPDIR)/ovi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/integrals/$(DEPDIR)/shell.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/jellium/$(DEPDIR)/jellium.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/main/$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/2eoperator.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/aomoints.Po@am__quote@
@@ -1091,6 +1102,8 @@ distclean-generic:
 	-rm -f src/input/$(am__dirstamp)
 	-rm -f src/integrals/$(DEPDIR)/$(am__dirstamp)
 	-rm -f src/integrals/$(am__dirstamp)
+	-rm -f src/jellium/$(DEPDIR)/$(am__dirstamp)
+	-rm -f src/jellium/$(am__dirstamp)
 	-rm -f src/main/$(DEPDIR)/$(am__dirstamp)
 	-rm -f src/main/$(am__dirstamp)
 	-rm -f src/operator/$(DEPDIR)/$(am__dirstamp)
@@ -1116,7 +1129,7 @@ clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf src/autocc/$(DEPDIR) src/cc/$(DEPDIR) src/input/$(DEPDIR) src/integrals/$(DEPDIR) src/main/$(DEPDIR) src/operator/$(DEPDIR) src/scf/$(DEPDIR) src/symmetry/$(DEPDIR) src/task/$(DEPDIR) src/tensor/$(DEPDIR) src/time/$(DEPDIR)
+	-rm -rf src/autocc/$(DEPDIR) src/cc/$(DEPDIR) src/input/$(DEPDIR) src/integrals/$(DEPDIR) src/jellium/$(DEPDIR) src/main/$(DEPDIR) src/operator/$(DEPDIR) src/scf/$(DEPDIR) src/symmetry/$(DEPDIR) src/task/$(DEPDIR) src/tensor/$(DEPDIR) src/time/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-hdr distclean-tags
@@ -1164,7 +1177,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf src/autocc/$(DEPDIR) src/cc/$(DEPDIR) src/input/$(DEPDIR) src/integrals/$(DEPDIR) src/main/$(DEPDIR) src/operator/$(DEPDIR) src/scf/$(DEPDIR) src/symmetry/$(DEPDIR) src/task/$(DEPDIR) src/tensor/$(DEPDIR) src/time/$(DEPDIR)
+	-rm -rf src/autocc/$(DEPDIR) src/cc/$(DEPDIR) src/input/$(DEPDIR) src/integrals/$(DEPDIR) src/jellium/$(DEPDIR) src/main/$(DEPDIR) src/operator/$(DEPDIR) src/scf/$(DEPDIR) src/symmetry/$(DEPDIR) src/task/$(DEPDIR) src/tensor/$(DEPDIR) src/time/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
