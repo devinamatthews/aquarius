@@ -107,7 +107,7 @@ class Davidson : public task::Destructible
                     if (found) continue;
 
                     crit = aquarius::abs(real(l[rt])-soln_e[idx]);
-                    if (crit < mincrit && aquarius::abs(imag(l[rt])) < 1e-12)
+                    if (crit < mincrit)// && aquarius::abs(imag(l[rt])) < 1e-12)
                     {
                         //if (n == 1) printf("Solution %d (%.12f) matches root %d (%.12f)\n", idx+1, soln_e[idx], rt+1, real(l[rt]));
                         mincrit = crit;
@@ -178,7 +178,7 @@ class Davidson : public task::Destructible
                             crit = aquarius::abs(real(l[rt])-target[vec]);
                         }
 
-                        if (crit < mincrit && aquarius::abs(imag(l[rt])) < 1e-12)
+                        if (crit < mincrit)// && aquarius::abs(imag(l[rt])) < 1e-12)
                         {
                             //if (n == 1) printf("Root %d (%.12f) picked\n", rt+1, real(l[rt]));
                             mincrit = crit;
@@ -238,7 +238,7 @@ class Davidson : public task::Destructible
                 {
                     for (int gvec = 0;gvec < nvec;gvec++)
                     {
-                        guess_overlap[gvec][cvec][nextrap-1] = aquarius::abs(scalar(conj(c[cvec])*guess[gvec]));
+                        guess_overlap[gvec][cvec][nextrap-1] = scalar(conj(c[cvec])*guess[gvec]);
                     }
                 }
             }

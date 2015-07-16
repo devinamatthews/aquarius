@@ -54,13 +54,14 @@ bool CCSDIPGF<U>::run(TaskDAG& dag, const Arena& arena)
     auto& T = this->template get<ExcitationOperator  <U,2>>("T");
     auto& L = this->template get<DeexcitationOperator<U,2>>("L");
 
+    cout << orbital << " " << nI << endl;
     bool isalpha = false;
     bool isvrt = false;
     if (orbital > 0)
     {
         isalpha = true;
         orbital--;
-        if (orbital > nI)
+        if (orbital >= nI)
         {
             isvrt = true;
             orbital -= nI;
@@ -69,12 +70,13 @@ bool CCSDIPGF<U>::run(TaskDAG& dag, const Arena& arena)
     else
     {
         orbital = -orbital-1;
-        if (orbital > ni)
+        if (orbital >= ni)
         {
             isvrt = true;
             orbital -= ni;
         }
     }
+    cout << orbital << " " << isalpha << " " << isvrt << endl;
 
     auto& Rr = this->puttmp("Rr", new ExcitationOperator  <U,1,2>("Rr", arena, occ, vrt, isalpha ? -1 : 1));
     auto& Ri = this->puttmp("Ri", new ExcitationOperator  <U,1,2>("Ri", arena, occ, vrt, isalpha ? -1 : 1));
@@ -152,11 +154,14 @@ bool CCSDIPGF<U>::run(TaskDAG& dag, const Arena& arena)
     //printf("<E|B>: %.15f\n", scalar(e(1)["m"]*b(1)["m"])+0.5*scalar(e(2)["mne"]*b(2)["emn"]));
 
     auto& D = this->puttmp("D", new ComplexDenominator<U>(H));
-    auto& krylov = this->puttmp("krylov", new ComplexLinearKrylov<ExcitationOperator<U,1,2>>(krylov_config, b));
 
     for (auto& o : omegas)
     {
-        omega = o;
+        this->puttmp("krylov", new ComplexLinearKrylov<ExcitationOperator<U,1,2>>(krylov_config, b));
+        omega.real(-o.real());
+        omega.imag( o.imag());
+
+        this->log(arena) << "Computing Green's function at " << fixed << setprecision(6) << o << endl;
 
         Rr = b;
         Ri = 0;

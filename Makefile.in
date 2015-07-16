@@ -126,9 +126,9 @@ am____top_builddir__bin_aquarius_SOURCES_DIST = src/autocc/autocc.cxx \
 	src/autocc/term.cxx src/cc/1edensity.cxx src/cc/2edensity.cxx \
 	src/cc/ccd.cxx src/cc/ccsd_t_n_opt.cxx src/cc/ccsd_t_n.cxx \
 	src/cc/ccsd_tq_n_opt.cxx src/cc/ccsd_tq_n.cxx src/cc/ccsd.cxx \
-	src/cc/ccsdipgf.cxx src/cc/ccsdt_q_n_opt.cxx \
-	src/cc/ccsdt_q_n.cxx src/cc/ccsdt.cxx src/cc/ccsdtq.cxx \
-	src/cc/eomeeccsd.cxx src/cc/lambdaccsd.cxx \
+	src/cc/ccsdipgf.cxx src/cc/ccsdtipgf.cxx \
+	src/cc/ccsdt_q_n_opt.cxx src/cc/ccsdt_q_n.cxx src/cc/ccsdt.cxx \
+	src/cc/ccsdtq.cxx src/cc/eomeeccsd.cxx src/cc/lambdaccsd.cxx \
 	src/cc/lambdaccsdt.cxx src/cc/lambdaccsdtq.cxx src/cc/lccd.cxx \
 	src/cc/mp3.cxx src/cc/mp4dq.cxx src/cc/perturbedccsd.cxx \
 	src/cc/perturbedlambdaccsd.cxx src/cc/tda_local.cxx \
@@ -163,12 +163,13 @@ am___top_builddir__bin_aquarius_OBJECTS = src/autocc/autocc.$(OBJEXT) \
 	src/cc/ccsd_t_n_opt.$(OBJEXT) src/cc/ccsd_t_n.$(OBJEXT) \
 	src/cc/ccsd_tq_n_opt.$(OBJEXT) src/cc/ccsd_tq_n.$(OBJEXT) \
 	src/cc/ccsd.$(OBJEXT) src/cc/ccsdipgf.$(OBJEXT) \
-	src/cc/ccsdt_q_n_opt.$(OBJEXT) src/cc/ccsdt_q_n.$(OBJEXT) \
-	src/cc/ccsdt.$(OBJEXT) src/cc/ccsdtq.$(OBJEXT) \
-	src/cc/eomeeccsd.$(OBJEXT) src/cc/lambdaccsd.$(OBJEXT) \
-	src/cc/lambdaccsdt.$(OBJEXT) src/cc/lambdaccsdtq.$(OBJEXT) \
-	src/cc/lccd.$(OBJEXT) src/cc/mp3.$(OBJEXT) \
-	src/cc/mp4dq.$(OBJEXT) src/cc/perturbedccsd.$(OBJEXT) \
+	src/cc/ccsdtipgf.$(OBJEXT) src/cc/ccsdt_q_n_opt.$(OBJEXT) \
+	src/cc/ccsdt_q_n.$(OBJEXT) src/cc/ccsdt.$(OBJEXT) \
+	src/cc/ccsdtq.$(OBJEXT) src/cc/eomeeccsd.$(OBJEXT) \
+	src/cc/lambdaccsd.$(OBJEXT) src/cc/lambdaccsdt.$(OBJEXT) \
+	src/cc/lambdaccsdtq.$(OBJEXT) src/cc/lccd.$(OBJEXT) \
+	src/cc/mp3.$(OBJEXT) src/cc/mp4dq.$(OBJEXT) \
+	src/cc/perturbedccsd.$(OBJEXT) \
 	src/cc/perturbedlambdaccsd.$(OBJEXT) \
 	src/cc/tda_local.$(OBJEXT) src/input/basis.$(OBJEXT) \
 	src/input/config.$(OBJEXT) src/input/molecule.$(OBJEXT) \
@@ -402,9 +403,9 @@ __top_builddir__bin_aquarius_SOURCES = src/autocc/autocc.cxx \
 	src/autocc/term.cxx src/cc/1edensity.cxx src/cc/2edensity.cxx \
 	src/cc/ccd.cxx src/cc/ccsd_t_n_opt.cxx src/cc/ccsd_t_n.cxx \
 	src/cc/ccsd_tq_n_opt.cxx src/cc/ccsd_tq_n.cxx src/cc/ccsd.cxx \
-	src/cc/ccsdipgf.cxx src/cc/ccsdt_q_n_opt.cxx \
-	src/cc/ccsdt_q_n.cxx src/cc/ccsdt.cxx src/cc/ccsdtq.cxx \
-	src/cc/eomeeccsd.cxx src/cc/lambdaccsd.cxx \
+	src/cc/ccsdipgf.cxx src/cc/ccsdtipgf.cxx \
+	src/cc/ccsdt_q_n_opt.cxx src/cc/ccsdt_q_n.cxx src/cc/ccsdt.cxx \
+	src/cc/ccsdtq.cxx src/cc/eomeeccsd.cxx src/cc/lambdaccsd.cxx \
 	src/cc/lambdaccsdt.cxx src/cc/lambdaccsdtq.cxx src/cc/lccd.cxx \
 	src/cc/mp3.cxx src/cc/mp4dq.cxx src/cc/perturbedccsd.cxx \
 	src/cc/perturbedlambdaccsd.cxx src/cc/tda_local.cxx \
@@ -569,6 +570,8 @@ src/cc/ccsd_tq_n.$(OBJEXT): src/cc/$(am__dirstamp) \
 src/cc/ccsd.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/ccsdipgf.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/ccsdtipgf.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/ccsdt_q_n_opt.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
@@ -763,6 +766,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdt_q_n.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdt_q_n_opt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdtipgf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdtq.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/eomeeccsd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lambdaccsd.Po@am__quote@

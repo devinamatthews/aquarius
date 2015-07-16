@@ -82,8 +82,8 @@ class ComplexLinearKrylov : public task::Destructible
             /*
              * Compute the overlap with the rhs vector
              */
-            b[nextrap-1].real( aquarius::abs(scalar(c_r*(*rhs))));
-            b[nextrap-1].imag(-aquarius::abs(scalar(c_i*(*rhs))));
+            b[nextrap-1].real( scalar(c_r*(*rhs)));
+            b[nextrap-1].imag(-scalar(c_i*(*rhs)));
 
             /*
              * Augment the subspace matrix with the new vectors
@@ -247,9 +247,9 @@ class ComplexLinearKrylov : public task::Destructible
             /*
              * Form residual and apply Davidson-like correction
              */
-            hc_r += *rhs;
-            c_r = -hc_r;
-            c_i = -hc_i;
+            hc_r -= *rhs;
+            c_r = hc_r;
+            c_i = hc_i;
             D.weight(c_r, c_i, omega);
 
             //printf("<B|r>: %.15f\n", scalar((*rhs)*c_r));
