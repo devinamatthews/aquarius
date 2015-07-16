@@ -78,7 +78,7 @@ class Davidson : public task::Destructible
             vr.resize(nvec*nextrap, nvec, nextrap);
         }
 
-        vector<vector<int>> getBestRoots(int n)
+        vector<vector<int>> getBestRoots(int n, const Arena& arena)
         {
             vector<vector<int>> roots(n, vector<int>(nvec, -1));
             vector<int> solns(nsoln*nvec, -1);
@@ -99,8 +99,9 @@ class Davidson : public task::Destructible
                     {
                         if (solns[idx2] == rt)
                         {
-                            //if (n == 1) printf("Root %d (%.12f) already picked\n", rt+1, real(l[rt]));
-                            found = true;
+			    if (n == 1) //printf("Root %d (%.12f) already picked\n", rt+1, real(l[rt]));
+			      task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") already picked" << endl;
+			    found = true;
                         }
                     }
 
@@ -109,13 +110,20 @@ class Davidson : public task::Destructible
                     crit = aquarius::abs(real(l[rt])-soln_e[idx]);
                     if (crit < mincrit)// && aquarius::abs(imag(l[rt])) < 1e-12)
                     {
-                        //if (n == 1) printf("Solution %d (%.12f) matches root %d (%.12f)\n", idx+1, soln_e[idx], rt+1, real(l[rt]));
+		        if (aquarius::abs(imag(l[rt])) > 1e-12)
+			  {
+			    task::Logger::log(arena) << "WARNING: Root is imaginary! (1)" << endl;
+			  }
+                        if (n == 1) //printf("Solution %d (%.12f) matches root %d (%.12f)\n", idx+1, soln_e[idx], rt+1, real(l[rt]));
+			  task::Logger::log(arena) << "Solution " << idx+1 << " (" << soln_e[idx] << ") matches root " << rt+1 << " (" << real(l[rt]) << ")" << endl;
                         mincrit = crit;
                         solns[idx] = rt;
                     }
                 }
 
                 assert(solns[idx] != -1);
+		if (solns[idx] == -1)
+		  task::Logger::log(arena) << "WARNING: No root selected! (1)" << endl;
             }
 
             for (int idx = 0;idx < n;idx++)
@@ -138,7 +146,8 @@ class Davidson : public task::Destructible
                             {
                                 if (roots[idx2][vec2] == rt)
                                 {
-                                    //if (n == 1) printf("Root %d (%.12f) already picked\n", rt+1, real(l[rt]));
+				    if (n == 1) //printf("Root %d (%.12f) already picked\n", rt+1, real(l[rt]));
+				      task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt])<< ") already picked" << endl;
                                     found = true;
                                 }
                             }
@@ -151,7 +160,8 @@ class Davidson : public task::Destructible
                         {
                             if (solns[idx2] == rt)
                             {
-                                //if (n == 1) printf("Root %d (%.12f) matches solution %d (%.12f)\n", rt+1, real(l[rt]), idx2, soln_e[idx2]);
+  			        if (n == 1) //printf("Root %d (%.12f) matches solution %d (%.12f)\n", rt+1, real(l[rt]), idx2, soln_e[idx2]);
+				  task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") matches solution " << idx2 << " (" << soln_e[idx2] << ")" << endl;
                                 found = true;
                             }
                         }
@@ -180,26 +190,34 @@ class Davidson : public task::Destructible
 
                         if (crit < mincrit)// && aquarius::abs(imag(l[rt])) < 1e-12)
                         {
-                            //if (n == 1) printf("Root %d (%.12f) picked\n", rt+1, real(l[rt]));
+			    if (aquarius::abs(imag(l[rt])) > 1e-12)
+			      {
+				task::Logger::log(arena) << "WARNING: Root is imaginary! (2)" << endl;
+			      }
+                            if (n == 1) //printf("Root %d (%.12f) picked\n", rt+1, real(l[rt]));
+			      task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") picked" << endl;
                             mincrit = crit;
                             roots[idx][vec] = rt;
                         }
                         else
                         {
-                            //if (n == 1) printf("Root %d (%.12f) not picked\n", rt+1, real(l[rt]));
+			    if (n == 1) //printf("Root %d (%.12f) not picked\n", rt+1, real(l[rt]));
+			      task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") not picked" << endl;
                         }
                     }
 
                     assert(roots[idx][vec] != -1);
+		    if (roots[idx][vec] == -1)
+		      task::Logger::log(arena) << "WARNING: No root selected! (2)" << endl;
                 }
             }
 
             return roots;
         }
 
-        vector<int> getBestRoot()
+        vector<int> getBestRoot(const Arena& arena)
         {
-            return getBestRoots(1)[0];
+	  return getBestRoots(1, arena)[0];
         }
 
         template <typename c_container, typename hc_container>
@@ -344,7 +362,7 @@ class Davidson : public task::Destructible
                 task::Logger::log(c[0].arena) << "Compacting..." << endl;
                 int new_nextrap = max(nsoln+1, nextrap-nreduce);
 
-                vector<vector<int>> roots = getBestRoots(new_nextrap-nsoln);
+                vector<vector<int>> roots = getBestRoots(new_nextrap-nsoln,c[0].arena);
 
                 vector<unique_vector<T>> new_c(new_nextrap-nsoln);
                 vector<unique_vector<T>> new_hc(new_nextrap-nsoln);
@@ -401,7 +419,7 @@ class Davidson : public task::Destructible
             /*
              * Assign eigenvalues (exclusively) to states by the selected criterion
              */
-            root = getBestRoot();
+            root = getBestRoot(c[0].arena);
 
             /*
              * Check proximity to previous root and lock on if within tolerance
