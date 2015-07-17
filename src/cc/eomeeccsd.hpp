@@ -26,6 +26,7 @@ class EOMEECCSD : public Iterative<U>
         int ntriplet;
         bool multiroot;
         bool triplet;
+        vector<U> previous;
 
     public:
         EOMEECCSD(const string& name, input::Config& config);

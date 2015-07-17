@@ -313,9 +313,9 @@ class Davidson : public task::Destructible
             }
         }
 
-        void getRoot(int rt, T& c, T& hc)
+        void getRoot(int rt, T& c, T& hc, bool normalize = true)
         {
-            getRoot(rt, c);
+            getRoot(rt, c, false);
 
             hc = 0;
             for (int extrap = nextrap-1;extrap >= 0;extrap--)
@@ -325,9 +325,16 @@ class Davidson : public task::Destructible
                     hc += old_hc[extrap][vec]*vr[rt][vec][extrap];
                 }
             }
+
+            if (normalize)
+            {
+                dtype nrm = sqrt(aquarius::abs(scalar(conj(c)*c)));
+                c /= nrm;
+                hc /= nrm;
+            }
         }
 
-        void getRoot(int rt, T& c)
+        void getRoot(int rt, T& c, bool normalize = true)
         {
             c = 0;
             for (int extrap = nextrap-1;extrap >= 0;extrap--)
@@ -336,6 +343,12 @@ class Davidson : public task::Destructible
                 {
                     c += old_c[extrap][vec]*vr[rt][vec][extrap];
                 }
+            }
+
+            if (normalize)
+            {
+                dtype nrm = sqrt(aquarius::abs(scalar(conj(c)*c)));
+                c /= nrm;
             }
         }
 

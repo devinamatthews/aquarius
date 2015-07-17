@@ -158,6 +158,8 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
             auto& davidson = this->puttmp("Davidson",
                 new Davidson<ExcitationOperator<U,2>>(davidson_config, (int)root_idx[i].size()));
 
+            previous.assign(root_idx[i].size(), numeric_limits<U>::max());
+
             Iterative<U>::run(dag, arena, root_idx[i].size());
 
             /*
@@ -224,6 +226,8 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                 //         cout << " " << endl;
                 //     }
                 // }
+
+                previous.assign(1, numeric_limits<U>::max());
 
                 Iterative<U>::run(dag, arena);
 
@@ -368,7 +372,8 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     for (int i = 0;i < this->nsolution();i++)
     {
         this->energy(i) = energies[i];
-        this->conv(i) = Zs[i].norm(00);
+        this->conv(i) = max(aquarius::abs(energies[i]-previous[i]), Zs[i].norm(00));
+        previous[i] = energies[i];
     }
 }
 
