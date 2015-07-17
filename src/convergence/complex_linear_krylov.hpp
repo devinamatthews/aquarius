@@ -209,12 +209,23 @@ class ComplexLinearKrylov : public task::Destructible
             if (continuous)
             {
                 /*
+                 * Orthogonalize to previous vectors
+                 */
+                for (int extrap = 0;extrap < nextrap-1;extrap++)
+                {
+                    U olap_r = scalar(old_c_r[extrap]*c_r) + scalar(old_c_i[extrap]*c_i);
+                    U olap_i = scalar(old_c_r[extrap]*c_i) - scalar(old_c_i[extrap]*c_r);
+                    c_r -= olap_r*old_c_r[extrap];
+                    c_r += olap_i*old_c_i[extrap];
+                    c_i -= olap_r*old_c_i[extrap];
+                    c_i -= olap_i*old_c_r[extrap];
+                }
+
+                /*
                  * Save current solution as new vector in the Krylov subspace
                  */
                 nextrap--;
                 addVectors(c_r, c_i, hc_r, hc_i);
-                fill(v.begin(), v.end(), 0.0);
-                v[nextrap-1] = 1.0;
 
                 /*
                  * If the subspace is full, eject the oldest vector.
@@ -227,7 +238,6 @@ class ComplexLinearKrylov : public task::Destructible
                     rotate(old_hc_i.pbegin(), old_hc_i.pbegin()+1, old_hc_i.pend());
                     e.rotate(1,1);
                     rotate(b.begin(), b.begin()+1, b.end());
-                    rotate(v.begin(), v.begin()+1, v.end());
                     nextrap--;
                 }
             }

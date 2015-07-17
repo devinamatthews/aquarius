@@ -134,12 +134,12 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     // }
 
     auto& Rs = this->puttmp("R", new unique_vector<ExcitationOperator<U,2>>());
-    auto& Vs = this->puttmp("V", new unique_vector<ExcitationOperator<U,2>>());
+    //auto& Vs = this->puttmp("V", new unique_vector<ExcitationOperator<U,2>>());
     auto& Zs = this->puttmp("Z", new unique_vector<ExcitationOperator<U,2>>());
 
     for (int i = 0;i < nirrep;i++)
     {
-        Vs.clear();
+        //Vs.clear();
         Rs.clear();
         Zs.clear();
 
@@ -194,14 +194,14 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
                 triplet = scalar(R(1)({1,0},{0,1})*R(1)({0,0},{0,0})) < 0;
 
-		if (triplet) 
-		  {
-		    Logger::log(arena) << "Triplet initial guess" << endl;
-		  }
-		else
-		  {
-		    Logger::log(arena)<< "Singlet initial guess" << endl;
-		  }
+                if (triplet)
+                {
+                    Logger::log(arena) << "Triplet initial guess" << endl;
+                }
+                else
+                {
+                    Logger::log(arena)<< "Singlet initial guess" << endl;
+                }
 
                 bool print_vecs;
                 print_vecs = false;
@@ -272,9 +272,9 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                     }
                 }
 
-                Vs.emplace_back(R);
-                //davidson.nextRoot();
-                davidson.reset();
+                //Vs.emplace_back(R);
+                davidson.nextRoot();
+                //davidson.reset();
             }
         }
     }
@@ -311,7 +311,7 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
     auto& davidson = this->template gettmp<Davidson<ExcitationOperator<U,2>>>("Davidson");
 
     auto& Rs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("R");
-    auto& Vs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("V");
+    //auto& Vs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("V");
     auto& Zs = this->template gettmp<unique_vector<ExcitationOperator<U,2>>>("Z");
 
     for (int root = 0;root < this->nsolution();root++)
@@ -320,8 +320,8 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
         ExcitationOperator<U,2>& Z = Zs[root];
         Z = 0;
 
-        for (auto& V : Vs) R -= V*scalar(conj(V)*R);
-        R /= sqrt(aquarius::abs(scalar(conj(R)*R)));
+        //for (auto& V : Vs) R -= V*scalar(conj(V)*R);
+        //R /= sqrt(aquarius::abs(scalar(conj(R)*R)));
 
         if (triplet)
         {
