@@ -79,26 +79,26 @@ bool LambdaCCSDTQ<U>::run(TaskDAG& dag, const Arena& arena)
     auto& WAMNIJK = this->template gettmp<SpinorbitalTensor<U>>("WAMNIJK");
     auto& WABMEJI = this->template gettmp<SpinorbitalTensor<U>>("WABMEJI");
 
-    WABCEJK["abcejk"]  =              -FME[  "me"]*T(3)[  "abcmjk"];
-    WABCEJK["abcejk"] -=             WAMEI["amej"]*T(2)[    "bcmk"];
-    WABCEJK["abcejk"] +=             WABEF["abef"]*T(2)[    "fcjk"];
-    WABCEJK["abcejk"] += (1.0/  2.0)*WMNEJ["mnej"]*T(3)[  "abcmnk"];
-    WABCEJK["abcejk"] +=             WAMEF["amef"]*T(3)[  "fbcmjk"];
-    WABCEJK["abcejk"] -= (1.0/  2.0)*WMNEF["mnef"]*T(4)["abcfmjkn"];
+    WABCEJK["abcejk"]  =    -WAMEI["amej"]*T(2)[    "bcmk"];
+    WABCEJK["abcejk"] +=     WABEF["abef"]*T(2)[    "fcjk"];
+    WABCEJK["abcejk"] -=       FME[  "me"]*T(3)[  "abcmjk"];
+    WABCEJK["abcejk"] += 0.5*WMNEJ["mnej"]*T(3)[  "abcmnk"];
+    WABCEJK["abcejk"] +=     WAMEF["amef"]*T(3)[  "fbcmjk"];
+    WABCEJK["abcejk"] -= 0.5*WMNEF["mnef"]*T(4)["abcfmjkn"];
 
-    WABMIJK["abmijk"]  =               FME[  "me"]*T(3)[  "abeijk"];
-    WABMIJK["abmijk"] +=             WAMEI["amek"]*T(2)[    "ebij"];
-    WABMIJK["abmijk"] -=             WMNIJ["nmjk"]*T(2)[    "abin"];
-    WABMIJK["abmijk"] += (1.0/  2.0)*WAMEF["bmef"]*T(3)[  "aefijk"];
-    WABMIJK["abmijk"] +=             WMNEJ["nmek"]*T(3)[  "abeijn"];
-    WABMIJK["abmijk"] += (1.0/  2.0)*WMNEF["mnef"]*T(4)["abefijkn"];
+    WABMIJK["abmijk"]  =     WAMEI["amek"]*T(2)[    "ebij"];
+    WABMIJK["abmijk"] -=     WMNIJ["nmjk"]*T(2)[    "abin"];
+    WABMIJK["abmijk"] +=       FME[  "me"]*T(3)[  "abeijk"];
+    WABMIJK["abmijk"] += 0.5*WAMEF["bmef"]*T(3)[  "aefijk"];
+    WABMIJK["abmijk"] +=     WMNEJ["nmek"]*T(3)[  "abeijn"];
+    WABMIJK["abmijk"] += 0.5*WMNEF["mnef"]*T(4)["abefijkn"];
 
-    WAMNIJK["amnijk"]  =             WMNEJ["mnek"]*T(2)[    "aeij"];
-    WAMNIJK["amnijk"] += (1.0/  2.0)*WMNEF["mnef"]*T(3)[  "aefijk"];
+    WAMNIJK["amnijk"]  =     WMNEJ["mnek"]*T(2)[    "aeij"];
+    WAMNIJK["amnijk"] += 0.5*WMNEF["mnef"]*T(3)[  "aefijk"];
 
-    WABMEJI["abmeji"]  =             WAMEF["amef"]*T(2)[    "bfji"];
-    WABMEJI["abmeji"] -=             WMNEJ["nmei"]*T(2)[    "abnj"];
-    WABMEJI["abmeji"] += (1.0/  2.0)*WMNEF["mnef"]*T(3)[  "abfnji"];
+    WABMEJI["abmeji"]  =     WAMEF["amef"]*T(2)[    "bfji"];
+    WABMEJI["abmeji"] -=     WMNEJ["nmei"]*T(2)[    "abnj"];
+    WABMEJI["abmeji"] +=     WMNEF["mnef"]*T(3)[  "abfnji"];
 
     Iterative<U>::run(dag, arena);
 
@@ -247,39 +247,35 @@ void LambdaCCSDTQ<U>::iterate(const Arena& arena)
     /*
      **************************************************************************/
 
-    cout << "??????????" << endl;
-
     /***************************************************************************
      *
      * Intermediates for Lambda-CCSDTQ
      */
-        //DIJ[    "ij"]  =  (1.0/144.0)* T(4)["efghjmno"]*   L(4)["imnoefgh"];
-        //DAB[    "ab"]  = -(1.0/144.0)* T(4)["aefgmnop"]*   L(4)["mnopbefg"];
+        DIJ[    "ij"]  =  (1.0/144.0)* T(4)["efghjmno"]*   L(4)["imnoefgh"];
+        DAB[    "ab"]  = -(1.0/144.0)* T(4)["aefgmnop"]*   L(4)["mnopbefg"];
 
-      //GIJAK[  "ijak"]  =  (1.0/ 12.0)* T(3)[  "efgkmn"]*   L(4)["ijmnaefg"];
-      //GAIBC[  "aibc"]  = -(1.0/ 12.0)* T(3)[  "aefmno"]*   L(4)["minobcef"];
+      GIJAK[  "ijak"]  =  (1.0/ 12.0)* T(3)[  "efgkmn"]*   L(4)["ijmnaefg"];
+      GAIBC[  "aibc"]  = -(1.0/ 12.0)* T(3)[  "aefmno"]*   L(4)["minobcef"];
 
-      //GAIJK[  "aijk"]  =  (1.0/ 12.0)* T(4)["aefgjkmn"]*   L(3)[  "imnefg"];
-      //GABCI[  "abci"]  = -(1.0/ 12.0)* T(4)["abefmino"]*   L(3)[  "mnocef"];
+      GAIJK[  "aijk"]  =  (1.0/ 12.0)* T(4)["aefgjkmn"]*   L(3)[  "imnefg"];
+      GABCI[  "abci"]  = -(1.0/ 12.0)* T(4)["abefmino"]*   L(3)[  "mnocef"];
 
-    //GIJKABL["ijkabl"]  =  (1.0/  2.0)* T(2)[    "eflm"]*   L(4)["ijkmabef"];
-    //GAIJBCD["aijbcd"]  = -(1.0/  2.0)* T(2)[    "aemn"]*   L(4)["mijnbcde"];
-    //GIJKALM["ijkalm"]  =  (1.0/  6.0)* T(3)[  "efglmn"]*   L(4)["ijknaefg"];
+    GIJKABL["ijkabl"]  =  (1.0/  2.0)* T(2)[    "eflm"]*   L(4)["ijkmabef"];
+    GAIJBCD["aijbcd"]  = -(1.0/  2.0)* T(2)[    "aemn"]*   L(4)["mijnbcde"];
+    GIJKALM["ijkalm"]  =  (1.0/  6.0)* T(3)[  "efglmn"]*   L(4)["ijknaefg"];
 
-      //GABCD[  "abcd"]  =  (1.0/ 48.0)* T(4)["abefmnop"]*   L(4)["mnopcdef"];
-      //GABCD[  "abcd"] +=  (1.0/  4.0)* T(2)[    "bemn"]*GAIJBCD[  "amncde"];
+      GABCD[  "abcd"]  =  (1.0/ 48.0)* T(4)["abefmnop"]*   L(4)["mnopcdef"];
+      GABCD[  "abcd"] -=  (1.0/  4.0)* T(2)[    "bemn"]*GAIJBCD[  "amncde"];
 
-      //doit = true;
-      //GAIBJ[  "aibj"]  = -(1.0/ 36.0)* T(4)["aefgjmno"]*   L(4)["imnobefg"];
-      //doit = false;
-      //GAIBJ[  "aibj"] -=  (1.0/  2.0)* T(2)[    "eamn"]*GIJKABL[  "imnbej"];
+      GAIBJ[  "aibj"]  = -(1.0/ 36.0)* T(4)["aefgjmno"]*   L(4)["imnobefg"];
+      GAIBJ[  "aibj"] +=  (1.0/  2.0)* T(2)[    "eamn"]*GIJKABL[  "imnbej"];
 
-      //GIJKL[  "ijkl"]  =  (1.0/ 48.0)* T(4)["efghklmn"]*   L(4)["ijmnefgh"];
-      //GIJKL[  "ijkl"] +=  (1.0/  4.0)* T(2)[    "efmk"]*GIJKABL[  "mijefl"];
+      GIJKL[  "ijkl"]  =  (1.0/ 48.0)* T(4)["efghklmn"]*   L(4)["ijmnefgh"];
+      GIJKL[  "ijkl"] +=  (1.0/  4.0)* T(2)[    "efmk"]*GIJKABL[  "mijefl"];
 
-        //DAI[    "ai"]  =  (1.0/ 36.0)* T(4)["aefgimno"]*   L(3)[  "mnoefg"];
-        //DAI[    "ai"] -=  (1.0/ 12.0)* T(2)[    "eamn"]*  GIJAK[    "mnei"];
-        //DAI[    "ai"] +=  (1.0/ 12.0)* T(2)[    "efim"]*  GAIBC[    "amef"];
+        DAI[    "ai"]  =  (1.0/ 36.0)* T(4)["aefgimno"]*   L(3)[  "mnoefg"];
+        DAI[    "ai"] -=  (1.0/  2.0)* T(2)[    "eamn"]*  GIJAK[    "mnei"];
+        DAI[    "ai"] +=  (1.0/  2.0)* T(2)[    "efim"]*  GAIBC[    "amef"];
     /*
      **************************************************************************/
 
@@ -287,54 +283,54 @@ void LambdaCCSDTQ<U>::iterate(const Arena& arena)
      *
      * Lambda-CCSDTQ iteration
      */
-    //Z(1)[      "ia"] +=                FME[    "ie"]*    DAB[      "ea"];
-    //Z(1)[      "ia"] -=                FME[    "ma"]*    DIJ[      "im"];
-    //Z(1)[      "ia"] -=              WMNEJ[  "inam"]*    DIJ[      "mn"];
-    //Z(1)[      "ia"] -=              WAMEF[  "fiea"]*    DAB[      "ef"];
-    //Z(1)[      "ia"] +=              WMNEF[  "miea"]*    DAI[      "em"];
-    //Z(1)[      "ia"] -= (1.0/ 2.0)*  WABEF[  "efga"]*  GAIBC[    "gief"];
-    //Z(1)[      "ia"] +=              WAMEI[  "eifm"]*  GAIBC[    "fmea"];
-    //Z(1)[      "ia"] -=              WAMEI[  "eman"]*  GIJAK[    "inem"];
-    //Z(1)[      "ia"] += (1.0/ 2.0)*  WMNIJ[  "imno"]*  GIJAK[    "noam"];
-    //Z(1)[      "ia"] -= (1.0/ 2.0)*  WAMEF[  "gief"]*  GABCD[    "efga"];
-    //Z(1)[      "ia"] +=              WAMEF[  "fmea"]*  GAIBJ[    "eifm"];
-    //Z(1)[      "ia"] -=              WMNEJ[  "inem"]*  GAIBJ[    "eman"];
-    //Z(1)[      "ia"] += (1.0/ 2.0)*  WMNEJ[  "noam"]*  GIJKL[    "imno"];
-    //Z(1)[      "ia"] += (1.0/ 2.0)*  WMNEF[  "imef"]*  GABCI[    "efam"];
-    //Z(1)[      "ia"] -= (1.0/ 2.0)*  WMNEF[  "mnea"]*  GAIJK[    "eimn"];
+    Z(1)[      "ia"] +=                FME[    "ie"]*    DAB[      "ea"];
+    Z(1)[      "ia"] -=                FME[    "ma"]*    DIJ[      "im"];
+    Z(1)[      "ia"] -=              WMNEJ[  "inam"]*    DIJ[      "mn"];
+    Z(1)[      "ia"] -=              WAMEF[  "fiea"]*    DAB[      "ef"];
+    Z(1)[      "ia"] +=              WMNEF[  "miea"]*    DAI[      "em"];
+    Z(1)[      "ia"] -= (1.0/ 2.0)*  WABEF[  "efga"]*  GAIBC[    "gief"];
+    Z(1)[      "ia"] +=              WAMEI[  "eifm"]*  GAIBC[    "fmea"];
+    Z(1)[      "ia"] -=              WAMEI[  "eman"]*  GIJAK[    "inem"];
+    Z(1)[      "ia"] += (1.0/ 2.0)*  WMNIJ[  "imno"]*  GIJAK[    "noam"];
+    Z(1)[      "ia"] -= (1.0/ 2.0)*  WAMEF[  "gief"]*  GABCD[    "efga"];
+    Z(1)[      "ia"] +=              WAMEF[  "fmea"]*  GAIBJ[    "eifm"];
+    Z(1)[      "ia"] -=              WMNEJ[  "inem"]*  GAIBJ[    "eman"];
+    Z(1)[      "ia"] += (1.0/ 2.0)*  WMNEJ[  "noam"]*  GIJKL[    "imno"];
+    Z(1)[      "ia"] += (1.0/ 2.0)*  WMNEF[  "imef"]*  GABCI[    "efam"];
+    Z(1)[      "ia"] -= (1.0/ 2.0)*  WMNEF[  "mnea"]*  GAIJK[    "eimn"];
 
-    //Z(2)[    "ijab"] -=              WMNEF[  "mjab"]*    DIJ[      "im"];
-    //Z(2)[    "ijab"] +=              WMNEF[  "ijeb"]*    DAB[      "ea"];
-    //Z(2)[    "ijab"] += (1.0/ 2.0)*  WMNEF[  "ijef"]*  GABCD[    "efab"];
-    //Z(2)[    "ijab"] +=              WMNEF[  "imea"]*  GAIBJ[    "ejbm"];
-    //Z(2)[    "ijab"] += (1.0/ 2.0)*  WMNEF[  "mnab"]*  GIJKL[    "ijmn"];
-    //Z(2)[    "ijab"] -=              WAMEF[  "fiae"]*  GAIBC[    "ejbf"];
-    //Z(2)[    "ijab"] -=              WMNEJ[  "ijem"]*  GAIBC[    "emab"];
-    //Z(2)[    "ijab"] -=              WAMEF[  "emab"]*  GIJAK[    "ijem"];
-    //Z(2)[    "ijab"] -=              WMNEJ[  "niam"]*  GIJAK[    "mjbn"];
-    //Z(2)[    "ijab"] += (1.0/12.0)*WABCEJK["efgamn"]*   L(4)["ijmnebfg"];
-    //Z(2)[    "ijab"] -= (1.0/12.0)*WABMIJK["efjmno"]*   L(4)["mnioefab"];
+    Z(2)[    "ijab"] -=              WMNEF[  "mjab"]*    DIJ[      "im"];
+    Z(2)[    "ijab"] +=              WMNEF[  "ijeb"]*    DAB[      "ea"];
+    Z(2)[    "ijab"] += (1.0/ 2.0)*  WMNEF[  "ijef"]*  GABCD[    "efab"];
+    Z(2)[    "ijab"] +=              WMNEF[  "imea"]*  GAIBJ[    "ejbm"];
+    Z(2)[    "ijab"] += (1.0/ 2.0)*  WMNEF[  "mnab"]*  GIJKL[    "ijmn"];
+    Z(2)[    "ijab"] -=              WAMEF[  "fiae"]*  GAIBC[    "ejbf"];
+    Z(2)[    "ijab"] -=              WMNEJ[  "ijem"]*  GAIBC[    "emab"];
+    Z(2)[    "ijab"] -=              WAMEF[  "emab"]*  GIJAK[    "ijem"];
+    Z(2)[    "ijab"] -=              WMNEJ[  "niam"]*  GIJAK[    "mjbn"];
+    Z(2)[    "ijab"] += (1.0/12.0)*WABCEJK["efgamn"]*   L(4)["ijmnebfg"];
+    Z(2)[    "ijab"] -= (1.0/12.0)*WABMIJK["efjmno"]*   L(4)["mnioefab"];
 
-    //Z(3)[  "ijkabc"] +=              WMNEF[  "ijae"]*  GAIBC[    "ekbc"];
-    //Z(3)[  "ijkabc"] -=              WMNEF[  "mkbc"]*  GIJAK[    "ijam"];
-    //Z(3)[  "ijkabc"] -=              WAMEF[  "embc"]*GIJKABL[  "ijkaem"];
-    //Z(3)[  "ijkabc"] += (1.0/ 2.0)*  WMNEF[  "mnbc"]*GIJKALM[  "ijkamn"];
-    //Z(3)[  "ijkabc"] += (1.0/ 2.0)*  WABEJ[  "efam"]*   L(4)["ijkmebcf"];
-    //Z(3)[  "ijkabc"] -= (1.0/ 2.0)*  WAMIJ[  "eknm"]*   L(4)["ijmnabce"];
-    //Z(3)[  "ijkabc"] -= (1.0/ 4.0)*WABMEJI["efkamn"]*   L(4)["ijnmebcf"];
-    //Z(3)[  "ijkabc"] += (1.0/ 6.0)*WAMNIJK["eijmno"]*   L(4)["mnokeabc"];
+    Z(3)[  "ijkabc"] +=              WMNEF[  "ijae"]*  GAIBC[    "ekbc"];
+    Z(3)[  "ijkabc"] -=              WMNEF[  "mkbc"]*  GIJAK[    "ijam"];
+    Z(3)[  "ijkabc"] -=              WAMEF[  "embc"]*GIJKABL[  "ijkaem"];
+    Z(3)[  "ijkabc"] += (1.0/ 2.0)*  WMNEF[  "mnbc"]*GIJKALM[  "ijkamn"];
+    Z(3)[  "ijkabc"] += (1.0/ 2.0)*  WABEJ[  "efam"]*   L(4)["ijkmebcf"];
+    Z(3)[  "ijkabc"] -= (1.0/ 2.0)*  WAMIJ[  "eknm"]*   L(4)["ijmnabce"];
+    Z(3)[  "ijkabc"] -= (1.0/ 4.0)*WABMEJI["efkcnm"]*   L(4)["ijmnabef"];
+    Z(3)[  "ijkabc"] += (1.0/ 6.0)*WAMNIJK["eijmno"]*   L(4)["mnokeabc"];
 
-    //Z(4)["ijklabcd"]  =              WMNEF[  "ijab"]*   L(2)[    "klcd"];
-    //Z(4)["ijklabcd"] +=                FME[    "ia"]*   L(3)[  "jklbcd"];
-    //Z(4)["ijklabcd"] +=              WAMEF[  "ejab"]*   L(3)[  "iklecd"];
-    //Z(4)["ijklabcd"] -=              WMNEJ[  "ijam"]*   L(3)[  "mklbcd"];
-    //Z(4)["ijklabcd"] +=              WMNEF[  "ijae"]*GAIJBCD[  "eklbcd"];
-    //Z(4)["ijklabcd"] -=              WMNEF[  "mlcd"]*GIJKABL[  "ijkabm"];
-    //Z(4)["ijklabcd"] +=                FAE[    "ea"]*   L(4)["ijklebcd"];
-    //Z(4)["ijklabcd"] -=                FMI[    "im"]*   L(4)["mjklabcd"];
-    //Z(4)["ijklabcd"] += (1.0/ 2.0)*  WABEF[  "efab"]*   L(4)["ijklefcd"];
-    //Z(4)["ijklabcd"] += (1.0/ 2.0)*  WMNIJ[  "ijmn"]*   L(4)["mnklabcd"];
-    //Z(4)["ijklabcd"] +=              WAMEI[  "eiam"]*   L(4)["mjklbecd"];
+    Z(4)["ijklabcd"]  =              WMNEF[  "ijab"]*   L(2)[    "klcd"];
+    Z(4)["ijklabcd"] +=                FME[    "ia"]*   L(3)[  "jklbcd"];
+    Z(4)["ijklabcd"] +=              WAMEF[  "ejab"]*   L(3)[  "iklecd"];
+    Z(4)["ijklabcd"] -=              WMNEJ[  "ijam"]*   L(3)[  "mklbcd"];
+    Z(4)["ijklabcd"] +=              WMNEF[  "ijae"]*GAIJBCD[  "eklbcd"];
+    Z(4)["ijklabcd"] -=              WMNEF[  "mlcd"]*GIJKABL[  "ijkabm"];
+    Z(4)["ijklabcd"] +=                FAE[    "ea"]*   L(4)["ijklebcd"];
+    Z(4)["ijklabcd"] -=                FMI[    "im"]*   L(4)["mjklabcd"];
+    Z(4)["ijklabcd"] += (1.0/ 2.0)*  WABEF[  "efab"]*   L(4)["ijklefcd"];
+    Z(4)["ijklabcd"] += (1.0/ 2.0)*  WMNIJ[  "ijmn"]*   L(4)["mnklabcd"];
+    Z(4)["ijklabcd"] +=              WAMEI[  "eiam"]*   L(4)["mjklbecd"];
     /*
      **************************************************************************/
 

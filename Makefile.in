@@ -124,7 +124,8 @@ am____top_builddir__bin_aquarius_SOURCES_DIST = src/autocc/autocc.cxx \
 	src/autocc/fragment.cxx src/autocc/generator.cxx \
 	src/autocc/line.cxx src/autocc/operator.cxx \
 	src/autocc/term.cxx src/cc/1edensity.cxx src/cc/2edensity.cxx \
-	src/cc/ccd.cxx src/cc/ccsd_t_n_opt.cxx src/cc/ccsd_t_n.cxx \
+	src/cc/ccd.cxx src/cc/ccsd_t.cxx src/cc/ccsd_t_l.cxx \
+	src/cc/ccsd_t_n_opt.cxx src/cc/ccsd_t_n.cxx \
 	src/cc/ccsd_tq_n_opt.cxx src/cc/ccsd_tq_n.cxx src/cc/ccsd.cxx \
 	src/cc/ccsdipgf.cxx src/cc/ccsdtipgf.cxx \
 	src/cc/ccsdt_q_n_opt.cxx src/cc/ccsdt_q_n.cxx src/cc/ccsdt.cxx \
@@ -160,6 +161,7 @@ am___top_builddir__bin_aquarius_OBJECTS = src/autocc/autocc.$(OBJEXT) \
 	src/autocc/line.$(OBJEXT) src/autocc/operator.$(OBJEXT) \
 	src/autocc/term.$(OBJEXT) src/cc/1edensity.$(OBJEXT) \
 	src/cc/2edensity.$(OBJEXT) src/cc/ccd.$(OBJEXT) \
+	src/cc/ccsd_t.$(OBJEXT) src/cc/ccsd_t_l.$(OBJEXT) \
 	src/cc/ccsd_t_n_opt.$(OBJEXT) src/cc/ccsd_t_n.$(OBJEXT) \
 	src/cc/ccsd_tq_n_opt.$(OBJEXT) src/cc/ccsd_tq_n.$(OBJEXT) \
 	src/cc/ccsd.$(OBJEXT) src/cc/ccsdipgf.$(OBJEXT) \
@@ -402,7 +404,8 @@ __top_builddir__bin_aquarius_SOURCES = src/autocc/autocc.cxx \
 	src/autocc/fragment.cxx src/autocc/generator.cxx \
 	src/autocc/line.cxx src/autocc/operator.cxx \
 	src/autocc/term.cxx src/cc/1edensity.cxx src/cc/2edensity.cxx \
-	src/cc/ccd.cxx src/cc/ccsd_t_n_opt.cxx src/cc/ccsd_t_n.cxx \
+	src/cc/ccd.cxx src/cc/ccsd_t.cxx src/cc/ccsd_t_l.cxx \
+	src/cc/ccsd_t_n_opt.cxx src/cc/ccsd_t_n.cxx \
 	src/cc/ccsd_tq_n_opt.cxx src/cc/ccsd_tq_n.cxx src/cc/ccsd.cxx \
 	src/cc/ccsdipgf.cxx src/cc/ccsdtipgf.cxx \
 	src/cc/ccsdt_q_n_opt.cxx src/cc/ccsdt_q_n.cxx src/cc/ccsdt.cxx \
@@ -559,6 +562,10 @@ src/cc/1edensity.$(OBJEXT): src/cc/$(am__dirstamp) \
 src/cc/2edensity.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/ccd.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/ccsd_t.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/ccsd_t_l.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/ccsd_t_n_opt.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
@@ -768,6 +775,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/2edensity.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsd_t.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsd_t_l.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsd_t_n.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsd_t_n_opt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsd_tq_n.Po@am__quote@
