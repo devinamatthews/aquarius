@@ -649,7 +649,7 @@ class Davidson : public task::Destructible
         {
             //if (!continuous)
             //{
-            /*
+            
                 unique_vector<T> c(old_c[0].begin(), old_c[0].end());
                 unique_vector<T> hc(old_hc[0].begin(), old_hc[0].end());
 
@@ -660,7 +660,7 @@ class Davidson : public task::Destructible
 
                 nextrap = nsoln;
                 addVectors(c, hc);
-            */
+            
             //}
 
             /*
@@ -674,7 +674,7 @@ class Davidson : public task::Destructible
             s[all][all][all][range(nsoln,nextrap)].rotate(0,0,0,-1);
             */
 
-            //nsoln++;
+            nsoln++;
             for (int vec = 0;vec < nvec;vec++)
             {
                 soln_e.push_back(real(l[root[vec]]));
