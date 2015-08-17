@@ -18,6 +18,7 @@ AH_BOTTOM([
 #endif
 ])
 
+AX_PROG_FC_MPI([true], [], [AC_MSG_FAILURE([No MPI Fortran compiler found.])])
 AX_PROG_CC_MPI([true], [], [AC_MSG_FAILURE([No MPI C compiler found.])])
 AX_PROG_CXX_MPI([true], [], [AC_MSG_FAILURE([No MPI C++ compiler found.])])
 AX_CXX_COMPILE_STDCXX_11([noext])
