@@ -1,18 +1,18 @@
 # ===========================================================================
-#      http://www.gnu.org/software/autoconf-archive/ax_prog_cxx_mpi.html
+#      http://www.gnu.org/software/autoconf-archive/ax_prog_fc_mpi.html
 # ===========================================================================
 #
 # SYNOPSIS
 #
-#   AX_PROG_CXX_MPI([MPI-WANTED-TEST[, ACTION-IF-FOUND[, ACTION-IF-NOT-FOUND]]])
+#   AX_PROG_FC_MPI([MPI-WANTED-TEST[, ACTION-IF-FOUND[, ACTION-IF-NOT-FOUND]]])
 #
 # DESCRIPTION
 #
-#   This macro tries to find out how to compile C++ programs that use MPI
-#   (Message Passing Interface), a standard API for parallel process
+#   This macro tries to find out how to compile Fortran77 programs that use
+#   MPI (Message Passing Interface), a standard API for parallel process
 #   communication (see http://www-unix.mcs.anl.gov/mpi/).  The macro has to
-#   be used instead of the standard macro AC_PROG_CXX and will replace the
-#   standard variable CXX with the found compiler.
+#   be used instead of the standard macro AC_PROG_FC and will replace the
+#   standard variable FC with the found compiler.
 #
 #   MPI-WANTED-TEST is used to test whether MPI is actually wanted by the
 #   user. If MPI-WANTED_TEST is omitted or if it succeeds, the macro will
@@ -25,15 +25,15 @@
 #
 #   The following example demonstrates usage of the macro:
 #
-#     # If --with-mpi=auto is used, try to find MPI, but use standard C compiler if it is not found.
+#     # If --with-mpi=auto is used, try to find MPI, but use standard FC compiler if it is not found.
 #     # If --with-mpi=yes is used, try to find MPI and fail if it isn't found.
-#     # If --with-mpi=no is used, use a standard C compiler instead.
+#     # If --with-mpi=no is used, use a standard FC compiler instead.
 #     AC_ARG_WITH(mpi, [AS_HELP_STRING([--with-mpi],
 #         [compile with MPI (parallelization) support. If none is found,
 #         MPI is not used. Default: auto])
 #     ],,[with_mpi=auto])
 #
-#     AX_PROG_CXX_MPI([test x"$with_mpi" != xno],[use_mpi=yes],[
+#     AX_PROG_FC_MPI([test x"$with_mpi" != xno],[use_mpi=yes],[
 #       use_mpi=no
 #       if test x"$with_mpi" = xyes; then
 #         AC_MSG_FAILURE([MPI compiler requested, but couldn't use MPI.])
@@ -76,58 +76,57 @@
 
 #serial 2
 
-AC_DEFUN([AX_PROG_CXX_MPI], [
+AC_DEFUN([AX_PROG_FC_MPI], [
 AC_PREREQ(2.50)
 
 # Check for compiler
 # Needs to be split off into an extra macro to ensure right expansion
 # order.
-AC_REQUIRE([_AX_PROG_CXX_MPI],[_AX_PROG_CXX_MPI([$1])])
+AC_REQUIRE([_AX_PROG_FC_MPI],[_AX_PROG_FC_MPI([$1])])
 
-AS_IF([test x"$_ax_prog_cxx_mpi_mpi_wanted" = xno],
-  [ _ax_prog_cxx_mpi_mpi_found=no ],
+AS_IF([test x"$_ax_prog_fc_mpi_mpi_wanted" = xno],
+  [ _ax_prog_fc_mpi_mpi_found=no ],
   [
-    AC_LANG_PUSH([C++])
+    AC_LANG_PUSH([Fortran])
 
-    # test whether MPI_Init() is available
+    # test whether MPI_INIT is available
     # We do not use AC_SEARCH_LIBS here, as it caches its outcome and
     # thus disallows corresponding calls in the other AX_PROG_*_MPI
     # macros.
-    for lib in NONE mpi mpich; do
+    for lib in NONE mpichf90 fmpi fmpich; do
       save_LIBS=$LIBS
       if test x"$lib" = xNONE; then
-        AC_MSG_CHECKING([for function MPI_Init])
+        AC_MSG_CHECKING([for function MPI_INIT])
       else
-        AC_MSG_CHECKING([for function MPI_Init in -l$lib])
+        AC_MSG_CHECKING([for function MPI_INIT in -l$lib])
         LIBS="-l$lib $LIBS"
       fi
-      AC_LINK_IFELSE([
-        AC_LANG_PROGRAM([
-extern "C" { void MPI_Init(); }
-],[MPI_Init();])],
-        [ _ax_prog_cxx_mpi_mpi_found=yes ],
-        [ _ax_prog_cxx_mpi_mpi_found=no ])
-      AC_MSG_RESULT($_ax_prog_cxx_mpi_mpi_found)
-      if test "x$_ax_prog_cxx_mpi_mpi_found" = "xyes"; then
+      AC_LINK_IFELSE([AC_LANG_CALL([],[MPI_INIT])],
+        [ _ax_prog_fc_mpi_mpi_found=yes ],
+        [ _ax_prog_fc_mpi_mpi_found=no ])
+      AC_MSG_RESULT($_ax_prog_fc_mpi_mpi_found)
+      if test "x$_ax_prog_fc_mpi_mpi_found" = "xyes"; then
         break;
       fi
       LIBS=$save_LIBS
     done
 
     # Check for header
-    AS_IF([test x"$_ax_prog_cxx_mpi_mpi_found" = xyes], [
-      AC_MSG_CHECKING([for mpi.h])
-      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <mpi.h>])],
+    AS_IF([test x"$_ax_prog_fc_mpi_mpi_found" = xyes], [
+      AC_MSG_CHECKING([for mpif.h])
+      AC_COMPILE_IFELSE([AC_LANG_PROGRAM(,[[
+      include 'mpif.h'
+]])],
         [ AC_MSG_RESULT(yes)],
         [ AC_MSG_RESULT(no)
-         _ax_prog_cxx_mpi_mpi_found=no
+      _ax_prog_fc_mpi_mpi_found=no
       ])
     ])
-    AC_LANG_POP([C++])
+    AC_LANG_POP([Fortran])
 ])
 
 # Finally, execute ACTION-IF-FOUND/ACTION-IF-NOT-FOUND:
-AS_IF([test x"$_ax_prog_cxx_mpi_mpi_found" = xyes], [
+AS_IF([test x"$_ax_prog_fc_mpi_mpi_found" = xyes], [
         ifelse([$2],,[AC_DEFINE(HAVE_MPI,1,[Define if you have the MPI library.])],[$2])
         :
 ],[
@@ -135,46 +134,31 @@ AS_IF([test x"$_ax_prog_cxx_mpi_mpi_found" = xyes], [
         :
 ])
 
-])dnl AX_PROG_CXX_MPI
+])dnl AX_PROG_FC_MPI
 
-dnl _AX_PROG_CXX_MPI is an internal macro required by AX_PROG_CXX_MPI.
-dnl To ensure the right expansion order, the main function AX_PROG_CXX_MPI
-dnl has to be split into two parts.
+dnl _AX_PROG_FC_MPI is an internal macro required by AX_PROG_FC_MPI.
+dnl To ensure the right expansion order, the main function AX_PROG_FC_MPI
+dnl has to be split into two parts. This part looks for the MPI
+dnl compiler, while the other one tests whether an MPI program can be
+dnl compiled.
 dnl
-dnl Known MPI C++ compilers:
-dnl  mpic++
-dnl  mpicxx
-dnl  mpiCC
-dnl  sxmpic++     NEC SX
-dnl  hcp
-dnl  mpxlC_r
-dnl  mpxlC
-dnl  mpixlcxx_r
-dnl  mpixlcxx
-dnl  mpg++
-dnl  mpc++
-dnl  mpCC
-dnl  cmpic++
-dnl  mpiFCC       Fujitsu
-dnl  CC
-dnl
-AC_DEFUN([_AX_PROG_CXX_MPI], [
-  AC_ARG_VAR(MPICXX,[MPI C++ compiler command])
-  ifelse([$1],,[_ax_prog_cxx_mpi_mpi_wanted=yes],[
+AC_DEFUN([_AX_PROG_FC_MPI], [
+  AC_ARG_VAR(MPIFC,[MPI Fortran compiler command])
+  ifelse([$1],,[_ax_prog_fc_mpi_mpi_wanted=yes],[
     AC_MSG_CHECKING([whether to compile using MPI])
     if $1; then
-      _ax_prog_cxx_mpi_mpi_wanted=yes
+      _ax_prog_fc_mpi_mpi_wanted=yes
     else
-      _ax_prog_cxx_mpi_mpi_wanted=no
+      _ax_prog_fc_mpi_mpi_wanted=no
     fi
-    AC_MSG_RESULT($_ax_prog_cxx_mpi_mpi_wanted)
+    AC_MSG_RESULT($_ax_prog_fc_mpi_mpi_wanted)
   ])
-  if test x"$_ax_prog_cxx_mpi_mpi_wanted" = xyes; then
-    if test -z "$CXX" && test -n "$MPICXX"; then
-      CXX="$MPICXX"
+  if test x"$_ax_prog_fc_mpi_mpi_wanted" = xyes; then
+    if test -z "$FC" && test -n "$MPIFC"; then
+      FC="$MPIFC"
     else
-      AC_CHECK_TOOLS([CXX], [mpic++ mpicxx mpiCC CC])
+      AC_CHECK_TOOLS([FC], [mpif95 mpif90 mpif77 ftn])
     fi
   fi
-  AC_PROG_CXX
-])dnl _AX_PROG_CXX_MPI
+  AC_PROG_FC
+])dnl _AX_PROG_FC_MPI

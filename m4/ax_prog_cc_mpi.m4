@@ -46,6 +46,8 @@
 #
 #   Copyright (c) 2010,2011 Olaf Lenz <olenz@icp.uni-stuttgart.de>
 #
+#   Modified 2015 Devin Matthews <dmatthews@utexas.edu>
+#
 #   This program is free software: you can redistribute it and/or modify it
 #   under the terms of the GNU General Public License as published by the
 #   Free Software Foundation, either version 3 of the License, or (at your
@@ -164,7 +166,7 @@ AC_DEFUN([_AX_PROG_CC_MPI], [
     if test -z "$CC" && test -n "$MPICC"; then
       CC="$MPICC"
     else
-      AC_CHECK_TOOLS([CC], [mpicc mpixlc_r mpixlc hcc mpxlc_r mpxlc sxmpicc mpifcc mpgcc mpcc cmpicc cc gcc])
+      AC_CHECK_TOOLS([CC], [mpicc cc])
     fi
   fi
   AC_PROG_CC
