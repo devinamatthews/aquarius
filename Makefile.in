@@ -92,7 +92,8 @@ bin_PROGRAMS = $(top_builddir)/bin/aquarius$(EXEEXT)
 @HAVE_ELEMENTAL_TRUE@am__append_2 = @elemental_LIBS@
 @HAVE_ELEMENTAL_TRUE@am__append_3 = \
 @HAVE_ELEMENTAL_TRUE@	src/scf/uhf_elemental.cxx \
-@HAVE_ELEMENTAL_TRUE@	src/cc/tda_elemental.cxx
+@HAVE_ELEMENTAL_TRUE@	src/cc/tda_elemental.cxx \
+@HAVE_ELEMENTAL_TRUE@	src/cc/rhftda_elemental.cxx
 
 @HAVE_LIBINT2_TRUE@am__append_4 = @libint2_INCLUDES@
 @HAVE_LIBINT2_TRUE@am__append_5 = @libint2_LIBS@
@@ -128,35 +129,46 @@ am____top_builddir__bin_aquarius_SOURCES_DIST = src/autocc/autocc.cxx \
 	src/autocc/term.cxx src/cc/1edensity.cxx src/cc/2edensity.cxx \
 	src/cc/ccd.cxx src/cc/ccsd_density.cxx \
 	src/cc/ccsdt_density.cxx src/cc/ccsdtq_density.cxx \
+	src/cc/ccsdtq_1a_density.cxx src/cc/ccsdtq_1b_density.cxx \
+	src/cc/ccsdtq_3_density.cxx src/cc/cc4_density.cxx \
 	src/cc/ccsd_t.cxx src/cc/ccsd_t_l.cxx src/cc/ccsd_t_n_opt.cxx \
 	src/cc/ccsd_t_n.cxx src/cc/ccsd_tq_n_opt.cxx \
 	src/cc/ccsd_tq_n.cxx src/cc/ccsd.cxx src/cc/ccsdipgf.cxx \
 	src/cc/ccsdtipgf.cxx src/cc/ccsdt_q.cxx src/cc/ccsdt_q_l.cxx \
 	src/cc/ccsdt_q_n_opt.cxx src/cc/ccsdt_q_n.cxx src/cc/ccsdt.cxx \
-	src/cc/ccsdtq.cxx src/cc/eomeeccsd.cxx src/cc/lambdaccsd.cxx \
-	src/cc/lambdaccsdt.cxx src/cc/lambdaccsdtq.cxx src/cc/lccd.cxx \
-	src/cc/mp3.cxx src/cc/mp4dq.cxx src/cc/perturbedccsd.cxx \
-	src/cc/perturbedlambdaccsd.cxx src/cc/tda_local.cxx \
-	src/input/basis.cxx src/input/config.cxx \
-	src/input/molecule.cxx src/integrals/1eints.cxx \
-	src/integrals/2eints.cxx src/integrals/cfour1eints.cxx \
-	src/integrals/cfour2eints.cxx src/integrals/center.cxx \
-	src/integrals/context.cxx src/integrals/element.cxx \
-	src/integrals/fmgamma.cxx src/integrals/kei.cxx \
-	src/integrals/nai.cxx src/integrals/os.cxx \
-	src/integrals/ovi.cxx src/integrals/shell.cxx \
-	src/jellium/jellium.cxx src/main/main.cxx \
-	src/operator/2eoperator.cxx src/operator/aomoints.cxx \
+	src/cc/ccsdtq.cxx src/cc/ccsdtq_1a.cxx src/cc/ccsdtq_1b.cxx \
+	src/cc/ccsdtq_3.cxx src/cc/cc4.cxx src/cc/eomeeccsd.cxx \
+	src/cc/eomeeccsdt.cxx src/cc/lambdaccsd.cxx \
+	src/cc/lambdaccsdt.cxx src/cc/lambdaccsdt_q.cxx \
+	src/cc/lambdaccsdtq.cxx src/cc/lambdaccsdtq_1a.cxx \
+	src/cc/lambdaccsdtq_1b.cxx src/cc/lambdaccsdtq_3.cxx \
+	src/cc/lambdacc4.cxx src/cc/lccd.cxx src/cc/mp3.cxx \
+	src/cc/mp4dq.cxx src/cc/perturbedccsd.cxx \
+	src/cc/perturbedlambdaccsd.cxx src/cc/rhfccsd.cxx \
+	src/cc/tda_local.cxx src/cc/rhftda_local.cxx \
+	src/cc/rhfeomeeccsd.cxx src/input/basis.cxx \
+	src/input/config.cxx src/input/molecule.cxx \
+	src/integrals/1eints.cxx src/integrals/2eints.cxx \
+	src/integrals/cfour1eints.cxx src/integrals/cfour2eints.cxx \
+	src/integrals/center.cxx src/integrals/context.cxx \
+	src/integrals/element.cxx src/integrals/fmgamma.cxx \
+	src/integrals/kei.cxx src/integrals/nai.cxx \
+	src/integrals/os.cxx src/integrals/ovi.cxx \
+	src/integrals/shell.cxx src/jellium/jellium.cxx \
+	src/main/main.cxx src/operator/2eoperator.cxx \
+	src/operator/aomoints.cxx src/operator/rhfaomoints.cxx \
 	src/operator/moints.cxx src/operator/sparseaomoints.cxx \
-	src/scf/aouhf.cxx src/scf/uhf_local.cxx src/scf/uhf.cxx \
+	src/operator/sparserhfaomoints.cxx src/scf/aouhf.cxx \
+	src/scf/uhf_local.cxx src/scf/uhf.cxx \
 	src/symmetry/symmetry.cxx src/task/task.cxx \
 	src/tensor/ctf_tensor.cxx src/tensor/spinorbital_tensor.cxx \
 	src/tensor/symblocked_tensor.cxx src/time/time.cxx \
 	src/scf/uhf_elemental.cxx src/cc/tda_elemental.cxx \
-	src/integrals/libint2eints.cxx
+	src/cc/rhftda_elemental.cxx src/integrals/libint2eints.cxx
 am__dirstamp = $(am__leading_dot)dirstamp
 @HAVE_ELEMENTAL_TRUE@am__objects_1 = src/scf/uhf_elemental.$(OBJEXT) \
-@HAVE_ELEMENTAL_TRUE@	src/cc/tda_elemental.$(OBJEXT)
+@HAVE_ELEMENTAL_TRUE@	src/cc/tda_elemental.$(OBJEXT) \
+@HAVE_ELEMENTAL_TRUE@	src/cc/rhftda_elemental.$(OBJEXT)
 @HAVE_LIBINT2_TRUE@am__objects_2 =  \
 @HAVE_LIBINT2_TRUE@	src/integrals/libint2eints.$(OBJEXT)
 am___top_builddir__bin_aquarius_OBJECTS = src/autocc/autocc.$(OBJEXT) \
@@ -166,20 +178,30 @@ am___top_builddir__bin_aquarius_OBJECTS = src/autocc/autocc.$(OBJEXT) \
 	src/autocc/term.$(OBJEXT) src/cc/1edensity.$(OBJEXT) \
 	src/cc/2edensity.$(OBJEXT) src/cc/ccd.$(OBJEXT) \
 	src/cc/ccsd_density.$(OBJEXT) src/cc/ccsdt_density.$(OBJEXT) \
-	src/cc/ccsdtq_density.$(OBJEXT) src/cc/ccsd_t.$(OBJEXT) \
-	src/cc/ccsd_t_l.$(OBJEXT) src/cc/ccsd_t_n_opt.$(OBJEXT) \
-	src/cc/ccsd_t_n.$(OBJEXT) src/cc/ccsd_tq_n_opt.$(OBJEXT) \
-	src/cc/ccsd_tq_n.$(OBJEXT) src/cc/ccsd.$(OBJEXT) \
-	src/cc/ccsdipgf.$(OBJEXT) src/cc/ccsdtipgf.$(OBJEXT) \
-	src/cc/ccsdt_q.$(OBJEXT) src/cc/ccsdt_q_l.$(OBJEXT) \
-	src/cc/ccsdt_q_n_opt.$(OBJEXT) src/cc/ccsdt_q_n.$(OBJEXT) \
-	src/cc/ccsdt.$(OBJEXT) src/cc/ccsdtq.$(OBJEXT) \
-	src/cc/eomeeccsd.$(OBJEXT) src/cc/lambdaccsd.$(OBJEXT) \
-	src/cc/lambdaccsdt.$(OBJEXT) src/cc/lambdaccsdtq.$(OBJEXT) \
+	src/cc/ccsdtq_density.$(OBJEXT) \
+	src/cc/ccsdtq_1a_density.$(OBJEXT) \
+	src/cc/ccsdtq_1b_density.$(OBJEXT) \
+	src/cc/ccsdtq_3_density.$(OBJEXT) src/cc/cc4_density.$(OBJEXT) \
+	src/cc/ccsd_t.$(OBJEXT) src/cc/ccsd_t_l.$(OBJEXT) \
+	src/cc/ccsd_t_n_opt.$(OBJEXT) src/cc/ccsd_t_n.$(OBJEXT) \
+	src/cc/ccsd_tq_n_opt.$(OBJEXT) src/cc/ccsd_tq_n.$(OBJEXT) \
+	src/cc/ccsd.$(OBJEXT) src/cc/ccsdipgf.$(OBJEXT) \
+	src/cc/ccsdtipgf.$(OBJEXT) src/cc/ccsdt_q.$(OBJEXT) \
+	src/cc/ccsdt_q_l.$(OBJEXT) src/cc/ccsdt_q_n_opt.$(OBJEXT) \
+	src/cc/ccsdt_q_n.$(OBJEXT) src/cc/ccsdt.$(OBJEXT) \
+	src/cc/ccsdtq.$(OBJEXT) src/cc/ccsdtq_1a.$(OBJEXT) \
+	src/cc/ccsdtq_1b.$(OBJEXT) src/cc/ccsdtq_3.$(OBJEXT) \
+	src/cc/cc4.$(OBJEXT) src/cc/eomeeccsd.$(OBJEXT) \
+	src/cc/eomeeccsdt.$(OBJEXT) src/cc/lambdaccsd.$(OBJEXT) \
+	src/cc/lambdaccsdt.$(OBJEXT) src/cc/lambdaccsdt_q.$(OBJEXT) \
+	src/cc/lambdaccsdtq.$(OBJEXT) src/cc/lambdaccsdtq_1a.$(OBJEXT) \
+	src/cc/lambdaccsdtq_1b.$(OBJEXT) \
+	src/cc/lambdaccsdtq_3.$(OBJEXT) src/cc/lambdacc4.$(OBJEXT) \
 	src/cc/lccd.$(OBJEXT) src/cc/mp3.$(OBJEXT) \
 	src/cc/mp4dq.$(OBJEXT) src/cc/perturbedccsd.$(OBJEXT) \
-	src/cc/perturbedlambdaccsd.$(OBJEXT) \
-	src/cc/tda_local.$(OBJEXT) src/input/basis.$(OBJEXT) \
+	src/cc/perturbedlambdaccsd.$(OBJEXT) src/cc/rhfccsd.$(OBJEXT) \
+	src/cc/tda_local.$(OBJEXT) src/cc/rhftda_local.$(OBJEXT) \
+	src/cc/rhfeomeeccsd.$(OBJEXT) src/input/basis.$(OBJEXT) \
 	src/input/config.$(OBJEXT) src/input/molecule.$(OBJEXT) \
 	src/integrals/1eints.$(OBJEXT) src/integrals/2eints.$(OBJEXT) \
 	src/integrals/cfour1eints.$(OBJEXT) \
@@ -191,11 +213,14 @@ am___top_builddir__bin_aquarius_OBJECTS = src/autocc/autocc.$(OBJEXT) \
 	src/integrals/ovi.$(OBJEXT) src/integrals/shell.$(OBJEXT) \
 	src/jellium/jellium.$(OBJEXT) src/main/main.$(OBJEXT) \
 	src/operator/2eoperator.$(OBJEXT) \
-	src/operator/aomoints.$(OBJEXT) src/operator/moints.$(OBJEXT) \
-	src/operator/sparseaomoints.$(OBJEXT) src/scf/aouhf.$(OBJEXT) \
-	src/scf/uhf_local.$(OBJEXT) src/scf/uhf.$(OBJEXT) \
-	src/symmetry/symmetry.$(OBJEXT) src/task/task.$(OBJEXT) \
-	src/tensor/ctf_tensor.$(OBJEXT) \
+	src/operator/aomoints.$(OBJEXT) \
+	src/operator/rhfaomoints.$(OBJEXT) \
+	src/operator/moints.$(OBJEXT) \
+	src/operator/sparseaomoints.$(OBJEXT) \
+	src/operator/sparserhfaomoints.$(OBJEXT) \
+	src/scf/aouhf.$(OBJEXT) src/scf/uhf_local.$(OBJEXT) \
+	src/scf/uhf.$(OBJEXT) src/symmetry/symmetry.$(OBJEXT) \
+	src/task/task.$(OBJEXT) src/tensor/ctf_tensor.$(OBJEXT) \
 	src/tensor/spinorbital_tensor.$(OBJEXT) \
 	src/tensor/symblocked_tensor.$(OBJEXT) src/time/time.$(OBJEXT) \
 	$(am__objects_1) $(am__objects_2)
@@ -417,27 +442,37 @@ __top_builddir__bin_aquarius_SOURCES = src/autocc/autocc.cxx \
 	src/autocc/term.cxx src/cc/1edensity.cxx src/cc/2edensity.cxx \
 	src/cc/ccd.cxx src/cc/ccsd_density.cxx \
 	src/cc/ccsdt_density.cxx src/cc/ccsdtq_density.cxx \
+	src/cc/ccsdtq_1a_density.cxx src/cc/ccsdtq_1b_density.cxx \
+	src/cc/ccsdtq_3_density.cxx src/cc/cc4_density.cxx \
 	src/cc/ccsd_t.cxx src/cc/ccsd_t_l.cxx src/cc/ccsd_t_n_opt.cxx \
 	src/cc/ccsd_t_n.cxx src/cc/ccsd_tq_n_opt.cxx \
 	src/cc/ccsd_tq_n.cxx src/cc/ccsd.cxx src/cc/ccsdipgf.cxx \
 	src/cc/ccsdtipgf.cxx src/cc/ccsdt_q.cxx src/cc/ccsdt_q_l.cxx \
 	src/cc/ccsdt_q_n_opt.cxx src/cc/ccsdt_q_n.cxx src/cc/ccsdt.cxx \
-	src/cc/ccsdtq.cxx src/cc/eomeeccsd.cxx src/cc/lambdaccsd.cxx \
-	src/cc/lambdaccsdt.cxx src/cc/lambdaccsdtq.cxx src/cc/lccd.cxx \
-	src/cc/mp3.cxx src/cc/mp4dq.cxx src/cc/perturbedccsd.cxx \
-	src/cc/perturbedlambdaccsd.cxx src/cc/tda_local.cxx \
-	src/input/basis.cxx src/input/config.cxx \
-	src/input/molecule.cxx src/integrals/1eints.cxx \
-	src/integrals/2eints.cxx src/integrals/cfour1eints.cxx \
-	src/integrals/cfour2eints.cxx src/integrals/center.cxx \
-	src/integrals/context.cxx src/integrals/element.cxx \
-	src/integrals/fmgamma.cxx src/integrals/kei.cxx \
-	src/integrals/nai.cxx src/integrals/os.cxx \
-	src/integrals/ovi.cxx src/integrals/shell.cxx \
-	src/jellium/jellium.cxx src/main/main.cxx \
-	src/operator/2eoperator.cxx src/operator/aomoints.cxx \
+	src/cc/ccsdtq.cxx src/cc/ccsdtq_1a.cxx src/cc/ccsdtq_1b.cxx \
+	src/cc/ccsdtq_3.cxx src/cc/cc4.cxx src/cc/eomeeccsd.cxx \
+	src/cc/eomeeccsdt.cxx src/cc/lambdaccsd.cxx \
+	src/cc/lambdaccsdt.cxx src/cc/lambdaccsdt_q.cxx \
+	src/cc/lambdaccsdtq.cxx src/cc/lambdaccsdtq_1a.cxx \
+	src/cc/lambdaccsdtq_1b.cxx src/cc/lambdaccsdtq_3.cxx \
+	src/cc/lambdacc4.cxx src/cc/lccd.cxx src/cc/mp3.cxx \
+	src/cc/mp4dq.cxx src/cc/perturbedccsd.cxx \
+	src/cc/perturbedlambdaccsd.cxx src/cc/rhfccsd.cxx \
+	src/cc/tda_local.cxx src/cc/rhftda_local.cxx \
+	src/cc/rhfeomeeccsd.cxx src/input/basis.cxx \
+	src/input/config.cxx src/input/molecule.cxx \
+	src/integrals/1eints.cxx src/integrals/2eints.cxx \
+	src/integrals/cfour1eints.cxx src/integrals/cfour2eints.cxx \
+	src/integrals/center.cxx src/integrals/context.cxx \
+	src/integrals/element.cxx src/integrals/fmgamma.cxx \
+	src/integrals/kei.cxx src/integrals/nai.cxx \
+	src/integrals/os.cxx src/integrals/ovi.cxx \
+	src/integrals/shell.cxx src/jellium/jellium.cxx \
+	src/main/main.cxx src/operator/2eoperator.cxx \
+	src/operator/aomoints.cxx src/operator/rhfaomoints.cxx \
 	src/operator/moints.cxx src/operator/sparseaomoints.cxx \
-	src/scf/aouhf.cxx src/scf/uhf_local.cxx src/scf/uhf.cxx \
+	src/operator/sparserhfaomoints.cxx src/scf/aouhf.cxx \
+	src/scf/uhf_local.cxx src/scf/uhf.cxx \
 	src/symmetry/symmetry.cxx src/task/task.cxx \
 	src/tensor/ctf_tensor.cxx src/tensor/spinorbital_tensor.cxx \
 	src/tensor/symblocked_tensor.cxx src/time/time.cxx \
@@ -582,6 +617,14 @@ src/cc/ccsdt_density.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/ccsdtq_density.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/ccsdtq_1a_density.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/ccsdtq_1b_density.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/ccsdtq_3_density.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/cc4_density.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/ccsd_t.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/ccsd_t_l.$(OBJEXT): src/cc/$(am__dirstamp) \
@@ -612,13 +655,33 @@ src/cc/ccsdt.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/ccsdtq.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/ccsdtq_1a.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/ccsdtq_1b.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/ccsdtq_3.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/cc4.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/eomeeccsd.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/eomeeccsdt.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/lambdaccsd.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/lambdaccsdt.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/lambdaccsdt_q.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/lambdaccsdtq.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/lambdaccsdtq_1a.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/lambdaccsdtq_1b.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/lambdaccsdtq_3.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/lambdacc4.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/lccd.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
@@ -630,7 +693,13 @@ src/cc/perturbedccsd.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/perturbedlambdaccsd.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/rhfccsd.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/tda_local.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/rhftda_local.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/rhfeomeeccsd.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/input/$(am__dirstamp):
 	@$(MKDIR_P) src/input
@@ -702,9 +771,14 @@ src/operator/2eoperator.$(OBJEXT): src/operator/$(am__dirstamp) \
 	src/operator/$(DEPDIR)/$(am__dirstamp)
 src/operator/aomoints.$(OBJEXT): src/operator/$(am__dirstamp) \
 	src/operator/$(DEPDIR)/$(am__dirstamp)
+src/operator/rhfaomoints.$(OBJEXT): src/operator/$(am__dirstamp) \
+	src/operator/$(DEPDIR)/$(am__dirstamp)
 src/operator/moints.$(OBJEXT): src/operator/$(am__dirstamp) \
 	src/operator/$(DEPDIR)/$(am__dirstamp)
 src/operator/sparseaomoints.$(OBJEXT): src/operator/$(am__dirstamp) \
+	src/operator/$(DEPDIR)/$(am__dirstamp)
+src/operator/sparserhfaomoints.$(OBJEXT):  \
+	src/operator/$(am__dirstamp) \
 	src/operator/$(DEPDIR)/$(am__dirstamp)
 src/scf/$(am__dirstamp):
 	@$(MKDIR_P) src/scf
@@ -758,6 +832,8 @@ src/scf/uhf_elemental.$(OBJEXT): src/scf/$(am__dirstamp) \
 	src/scf/$(DEPDIR)/$(am__dirstamp)
 src/cc/tda_elemental.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/rhftda_elemental.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/integrals/libint2eints.$(OBJEXT): src/integrals/$(am__dirstamp) \
 	src/integrals/$(DEPDIR)/$(am__dirstamp)
 $(top_builddir)/bin/$(am__dirstamp):
@@ -796,6 +872,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/autocc/$(DEPDIR)/term.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/1edensity.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/2edensity.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/cc4.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/cc4_density.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsd_density.Po@am__quote@
@@ -814,16 +892,32 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdt_q_n_opt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdtipgf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdtq.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdtq_1a.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdtq_1a_density.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdtq_1b.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdtq_1b_density.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdtq_3.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdtq_3_density.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdtq_density.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/eomeeccsd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/eomeeccsdt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lambdacc4.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lambdaccsd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lambdaccsdt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lambdaccsdt_q.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lambdaccsdtq.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lambdaccsdtq_1a.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lambdaccsdtq_1b.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lambdaccsdtq_3.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lccd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/mp3.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/mp4dq.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/perturbedccsd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/perturbedlambdaccsd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/rhfccsd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/rhfeomeeccsd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/rhftda_elemental.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/rhftda_local.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/tda_elemental.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/tda_local.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/input/$(DEPDIR)/basis.Po@am__quote@
@@ -848,7 +942,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/2eoperator.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/aomoints.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/moints.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/rhfaomoints.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/sparseaomoints.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/sparserhfaomoints.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/scf/$(DEPDIR)/aouhf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/scf/$(DEPDIR)/uhf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/scf/$(DEPDIR)/uhf_elemental.Po@am__quote@

@@ -7,22 +7,34 @@
 #include "task/task.hpp"
 #include "operator/denominator.hpp"
 
+#include "diis.hpp"
+
 namespace aquarius
 {
 namespace convergence
 {
 
-namespace
+namespace detail
 {
 
-template <typename T> bool absGreaterThan(const T& a, const T& b)
+template <typename T>
+struct DefaultWeight
 {
-    return aquarius::abs(a) > aquarius::abs(b);
-}
+    typedef typename T::dtype dtype;
+
+    template <typename a_container>
+    void operator()(a_container& a, const op::Denominator<dtype>& D, dtype omega) const
+    {
+        for (int j = 0;j < a.size();j++)
+        {
+            a[j].weight(D, omega);
+        }
+    }
+};
 
 }
 
-template<typename T>
+template <typename T, typename InnerProd = detail::DefaultInnerProd<T>, typename Weight = detail::DefaultWeight<T>>
 class Davidson : public task::Destructible
 {
     private:
@@ -33,9 +45,9 @@ class Davidson : public task::Destructible
     protected:
         typedef typename T::dtype dtype;
         vector<dtype> soln_e;
-        vector<unique_vector<T>> old_c; // hold all R[k][i] where i is over nvec and k is over maxextrap
-        vector<unique_vector<T>> old_hc; // hold all H*R[i] = Z[i] at every iteration aka Z[k][i]
-        unique_vector<T> guess;
+        vector<vector<unique_vector<T>>> old_c; // hold all R[k][i] where i is over nvec and k is over maxextrap
+        vector<vector<unique_vector<T>>> old_hc; // hold all H*R[i] = Z[i] at every iteration aka Z[k][i]
+        vector<unique_vector<T>> guess;
         marray<dtype,3> guess_overlap;
         marray<dtype,4> s, e;
         int nvec, maxextrap, nreduce, nextrap, nsoln; // number of energies, number of iterations
@@ -48,6 +60,9 @@ class Davidson : public task::Destructible
         vector<bool> lock;
         vector<dtype> lock_e;
         bool continuous;
+        int nc;
+        InnerProd innerProd;
+        Weight weight;
 
         enum {GUESS_OVERLAP, LOWEST_ENERGY, CLOSEST_ENERGY};
 
@@ -99,8 +114,8 @@ class Davidson : public task::Destructible
                     {
                         if (solns[idx2] == rt)
                         {
-                            if (n == 1) //printf("Root %d (%.12f) already picked\n", rt+1, real(l[rt]));
-                                task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") already picked" << endl;
+                            //if (n == 1) //printf("Root %d (%.12f) already picked\n", rt+1, real(l[rt]));
+                            //    task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") already picked" << endl;
                             found = true;
                         }
                     }
@@ -114,8 +129,8 @@ class Davidson : public task::Destructible
                         {
                             task::Logger::log(arena) << "WARNING: Root is imaginary! (1)" << endl;
                         }
-                        if (n == 1) //printf("Solution %d (%.12f) matches root %d (%.12f)\n", idx+1, soln_e[idx], rt+1, real(l[rt]));
-                            task::Logger::log(arena) << "Solution " << idx+1 << " (" << soln_e[idx] << ") matches root " << rt+1 << " (" << real(l[rt]) << ")" << endl;
+                        //if (n == 1) //printf("Solution %d (%.12f) matches root %d (%.12f)\n", idx+1, soln_e[idx], rt+1, real(l[rt]));
+                        //    task::Logger::log(arena) << "Solution " << idx+1 << " (" << soln_e[idx] << ") matches root " << rt+1 << " (" << real(l[rt]) << ")" << endl;
                         mincrit = crit;
                         solns[idx] = rt;
                     }
@@ -146,8 +161,8 @@ class Davidson : public task::Destructible
                             {
                                 if (roots[idx2][vec2] == rt)
                                 {
-                                    if (n == 1) //printf("Root %d (%.12f) already picked\n", rt+1, real(l[rt]));
-                                        task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt])<< ") already picked" << endl;
+                                    //if (n == 1) //printf("Root %d (%.12f) already picked\n", rt+1, real(l[rt]));
+                                    //    task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt])<< ") already picked" << endl;
                                     found = true;
                                 }
                             }
@@ -160,8 +175,8 @@ class Davidson : public task::Destructible
                         {
                             if (solns[idx2] == rt)
                             {
-                                if (n == 1) //printf("Root %d (%.12f) matches solution %d (%.12f)\n", rt+1, real(l[rt]), idx2, soln_e[idx2]);
-                                    task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") matches solution " << idx2+1 << " (" << soln_e[idx2] << ")" << endl;
+                                //if (n == 1) //printf("Root %d (%.12f) matches solution %d (%.12f)\n", rt+1, real(l[rt]), idx2, soln_e[idx2]);
+                                //    task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") matches solution " << idx2+1 << " (" << soln_e[idx2] << ")" << endl;
                                 found = true;
                             }
                         }
@@ -173,8 +188,8 @@ class Davidson : public task::Destructible
                         {
                             if (aquarius::abs(real(l[rt])-soln_e[idx2]) < 1e-6)
                             {
-                                if (n == 1) //printf("Root %d (%.12f) matches solution %d (%.12f)\n", rt+1, real(l[rt]), idx2, soln_e[idx2]);
-                                    task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") matches solution " << idx2+1 << " (" << soln_e[idx2] << ")" << endl;
+                                //if (n == 1) //printf("Root %d (%.12f) matches solution %d (%.12f)\n", rt+1, real(l[rt]), idx2, soln_e[idx2]);
+                                //    task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") matches solution " << idx2+1 << " (" << soln_e[idx2] << ")" << endl;
                                 found = true;
                             }
                         }
@@ -207,15 +222,15 @@ class Davidson : public task::Destructible
                             {
                                 task::Logger::log(arena) << "WARNING: Root is imaginary! (2)" << endl;
                             }
-                            if (n == 1) //printf("Root %d (%.12f) picked\n", rt+1, real(l[rt]));
-                                task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") picked" << endl;
+                            //if (n == 1) //printf("Root %d (%.12f) picked\n", rt+1, real(l[rt]));
+                            //    task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") picked" << endl;
                             mincrit = crit;
                             roots[idx][vec] = rt;
                         }
                         else
                         {
-                            if (n == 1) //printf("Root %d (%.12f) not picked\n", rt+1, real(l[rt]));
-                                task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") not picked" << endl;
+                            //if (n == 1) //printf("Root %d (%.12f) not picked\n", rt+1, real(l[rt]));
+                            //    task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") not picked" << endl;
                         }
                     }
 
@@ -238,8 +253,8 @@ class Davidson : public task::Destructible
         {
             nextrap++;
 
-            old_c.resize(max((int)old_c.size(),nextrap));
-            old_hc.resize(max((int)old_hc.size(),nextrap));
+            old_c.resize(max<int>(old_c.size(),nextrap));
+            old_hc.resize(max<int>(old_hc.size(),nextrap));
 
             guess_overlap.resize(nvec, nvec, nextrap);
             s.resize(nvec, nextrap, nvec, nextrap);
@@ -249,33 +264,21 @@ class Davidson : public task::Destructible
 
             for (int vec = 0;vec < nvec;vec++)
             {
-                if (vec >= old_c[nextrap-1].size())
-                    old_c[nextrap-1].emplace_back(c[vec]);
-                else
-                    old_c[nextrap-1][vec] = c[vec];
+                if (vec >= old_c[nextrap-1].size()) old_c[nextrap-1].emplace_back();
+                if (vec >= old_hc[nextrap-1].size()) old_hc[nextrap-1].emplace_back();
 
-                if (vec >= old_hc[nextrap-1].size())
-                    old_hc[nextrap-1].emplace_back(hc[vec]);
-                else
-                    old_hc[nextrap-1][vec] = hc[vec];
-
-                /*
-                 * Orthogonalize and normalize
-                 */
-                /*
-                for (int soln = 0;soln < nsoln;soln++)
+                for (int idx = 0;idx < nc;idx++)
                 {
-                    for (int svec = 0;svec < nvec;svec++)
-                    {
-                        dtype olap = scalar(conj(old_c[soln][svec])*old_c[nextrap-1][vec]);
-                         old_c[nextrap-1][vec] -=  old_c[soln][svec];
-                        old_hc[nextrap-1][vec] -= old_hc[soln][svec];
-                    }
+                    if (idx >= old_c[nextrap-1][vec].size())
+                        old_c[nextrap-1][vec].emplace_back(c[vec][idx]);
+                    else
+                        old_c[nextrap-1][vec][idx] = c[vec][idx];
+
+                    if (idx >= old_hc[nextrap-1][vec].size())
+                        old_hc[nextrap-1][vec].emplace_back(hc[vec][idx]);
+                    else
+                        old_hc[nextrap-1][vec][idx] = hc[vec][idx];
                 }
-                dtype nrm = sqrt(aquarius::abs(scalar(conj(old_c[nextrap-1][vec])*old_c[nextrap-1][vec])));
-                 old_c[nextrap-1][vec] /= nrm;
-                old_hc[nextrap-1][vec] /= nrm;
-                */
             }
 
             /*
@@ -287,7 +290,7 @@ class Davidson : public task::Destructible
                 {
                     for (int gvec = 0;gvec < nvec;gvec++)
                     {
-                        guess_overlap[gvec][cvec][nextrap-1] = scalar(conj(old_c[nextrap-1][cvec])*guess[gvec]);
+                        guess_overlap[gvec][cvec][nextrap-1] = innerProd(old_c[nextrap-1][cvec], guess[gvec]);
                     }
                 }
             }
@@ -299,15 +302,15 @@ class Davidson : public task::Destructible
             {
                 for (int rvec = 0;rvec < nvec;rvec++)
                 {
-                    e[lvec][nextrap-1][rvec][nextrap-1] = scalar(conj(old_c[nextrap-1][lvec])*old_hc[nextrap-1][rvec]);
-                    s[lvec][nextrap-1][rvec][nextrap-1] = scalar(conj(old_c[nextrap-1][lvec])* old_c[nextrap-1][rvec]);
+                    e[lvec][nextrap-1][rvec][nextrap-1] = innerProd(old_c[nextrap-1][lvec], old_hc[nextrap-1][rvec]);
+                    s[lvec][nextrap-1][rvec][nextrap-1] = innerProd(old_c[nextrap-1][lvec],  old_c[nextrap-1][rvec]);
 
                     for (int extrap = 0;extrap < nextrap;extrap++)
                     {
-                        e[lvec][   extrap][rvec][nextrap-1] = scalar(conj(old_c[   extrap][lvec])*old_hc[nextrap-1][rvec]);
-                        e[lvec][nextrap-1][rvec][   extrap] = scalar(conj(old_c[nextrap-1][lvec])*old_hc[   extrap][rvec]);
-                        s[lvec][   extrap][rvec][nextrap-1] = scalar(conj(old_c[   extrap][lvec])* old_c[nextrap-1][rvec]);
-                        s[lvec][nextrap-1][rvec][   extrap] = scalar(conj(old_c[nextrap-1][lvec])* old_c[   extrap][rvec]);
+                        e[lvec][   extrap][rvec][nextrap-1] = innerProd(old_c[   extrap][lvec], old_hc[nextrap-1][rvec]);
+                        e[lvec][nextrap-1][rvec][   extrap] = innerProd(old_c[nextrap-1][lvec], old_hc[   extrap][rvec]);
+                        s[lvec][   extrap][rvec][nextrap-1] = innerProd(old_c[   extrap][lvec],  old_c[nextrap-1][rvec]);
+                        s[lvec][nextrap-1][rvec][   extrap] = innerProd(old_c[nextrap-1][lvec],  old_c[   extrap][rvec]);
                     }
                 }
             }
@@ -315,40 +318,64 @@ class Davidson : public task::Destructible
 
         void getRoot(int rt, T& c, T& hc, bool normalize = true)
         {
-            getRoot(rt, c, false);
-
-            hc = 0;
-            for (int extrap = nextrap-1;extrap >= 0;extrap--)
-            {
-                for (int vec = nvec-1;vec >= 0;vec--)
-                {
-                    hc += old_hc[extrap][vec]*vr[rt][vec][extrap];
-                }
-            }
-
-            if (normalize)
-            {
-                dtype nrm = sqrt(aquarius::abs(scalar(conj(c)*c)));
-                c /= nrm;
-                hc /= nrm;
-            }
+            assert(nc == 1);
+            getRoot(rt, ptr_vector<T>{&c}, ptr_vector<T>{&hc}, normalize);
         }
 
         void getRoot(int rt, T& c, bool normalize = true)
         {
-            c = 0;
-            for (int extrap = nextrap-1;extrap >= 0;extrap--)
+            assert(nc == 1);
+            getRoot(rt, ptr_vector<T>{&c}, normalize);
+        }
+
+        template <typename c_container, typename hc_container>
+        void getRoot(int rt, c_container&& c, hc_container&& hc, bool normalize = true)
+        {
+            getRoot(rt, c, false);
+
+            for (int idx = 0;idx < nc;idx++)
             {
-                for (int vec = nvec-1;vec >= 0;vec--)
+                hc[idx] = 0;
+                for (int extrap = nextrap-1;extrap >= 0;extrap--)
                 {
-                    c += old_c[extrap][vec]*vr[rt][vec][extrap];
+                    for (int vec = nvec-1;vec >= 0;vec--)
+                    {
+                        hc[idx] += old_hc[extrap][vec][idx]*vr[rt][vec][extrap];
+                    }
                 }
             }
 
             if (normalize)
             {
-                dtype nrm = sqrt(aquarius::abs(scalar(conj(c)*c)));
-                c /= nrm;
+                dtype nrm = sqrt(aquarius::abs(innerProd(c, c)));
+
+                for (int idx = 0;idx < nc;idx++)
+                {
+                    c[idx] /= nrm;
+                    hc[idx] /= nrm;
+                }
+            }
+        }
+
+        template <typename c_container>
+        void getRoot(int rt, c_container&& c, bool normalize = true)
+        {
+            for (int idx = 0;idx < nc;idx++)
+            {
+                c[idx] = 0;
+                for (int extrap = nextrap-1;extrap >= 0;extrap--)
+                {
+                    for (int vec = nvec-1;vec >= 0;vec--)
+                    {
+                        c[idx] += old_c[extrap][vec][idx]*vr[rt][vec][extrap];
+                    }
+                }
+            }
+
+            if (normalize)
+            {
+                dtype nrm = sqrt(aquarius::abs(innerProd(c, c)));
+                for (int idx = 0;idx < nc;idx++) c[idx] /= nrm;
             }
         }
 
@@ -362,19 +389,50 @@ class Davidson : public task::Destructible
 
         dtype extrapolate(T& c, T& hc, const op::Denominator<dtype>& D)
         {
+            assert(nc == 1);
             assert(nvec == 1);
             return extrapolate(ptr_vector<T>{&c}, ptr_vector<T>{&hc}, D)[0];
         }
 
         template <typename c_container, typename hc_container>
-        vector<dtype> extrapolate(c_container&& c, hc_container&& hc, const op::Denominator<dtype>& D)
+        enable_if_t<is_same<typename decay_t<c_container>::value_type, T>::value, vector<dtype>>
+        extrapolate(c_container&& c, hc_container&& hc, const op::Denominator<dtype>& D)
+        {
+            assert((nc == 1 && nvec  > 1) ||
+                   (nc  > 1 && nvec == 1));
+
+            vector<ptr_vector<T>> new_c, new_hc;
+
+            if (nc == 1)
+            {
+                for (auto& t : c) new_c.push_back({&t});
+                for (auto& t : hc) new_hc.push_back({&t});
+            }
+            else
+            {
+                new_c.emplace_back();
+                new_hc.emplace_back();
+                for (auto& t : c) new_c[0].push_back(&t);
+                for (auto& t : hc) new_hc[0].push_back(&t);
+            }
+
+            return extrapolate(new_c, new_hc, D);
+        }
+
+        template <typename c_container, typename hc_container>
+        enable_if_t<is_same<typename decay_t<c_container>::value_type::value_type, T>::value, vector<dtype>>
+        extrapolate(c_container&& c, hc_container&& hc, const op::Denominator<dtype>& D)
         {
             using slice::all;
 
-            assert(nvec == c.size() && nvec == hc.size());
-	    
             assert(c.size() == nvec);
             assert(hc.size() == nvec);
+
+            for (int vec = 0;vec < nvec;vec++)
+            {
+                assert(c[vec].size() == nc);
+                assert(hc[vec].size() == nc);
+            }
 
             /*
              * If the maximum size of the subspace has been reached, a smaller
@@ -383,21 +441,23 @@ class Davidson : public task::Destructible
              */
             if (nextrap == maxextrap+nsoln)
             {
-                task::Logger::log(c[0].arena) << "Compacting..." << endl;
-                int new_nextrap = max(nsoln+1, nextrap-nreduce);
+                task::Logger::log(c[0][0].arena) << "Compacting..." << endl;
+                int new_nextrap = nsoln+nreduce;
 
-                vector<vector<int>> roots = getBestRoots(new_nextrap-nsoln,c[0].arena);
+                vector<vector<int>> roots = getBestRoots(nreduce,c[0][0].arena);
 
-                vector<unique_vector<T>> new_c(new_nextrap-nsoln);
-                vector<unique_vector<T>> new_hc(new_nextrap-nsoln);
+                vector<vector<unique_vector<T>>> new_c(nreduce);
+                vector<vector<unique_vector<T>>> new_hc(nreduce);
 
-                for (int extrap = 0; extrap < new_nextrap-nsoln; extrap++)
+                for (int extrap = 0; extrap < nreduce; extrap++)
                 {
-                    new_c[extrap].assign(c.begin(), c.end());
-                    new_hc[extrap].assign(hc.begin(), hc.end());
+                    new_c[extrap].resize(nvec);
+                    new_hc[extrap].resize(nvec);
 
                     for (int vec = 0;vec < nvec;vec++)
                     {
+                        new_c[extrap][vec].assign(c[vec].begin(), c[vec].end());
+                        new_hc[extrap][vec].assign(hc[vec].begin(), hc[vec].end());
                         getRoot(roots[extrap][vec], new_c[extrap][vec], new_hc[extrap][vec]);
                     }
                 }
@@ -443,7 +503,7 @@ class Davidson : public task::Destructible
             /*
              * Assign eigenvalues (exclusively) to states by the selected criterion
              */
-            root = getBestRoot(c[0].arena);
+            root = getBestRoot(c[0][0].arena);
 
             /*
              * Check proximity to previous root and lock on if within tolerance
@@ -455,14 +515,14 @@ class Davidson : public task::Destructible
                     !lock[vec] &&
                     aquarius::abs(previous[vec]-real(l[root[vec]])) < 1e-4)
                 {
-                    task::Logger::log(c[0].arena) << "Locking root " << (vec+1) << endl;
+                    task::Logger::log(c[0][0].arena) << "Locking root " << (vec+1) << endl;
                     lock[vec] = true;
                     lock_e[vec] = real(l[root[vec]]);
                 }
                 else if (lock[vec] &&
                          aquarius::abs(lock_e[vec]-real(l[root[vec]])) > 1e-4)
                 {
-                    task::Logger::log(c[0].arena) << "Re-locking root " << (vec+1) << endl;
+                    task::Logger::log(c[0][0].arena) << "Re-locking root " << (vec+1) << endl;
                     lock_e[vec] = real(l[root[vec]]);
                 }
                 previous[vec] = real(l[root[vec]]);
@@ -473,20 +533,7 @@ class Davidson : public task::Destructible
              */
             for (int vec = 0;vec < nvec;vec++)
             {
-                /*
-                 * Form current trial vector y and H*y = x
-                 */
                 getRoot(root[vec], c[vec], hc[vec]);
-
-                bool triplet (scalar(c[vec](1)({1,0},{0,1})*c[vec](1)({0,0},{0,0})) < 0);
-                if (triplet)
-                {
-                    task::Logger::log(c[0].arena) << "Spin: Triplet" << endl;
-                }
-                else
-                {
-                    task::Logger::log(c[0].arena) << "Spin: Singlet" << endl;
-                }
             }
 
             if (continuous)
@@ -506,9 +553,12 @@ class Davidson : public task::Destructible
                 /*
                  * Form residual and apply Davidson correction
                  */
-                hc[vec] -= real(l[root[vec]])*c[vec];
-                c[vec] = -hc[vec];
-                c[vec].weight(D, real(l[root[vec]]));
+                for (int idx = 0;idx < nc;idx++)
+                {
+                    hc[vec][idx] -= real(l[root[vec]])*c[vec][idx];
+                    c[vec][idx] = -hc[vec][idx];
+                }
+                weight(c[vec], D, real(l[root[vec]]));
 
                 /*
                  * Orthogonalize and normalize
@@ -517,10 +567,12 @@ class Davidson : public task::Destructible
                 {
                     for (int svec = 0;svec < nvec;svec++)
                     {
-                        c[vec] -= old_c[soln][svec]*scalar(conj(old_c[soln][svec])*c[vec]);
+                        dtype olap = innerProd(old_c[soln][svec], c[vec]);
+                        for (int idx = 0;idx < nc;idx++) c[vec][idx] -= old_c[soln][svec][idx]*olap;
                     }
                 }
-                c[vec] /= sqrt(aquarius::abs(scalar(conj(c[vec])*c[vec])));
+                dtype nrm = innerProd(c[vec], c[vec]);
+                for (int idx = 0;idx < nc;idx++) c[vec][idx] /= sqrt(nrm);
             }
 
             if (continuous)
@@ -536,8 +588,11 @@ class Davidson : public task::Destructible
 
                     for (int lvec = 0;lvec < nvec;lvec++)
                     {
-                        old_c[nextrap-2][lvec] -= old_c[nextrap-1][lvec];
-                        old_hc[nextrap-2][lvec] -= old_hc[nextrap-1][lvec];
+                        for (int idx = 0;idx < nc;idx++)
+                        {
+                            old_c[nextrap-2][lvec][idx] -= old_c[nextrap-1][lvec][idx];
+                            old_hc[nextrap-2][lvec][idx] -= old_hc[nextrap-1][lvec][idx];
+                        }
 
                         for (int rvec = 0;rvec < nvec;rvec++)
                         {
@@ -603,9 +658,11 @@ class Davidson : public task::Destructible
 
         void getSolution(int j, T& c)
         {
+            assert(nc == 1);
+
             if (continuous)
             {
-                c = old_c[nextrap-1][j];
+                c = old_c[nextrap-1][j][0];
             }
             else
             {
@@ -613,66 +670,153 @@ class Davidson : public task::Destructible
             }
         }
 
-        void reset(int nvec = 1)
+        template <typename c_container>
+        void getSolution(int j, c_container&& c)
         {
+            assert(nc == c.size());
+
+            if (continuous)
+            {
+                for (int idx = 0;idx < nc;idx++)
+                    c[idx] = old_c[nextrap-1][j][idx];
+            }
+            else
+            {
+                getRoot(root[j], c);
+            }
+        }
+
+        void getSolution(int j, T& c, T& hc)
+        {
+            assert(nc == 1);
+
+            if (continuous)
+            {
+                c = old_c[nextrap-1][j][0];
+                hc = old_hc[nextrap-1][j][0];
+            }
+            else
+            {
+                getRoot(root[j], c, hc);
+            }
+        }
+
+        template <typename c_container, typename hc_container>
+        void getSolution(int j, c_container&& c, hc_container&& hc)
+        {
+            assert(nc == c.size());
+
+            if (continuous)
+            {
+                for (int idx = 0;idx < nc;idx++)
+                {
+                    c[idx] = old_c[nextrap-1][j][idx];
+                    hc[idx] = old_hc[nextrap-1][j][idx];
+                }
+            }
+            else
+            {
+                getRoot(root[j], c, hc);
+            }
+        }
+
+        void reset(int nvec = 1, int nc = 1, InnerProd innerProd = InnerProd(), Weight weight = Weight())
+        {
+            this->nc = nc;
+            this->innerProd = innerProd;
+            this->weight = weight;
             init(nvec, LOWEST_ENERGY);
         }
 
-        void reset(dtype t)
+        void reset(dtype t, int nc = 1, InnerProd innerProd = InnerProd(), Weight weight = Weight())
         {
+            this->nc = nc;
+            this->innerProd = innerProd;
+            this->weight = weight;
             init(1, CLOSEST_ENERGY);
             target[0] = t;
         }
 
-        void reset(const vector<dtype>& t)
+        void reset(const vector<dtype>& t, int nc = 1, InnerProd innerProd = InnerProd(), Weight weight = Weight())
         {
+            this->nc = nc;
+            this->innerProd = innerProd;
+            this->weight = weight;
             init(target.size(), CLOSEST_ENERGY);
             target = t;
         }
 
-        void reset(const T& g)
+        void reset(const T& g, int nc = 1, InnerProd innerProd = InnerProd(), Weight weight = Weight())
         {
+            this->nc = nc;
+            this->innerProd = innerProd;
+            this->weight = weight;
+            assert(nc == 1);
             init(1, GUESS_OVERLAP);
-            guess.push_back(g);
+            guess.push_back({g});
         }
 
         template <typename guess_container>
-        enable_if_t<is_same<typename guess_container::value_type,T>::value>
-        reset(const guess_container& gs)
+        enable_if_t<is_same<typename decay_t<guess_container>::value_type,T>::value>
+        reset(const guess_container& gs, int nc = 1, InnerProd innerProd = InnerProd(), Weight weight = Weight())
         {
-            init(guess.size(), GUESS_OVERLAP);
-            for (auto& g : gs) guess.push_back(g);
+            this->nc = nc;
+            this->innerProd = innerProd;
+            this->weight = weight;
+
+            assert((nc == 1 && nvec  > 1) ||
+                   (nc  > 1 && nvec == 1));
+
+            if (nc == 1)
+            {
+                init(gs.size(), GUESS_OVERLAP);
+                guess.clear();
+                guess.resize(gs.size());
+                for (int vec = 0;vec < nvec;vec++) guess[vec].emplace_back(gs[vec]);
+            }
+            else
+            {
+                assert(nc == gs.size());
+                init(1, GUESS_OVERLAP);
+                guess.resize(1);
+                guess[0].assign(gs.begin(), gs.end());
+            }
+        }
+
+        template <typename guess_container>
+        enable_if_t<is_same<typename decay_t<guess_container>::value_type::value_type,T>::value>
+        reset(const guess_container& gs, int nc = 1, InnerProd innerProd = InnerProd(), Weight weight = Weight())
+        {
+            this->nc = nc;
+            this->innerProd = innerProd;
+            this->weight = weight;
+
+            assert(gs.size() == nvec);
+            for (int vec = 0;vec < nvec;vec++)
+            {
+                assert(gs[vec].size() == nc);
+            }
+
+            init(gs.size(), GUESS_OVERLAP);
+            guess.resize(gs.size());
+            for (int vec = 0;vec < nvec;vec++) guess[vec].assign(gs[vec].begin(), gs[vec].end());
         }
 
         template <typename... Args>
         void nextRoot(Args&&... args)
         {
-            //if (!continuous)
-            //{
-            
-                unique_vector<T> c(old_c[0].begin(), old_c[0].end());
-                unique_vector<T> hc(old_hc[0].begin(), old_hc[0].end());
+            vector<unique_vector<T>> c(nvec);
+            vector<unique_vector<T>> hc(nvec);
 
-                for (int vec = 0;vec < nvec;vec++)
-                {
-                    getRoot(root[vec], c[vec], hc[vec]);
-                }
+            for (int vec = 0;vec < nvec;vec++)
+            {
+                c[vec].assign(old_c[0][vec].begin(), old_c[0][vec].end());
+                hc[vec].assign(old_hc[0][vec].begin(), old_hc[0][vec].end());
+                getRoot(root[vec], c[vec], hc[vec]);
+            }
 
-                nextrap = nsoln;
-                addVectors(c, hc);
-            
-            //}
-
-            /*
-            using slice::all;
-
-            rotate(old_c.begin()+nsoln, old_c.begin()+nextrap-1, old_c.end());
-            rotate(old_hc.begin()+nsoln, old_hc.begin()+nextrap-1, old_hc.end());
-            e[all][range(nsoln,nextrap)][all][all].rotate(0,-1,0,0);
-            s[all][range(nsoln,nextrap)][all][all].rotate(0,-1,0,0);
-            e[all][all][all][range(nsoln,nextrap)].rotate(0,0,0,-1);
-            s[all][all][all][range(nsoln,nextrap)].rotate(0,0,0,-1);
-            */
+            nextrap = nsoln;
+            addVectors(c, hc);
 
             nsoln++;
             for (int vec = 0;vec < nvec;vec++)

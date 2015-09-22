@@ -15,6 +15,10 @@ __top_builddir__bin_aquarius_SOURCES = \
 	src/cc/ccsd_density.cxx \
 	src/cc/ccsdt_density.cxx \
 	src/cc/ccsdtq_density.cxx \
+	src/cc/ccsdtq_1a_density.cxx \
+	src/cc/ccsdtq_1b_density.cxx \
+	src/cc/ccsdtq_3_density.cxx \
+	src/cc/cc4_density.cxx \
 	src/cc/ccsd_t.cxx \
 	src/cc/ccsd_t_l.cxx \
 	src/cc/ccsd_t_n_opt.cxx \
@@ -30,16 +34,29 @@ __top_builddir__bin_aquarius_SOURCES = \
 	src/cc/ccsdt_q_n.cxx \
 	src/cc/ccsdt.cxx \
 	src/cc/ccsdtq.cxx \
+	src/cc/ccsdtq_1a.cxx \
+	src/cc/ccsdtq_1b.cxx \
+	src/cc/ccsdtq_3.cxx \
+	src/cc/cc4.cxx \
 	src/cc/eomeeccsd.cxx \
+	src/cc/eomeeccsdt.cxx \
 	src/cc/lambdaccsd.cxx \
 	src/cc/lambdaccsdt.cxx \
+	src/cc/lambdaccsdt_q.cxx \
 	src/cc/lambdaccsdtq.cxx \
+	src/cc/lambdaccsdtq_1a.cxx \
+	src/cc/lambdaccsdtq_1b.cxx \
+	src/cc/lambdaccsdtq_3.cxx \
+	src/cc/lambdacc4.cxx \
 	src/cc/lccd.cxx \
 	src/cc/mp3.cxx \
 	src/cc/mp4dq.cxx \
 	src/cc/perturbedccsd.cxx \
 	src/cc/perturbedlambdaccsd.cxx \
+	src/cc/rhfccsd.cxx \
 	src/cc/tda_local.cxx \
+	src/cc/rhftda_local.cxx \
+	src/cc/rhfeomeeccsd.cxx \
 	\
 	src/input/basis.cxx \
 	src/input/config.cxx \
@@ -65,8 +82,10 @@ __top_builddir__bin_aquarius_SOURCES = \
 	\
 	src/operator/2eoperator.cxx \
 	src/operator/aomoints.cxx \
+	src/operator/rhfaomoints.cxx \
 	src/operator/moints.cxx \
 	src/operator/sparseaomoints.cxx \
+	src/operator/sparserhfaomoints.cxx \
 	\
 	src/scf/aouhf.cxx \
 	src/scf/uhf_local.cxx \
@@ -92,7 +111,8 @@ AM_CPPFLAGS += @elemental_INCLUDES@
 __top_builddir__bin_aquarius_LDADD += @elemental_LIBS@
 __top_builddir__bin_aquarius_SOURCES += \
 	src/scf/uhf_elemental.cxx \
-	src/cc/tda_elemental.cxx
+	src/cc/tda_elemental.cxx \
+	src/cc/rhftda_elemental.cxx
 endif
 	
 if HAVE_LIBINT2

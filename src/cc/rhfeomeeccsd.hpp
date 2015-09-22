@@ -9,8 +9,7 @@
 #include "operator/st2eoperator.hpp"
 #include "operator/excitationoperator.hpp"
 #include "operator/denominator.hpp"
-
-#include "ccsd.hpp"
+#include "input/molecule.hpp"
 
 namespace aquarius
 {
@@ -18,19 +17,17 @@ namespace cc
 {
 
 template <typename U>
-class EOMEECCSD : public Iterative<U>
+class RHFEOMEECCSD : public Iterative<U>
 {
     protected:
         input::Config davidson_config;
         int nroot;
-        int ntriplet;
         int nsinglet;
-        bool multiroot;
+        int ntriplet;
         bool triplet;
-        vector<U> previous;
 
     public:
-        EOMEECCSD(const string& name, input::Config& config);
+        RHFEOMEECCSD(const string& name, input::Config& config);
 
         bool run(task::TaskDAG& dag, const Arena& arena);
 

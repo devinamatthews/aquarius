@@ -15,14 +15,7 @@ namespace op
 {
 
 template <typename T>
-AOMOIntegrals<T>::AOMOIntegrals(const string& name, Config& config)
-: MOIntegrals<T>(name, config)
-{
-    this->getProduct("H").addRequirement("eri", "I");
-}
-
-template <typename T>
-AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(const vector<int>& norb, const ERI& aoints)
+pqrs_integrals<T>::pqrs_integrals(const vector<int>& norb, const ERI& aoints)
 : Distributed(aoints.arena), group(aoints.group)
 {
     PROFILE_FUNCTION
@@ -71,7 +64,7 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(const vector<int>& norb, const 
 }
 
 template <typename T>
-AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(abrs_integrals& abrs)
+pqrs_integrals<T>::pqrs_integrals(abrs_integrals<T>& abrs)
 : Distributed(abrs.arena), group(abrs.group)
 {
     PROFILE_FUNCTION
@@ -139,14 +132,14 @@ AOMOIntegrals<T>::pqrs_integrals::pqrs_integrals(abrs_integrals& abrs)
 }
 
 template <typename T>
-void AOMOIntegrals<T>::pqrs_integrals::free()
+void pqrs_integrals<T>::free()
 {
     ints.clear();
     idxs.clear();
 }
 
 template <typename T>
-void AOMOIntegrals<T>::pqrs_integrals::sortInts(bool rles, size_t& nrs, vector<size_t>& rscount)
+void pqrs_integrals<T>::sortInts(bool rles, size_t& nrs, vector<size_t>& rscount)
 {
     size_t nrtot = sum(nr);
     size_t nstot = sum(ns);
@@ -191,11 +184,302 @@ void AOMOIntegrals<T>::pqrs_integrals::sortInts(bool rles, size_t& nrs, vector<s
     swap(idxs, newidxs);
 }
 
+
+template <typename T>
+void pqrs_integrals<T>::transcribe(SymmetryBlockedTensor<T>& symtensor, bool assympr, bool assymqs, Side side)
+{
+    PROFILE_FUNCTION
+
+    if (assympr) assert(np == nr);
+    if (assymqs) assert(nq == ns);
+
+    int n = group.getNumIrreps();
+
+    vector<int> irrepp;
+    for (int i = 0;i < n;i++) irrepp += vector<int>(np[i],i);
+    vector<int> irrepq;
+    for (int i = 0;i < n;i++) irrepq += vector<int>(nq[i],i);
+
+    vector<int> startr(n);
+    for (int i = 1;i < n;i++) startr[i] = startr[i-1]+nr[i-1];
+    vector<int> starts(n);
+    for (int i = 1;i < n;i++) starts[i] = starts[i-1]+ns[i-1];
+
+    vector<int> startp(n);
+    for (int i = 1;i < n;i++) startp[i] = startp[i-1]+np[i-1];
+    vector<int> startq(n);
+    for (int i = 1;i < n;i++) startq[i] = startq[i-1]+nq[i-1];
+
+    vector<size_t> offpq(n*n);
+    vector<int> symirrs(4);
+    Representation irrrs(group), irrqrs(group), irrpqrs(group);
+
+    int nrtot = sum(nr);
+    int nstot = sum(ns);
+
+    vector<size_t> numrs(nrtot*nstot);
+    for (auto& idx : idxs)
+    {
+        size_t rs = idx.k+idx.l*nrtot;
+        numrs[rs]++;
+    }
+
+    vector<size_t> offrs(nrtot*nstot);
+    for (int i = 1;i < nrtot*nstot;i++) offrs[i] = offrs[i-1]+numrs[i-1];
+
+    /*
+     * (pq|rs) -> <pr|qs>
+     */
+    for (int irrs = 0;irrs < n;irrs++)
+    {
+        for (int irrr = 0;irrr < n;irrr++)
+        {
+            irrrs = group.getIrrep(irrr)*group.getIrrep(irrs);
+
+            matrix<vector<tkv_pair<T>>> pairs(n,n);
+
+            for (int s = starts[irrs];s < starts[irrs]+ns[irrs];s++)
+            {
+                for (int r = startr[irrr];r < startr[irrr]+nr[irrr];r++)
+                {
+                    auto iidx = idxs.begin()+offrs[r+s*nrtot];
+                    auto iend =         iidx+numrs[r+s*nrtot];
+                    auto iint = ints.begin()+offrs[r+s*nrtot];
+                    for (;iidx != iend;++iidx, ++iint)
+                    {
+                        int p = iidx->i;
+                        int q = iidx->j;
+                        int irrp = irrepp[p];
+                        int irrq = irrepp[q];
+
+                        if (assympr && p == r) continue;
+                        if (assymqs && q == s) continue;
+                        if (assympr && assymqs && q > s) continue;
+
+                        if (side == PQ || (assympr && p > r))
+                        {
+                            if (side == RS || (assymqs && q > s))
+                            {
+                                pairs[irrp][irrq].emplace_back(((((int64_t)q)*ns[irrs]+s)*np[irrp]+p)*nr[irrr]+r, *iint);
+                            }
+                            else
+                            {
+                                pairs[irrp][irrq].emplace_back(((((int64_t)s)*nq[irrq]+q)*np[irrp]+p)*nr[irrr]+r, -*iint);
+                            }
+                        }
+                        else
+                        {
+                            if (side == RS || (assymqs && q > s))
+                            {
+                                pairs[irrp][irrq].emplace_back(((((int64_t)q)*ns[irrs]+s)*nr[irrr]+r)*np[irrp]+p, -*iint);
+                            }
+                            else
+                            {
+                                pairs[irrp][irrq].emplace_back(((((int64_t)s)*nq[irrq]+q)*nr[irrr]+r)*np[irrp]+p, *iint);
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (int irrq = 0;irrq < n;irrq++)
+            {
+                irrqrs = irrrs;
+                irrqrs *= group.getIrrep(irrq);
+
+                for (int irrp = 0;irrp < n;irrp++)
+                {
+                    irrpqrs = irrqrs;
+                    irrpqrs *= group.getIrrep(irrp);
+
+                    if (!irrpqrs.isTotallySymmetric()) continue;
+                    if (assympr && assymqs && irrq > irrs) continue;
+
+                    symirrs[0] = irrp;
+                    symirrs[1] = irrr;
+                    symirrs[2] = irrq;
+                    symirrs[3] = irrs;
+                    if (side == PQ || (assympr && irrp > irrr)) swap(symirrs[0], symirrs[1]);
+                    if (side == RS || (assymqs && irrq > irrs)) swap(symirrs[2], symirrs[3]);
+
+                    symtensor.writeRemoteData(symirrs, 1, 1, pairs[irrp][irrq]);
+                }
+            }
+        }
+    }
+
+    PROFILE_STOP
+}
+
+template <typename T>
+pqrs_integrals<T> pqrs_integrals<T>::transform(Index index, const vector<int>& nc,
+                                               const vector<vector<T>>& C, bool pleq)
+{
+    pqrs_integrals out(arena, group);
+
+    int n = group.getNumIrreps();
+    int nptot = sum(np);
+    int nqtot = sum(nq);
+    int nctot = sum(nc);
+
+    vector<int> startc(n);
+    for (int i = 1;i < n;i++) startc[i] = startc[i-1]+nc[i-1];
+
+    vector<int> startp(n);
+    for (int i = 1;i < n;i++) startp[i] = startp[i-1]+np[i-1];
+    vector<int> startq(n);
+    for (int i = 1;i < n;i++) startq[i] = startq[i-1]+nq[i-1];
+
+    out.nr = nr;
+    out.ns = ns;
+
+    if (index == A)
+    {
+        out.np = nc;
+        out.nq = nq;
+    }
+    else
+    {
+        out.np = np;
+        out.nq = nc;
+    }
+
+    int r = -1;
+    int s = -1;
+
+    auto ibegin = idxs.begin();
+    auto iend = idxs.end();
+    auto iidx = ibegin;
+    auto iint = ints.begin();
+
+    matrix<double> before(nptot, nqtot), after;
+
+    if (index == A)
+    {
+        after.reset(nctot, nqtot);
+    }
+    else
+    {
+        after.reset(nptot, nctot);
+    }
+
+    while (true)
+    {
+        if (iidx == iend || iidx->l != s || iidx->k != r)
+        {
+            if (iidx != ibegin)
+            {
+                int irrepr = 0;
+                for (int r_ = r;r_ > nr[irrepr];r_ -= nr[irrepr], irrepr++);
+
+                int irreps = 0;
+                for (int s_ = s;s_ > ns[irreps];s_ -= ns[irreps], irreps++);
+
+                for (int irrepc = 0;irrepc < n;irrepc++)
+                {
+                    if (index == A)
+                    {
+                        int irrepp = irrepc;
+                        Representation rprs = group.getIrrep(irrepp)*
+                                              group.getIrrep(irrepr)*
+                                              group.getIrrep(irreps);
+
+                        for (int irrepq = 0;irrepq < n;irrepq++)
+                        {
+                            if (!(group.getIrrep(irrepq)*rprs).isTotallySymmetric()) continue;
+
+                            gemm('N', 'N', nq[irrepq], nc[irrepc], np[irrepp],
+                                 1.0, &before[startp[irrepp]][startq[irrepq]], before.stride(0),
+                                                             C[irrepc].data(),       np[irrepp],
+                                 0.0,  &after[startc[irrepc]][startq[irrepq]],  after.stride(0));
+
+                            for (int c = startc[irrepc];c < startc[irrepc]+nc[irrepc];c++)
+                            {
+                                for (int q = startq[irrepq];q < startq[irrepq]+nq[irrepq];q++)
+                                {
+                                    double val = after[c][q];
+                                    if (aquarius::abs(val) > 1e-12)
+                                    {
+                                        out.idxs.emplace_back(c, q, r, s);
+                                        out.ints.push_back(val);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        int irrepq = irrepc;
+                        Representation rqrs = group.getIrrep(irrepq)*
+                                              group.getIrrep(irrepr)*
+                                              group.getIrrep(irreps);
+
+                        for (int irrepp = 0;irrepp < n;irrepp++)
+                        {
+                            if (!(group.getIrrep(irrepp)*rqrs).isTotallySymmetric()) continue;
+
+                            gemm('T', 'N', nc[irrepc], np[irrepp], nq[irrepq],
+                                 1.0,                        C[irrepc].data(),       nq[irrepq],
+                                      &before[startp[irrepp]][startq[irrepq]], before.stride(0),
+                                 0.0,  &after[startp[irrepp]][startc[irrepc]],  after.stride(0));
+
+                            for (int p = startp[irrepp];p < startp[irrepp]+np[irrepp];p++)
+                            {
+                                for (int c = startc[irrepc];c < startc[irrepc]+nc[irrepc];c++)
+                                {
+                                    double val = after[p][c];
+                                    if (aquarius::abs(val) > 1e-12)
+                                    {
+                                        out.idxs.emplace_back(p, c, r, s);
+                                        out.ints.push_back(val);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (iidx == iend)
+            {
+                break;
+            }
+            else
+            {
+                r = iidx->k;
+                s = iidx->l;
+                before = 0.0;
+            }
+        }
+
+        before[iidx->i][iidx->j] = *iint;
+        if (pleq && iidx->i != iidx->j)
+            before[iidx->j][iidx->i] = *iint;
+
+        ++iidx;
+        ++iint;
+    }
+
+    return out;
+}
+
+template <typename T>
+void pqrs_integrals<T>::transpose()
+{
+    for (auto& idx : idxs)
+    {
+        swap(idx.i, idx.k);
+        swap(idx.j, idx.l);
+    }
+    swap(np, nr);
+    swap(nq, ns);
+}
+
 /*
  * Redistribute integrals such that each node has all pq for each rs pair
  */
 template <typename T>
-void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
+void pqrs_integrals<T>::collect(bool rles)
 {
     PROFILE_FUNCTION
 
@@ -243,7 +527,7 @@ void AOMOIntegrals<T>::pqrs_integrals::collect(bool rles)
 }
 
 template <typename T>
-AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const bool pleq)
+abrs_integrals<T>::abrs_integrals(pqrs_integrals<T>& pqrs, const bool pleq)
 : Distributed(pqrs.arena), group(pqrs.group)
 {
     PROFILE_FUNCTION
@@ -325,8 +609,7 @@ AOMOIntegrals<T>::abrs_integrals::abrs_integrals(pqrs_integrals& pqrs, const boo
 }
 
 template <typename T>
-typename AOMOIntegrals<T>::abrs_integrals
-AOMOIntegrals<T>::abrs_integrals::transform(Index index, const vector<int>& nc, const vector<vector<T>>& C)
+abrs_integrals<T> abrs_integrals<T>::transform(Index index, const vector<int>& nc, const vector<vector<T>>& C)
 {
     abrs_integrals out(arena, group);
 
@@ -469,7 +752,7 @@ AOMOIntegrals<T>::abrs_integrals::transform(Index index, const vector<int>& nc, 
 }
 
 template <typename T>
-void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symtensor, bool assymij, bool assymkl, Side side)
+void abrs_integrals<T>::transcribe(SymmetryBlockedTensor<T>& symtensor, bool assymij, bool assymkl, Side side)
 {
     PROFILE_FUNCTION
 
@@ -641,14 +924,14 @@ void AOMOIntegrals<T>::abrs_integrals::transcribe(SymmetryBlockedTensor<T>& symt
 }
 
 template <typename T>
-void AOMOIntegrals<T>::abrs_integrals::free()
+void abrs_integrals<T>::free()
 {
     ints.clear();
     rs.clear();
 }
 
 template <typename T>
-size_t AOMOIntegrals<T>::abrs_integrals::getNumAB(idx2_t rs)
+size_t abrs_integrals<T>::getNumAB(idx2_t rs)
 {
     int n = group.getNumIrreps();
 
@@ -681,7 +964,7 @@ size_t AOMOIntegrals<T>::abrs_integrals::getNumAB(idx2_t rs)
 }
 
 template <typename T>
-size_t AOMOIntegrals<T>::abrs_integrals::getNumAB(idx2_t rs, vector<size_t>& offab)
+size_t abrs_integrals<T>::getNumAB(idx2_t rs, vector<size_t>& offab)
 {
     int n = group.getNumIrreps();
 
@@ -722,6 +1005,13 @@ T absmax(const vector<T>& c)
 {
     //return c[iamax(c.size(), c.data(), 1)];
     return nrm2(c.size(), c.data(), 1);
+}
+
+template <typename T>
+AOMOIntegrals<T>::AOMOIntegrals(const string& name, Config& config)
+: MOIntegrals<T>(name, config)
+{
+    this->getProduct("H").addRequirement("eri", "I");
 }
 
 template <typename T>
@@ -807,57 +1097,57 @@ bool AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
      * Resort integrals so that each node has (pq|r_k s_l) where pq
      * are dense blocks for each sparse rs pair
      */
-    pqrs_integrals pqrs(N, ints);
+    pqrs_integrals<T> pqrs(N, ints);
     pqrs.collect(true);
-    abrs_integrals PQrs(pqrs, true);
+    abrs_integrals<T> PQrs(pqrs, true);
 
     /*
      * First quarter-transformation
      */
     //SHOWIT(PQrs);
-    abrs_integrals PArs = PQrs.transform(B, nA, cA);
+    abrs_integrals<T> PArs = PQrs.transform(B, nA, cA);
     //SHOWIT(PArs);
-    abrs_integrals Pars = PQrs.transform(B, na, ca);
+    abrs_integrals<T> Pars = PQrs.transform(B, na, ca);
     //SHOWIT(Pars);
-    abrs_integrals PIrs = PQrs.transform(B, nI, cI);
+    abrs_integrals<T> PIrs = PQrs.transform(B, nI, cI);
     //SHOWIT(PIrs);
-    abrs_integrals Pirs = PQrs.transform(B, ni, ci);
+    abrs_integrals<T> Pirs = PQrs.transform(B, ni, ci);
     //SHOWIT(Pirs);
     PQrs.free();
 
     /*
      * Second quarter-transformation
      */
-    abrs_integrals ABrs = PArs.transform(A, nA, cA);
+    abrs_integrals<T> ABrs = PArs.transform(A, nA, cA);
     //SHOWIT(ABrs);
     PArs.free();
-    abrs_integrals abrs = Pars.transform(A, na, ca);
+    abrs_integrals<T> abrs = Pars.transform(A, na, ca);
     //SHOWIT(abrs);
     Pars.free();
-    abrs_integrals AIrs = PIrs.transform(A, nA, cA);
+    abrs_integrals<T> AIrs = PIrs.transform(A, nA, cA);
     //SHOWIT(AIrs);
-    abrs_integrals IJrs = PIrs.transform(A, nI, cI);
+    abrs_integrals<T> IJrs = PIrs.transform(A, nI, cI);
     //SHOWIT(IJrs);
     PIrs.free();
-    abrs_integrals airs = Pirs.transform(A, na, ca);
+    abrs_integrals<T> airs = Pirs.transform(A, na, ca);
     //SHOWIT(airs);
-    abrs_integrals ijrs = Pirs.transform(A, ni, ci);
+    abrs_integrals<T> ijrs = Pirs.transform(A, ni, ci);
     //SHOWIT(ijrs);
     Pirs.free();
 
     /*
      * Make <AB||CD>
      */
-    pqrs_integrals rsAB(ABrs);
+    pqrs_integrals<T> rsAB(ABrs);
     rsAB.collect(false);
 
-    abrs_integrals RSAB(rsAB, true);
-    //SHOWIT(RSAB);
-    abrs_integrals RDAB = RSAB.transform(B, nA, cA);
+    abrs_integrals<T> RSAB(rsAB, true);
+    //SHOWIT(RSAB)<T>;
+    abrs_integrals<T> RDAB = RSAB.transform(B, nA, cA);
     //SHOWIT(RDAB);
     RSAB.free();
 
-    abrs_integrals CDAB = RDAB.transform(A, nA, cA);
+    abrs_integrals<T> CDAB = RDAB.transform(A, nA, cA);
     //SHOWIT(CDAB);
     RDAB.free();
     CDAB.transcribe(H.getABCD()({2,0},{2,0}), true, true, NONE);
@@ -866,24 +1156,24 @@ bool AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     /*
      * Make <Ab|Cd> and <ab||cd>
      */
-    pqrs_integrals rsab(abrs);
+    pqrs_integrals<T> rsab(abrs);
     rsab.collect(false);
 
-    abrs_integrals RSab(rsab, true);
+    abrs_integrals<T> RSab(rsab, true);
     //SHOWIT(RSab);
-    abrs_integrals RDab = RSab.transform(B, nA, cA);
+    abrs_integrals<T> RDab = RSab.transform(B, nA, cA);
     //SHOWIT(RDab);
-    abrs_integrals Rdab = RSab.transform(B, na, ca);
+    abrs_integrals<T> Rdab = RSab.transform(B, na, ca);
     //SHOWIT(Rdab);
     RSab.free();
 
-    abrs_integrals CDab = RDab.transform(A, nA, cA);
+    abrs_integrals<T> CDab = RDab.transform(A, nA, cA);
     //SHOWIT(CDab);
     RDab.free();
     CDab.transcribe(H.getABCD()({1,0},{1,0}), false, false, NONE);
     CDab.free();
 
-    abrs_integrals cdab = Rdab.transform(A, na, ca);
+    abrs_integrals<T> cdab = Rdab.transform(A, na, ca);
     //SHOWIT(cdab);
     Rdab.free();
     cdab.transcribe(H.getABCD()({0,0},{0,0}), true, true, NONE);
@@ -892,32 +1182,32 @@ bool AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     /*
      * Make <AB||CI>, <Ab|cI>, and <AB|IJ>
      */
-    pqrs_integrals rsAI(AIrs);
+    pqrs_integrals<T> rsAI(AIrs);
     rsAI.collect(false);
 
-    abrs_integrals RSAI(rsAI, true);
+    abrs_integrals<T> RSAI(rsAI, true);
     //SHOWIT(RSAI);
-    abrs_integrals RCAI = RSAI.transform(B, nA, cA);
+    abrs_integrals<T> RCAI = RSAI.transform(B, nA, cA);
     //SHOWIT(RCAI);
-    abrs_integrals RcAI = RSAI.transform(B, na, ca);
+    abrs_integrals<T> RcAI = RSAI.transform(B, na, ca);
     //SHOWIT(RcAI);
-    abrs_integrals RJAI = RSAI.transform(B, nI, cI);
+    abrs_integrals<T> RJAI = RSAI.transform(B, nI, cI);
     //SHOWIT(RJAI);
     RSAI.free();
 
-    abrs_integrals BCAI = RCAI.transform(A, nA, cA);
+    abrs_integrals<T> BCAI = RCAI.transform(A, nA, cA);
     //SHOWIT(BCAI);
     RCAI.free();
     BCAI.transcribe(H.getABCI()({2,0},{1,1}), true, false, NONE);
     BCAI.free();
 
-    abrs_integrals bcAI = RcAI.transform(A, na, ca);
+    abrs_integrals<T> bcAI = RcAI.transform(A, na, ca);
     //SHOWIT(bcAI);
     RcAI.free();
     bcAI.transcribe(H.getABCI()({1,0},{0,1}), false, false, PQ);
     bcAI.free();
 
-    abrs_integrals BJAI = RJAI.transform(A, nA, cA);
+    abrs_integrals<T> BJAI = RJAI.transform(A, nA, cA);
     //SHOWIT(BJAI);
     RJAI.free();
     BJAI.transcribe(ABIJ__, false, false, NONE);
@@ -926,40 +1216,40 @@ bool AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     /*
      * Make <Ab|Ci>, <ab||ci>, <Ab|Ij>, and <ab|ij>
      */
-    pqrs_integrals rsai(airs);
+    pqrs_integrals<T> rsai(airs);
     rsai.collect(false);
 
-    abrs_integrals RSai(rsai, true);
+    abrs_integrals<T> RSai(rsai, true);
     //SHOWIT(RSai);
-    abrs_integrals RCai = RSai.transform(B, nA, cA);
+    abrs_integrals<T> RCai = RSai.transform(B, nA, cA);
     //SHOWIT(RCai);
-    abrs_integrals Rcai = RSai.transform(B, na, ca);
+    abrs_integrals<T> Rcai = RSai.transform(B, na, ca);
     //SHOWIT(Rcai);
-    abrs_integrals RJai = RSai.transform(B, nI, cI);
+    abrs_integrals<T> RJai = RSai.transform(B, nI, cI);
     //SHOWIT(RJai);
-    abrs_integrals Rjai = RSai.transform(B, ni, ci);
+    abrs_integrals<T> Rjai = RSai.transform(B, ni, ci);
     //SHOWIT(Rjai);
     RSai.free();
 
-    abrs_integrals BCai = RCai.transform(A, nA, cA);
+    abrs_integrals<T> BCai = RCai.transform(A, nA, cA);
     //SHOWIT(BCai);
     RCai.free();
     BCai.transcribe(H.getABCI()({1,0},{1,0}), false, false, NONE);
     BCai.free();
 
-    abrs_integrals bcai = Rcai.transform(A, na, ca);
+    abrs_integrals<T> bcai = Rcai.transform(A, na, ca);
     //SHOWIT(bcai);
     Rcai.free();
     bcai.transcribe(H.getABCI()({0,0},{0,0}), true, false, NONE);
     bcai.free();
 
-    abrs_integrals BJai = RJai.transform(A, nA, cA);
+    abrs_integrals<T> BJai = RJai.transform(A, nA, cA);
     //SHOWIT(BJai);
     RJai.free();
     BJai.transcribe(H.getABIJ()({1,0},{0,1}), false, false, NONE);
     BJai.free();
 
-    abrs_integrals bjai = Rjai.transform(A, na, ca);
+    abrs_integrals<T> bjai = Rjai.transform(A, na, ca);
     //SHOWIT(bjai);
     Rjai.free();
     bjai.transcribe(abij__, false, false, NONE);
@@ -968,42 +1258,42 @@ bool AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     /*
      * Make <IJ||KL>, <AI||JK>, <aI|Jk>, <aI|bJ>, and <AI|BJ>
      */
-    pqrs_integrals rsIJ(IJrs);
+    pqrs_integrals<T> rsIJ(IJrs);
     rsIJ.collect(false);
 
-    abrs_integrals RSIJ(rsIJ, true);
+    abrs_integrals<T> RSIJ(rsIJ, true);
     //SHOWIT(RSIJ);
-    abrs_integrals RBIJ = RSIJ.transform(B, nA, cA);
+    abrs_integrals<T> RBIJ = RSIJ.transform(B, nA, cA);
     //SHOWIT(RBIJ);
-    abrs_integrals RbIJ = RSIJ.transform(B, na, ca);
+    abrs_integrals<T> RbIJ = RSIJ.transform(B, na, ca);
     //SHOWIT(RbIJ);
-    abrs_integrals RLIJ = RSIJ.transform(B, nI, cI);
+    abrs_integrals<T> RLIJ = RSIJ.transform(B, nI, cI);
     //SHOWIT(RLIJ);
-    abrs_integrals RlIJ = RSIJ.transform(B, ni, ci);
+    abrs_integrals<T> RlIJ = RSIJ.transform(B, ni, ci);
     //SHOWIT(RlIJ);
     RSIJ.free();
 
-    abrs_integrals ABIJ = RBIJ.transform(A, nA, cA);
+    abrs_integrals<T> ABIJ = RBIJ.transform(A, nA, cA);
     //SHOWIT(ABIJ);
     RBIJ.free();
     ABIJ.transcribe(H.getAIBJ()({1,1},{1,1}), false, false, NONE);
     ABIJ.free();
 
-    abrs_integrals abIJ = RbIJ.transform(A, na, ca);
+    abrs_integrals<T> abIJ = RbIJ.transform(A, na, ca);
     //SHOWIT(abIJ);
     RbIJ.free();
     abIJ.transcribe(H.getAIBJ()({0,1},{0,1}), false, false, NONE);
     abIJ.free();
 
-    abrs_integrals akIJ = RlIJ.transform(A, na, ca);
+    abrs_integrals<T> akIJ = RlIJ.transform(A, na, ca);
     //SHOWIT(akIJ);
     RlIJ.free();
     akIJ.transcribe(H.getAIJK()({0,1},{0,1}), false, false, RS);
     akIJ.free();
 
-    abrs_integrals AKIJ = RLIJ.transform(A, nA, cA);
+    abrs_integrals<T> AKIJ = RLIJ.transform(A, nA, cA);
     //SHOWIT(AKIJ);
-    abrs_integrals KLIJ = RLIJ.transform(A, nI, cI);
+    abrs_integrals<T> KLIJ = RLIJ.transform(A, nI, cI);
     //SHOWIT(KLIJ);
     RLIJ.free();
     AKIJ.transcribe(H.getAIJK()({1,1},{0,2}), false, true, NONE);
@@ -1014,36 +1304,36 @@ bool AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     /*
      * Make <Ij|Kl>, <ij||kl>, <Ai|Jk>, <ai||jk>, <Ai|Bj>, and <ai|bj>
      */
-    pqrs_integrals rsij(ijrs);
+    pqrs_integrals<T> rsij(ijrs);
     rsij.collect(false);
 
-    abrs_integrals RSij(rsij, true);
+    abrs_integrals<T> RSij(rsij, true);
     //SHOWIT(RSij);
-    abrs_integrals RBij = RSij.transform(B, nA, cA);
+    abrs_integrals<T> RBij = RSij.transform(B, nA, cA);
     //SHOWIT(RBij);
-    abrs_integrals Rbij = RSij.transform(B, na, ca);
+    abrs_integrals<T> Rbij = RSij.transform(B, na, ca);
     //SHOWIT(Rbij);
-    abrs_integrals RLij = RSij.transform(B, nI, cI);
+    abrs_integrals<T> RLij = RSij.transform(B, nI, cI);
     //SHOWIT(RLij);
-    abrs_integrals Rlij = RSij.transform(B, ni, ci);
+    abrs_integrals<T> Rlij = RSij.transform(B, ni, ci);
     //SHOWIT(Rlij);
     RSij.free();
 
-    abrs_integrals ABij = RBij.transform(A, nA, cA);
+    abrs_integrals<T> ABij = RBij.transform(A, nA, cA);
     //SHOWIT(ABij);
     RBij.free();
     ABij.transcribe(H.getAIBJ()({1,0},{1,0}), false, false, NONE);
     ABij.free();
 
-    abrs_integrals abij = Rbij.transform(A, na, ca);
+    abrs_integrals<T> abij = Rbij.transform(A, na, ca);
     //SHOWIT(abij);
     Rbij.free();
     abij.transcribe(H.getAIBJ()({0,0},{0,0}), false, false, NONE);
     abij.free();
 
-    abrs_integrals AKij = RLij.transform(A, nA, cA);
+    abrs_integrals<T> AKij = RLij.transform(A, nA, cA);
     //SHOWIT(AKij);
-    abrs_integrals KLij = RLij.transform(A, nI, cI);
+    abrs_integrals<T> KLij = RLij.transform(A, nI, cI);
     //SHOWIT(KLij);
     RLij.free();
     AKij.transcribe(H.getAIJK()({1,0},{0,1}), false, false, NONE);
@@ -1051,9 +1341,9 @@ bool AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
     KLij.transcribe(H.getIJKL()({0,1},{0,1}), false, false, NONE);
     KLij.free();
 
-    abrs_integrals akij = Rlij.transform(A, na, ca);
+    abrs_integrals<T> akij = Rlij.transform(A, na, ca);
     //SHOWIT(akij);
-    abrs_integrals klij = Rlij.transform(A, ni, ci);
+    abrs_integrals<T> klij = Rlij.transform(A, ni, ci);
     //SHOWIT(klij);
     Rlij.free();
     akij.transcribe(H.getAIJK()({0,0},{0,0}), false, true, NONE);
@@ -1138,5 +1428,7 @@ bool AOMOIntegrals<T>::run(TaskDAG& dag, const Arena& arena)
 }
 }
 
+INSTANTIATE_SPECIALIZATIONS(aquarius::op::pqrs_integrals);
+INSTANTIATE_SPECIALIZATIONS(aquarius::op::abrs_integrals);
 INSTANTIATE_SPECIALIZATIONS(aquarius::op::AOMOIntegrals);
 REGISTER_TASK(aquarius::op::AOMOIntegrals<double>,"aomoints");

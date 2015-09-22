@@ -1,5 +1,5 @@
-#ifndef _AQUARIUS_CC_EOMEECCSD_HPP_
-#define _AQUARIUS_CC_EOMEECCSD_HPP_
+#ifndef _AQUARIUS_CC_EOMEECCSDT_HPP_
+#define _AQUARIUS_CC_EOMEECCSDT_HPP_
 
 #include "util/global.hpp"
 
@@ -10,27 +10,24 @@
 #include "operator/excitationoperator.hpp"
 #include "operator/denominator.hpp"
 
-#include "ccsd.hpp"
-
 namespace aquarius
 {
 namespace cc
 {
 
 template <typename U>
-class EOMEECCSD : public Iterative<U>
+class EOMEECCSDT : public Iterative<U>
 {
     protected:
         input::Config davidson_config;
         int nroot;
         int ntriplet;
-        int nsinglet;
         bool multiroot;
         bool triplet;
         vector<U> previous;
 
     public:
-        EOMEECCSD(const string& name, input::Config& config);
+        EOMEECCSDT(const string& name, input::Config& config);
 
         bool run(task::TaskDAG& dag, const Arena& arena);
 

@@ -11,22 +11,45 @@ namespace aquarius
 namespace convergence
 {
 
-template<typename T, typename U = T>
+namespace detail
+{
+
+template <typename T>
+struct DefaultInnerProd
+{
+    typedef typename T::dtype dtype;
+
+    template <typename a_container, typename b_container>
+    dtype operator()(const a_container& a, const b_container& b) const
+    {
+        dtype p = 0;
+        for (int j = 0;j < a.size();j++)
+        {
+            p += scalar(conj(a[j])*b[j]);
+        }
+        return p;
+    }
+};
+
+}
+
+template<typename T, typename U = T, typename InnerProd = detail::DefaultInnerProd<U>>
 class DIIS
 {
     protected:
         typedef typename T::dtype dtype;
-
         vector<unique_vector<T>> old_x;
         vector<unique_vector<U>> old_dx;
         marray<dtype,1> c;
         marray<dtype,2> e;
-        int nextrap, start, nx, ndx;
+        int nextrap, start;
         double damping;
+        int nx, ndx;
+        InnerProd innerProd;
 
     public:
-        DIIS(const input::Config& config, int nx = 1, int ndx = 1)
-        : nx(nx), ndx(ndx)
+        DIIS(const input::Config& config, int nx = 1, int ndx = 1, InnerProd innerProd = InnerProd())
+        : nx(nx), ndx(ndx), innerProd(innerProd)
         {
             nextrap = config.get<int>("order");
             start = config.get<int>("start");
@@ -96,11 +119,7 @@ class DIIS
                 }
             }
 
-            e[0][0] = 0;
-            for (int i = 0;i < ndx;i++)
-            {
-                e[0][0] += scalar(conj(dx[i])*dx[i]);
-            }
+            e[0][0] = innerProd(dx, dx);
 
             /*
              * Get the new off-diagonal error matrix elements for all
@@ -110,11 +129,7 @@ class DIIS
             int nextrap_real = 1;
             for (int i = 1;i < nextrap && !old_dx[i].empty();i++)
             {
-                e[i][0] = 0;
-                for (int j = 0;j < ndx;j++)
-                {
-                    e[i][0] += scalar(conj(dx[j])*old_dx[i][j]);
-                }
+                e[i][0] = innerProd(dx, old_dx[i]);
                 e[0][i] = e[i][0];
                 nextrap_real++;
             }
