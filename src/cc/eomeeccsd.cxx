@@ -129,7 +129,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
     {
         for (int spin : {0,1})
         {
-            bool triplet = spin == 1;
+            triplet = spin == 1;
 
             //Vs.clear();
             Rs.clear();
@@ -327,24 +327,14 @@ void EOMEECCSD<U>::iterate(const Arena& arena)
         ExcitationOperator<U,2>& R = Rs[root];
         ExcitationOperator<U,2>& Z = Zs[root];
 
-        /*
-        if (triplet)
-        {
-            0.5*R(1)({0,0},{0,0})[  "ai"] -= 0.5*R(1)({1,0},{0,1})[  "ai"];
-                R(1)({1,0},{0,1})[  "ai"]  =    -R(1)({0,0},{0,0})[  "ai"];
-            0.5*R(2)({1,0},{0,1})["abij"] -= 0.5*R(2)({1,0},{0,1})["baji"];
-            0.5*R(2)({0,0},{0,0})["abij"] -= 0.5*R(2)({2,0},{0,2})["abij"];
-                R(2)({2,0},{0,2})["abij"]  =    -R(2)({0,0},{0,0})["abij"];
-        }
-        else
-        {
-            0.5*R(1)({0,0},{0,0})[  "ai"] += 0.5*R(1)({1,0},{0,1})[  "ai"];
-                R(1)({1,0},{0,1})[  "ai"]  =     R(1)({0,0},{0,0})[  "ai"];
-            0.5*R(2)({1,0},{0,1})["abij"] += 0.5*R(2)({1,0},{0,1})["baji"];
-            0.5*R(2)({0,0},{0,0})["abij"] += 0.5*R(2)({2,0},{0,2})["abij"];
-                R(2)({2,0},{0,2})["abij"]  =     R(2)({0,0},{0,0})["abij"];
-        }
-        */
+        double sign = triplet ? -1 : 1;
+
+        0.5*R(1)({0,0},{0,0})[  "ai"] += 0.5*sign*R(1)({1,0},{0,1})[  "ai"];
+            R(1)({1,0},{0,1})[  "ai"]  =     sign*R(1)({0,0},{0,0})[  "ai"];
+
+        0.5*R(2)({1,0},{0,1})["abij"] += 0.5*sign*R(2)({1,0},{0,1})["baji"];
+        0.5*R(2)({0,0},{0,0})["abij"] += 0.5*sign*R(2)({2,0},{0,2})["abij"];
+            R(2)({2,0},{0,2})["abij"]  =     sign*R(2)({0,0},{0,0})["abij"];
 
          XMI[  "mi"]  =     WMNEJ["nmei"]*R(1)[  "en"];
          XMI[  "mi"] += 0.5*WMNEF["mnef"]*R(2)["efin"];
