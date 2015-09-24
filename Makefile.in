@@ -159,7 +159,7 @@ am____top_builddir__bin_aquarius_SOURCES_DIST = src/autocc/autocc.cxx \
 	src/operator/aomoints.cxx src/operator/rhfaomoints.cxx \
 	src/operator/moints.cxx src/operator/sparseaomoints.cxx \
 	src/operator/sparserhfaomoints.cxx src/scf/aouhf.cxx \
-	src/scf/uhf_local.cxx src/scf/uhf.cxx \
+	src/scf/cfourscf.cxx src/scf/uhf_local.cxx src/scf/uhf.cxx \
 	src/symmetry/symmetry.cxx src/task/task.cxx \
 	src/tensor/ctf_tensor.cxx src/tensor/spinorbital_tensor.cxx \
 	src/tensor/symblocked_tensor.cxx src/time/time.cxx \
@@ -219,9 +219,10 @@ am___top_builddir__bin_aquarius_OBJECTS = src/autocc/autocc.$(OBJEXT) \
 	src/operator/moints.$(OBJEXT) \
 	src/operator/sparseaomoints.$(OBJEXT) \
 	src/operator/sparserhfaomoints.$(OBJEXT) \
-	src/scf/aouhf.$(OBJEXT) src/scf/uhf_local.$(OBJEXT) \
-	src/scf/uhf.$(OBJEXT) src/symmetry/symmetry.$(OBJEXT) \
-	src/task/task.$(OBJEXT) src/tensor/ctf_tensor.$(OBJEXT) \
+	src/scf/aouhf.$(OBJEXT) src/scf/cfourscf.$(OBJEXT) \
+	src/scf/uhf_local.$(OBJEXT) src/scf/uhf.$(OBJEXT) \
+	src/symmetry/symmetry.$(OBJEXT) src/task/task.$(OBJEXT) \
+	src/tensor/ctf_tensor.$(OBJEXT) \
 	src/tensor/spinorbital_tensor.$(OBJEXT) \
 	src/tensor/symblocked_tensor.$(OBJEXT) src/time/time.$(OBJEXT) \
 	$(am__objects_1) $(am__objects_2)
@@ -473,7 +474,7 @@ __top_builddir__bin_aquarius_SOURCES = src/autocc/autocc.cxx \
 	src/operator/aomoints.cxx src/operator/rhfaomoints.cxx \
 	src/operator/moints.cxx src/operator/sparseaomoints.cxx \
 	src/operator/sparserhfaomoints.cxx src/scf/aouhf.cxx \
-	src/scf/uhf_local.cxx src/scf/uhf.cxx \
+	src/scf/cfourscf.cxx src/scf/uhf_local.cxx src/scf/uhf.cxx \
 	src/symmetry/symmetry.cxx src/task/task.cxx \
 	src/tensor/ctf_tensor.cxx src/tensor/spinorbital_tensor.cxx \
 	src/tensor/symblocked_tensor.cxx src/time/time.cxx \
@@ -791,6 +792,8 @@ src/scf/$(DEPDIR)/$(am__dirstamp):
 	@: > src/scf/$(DEPDIR)/$(am__dirstamp)
 src/scf/aouhf.$(OBJEXT): src/scf/$(am__dirstamp) \
 	src/scf/$(DEPDIR)/$(am__dirstamp)
+src/scf/cfourscf.$(OBJEXT): src/scf/$(am__dirstamp) \
+	src/scf/$(DEPDIR)/$(am__dirstamp)
 src/scf/uhf_local.$(OBJEXT): src/scf/$(am__dirstamp) \
 	src/scf/$(DEPDIR)/$(am__dirstamp)
 src/scf/uhf.$(OBJEXT): src/scf/$(am__dirstamp) \
@@ -950,6 +953,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/sparseaomoints.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/sparserhfaomoints.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/scf/$(DEPDIR)/aouhf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/scf/$(DEPDIR)/cfourscf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/scf/$(DEPDIR)/uhf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/scf/$(DEPDIR)/uhf_elemental.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/scf/$(DEPDIR)/uhf_local.Po@am__quote@

@@ -89,6 +89,7 @@ __top_builddir__bin_aquarius_SOURCES = \
 	src/operator/sparserhfaomoints.cxx \
 	\
 	src/scf/aouhf.cxx \
+	src/scf/cfourscf.cxx \
 	src/scf/uhf_local.cxx \
 	src/scf/uhf.cxx \
 	\

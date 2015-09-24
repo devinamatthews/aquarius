@@ -399,7 +399,8 @@ class Davidson : public task::Destructible
         extrapolate(c_container&& c, hc_container&& hc, const op::Denominator<dtype>& D)
         {
             assert((nc == 1 && nvec  > 1) ||
-                   (nc  > 1 && nvec == 1));
+                   (nc  > 1 && nvec == 1) ||
+                   c.size() == 1);
 
             vector<ptr_vector<T>> new_c, new_hc;
 

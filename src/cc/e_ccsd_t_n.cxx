@@ -21,6 +21,9 @@ E_CCSD_T_N<U>::E_CCSD_T_N(const string& name, Config& config)
     reqs.push_back(Requirement("ccsd.T", "T"));
     this->addProduct(Product("double", "E(3)", reqs));
     this->addProduct(Product("double", "E(4)", reqs));
+    this->addProduct(Product("double", "E(5)", reqs));
+    this->addProduct(Product("double", "E(6)", reqs));
+    this->addProduct(Product("double", "E(7)", reqs));
 }
 
 template <typename U>
@@ -33,7 +36,7 @@ bool E_CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     const Space& vrt = H.vrt;
 
     Denominator<U> D(H);
-    const ExcitationOperator  <U,2>& T = this->template get<ExcitationOperator  <U,2>>("T");
+    const ExcitationOperator<U,2>& T = this->template get<ExcitationOperator<U,2>>("T");
 
     SpinorbitalTensor<U> FME(Hbar.getIA());
     SpinorbitalTensor<U> FAE(Hbar.getAB());
@@ -55,6 +58,8 @@ bool E_CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     ExcitationOperator<U,3> T_2("T^(2)", arena, occ, vrt);
     ExcitationOperator<U,3> T_3("T^(3)", arena, occ, vrt);
     ExcitationOperator<U,3> T_4("T^(4)", arena, occ, vrt);
+    ExcitationOperator<U,3> T_5("T^(5)", arena, occ, vrt);
+    ExcitationOperator<U,3> T_6("T^(6)", arena, occ, vrt);
 
     SpinorbitalTensor<U> WTWABEJ(WABEJ);
     WTWABEJ["abej"] += FME["me"]*T(2)["abmj"];
@@ -83,24 +88,6 @@ bool E_CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     SpinorbitalTensor<U> WAMIJ_3(WAMIJ);
     SpinorbitalTensor<U> WMNEJ_3(WMNEJ);
     SpinorbitalTensor<U> WAMEF_3(WAMEF);
-
-    SpinorbitalTensor<U> DAI_1(T(1));
-    SpinorbitalTensor<U> GIJAK_1(WMNEJ);
-    SpinorbitalTensor<U> GAIBC_1(WAMEF);
-
-    SpinorbitalTensor<U> Tau(T(2));
-    SpinorbitalTensor<U> FTWMI_2(FMI);
-    SpinorbitalTensor<U> FTWAE_2(FAE);
-    SpinorbitalTensor<U> FTWMI_3(FMI);
-    SpinorbitalTensor<U> FTWAE_3(FAE);
-    SpinorbitalTensor<U> WTWAMEI_2(WAMEI);
-    SpinorbitalTensor<U> WTWABEJ_2(WABEJ);
-    SpinorbitalTensor<U> WTWAMIJ_2(WAMIJ);
-    SpinorbitalTensor<U> WTWABEJ_3(WABEJ);
-    SpinorbitalTensor<U> WTWAMIJ_3(WAMIJ);
-    SpinorbitalTensor<U> WTWABEJ_4(WABEJ);
-    SpinorbitalTensor<U> WTWAMIJ_4(WAMIJ);
-    ExcitationOperator<U,3> Z("Z", arena, occ, vrt);
 
     /***************************************************************************
      *
@@ -302,6 +289,9 @@ bool E_CCSD_T_N<U>::run(task::TaskDAG& dag, const Arena& arena)
 
     this->put("E(3)", new U(E3));
     this->put("E(4)", new U(E4));
+    this->put("E(5)", new U(E5));
+    //this->put("E(6)", new U(E6));
+    //this->put("E(7)", new U(E7));
 
     return true;
 }

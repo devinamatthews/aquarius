@@ -229,6 +229,7 @@ bool RHFEOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                 int which = get<3>(root);
 
                 Logger::log(arena) << "Starting root number " << idx << endl;
+                Logger::log(arena) << "Guess energy: " << fixed << setprecision(12) << get<0>(root) << endl;
 
                 if (triplet)
                 {

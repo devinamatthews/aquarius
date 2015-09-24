@@ -56,15 +56,26 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
         for (int j = 0;j < TDAevals[i].size();j++)
         {
-            if (scalar(TDAevecs[i][j]({1,0},{0,1})*TDAevecs[i][j]({0,0},{0,0})) < 0)
+            auto& R1a = TDAevecs[i][j]({0,0},{0,0});
+            auto& R1b = TDAevecs[i][j]({1,0},{0,1});
+            U olap = scalar(R1a*R1b);
+            //cout << i << " " << j << " " << setprecision(15) << olap << " " << TDAevals[i][j] << endl;
+            if (olap < 0)
             {
                 spin[j] = 1;
+                R1a -=  R1b;
+                R1b  = -R1a;
                 tot_triplet++;
             }
             else
             {
+                R1a += R1b;
+                R1b  = R1a;
                 tot_singlet++;
             }
+            U nrm = sqrt(2*scalar(R1a*R1a));
+            R1a /= nrm;
+            R1b /= nrm;
         }
 
         tda_sorted += zip(TDAevals[i],
@@ -185,6 +196,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                     int which = get<3>(root);
 
                     Logger::log(arena) << "Starting root number " << idx << endl;
+                    Logger::log(arena) << "Guess energy: " << fixed << setprecision(12) << get<0>(root) << endl;
 
                     Rs.clear();
                     Zs.clear();
@@ -212,24 +224,24 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                     bool print_vecs;
                     print_vecs = false;
 
-                    // if (print_vecs)
-                    // {
-                    //     vector<U> temp1;
-                    //     vector<U> temp2;
-                    //     R(1)({1,0},{0,1})({0,0}).getAllData(temp1);
-                    //     R(1)({0,0},{0,0})({0,0}).getAllData(temp2);
+                    if (print_vecs)
+                    {
+                        vector<U> temp1;
+                        vector<U> temp2;
+                        R(1)({1,0},{0,1})({0,0}).getAllData(temp1);
+                        R(1)({0,0},{0,0})({0,0}).getAllData(temp2);
 
-                    //     if (arena.rank == 0)
-                    //     {
-                    //         cout << " " << endl;
-                    //         cout << "Root " << j << " R1" << endl;
-                    //         for (int ii=0; ii<temp1.size(); ii++)
-                    //         {
-                    //             cout << ii << " " << temp1[ii] << " " << temp2[ii] << endl;
-                    //         }
-                    //         cout << " " << endl;
-                    //     }
-                    // }
+                        if (arena.rank == 0)
+                        {
+                            cout << " " << endl;
+                            cout << "Root " << idx << " R1" << endl;
+                            for (int ii=0; ii<temp1.size(); ii++)
+                            {
+                                cout << ii << " " << temp1[ii] << " " << temp2[ii] << endl;
+                            }
+                            cout << " " << endl;
+                        }
+                    }
 
                     previous.assign(1, numeric_limits<U>::max());
 

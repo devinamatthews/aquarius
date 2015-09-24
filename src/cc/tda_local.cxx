@@ -44,6 +44,9 @@ bool LocalTDA<U>::run(TaskDAG& dag, const Arena& arena)
     Hguess["aibj"] -= WAIBJ["aibj"];
     Hguess["aiaj"] -= FIJ["ij"];
 
+    printf("WAIBJ: %.15f\n", WAIBJ({1,0},{1,0}).norm(2));
+    printf("WAIJB: %.15f\n", WAIBJ({1,0},{0,1}).norm(2));
+
     auto& TDAevecs = put("TDAevecs", new vector<unique_vector<SpinorbitalTensor<U>>>(nirrep));
     auto& TDAevals = put("TDAevals", new vector<vector<U>>(nirrep));
 

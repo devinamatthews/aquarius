@@ -124,18 +124,22 @@ bool ElementalRHFTDA<U>::run(TaskDAG& dag, const Arena& arena)
                         int ishift0 = cshift-offai%cstride;
                         if (ishift0 < 0) ishift0 += cstride;
                         int iloc0   = offai+ishift0;
+                        assert(iloc0%cstride == cshift);
 
                         int ishift1 = cshift-(offai+nai)%cstride;
                         if (ishift1 < 0) ishift1 += cstride;
                         int iloc1   = (offai+nai)+ishift1;
+                        assert(iloc1%cstride == cshift);
 
                         int jshift0 = rshift-offbj%rstride;
                         if (jshift0 < 0) jshift0 += rstride;
                         int jloc0   = offbj+jshift0;
+                        assert(jloc0%rstride == rshift);
 
                         int jshift1 = rshift-(offbj+nai)%rstride;
                         if (jshift1 < 0) jshift1 += rstride;
                         int jloc1   = (offbj+nai)+jshift1;
+                        assert(jloc1%rstride == rshift);
 
                         vector<tkv_pair<U>> pairs;
 
@@ -166,7 +170,7 @@ bool ElementalRHFTDA<U>::run(TaskDAG& dag, const Arena& arena)
                             int aidx = k%na;
                             k /= na;
                             int iidx = k%ni;
-                            k /= nj;
+                            k /= ni;
                             int bidx = k%nb;
                             k /= nb;
                             int jidx = k;
@@ -192,11 +196,11 @@ bool ElementalRHFTDA<U>::run(TaskDAG& dag, const Arena& arena)
                             key k = p.k;
                             int aidx = k%na;
                             k /= na;
-                            int jidx = k%nj;
-                            k /= nj;
+                            int iidx = k%ni;
+                            k /= ni;
                             int bidx = k%nb;
                             k /= nb;
-                            int iidx = k;
+                            int jidx = k;
 
                             int iloc = aidx+iidx*na+offai;
                             int jloc = bidx+jidx*nb+offbj;

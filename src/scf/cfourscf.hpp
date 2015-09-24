@@ -5,6 +5,12 @@
 
 #include "input/config.hpp"
 #include "task/task.hpp"
+#include "tensor/symblocked_tensor.hpp"
+#include "integrals/1eints.hpp"
+#include "input/molecule.hpp"
+#include "util/iterative.hpp"
+#include "convergence/diis.hpp"
+#include "operator/space.hpp"
 
 namespace aquarius
 {
