@@ -262,7 +262,7 @@ bool ElementalRHFTDA<U>::run(TaskDAG& dag, const Arena& arena)
                     int loc1 = (offai+nai)/cstride;
                     if (shift1 > cshift) loc1++;
 
-                    vector<tkv_pair<U>> pairs(loc1-loc0+1);
+                    vector<tkv_pair<U>> pairs(loc1-loc0);
 
                     for (int loc = loc0;loc < loc1;loc++)
                     {
