@@ -22,6 +22,7 @@ class CCSDTQ : public Iterative<U>
 {
     protected:
         convergence::DIIS<op::ExcitationOperator<U,4>> diis;
+        string guess;
 
     public:
         CCSDTQ(const string& name, input::Config& config);

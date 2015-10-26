@@ -22,6 +22,7 @@ class CCSDT : public Iterative<U>
 {
     protected:
         convergence::DIIS<op::ExcitationOperator<U,3>> diis;
+        string guess;
 
     public:
         CCSDT(const string& name, input::Config& config);

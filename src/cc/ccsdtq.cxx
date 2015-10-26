@@ -13,10 +13,12 @@ namespace cc
 
 template <typename U>
 CCSDTQ<U>::CCSDTQ(const string& name, Config& config)
-: Iterative<U>(name, config), diis(config.get("diis"))
+: Iterative<U>(name, config), diis(config.get("diis")), guess(config.get<string>("guess"))
 {
     vector<Requirement> reqs;
     reqs.push_back(Requirement("moints", "H"));
+    if      (guess ==  "ccsd") reqs.emplace_back( "ccsd.T",  "Tccsd");
+    else if (guess == "ccsdt") reqs.emplace_back("ccsdt.T", "Tccsdt");
     this->addProduct(Product("double", "mp2", reqs));
     this->addProduct(Product("double", "energy", reqs));
     this->addProduct(Product("double", "convergence", reqs));
@@ -82,6 +84,20 @@ bool CCSDTQ<U>::run(task::TaskDAG& dag, const Arena& arena)
     double mp2 = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
     Logger::log(arena) << "MP2 energy = " << setprecision(15) << mp2 << endl;
     this->put("mp2", new U(mp2));
+
+    if (guess == "ccsd")
+    {
+        auto& Tccsd = this->get<ExcitationOperator<U,2>>("Tccsd");
+        T(1) = Tccsd(1);
+        T(2) = Tccsd(2);
+    }
+    else if (guess == "ccsdt")
+    {
+        auto& Tccsdt = this->get<ExcitationOperator<U,3>>("Tccsdt");
+        T(1) = Tccsdt(1);
+        T(2) = Tccsdt(2);
+        T(3) = Tccsdt(3);
+    }
 
     CTF_Timer_epoch ep(this->name.c_str());
     ep.begin();
@@ -343,6 +359,8 @@ max_iterations?
     int 50,
 conv_type?
     enum { MAXE, RMSE, MAE },
+guess?
+    enum { mp2, ccsd, ccsdt },
 diis?
 {
     damping?
