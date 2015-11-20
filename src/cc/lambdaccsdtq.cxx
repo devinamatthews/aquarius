@@ -257,12 +257,17 @@ void LambdaCCSDTQ<U>::iterate(const Arena& arena)
       GIJAK[  "ijak"]  =  (1.0/ 12.0)* T(3)[  "efgkmn"]*   L(4)["ijmnaefg"];
       GAIBC[  "aibc"]  = -(1.0/ 12.0)* T(3)[  "aefmno"]*   L(4)["minobcef"];
 
-      GAIJK[  "aijk"]  =  (1.0/ 12.0)* T(4)["aefgjkmn"]*   L(3)[  "imnefg"];
-      GABCI[  "abci"]  = -(1.0/ 12.0)* T(4)["abefmino"]*   L(3)[  "mnocef"];
-
     GIJKABL["ijkabl"]  =  (1.0/  2.0)* T(2)[    "eflm"]*   L(4)["ijkmabef"];
     GAIJBCD["aijbcd"]  = -(1.0/  2.0)* T(2)[    "aemn"]*   L(4)["mijnbcde"];
     GIJKALM["ijkalm"]  =  (1.0/  6.0)* T(3)[  "efglmn"]*   L(4)["ijknaefg"];
+
+      GAIJK[  "aijk"]  =  (1.0/ 12.0)* T(4)["aefgjkmn"]*   L(3)[  "imnefg"];
+      GAIJK[  "aijk"] +=  (1.0/  4.0)* T(3)[  "efamnj"]*GIJKABL[  "mniefk"];
+      GAIJK[  "aijk"] +=  (1.0/  6.0)* T(3)[  "efgjkm"]*GAIJBCD[  "aimefg"];
+
+      GABCI[  "abci"]  = -(1.0/ 12.0)* T(4)["abefmino"]*   L(3)[  "mnocef"];
+      GABCI[  "abci"] +=  (1.0/  4.0)* T(3)[  "efbmni"]*GAIJBCD[  "amncef"];
+      GABCI[  "abci"] +=  (1.0/  6.0)* T(3)[  "eabmno"]*GIJKABL[  "mnoeci"];
 
       GABCD[  "abcd"]  =  (1.0/ 48.0)* T(4)["abefmnop"]*   L(4)["mnopcdef"];
       GABCD[  "abcd"] -=  (1.0/  4.0)* T(2)[    "bemn"]*GAIJBCD[  "amncde"];
