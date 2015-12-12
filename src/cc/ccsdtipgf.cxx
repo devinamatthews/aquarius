@@ -237,8 +237,8 @@ void CCSDTIPGF<U>::iterate(const Arena& arena)
 
     for (int ri: {0,1})
     {
-        ExcitationOperator<U,2,3>& R = {ri == 0 ? Rr : Ri};
-        ExcitationOperator<U,2,3>& Z = {ri == 0 ? Zr : Zi};
+        ExcitationOperator<U,2,3>& R = (ri == 0 ? Rr : Ri);
+        ExcitationOperator<U,2,3>& Z = (ri == 0 ? Zr : Zi);
 
           XE[    "e"]  = -0.5*WMNEF["mnfe"]*R(2)[   "fmn"];
 

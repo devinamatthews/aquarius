@@ -158,9 +158,9 @@ am____top_builddir__bin_aquarius_SOURCES_DIST = src/autocc/autocc.cxx \
 	src/main/main.cxx src/operator/2eoperator.cxx \
 	src/operator/aomoints.cxx src/operator/rhfaomoints.cxx \
 	src/operator/moints.cxx src/operator/sparseaomoints.cxx \
-	src/operator/sparserhfaomoints.cxx src/scf/aouhf.cxx \
-	src/scf/cfourscf.cxx src/scf/uhf_local.cxx src/scf/uhf.cxx \
-	src/symmetry/symmetry.cxx src/task/task.cxx \
+	src/operator/sparserhfaomoints.cxx src/operator/fcidump.cxx \
+	src/scf/aouhf.cxx src/scf/cfourscf.cxx src/scf/uhf_local.cxx \
+	src/scf/uhf.cxx src/symmetry/symmetry.cxx src/task/task.cxx \
 	src/tensor/ctf_tensor.cxx src/tensor/spinorbital_tensor.cxx \
 	src/tensor/symblocked_tensor.cxx src/time/time.cxx \
 	src/scf/uhf_elemental.cxx src/cc/tda_elemental.cxx \
@@ -219,10 +219,10 @@ am___top_builddir__bin_aquarius_OBJECTS = src/autocc/autocc.$(OBJEXT) \
 	src/operator/moints.$(OBJEXT) \
 	src/operator/sparseaomoints.$(OBJEXT) \
 	src/operator/sparserhfaomoints.$(OBJEXT) \
-	src/scf/aouhf.$(OBJEXT) src/scf/cfourscf.$(OBJEXT) \
-	src/scf/uhf_local.$(OBJEXT) src/scf/uhf.$(OBJEXT) \
-	src/symmetry/symmetry.$(OBJEXT) src/task/task.$(OBJEXT) \
-	src/tensor/ctf_tensor.$(OBJEXT) \
+	src/operator/fcidump.$(OBJEXT) src/scf/aouhf.$(OBJEXT) \
+	src/scf/cfourscf.$(OBJEXT) src/scf/uhf_local.$(OBJEXT) \
+	src/scf/uhf.$(OBJEXT) src/symmetry/symmetry.$(OBJEXT) \
+	src/task/task.$(OBJEXT) src/tensor/ctf_tensor.$(OBJEXT) \
 	src/tensor/spinorbital_tensor.$(OBJEXT) \
 	src/tensor/symblocked_tensor.$(OBJEXT) src/time/time.$(OBJEXT) \
 	$(am__objects_1) $(am__objects_2)
@@ -473,9 +473,9 @@ __top_builddir__bin_aquarius_SOURCES = src/autocc/autocc.cxx \
 	src/main/main.cxx src/operator/2eoperator.cxx \
 	src/operator/aomoints.cxx src/operator/rhfaomoints.cxx \
 	src/operator/moints.cxx src/operator/sparseaomoints.cxx \
-	src/operator/sparserhfaomoints.cxx src/scf/aouhf.cxx \
-	src/scf/cfourscf.cxx src/scf/uhf_local.cxx src/scf/uhf.cxx \
-	src/symmetry/symmetry.cxx src/task/task.cxx \
+	src/operator/sparserhfaomoints.cxx src/operator/fcidump.cxx \
+	src/scf/aouhf.cxx src/scf/cfourscf.cxx src/scf/uhf_local.cxx \
+	src/scf/uhf.cxx src/symmetry/symmetry.cxx src/task/task.cxx \
 	src/tensor/ctf_tensor.cxx src/tensor/spinorbital_tensor.cxx \
 	src/tensor/symblocked_tensor.cxx src/time/time.cxx \
 	$(am__append_3) $(am__append_6)
@@ -784,6 +784,8 @@ src/operator/sparseaomoints.$(OBJEXT): src/operator/$(am__dirstamp) \
 src/operator/sparserhfaomoints.$(OBJEXT):  \
 	src/operator/$(am__dirstamp) \
 	src/operator/$(DEPDIR)/$(am__dirstamp)
+src/operator/fcidump.$(OBJEXT): src/operator/$(am__dirstamp) \
+	src/operator/$(DEPDIR)/$(am__dirstamp)
 src/scf/$(am__dirstamp):
 	@$(MKDIR_P) src/scf
 	@: > src/scf/$(am__dirstamp)
@@ -948,6 +950,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/main/$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/2eoperator.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/aomoints.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/fcidump.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/moints.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/rhfaomoints.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/sparseaomoints.Po@am__quote@

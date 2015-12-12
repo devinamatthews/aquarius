@@ -87,6 +87,7 @@ __top_builddir__bin_aquarius_SOURCES = \
 	src/operator/moints.cxx \
 	src/operator/sparseaomoints.cxx \
 	src/operator/sparserhfaomoints.cxx \
+	src/operator/fcidump.cxx \
 	\
 	src/scf/aouhf.cxx \
 	src/scf/cfourscf.cxx \

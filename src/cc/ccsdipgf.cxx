@@ -212,8 +212,8 @@ void CCSDIPGF<U>::iterate(const Arena& arena)
 
     for (int ri: {0,1})
     {
-        ExcitationOperator<U,1,2>& R = {ri == 0 ? Rr : Ri};
-        ExcitationOperator<U,1,2>& Z = {ri == 0 ? Zr : Zi};
+        ExcitationOperator<U,1,2>& R = (ri == 0 ? Rr : Ri);
+        ExcitationOperator<U,1,2>& Z = (ri == 0 ? Zr : Zi);
 
           XE[  "e"]  = -0.5*WMNEF["mnfe"]*R(2)[ "fmn"];
 

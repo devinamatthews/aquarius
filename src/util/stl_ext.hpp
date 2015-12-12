@@ -34,6 +34,8 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <regex>
+#include <stdexcept>
 
 #if !(defined(__GXX_EXPERIMENTAL_CXX0X__) || _MSC_VER >= 1600 || __cplusplus >= 201103l)
 #error "A C++11-capable compiler is required."
@@ -105,6 +107,7 @@ namespace aquarius
     using std::make_pair;
     using std::make_tuple;
     using std::get;
+    using std::tuple_element;
 
     using std::complex;
     using std::numeric_limits;
@@ -125,6 +128,9 @@ namespace aquarius
     using std::shared_ptr;
     using std::make_shared;
 
+    using std::runtime_error;
+    using std::logic_error;
+
     using std::move;
     using std::forward;
     using std::decay;
@@ -134,6 +140,8 @@ namespace aquarius
     using std::is_const;
     using std::is_integral;
     using std::is_floating_point;
+    using std::is_arithmetic;
+    using std::is_pointer;
     using std::remove_const;
     using std::conditional;
     using std::initializer_list;
@@ -166,9 +174,20 @@ namespace aquarius
     using std::endl;
     using std::setprecision;
     using std::scientific;
+    using std::defaultfloat;
+    using std::hexfloat;
     using std::fixed;
     using std::skipws;
     using std::showpos;
+    using std::showbase;
+    using std::noshowbase;
+    using std::noshowpos;
+    using std::showpoint;
+    using std::noshowpoint;
+    using std::dec;
+    using std::oct;
+    using std::hex;
+    using std::setfill;
     using std::setw;
     using std::streamsize;
     using std::streambuf;
@@ -180,6 +199,12 @@ namespace aquarius
     using std::logic_error;
     using std::runtime_error;
     using std::out_of_range;
+
+    using std::regex_search;
+    using std::regex_match;
+    using std::smatch;
+    using std::cmatch;
+    using std::regex;
 
     template <typename T>
     using remove_const_t = typename remove_const<T>::type;
@@ -2171,6 +2196,22 @@ namespace aquarius
         return v;
     }
 
+    class ios_flag_saver
+    {
+        protected:
+            ostream& _os;
+            std::ios::fmtflags _flags;
+
+        public:
+            ios_flag_saver(ostream& os)
+            : _os(os), _flags(os.flags()) {}
+
+            ~ios_flag_saver()
+            {
+                _os.flags(_flags);
+            }
+    };
+
     inline string strprintf(const char* fmt, ...)
     {
         va_list list;
@@ -2188,11 +2229,386 @@ namespace aquarius
         return string(s.begin(), s.end()-1);
     }
 
-    template<typename T> string str(const T& t)
+    template <typename T> string str(const T& t)
     {
         ostringstream oss;
         oss << t;
         return oss.str();
+    }
+
+    inline string str(const string& str)
+    {
+        return str;
+    }
+
+    inline string str(string&& str)
+    {
+        return move(str);
+    }
+
+    inline const char* str(const char* str)
+    {
+        return str;
+    }
+
+    namespace detail
+    {
+
+    template <typename... Args>
+    struct printos_helper
+    {
+        string fmt;
+        tuple<Args&&...> args;
+
+        printos_helper(const string& fmt, Args&&... args)
+        : fmt(fmt), args(forward<Args>(args)...) {}
+
+        printos_helper(const string& fmt, const tuple<Args&&...>& args)
+        : fmt(fmt), args(args) {}
+    };
+
+    template <typename T>
+    enable_if_t<is_arithmetic<T>::value, bool> is_negative(const T& val)
+    {
+        return val < 0;
+    }
+
+    template <typename T>
+    enable_if_t<!is_arithmetic<T>::value, bool> is_negative(const T& val)
+    {
+        return false;
+    }
+
+    template <typename T>
+    enable_if_t<is_arithmetic<T>::value, bool> is_nonzero(const T& val)
+    {
+        return val != 0;
+    }
+
+    template <typename T>
+    enable_if_t<!is_arithmetic<T>::value, bool> is_nonzero(const T& val)
+    {
+        return false;
+    }
+
+    template <typename T>
+    enable_if_t<is_integral<T>::value ||
+                is_pointer<T>::value> print_integer(ostream& os, const T& val, bool is_signed)
+    {
+        if (is_signed)
+            os << (intmax_t)val;
+        else
+            os << (uintmax_t)val;
+    }
+
+    template <typename T>
+    enable_if_t<!(is_integral<T>::value ||
+                  is_pointer<T>::value)> print_integer(ostream& os, const T& val, bool is_signed)
+    {}
+
+    template <typename T>
+    enable_if_t<is_integral<T>::value> print_char(ostream& os, const T& val)
+    {
+        os << (char)val;
+    }
+
+    template <typename T>
+    enable_if_t<!is_integral<T>::value> print_char(ostream& os, const T& val)
+    {}
+
+    class printf_conversion
+    {
+        protected:
+            bool _left;
+            bool _zero;
+            bool _sign;
+            bool _alt;
+            bool _space;
+            int _width;
+            int _prec;
+            char _conv;
+
+        public:
+            printf_conversion(ostream& os, const string& fmt, string::const_iterator& i)
+            : _left(false), _zero(false), _sign(false), _alt(false), _space(false),
+              _prec(6), _width(0), _conv(0)
+            {
+                string::const_iterator end = fmt.end();
+
+                /*
+                 * Look for a conversion which is not trivial (%%).
+                 */
+                while (true)
+                {
+                    /*
+                     * Copy non-converting chars to stream.
+                     */
+                    while (i != end && *i != '%') os << *i++;
+
+                    /*
+                     * No next conversion.
+                     */
+                    if (i == end) return;
+
+                    /*
+                     * Early termination is an error.
+                     */
+                    if (++i == end) throw logic_error("Invalid conversion");
+
+                    /*
+                     * Handle trivial %% conversions.
+                     */
+                    if (*i == '%')
+                    {
+                        os << '%';
+                        ++i;
+                        continue;
+                    }
+
+                    break;
+                }
+
+
+                /*
+                 * Check for a flag.
+                 */
+                while (*i == ' ' || *i == '+' || *i == '-' || *i == '0' || *i == '#')
+                {
+                    switch (*i)
+                    {
+                        case ' ': _space = true; break;
+                        case '+':  _sign = true; break;
+                        case '-':  _left = true; break;
+                        case '0':  _zero = true; break;
+                        case '#':   _alt = true; break;
+                    }
+
+                    if (++i == end) throw logic_error("Invalid conversion");
+                }
+
+                /*
+                 * Check for a _width field.
+                 */
+                if (*i >= '1' && *i <= '9')
+                {
+                    do
+                    {
+                        _width = _width*10 + (int)(*i-'0');
+                        if (++i == end) throw logic_error("Invalid conversion");
+                    }
+                    while (*i >= '0' && *i <= '9');
+                }
+
+                /*
+                 * Check for a precision field.
+                 */
+                if (*i == '.')
+                {
+                    ++i;
+                    _prec = 0;
+                    if (*i == '-')
+                    {
+                        _prec = -1;
+                        if (++i == end) throw logic_error("Invalid conversion");
+                    }
+                    while (*i >= '0' && *i <= '9')
+                    {
+                        _prec = _prec*10 + (int)(*i-'0');
+                        if (++i == end) throw logic_error("Invalid conversion");
+                    }
+                    if (_prec < 0) _prec = 0;
+                }
+
+                /*
+                 * Finally, check the conversion.
+                 */
+                if (*i == 'd' || *i == 'i' || *i == 'o' || *i == 'u' ||
+                    *i == 'x' || *i == 'X' || *i == 'e' || *i == 'E' ||
+                    *i == 'f' || *i == 'F' || *i == 'g' || *i == 'G' ||
+                    *i == 'a' || *i == 'A' || *i == 'c' || *i == 's' ||
+                    *i == 'p' || *i == 'n')
+                {
+                    _conv = *i++;
+                }
+                else
+                {
+                    throw runtime_error("Invalid conversion.");
+                }
+            }
+
+            template <typename T>
+            void print(ostream& os, const T& arg)
+            {
+                ios_flag_saver flags(os);
+
+                switch (_conv)
+                {
+                    case 'd':
+                    case 'i':
+                    case 'o':
+                    case 'u':
+                    case 'x':
+                    case 'X':
+                    case 'p':
+                    {
+                        if (_conv != 'p' && !is_integral<T>::value)
+                            throw runtime_error("Argument is not integral");
+
+                        if (_conv == 'p' && !is_pointer<T>::value)
+                            throw runtime_error("Argument is not a pointer");
+
+                        os << setw(_width) << setfill(' ') << noshowpos << dec <<
+                              std::right << std::nouppercase << noshowbase;
+
+                        if (_conv == 'o') os << oct;
+
+                        if (_conv == 'x' || _conv == 'X' || _conv == 'p') os << hex;
+                        if (_conv == 'X') os << std::uppercase;
+
+                        if (_zero && !_left) os << setfill('0');
+
+                        if (_sign) os << showpos;
+                        //else if (_space && is_negative(arg)) os << ' ';
+
+                        if (_left) os << std::left;
+
+                        if (_alt || _conv == 'p') os << showbase;
+
+                        if (_prec != 0 || is_nonzero(arg))
+                        {
+                            print_integer(os, arg, _conv == 'd' || _conv == 'i');
+                        }
+                    }
+                    break;
+                    case 'e':
+                    case 'E':
+                    case 'f':
+                    case 'F':
+                    case 'g':
+                    case 'G':
+                    case 'a':
+                    case 'A':
+                    {
+                        if (!is_floating_point<T>::value)
+                            throw runtime_error("Argument is not floating point");
+
+                        os << setw(_width) << setfill(' ') << noshowpos <<
+                              std::right << std::nouppercase << noshowpoint <<
+                              setprecision(_prec) << defaultfloat;
+
+                        if (_conv == 'E' || _conv == 'F' ||
+                            _conv == 'G' || _conv == 'A') os << std::uppercase;
+
+                        if (_conv == 'e' || _conv == 'E') os << scientific;
+
+                        if (_conv == 'f' || _conv == 'F') os << fixed;
+
+                        if (_conv == 'a' || _conv == 'A') os << hexfloat;
+
+                        if (_zero && !_left) os << setfill('0');
+
+                        if (_sign) os << showpos;
+                        //else if (_space && is_negative(arg)) os << ' ';
+
+                        if (_left) os << std::left;
+
+                        if (_alt) os << showpoint;
+
+                        os << arg;
+                    }
+                    break;
+                    case 'c':
+                    {
+                        if (!is_integral<T>::value)
+                            throw runtime_error("Argument is not integral");
+
+                        while (_width --> 1) os << ' ';
+                        print_char(os, arg);
+                    }
+                    break;
+                    case 's':
+                    {
+                        if (!is_same<T,char*>::value &&
+                            !is_same<T,const char*>::value &&
+                            !is_same<T,string>::value)
+                            throw runtime_error("Argument is not a string");
+
+                        os << setw(_width) << arg;
+                    }
+                    break;
+                    case 'n':
+                    {
+                        os << arg;
+                    }
+                    break;
+                }
+            }
+
+            operator bool() const
+            {
+                return _conv != 0;
+            }
+    };
+
+    template <int I, int N, typename... Args>
+    struct printos_printer
+    {
+        printos_printer(ostream& os, const printos_helper<Args...>& h, string::const_iterator i)
+        {
+            printf_conversion conv(os, h.fmt, i);
+            if (!conv) throw logic_error("More arguments than conversions");
+            conv.print(os, get<I>(h.args));
+            printos_printer<I+1, N, Args...>(os, h, i);
+        }
+    };
+
+    template <int N, typename... Args>
+    struct printos_printer<N, N, Args...>
+    {
+        printos_printer(ostream& os, const printos_helper<Args...>& h, string::const_iterator i)
+        {
+            printf_conversion conv(os, h.fmt, i);
+            if (conv) throw logic_error("More conversions than arguments");
+        }
+    };
+
+    }
+
+    template <typename... Args>
+    ostream& operator<<(ostream& os, const detail::printos_helper<Args...>& h)
+    {
+        detail::printos_printer<0, sizeof...(Args), Args...>(os, h, h.fmt.begin());
+        return os;
+    }
+
+    template <typename... Args>
+    detail::printos_helper<Args...> printos(const string& fmt, Args&&... args)
+    {
+        return detail::printos_helper<Args...>(fmt, forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    void print(const string& fmt, Args&&... args)
+    {
+        cout << printos(fmt, forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    detail::printos_helper<Args...> operator%(const string& fmt, const tuple<Args&&...>& args)
+    {
+        return detail::printos_helper<Args...>(fmt, args);
+    }
+
+    template <typename... Args>
+    detail::printos_helper<Args...> operator%(const char* fmt, const tuple<Args&&...>& args)
+    {
+        return detail::printos_helper<Args...>(fmt, args);
+    }
+
+    template <typename... Args>
+    tuple<Args&&...> fmt(Args&&... args)
+    {
+        return tuple<Args&&...>(forward<Args>(args)...);
     }
 
     template <typename T>
@@ -3213,7 +3629,8 @@ namespace aquarius
         enable_if_t<!is_complex<T>::value,ostream&>
         operator<<(ostream& os, const sigfig_printer<T>& p)
         {
-            auto flags = os.flags();
+            ios_flag_saver flags(os);
+
             double l = log10(fabs(p.val));
             int d = (int)(l < 0 ? l-1+1e-15 : l);
             if (abs(d) > 2)
@@ -3224,7 +3641,7 @@ namespace aquarius
             {
                 os << fixed << setprecision(p.sigfigs-d) << p.val;
             }
-            os.flags(flags);
+
             return os;
         }
 
