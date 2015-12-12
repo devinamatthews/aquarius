@@ -174,8 +174,8 @@ namespace aquarius
     using std::endl;
     using std::setprecision;
     using std::scientific;
-    using std::defaultfloat;
-    using std::hexfloat;
+    //using std::defaultfloat; //no GCC support until GCC5 :(
+    //using std::hexfloat;
     using std::fixed;
     using std::skipws;
     using std::showpos;
@@ -2494,7 +2494,7 @@ namespace aquarius
 
                         os << setw(_width) << setfill(' ') << noshowpos <<
                               std::right << std::nouppercase << noshowpoint <<
-                              setprecision(_prec) << defaultfloat;
+                              setprecision(_prec) << fixed; //FIXME: defaultfloat
 
                         if (_conv == 'E' || _conv == 'F' ||
                             _conv == 'G' || _conv == 'A') os << std::uppercase;
@@ -2503,7 +2503,7 @@ namespace aquarius
 
                         if (_conv == 'f' || _conv == 'F') os << fixed;
 
-                        if (_conv == 'a' || _conv == 'A') os << hexfloat;
+                        if (_conv == 'a' || _conv == 'A') os << fixed; //FIXME: hexfloat
 
                         if (_zero && !_left) os << setfill('0');
 
