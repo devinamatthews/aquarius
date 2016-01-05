@@ -685,46 +685,46 @@ bool CCSDT_Q_N_opt<U>::run(task::TaskDAG& dag, const Arena& arena)
               (1.0/ 36.0)*scalar(  L(3)[  "mnoefg"]*Z(3)[  "efgmno"]);
     U E1122 = (1.0/576.0)*scalar(L_1(4)["mnopefgh"]*Z(4)["efghmnop"]);
 
-    printf("\n");
-    printf("CCSDT(Q-2): %18.15f\n", E2);
+    this->log(arena) << strprintf("\n");
+    this->log(arena) << strprintf("CCSDT(Q-2): %18.15f\n", E2);
 
-    printf("\n");
-    printf("CCSDT(Q-3): %18.15f\n", E3);
+    this->log(arena) << strprintf("\n");
+    this->log(arena) << strprintf("CCSDT(Q-3): %18.15f\n", E3);
 
     U E4 = E4_23+E4_4;
 
-    printf("\n");
-    printf("<0|L4^[1][Hbar,T2^[2]+T3^[2]]|0>: %18.15f\n", E4_23);
-    printf("<0|L4^[1][Hbar,T4^[2]]|0>:        %18.15f\n", E4_4);
-    printf("CCSDT(Q-4) Total:                 %18.15f\n", E4);
+    this->log(arena) << strprintf("\n");
+    this->log(arena) << strprintf("<0|L4^[1][Hbar,T2^[2]+T3^[2]]|0>: %18.15f\n", E4_23);
+    this->log(arena) << strprintf("<0|L4^[1][Hbar,T4^[2]]|0>:        %18.15f\n", E4_4);
+    this->log(arena) << strprintf("CCSDT(Q-4) Total:                 %18.15f\n", E4);
 
     U E5 = E5_1_23+E5_2_23+E5_3_23+E5_4_23+
            E5_1_4+ E5_2_4 +E5_3_4 +E5_4_4 +E1112+E0122;
 
-    printf("\n");
-    printf("<0|(L1^[2]+L2^[2]+L3^[2])[Hbar,T2^[2]+T3^[2]]|0>: %18.15f\n", E5_1_23+E5_2_23+E5_3_23);
-    printf("<0|L4^[2][Hbar,T2^[2]+T3^[2]]|0>:                 %18.15f\n", E5_4_23);
-    printf("<0|(L1^[2]+L2^[2]+L3^[2])[Hbar,T4^[2]]|0>:        %18.15f\n", E5_1_4+E5_2_4+E5_3_4);
-    printf("<0|L4^[2][Hbar,T4^[2]]|0>:                        %18.15f\n", E5_4_4);
-    printf("<0|L4^[1][[Hbar,T4^[1]],T2^[2]]|0>:               %18.15f\n", E1112);
-    printf("1/2 <0|(1+L)[[Hbar,T^[2]],T^[2]]|0>:              %18.15f\n", E0122);
-    printf("CCSDT(Q-5) Total:                                 %18.15f\n", E5);
+    this->log(arena) << strprintf("\n");
+    this->log(arena) << strprintf("<0|(L1^[2]+L2^[2]+L3^[2])[Hbar,T2^[2]+T3^[2]]|0>: %18.15f\n", E5_1_23+E5_2_23+E5_3_23);
+    this->log(arena) << strprintf("<0|L4^[2][Hbar,T2^[2]+T3^[2]]|0>:                 %18.15f\n", E5_4_23);
+    this->log(arena) << strprintf("<0|(L1^[2]+L2^[2]+L3^[2])[Hbar,T4^[2]]|0>:        %18.15f\n", E5_1_4+E5_2_4+E5_3_4);
+    this->log(arena) << strprintf("<0|L4^[2][Hbar,T4^[2]]|0>:                        %18.15f\n", E5_4_4);
+    this->log(arena) << strprintf("<0|L4^[1][[Hbar,T4^[1]],T2^[2]]|0>:               %18.15f\n", E1112);
+    this->log(arena) << strprintf("1/2 <0|(1+L)[[Hbar,T^[2]],T^[2]]|0>:              %18.15f\n", E0122);
+    this->log(arena) << strprintf("CCSDT(Q-5) Total:                                 %18.15f\n", E5);
 
     U E6 = E6_1_123+E6_2_123+E6_3_123+E6_4_123+
            E6_1_4  +E6_2_4  +E6_3_4  +E6_4_4  +E2112+E1113+E1122+E0123;
 
-    printf("\n");
-    printf("<0|(L1^[2]+L2^[2]+L3^[2])[Hbar,T1^[3]+T2^[3]+T3^[3]]|0>: %18.15f\n", E6_1_123+E6_2_123+E6_3_123);
-    printf("<0|L4^[2][Hbar,T1^[3]+T2^[3]+T3^[3]]|0>:                 %18.15f\n", E6_4_123);
-    printf("<0|(L1^[2]+L2^[2]+L3^[2])[Hbar,T4^[3]]|0>:               %18.15f\n", E6_1_4+E6_2_4+E6_3_4);
-    printf("<0|L4^[2][Hbar,T4^[3]]|0>:                               %18.15f\n", E6_4_4);
-    printf("<0|L4^[2][[Hbar,T4^[1]],T2^[2]]|0>:                      %18.15f\n", E2112);
-    printf("<0|L4^[1][[Hbar,T4^[1]],T1^[3]+T2^[3]]|0>:               %18.15f\n", E1113);
-    printf("1/2 <0|L4^[1][[Hbar,T^[2]],T^[2]]|0>:                    %18.15f\n", E1122);
-    printf("<0|(1+L)[[Hbar,T^[2]],T^[3]]|0>:                         %18.15f\n", E0123);
-    printf("CCSDT(Q-6) Total:                                        %18.15f\n", E6);
+    this->log(arena) << strprintf("\n");
+    this->log(arena) << strprintf("<0|(L1^[2]+L2^[2]+L3^[2])[Hbar,T1^[3]+T2^[3]+T3^[3]]|0>: %18.15f\n", E6_1_123+E6_2_123+E6_3_123);
+    this->log(arena) << strprintf("<0|L4^[2][Hbar,T1^[3]+T2^[3]+T3^[3]]|0>:                 %18.15f\n", E6_4_123);
+    this->log(arena) << strprintf("<0|(L1^[2]+L2^[2]+L3^[2])[Hbar,T4^[3]]|0>:               %18.15f\n", E6_1_4+E6_2_4+E6_3_4);
+    this->log(arena) << strprintf("<0|L4^[2][Hbar,T4^[3]]|0>:                               %18.15f\n", E6_4_4);
+    this->log(arena) << strprintf("<0|L4^[2][[Hbar,T4^[1]],T2^[2]]|0>:                      %18.15f\n", E2112);
+    this->log(arena) << strprintf("<0|L4^[1][[Hbar,T4^[1]],T1^[3]+T2^[3]]|0>:               %18.15f\n", E1113);
+    this->log(arena) << strprintf("1/2 <0|L4^[1][[Hbar,T^[2]],T^[2]]|0>:                    %18.15f\n", E1122);
+    this->log(arena) << strprintf("<0|(1+L)[[Hbar,T^[2]],T^[3]]|0>:                         %18.15f\n", E0123);
+    this->log(arena) << strprintf("CCSDT(Q-6) Total:                                        %18.15f\n", E6);
 
-    printf("\n");
+    this->log(arena) << strprintf("\n");
 
     this->put("E(2)", new U(E2));
     this->put("E(3)", new U(E3));
