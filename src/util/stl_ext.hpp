@@ -2223,7 +2223,7 @@ namespace aquarius
 
         vector<char> s(n+1);
         va_start(list, fmt);
-        vsnprintf(s.data(), n, fmt, list);
+        vsnprintf(s.data(), n+1, fmt, list);
         va_end(list);
 
         return string(s.begin(), s.end()-1);
