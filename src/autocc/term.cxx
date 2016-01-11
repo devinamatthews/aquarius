@@ -66,7 +66,7 @@ Term::Term(const Diagram::Type type, const Fraction factor, const vector<Fragmen
 Term& Term::fixorder(const vector<Line>& which)
 {
     int idx = 0;
-    for (auto& l : exclude_copy(indices(), which)) idx = max(idx, l.getIndex());
+    for (auto& l : exclusion(indices(), which)) idx = max(idx, l.getIndex());
 
     vector<Line> oldlines, newlines;
     set<Line> done;
@@ -113,7 +113,7 @@ Term& Term::fixexternal()
     int ahidx = 0, bhidx = 0, apidx = 0, bpidx = 0;
     for (vector<Fragment>::iterator f = getFragments().begin();f != getFragments().end();++f)
     {
-        vector<Line> ext = filter_copy(f->out + f->in, isExternal());
+        vector<Line> ext = filtered(f->out + f->in, isExternal());
         for (vector<Line>::iterator l = ext.begin();l != ext.end();++l)
         {
             if (l->isParticle())
@@ -345,7 +345,7 @@ vector<Line> Term::indices() const
         indices += f->indices();
     }
 
-    return uniq_copy(indices);
+    return uniqued(indices);
 }
 
 vector<Line> Term::internal() const
@@ -359,15 +359,15 @@ vector<Line> Term::internal() const
             internal += intersection(f1->indices(), f2->indices());
         }
 
-        internal += exclude_copy(f1->indices(), uniq_copy(f1->indices()));
+        internal += exclusion(f1->indices(), uniqued(f1->indices()));
     }
 
-    return uniq_copy(internal);
+    return uniqued(internal);
 }
 
 vector<Line> Term::external() const
 {
-    return exclude_copy(indices(), internal());
+    return exclusion(indices(), internal());
 }
 
 const vector<Fragment>& Term::getFragments() const
@@ -456,8 +456,8 @@ Diagram Term::expandrhf() const
         for (int i = 0;i < f1.size();i++)
         {
             vector<vector<Line>> assym;
-            assym.push_back(slice(f1, i, i+1));
-            assym.push_back(slice(f1, i+1) + f2);
+            assym.push_back(stl_ext::slice(f1, i, i+1));
+            assym.push_back(stl_ext::slice(f1, i+1) + f2);
             //cout << "assym: " << assym[0] << "|" << assym[1] << endl;
             //cout << "choice: " << endl << choice;
             //cout << "new: " << endl << Diagram(choice).antisymmetrize(assym);
@@ -562,7 +562,7 @@ Diagram Term::symmetrize() const
 
     diagram.antisymmetrize(alpha).antisymmetrize(beta);
 
-    vector<Line> alphas = filter_copy(indices(), isAlpha());
+    vector<Line> alphas = filtered(indices(), isAlpha());
     vector<Line> betas(alphas);
     for (int i = 0;i < betas.size();i++) betas[i] = betas[i].toBeta();
 
@@ -649,13 +649,12 @@ void Term::getShape(Manifold& left, Manifold& right) const
 
     for (vector<Fragment>::const_iterator f = fragments.begin();f != fragments.end();++f)
     {
-        operator+=(out, f->out);
         out += f->out;
         in += f->in;
     }
 
-    vector<Line> exout = intersection(ex, uniq_copy(out));
-    vector<Line> exin = intersection(ex, uniq_copy(in));
+    vector<Line> exout = intersection(ex, uniqued(out));
+    vector<Line> exin = intersection(ex, uniqued(in));
 
     for (vector<Line>::const_iterator i = exout.begin();i != exout.end();++i)
     {

@@ -185,7 +185,7 @@ class ComplexLinearKrylov : public task::Destructible
             */
 
             int info = gesv(nextrap, 1, tmp.data(), nextrap, ipiv.data(), v.data(), nextrap);
-            if (info != 0) throw runtime_error(strprintf("krylov: Info in gesv: %d", info));
+            if (info != 0) throw runtime_error(str("krylov: Info in gesv: %d", info));
 
             /*
             for (int j = 0;j < nextrap;j++)

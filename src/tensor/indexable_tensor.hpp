@@ -82,22 +82,20 @@ class IndexableTensorBase
          * Implicitly indexed binary operations (inner product, trace, and weighting)
          *
          *********************************************************************/
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator=(const IndexedTensorMult<cvDerived,T>& other)
+
+        Derived& operator=(const IndexedTensorMult<Derived,T>& other)
         {
             (*this)[implicit()] = other;
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator+=(const IndexedTensorMult<cvDerived,T>& other)
+        Derived& operator+=(const IndexedTensorMult<Derived,T>& other)
         {
             (*this)[implicit()] += other;
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator-=(const IndexedTensorMult<cvDerived,T>& other)
+        Derived& operator-=(const IndexedTensorMult<Derived,T>& other)
         {
             (*this)[implicit()] -= other;
             return getDerived();
@@ -108,22 +106,20 @@ class IndexableTensorBase
          * Implicitly indexed unary operations (assignment and summation)
          *
          *********************************************************************/
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator=(const IndexedTensor<cvDerived,T>& other)
+
+        Derived& operator=(const IndexedTensor<Derived,T>& other)
         {
             (*this)[implicit()] = other;
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator+=(const IndexedTensor<cvDerived,T>& other)
+        Derived& operator+=(const IndexedTensor<Derived,T>& other)
         {
             (*this)[implicit()] += other;
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator-=(const IndexedTensor<cvDerived,T>& other)
+        Derived& operator-=(const IndexedTensor<Derived,T>& other)
         {
             (*this)[implicit()] -= other;
             return getDerived();
@@ -253,8 +249,8 @@ class IndexedTensor
         T factor_;
         bool conj_;
 
-        template <typename cvDerived>
-        IndexedTensor(const IndexedTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        IndexedTensor(const IndexedTensor<Derived_,T>& other)
         : tensor_(other.tensor_), idx_(other.idx_), factor_(other.factor_), conj_(other.conj_) {}
 
         IndexedTensor(Derived& tensor, const string& idx, const T factor=(T)1, const bool conj=false)
@@ -268,6 +264,7 @@ class IndexedTensor
          * Unary negation, conjugation
          *
          *********************************************************************/
+
         IndexedTensor<Derived,T> operator-() const
         {
             IndexedTensor<Derived,T> ret(*this);
@@ -287,28 +284,29 @@ class IndexedTensor
          * Unary tensor operations (summation)
          *
          *********************************************************************/
+
         IndexedTensor<Derived,T>& operator=(const IndexedTensor<Derived,T>& other)
         {
             tensor_.sum(other.factor_, other.conj_, other.tensor_, other.idx_, (T)0, idx_);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexedTensor<Derived,T>&))
-        operator=(const IndexedTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        IndexedTensor<Derived,T>& operator=(const IndexedTensor<Derived_,T>& other)
         {
             tensor_.sum(other.factor_, other.conj_, other.tensor_, other.idx_, (T)0, idx_);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexedTensor<Derived,T>&))
-        operator+=(const IndexedTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        IndexedTensor<Derived,T>& operator+=(const IndexedTensor<Derived_,T>& other)
         {
             tensor_.sum(other.factor_, other.conj_, other.tensor_, other.idx_, factor_, idx_);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexedTensor<Derived,T>&))
-        operator-=(const IndexedTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        IndexedTensor<Derived,T>& operator-=(const IndexedTensor<Derived_,T>& other)
         {
             tensor_.sum(-other.factor_, other.conj_, other.tensor_, other.idx_, factor_, idx_);
             return *this;
@@ -319,8 +317,9 @@ class IndexedTensor
          * Binary tensor operations (multiplication)
          *
          *********************************************************************/
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexedTensor<Derived,T>&))
-        operator=(const IndexedTensorMult<cvDerived,T>& other)
+
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        IndexedTensor<Derived,T>& operator=(const IndexedTensorMult<Derived_,T>& other)
         {
             tensor_.mult(other.factor_, other.A_.conj_, other.A_.tensor_, other.A_.idx_,
                                         other.B_.conj_, other.B_.tensor_, other.B_.idx_,
@@ -328,8 +327,8 @@ class IndexedTensor
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexedTensor<Derived,T>&))
-        operator+=(const IndexedTensorMult<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        IndexedTensor<Derived,T>& operator+=(const IndexedTensorMult<Derived_,T>& other)
         {
             tensor_.mult(other.factor_, other.A_.conj_, other.A_.tensor_, other.A_.idx_,
                                         other.B_.conj_, other.B_.tensor_, other.B_.idx_,
@@ -337,8 +336,8 @@ class IndexedTensor
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexedTensor<Derived,T>&))
-        operator-=(const IndexedTensorMult<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        IndexedTensor<Derived,T>& operator-=(const IndexedTensorMult<Derived_,T>& other)
         {
             tensor_.mult(-other.factor_, other.A_.conj_, other.A_.tensor_, other.A_.idx_,
                                          other.B_.conj_, other.B_.tensor_, other.B_.idx_,
@@ -346,16 +345,16 @@ class IndexedTensor
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexedTensorMult<Derived,T>))
-        operator*(const IndexedTensor<cvDerived,T>& other) const
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        IndexedTensorMult<Derived,T> operator*(const IndexedTensor<Derived_,T>& other) const
         {
             return IndexedTensorMult<Derived,T>(*this, other);
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexedTensorMult<Derived,T>))
-        operator*(const ScaledTensor<cvDerived,T>& other) const
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        IndexedTensorMult<Derived,T> operator*(const ScaledTensor<Derived_,T>& other) const
         {
-            cvDerived& B = other.tensor_.getDerived();
+            Derived& B = other.tensor_.getDerived();
 
             if (other.conj_)
             {
@@ -367,8 +366,8 @@ class IndexedTensor
             }
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(IndexedTensorMult<Derived,T>))
-        operator*(const IndexableTensor<cvDerived,T>& other) const
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        IndexedTensorMult<Derived,T> operator*(const IndexableTensor<Derived_,T>& other) const
         {
             return IndexedTensorMult<Derived,T>(*this, other[other.implicit()]);
         }
@@ -378,6 +377,7 @@ class IndexedTensor
          * Operations with scalars
          *
          *********************************************************************/
+
         IndexedTensor<Derived,T> operator*(const T factor) const
         {
             IndexedTensor<Derived,T> it(*this);

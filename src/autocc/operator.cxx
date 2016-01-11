@@ -455,9 +455,9 @@ OperatorProduct::ProductGenerator::ProductGenerator(Manifold& c, const Term& ter
         vector<Line> finds;
 
         if (side == LEFT)
-            pindices.push_back(filter_copy(f->getIndicesOut(), isVirtual()));
+            pindices.push_back(filtered(f->getIndicesOut(), isVirtual()));
         else
-            pindices.push_back(filter_copy(f->getIndicesIn(), isVirtual()));
+            pindices.push_back(filtered(f->getIndicesIn(), isVirtual()));
 
         how_many_p.push_back(0);
     }
@@ -467,9 +467,9 @@ OperatorProduct::ProductGenerator::ProductGenerator(Manifold& c, const Term& ter
         vector<Line> finds;
 
         if (side == LEFT)
-            hindices.push_back(filter_copy(f->getIndicesIn(), isOccupied()));
+            hindices.push_back(filtered(f->getIndicesIn(), isOccupied()));
         else
-            hindices.push_back(filter_copy(f->getIndicesOut(), isOccupied()));
+            hindices.push_back(filtered(f->getIndicesOut(), isOccupied()));
 
         how_many_h.push_back(0);
     }

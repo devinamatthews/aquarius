@@ -483,7 +483,7 @@ class Davidson : public task::Destructible
             int info = ggev('V', 'N', nextrap*nvec, e_tmp.data(), nextrap*nvec,
                         s_tmp.data(), nextrap*nvec, l.data(), beta.data(),
                         vr_tmp.data(), nextrap*nvec, NULL, 1);
-            if (info != 0) throw runtime_error(strprintf("davidson: Info in ggev: %d", info));
+            if (info != 0) throw runtime_error(str("davidson: Info in ggev: %d", info));
 
             vr = vr_tmp;
 

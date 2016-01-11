@@ -171,7 +171,7 @@ int Fragment::canonicalize(const Diagram::Type type)
 
 vector<Line> Fragment::indices() const
 {
-    return uniq_copy(out+in);
+    return uniqued(out+in);
 }
 
 pair<Manifold,Manifold> Fragment::getShape() const

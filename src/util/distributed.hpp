@@ -99,7 +99,7 @@ class Distributed
         static ostream& debug()
         {
             static Arena world;
-            static fstream fs(strprintf("debug.%d", world.rank).c_str(),
+            static fstream fs(str("debug.%d", world.rank).c_str(),
                                    fstream::out|fstream::trunc);
             return fs;
         }

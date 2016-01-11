@@ -639,6 +639,10 @@ HAVE_CTF_FALSE
 HAVE_CTF_TRUE
 ctf_LIBS
 ctf_INCLUDES
+HAVE_STLEXT_FALSE
+HAVE_STLEXT_TRUE
+stlext_LIBS
+stlext_INCLUDES
 HAVE_MPIWRAP_FALSE
 HAVE_MPIWRAP_TRUE
 mpiwrap_LIBS
@@ -780,6 +784,7 @@ with_lapack
 with_lawrap
 with_marray
 with_mpiwrap
+with_stlext
 with_ctf
 with_ctf_libs
 with_elemental
@@ -1444,6 +1449,7 @@ Optional Packages:
   --with-lawrap=<dir>     Specify the location of LAWrap.
   --with-marray=<dir>     Specify the location of MArray.
   --with-mpiwrap=<dir>    Specify the location of MPIWrap.
+  --with-stlext=<dir>     Specify the location of STLExt.
   --with-ctf=<dir>        Specify the location of CTF.
   --with-ctf-libs=<...>   Specify the libraries to link for CTF.
   --with-elemental=<dir>  Specify the location of Elemental.
@@ -9140,6 +9146,128 @@ fi
 
 
 #
+# Configure StlExt
+#
+
+    download=no
+    downloaded=no
+
+# Check whether --with-stlext was given.
+if test "${with_stlext+set}" = set; then :
+  withval=$with_stlext;
+else
+  download=yes
+fi
+
+
+    pkg_dir=$with_stlext
+    if test x"$pkg_dir" = xno; then
+        as_fn_error $? "STLExt is a required package." "$LINENO" 5
+        include_package=no
+    elif test x"$download" = xyes && test x"https://github.com/devinamatthews/stl_ext" = x; then
+        include_package=no
+    else
+        if test x"$download" = xyes && test x"https://github.com/devinamatthews/stl_ext" != x; then
+            pkg_dir=src/external/stlext
+            if ! test -d $pkg_dir; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: downloading STLExt from external Git repository..." >&5
+$as_echo "$as_me: downloading STLExt from external Git repository..." >&6;}
+                if ! git clone -q https://github.com/devinamatthews/stl_ext $pkg_dir; then
+                    as_fn_error $? "could not download STLExt repository" "$LINENO" 5
+                fi
+            fi
+            if test -f $pkg_dir/configure; then
+                { $as_echo "$as_me:${as_lineno-$LINENO}: configuring STLExt in $pkg_dir" >&5
+$as_echo "$as_me: configuring STLExt in $pkg_dir" >&6;}
+                ( cd $pkg_dir && ./configure )
+                { $as_echo "$as_me:${as_lineno-$LINENO}: done configuring STLExt" >&5
+$as_echo "$as_me: done configuring STLExt" >&6;}
+            fi
+            downloaded=yes
+        fi
+
+            include_flags=
+            for dir_path in .; do
+                as_fn_append include_flags " -I$pkg_dir/$dir_path"
+            done
+            for header in algorithm.hpp \
+                 complex.hpp \
+                 cosort.hpp \
+                 global_ptr.hpp \
+                 iostream.hpp \
+                 ptr_list.hpp \
+                 ptr_vector.hpp \
+                 string.hpp \
+                 type_traits.hpp \
+                 vector.hpp \
+                 zip.hpp; do
+                  ac_save_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$CPPFLAGS $include_flags"
+  as_ac_Header=`$as_echo "ac_cv_header_$header" | $as_tr_sh`
+ac_fn_cxx_check_header_compile "$LINENO" "$header" "$as_ac_Header" "$ac_includes_default
+"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find $header.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+
+  CPPFLAGS="$ac_save_CPPFLAGS"
+
+            done
+            stlext_INCLUDES=$include_flags
+
+
+        if test x"" != x; then
+            lib_flags=
+            for dir_path in lib lib64; do
+                as_fn_append lib_flags " -L$pkg_dir/$dir_path"
+            done
+            as_fn_append lib_flags " $libraries"
+            if test x"$downloaded" != xyes; then
+                for symbol in ; do
+                      ac_save_LIBS="$LIBS"
+  LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
+  as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
+ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+
+else
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "Could not find $symbol in $libraries.
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+  LIBS="$ac_save_LIBS"
+
+                done
+            fi
+            stlext_LIBS=$lib_flags
+
+        fi
+        include_package=yes
+    fi
+    if test x"$include_package" = xyes; then :
+
+$as_echo "#define HAVE_STLEXT 1" >>confdefs.h
+
+fi
+     if test x"$include_package" = xyes; then
+  HAVE_STLEXT_TRUE=
+  HAVE_STLEXT_FALSE='#'
+else
+  HAVE_STLEXT_TRUE='#'
+  HAVE_STLEXT_FALSE=
+fi
+
+
+
+#
 # Configure CTF
 #
 
@@ -9676,6 +9804,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_MPIWRAP_TRUE}" && test -z "${HAVE_MPIWRAP_FALSE}"; then
   as_fn_error $? "conditional \"HAVE_MPIWRAP\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${HAVE_STLEXT_TRUE}" && test -z "${HAVE_STLEXT_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_STLEXT\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_CTF_TRUE}" && test -z "${HAVE_CTF_FALSE}"; then

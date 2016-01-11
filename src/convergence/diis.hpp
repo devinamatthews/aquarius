@@ -184,7 +184,7 @@ class DIIS
                                 c.data(), nextrap+1);
                 }
 
-                if (info != 0) throw runtime_error(strprintf("DIIS: Info in hesv: %d", info));
+                if (info != 0) throw runtime_error(str("DIIS: Info in hesv: %d", info));
             }
 
             /*

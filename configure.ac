@@ -66,6 +66,22 @@ AQ_WITH_PACKAGE([MPIWrap], [https://github.com/devinamatthews/mpiwrap],
                 [mpiwrap.hpp], [])
 
 #
+# Configure StlExt
+#
+AQ_WITH_PACKAGE([STLExt], [https://github.com/devinamatthews/stl_ext],
+                [algorithm.hpp \
+                 complex.hpp \
+                 cosort.hpp \
+                 global_ptr.hpp \
+                 iostream.hpp \
+                 ptr_list.hpp \
+                 ptr_vector.hpp \
+                 string.hpp \
+                 type_traits.hpp \
+                 vector.hpp \
+                 zip.hpp], [.])
+
+#
 # Configure CTF
 #
 AQ_WITH_PACKAGE([CTF], [https://github.com/solomonik/ctf],

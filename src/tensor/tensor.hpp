@@ -99,43 +99,44 @@ class Tensor
          * Binary operations (multiplication and division)
          *
          *********************************************************************/
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator=(const TensorMult<cvDerived,T>& other)
+
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator=(const TensorMult<Derived_,T>& other)
         {
             mult(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)0);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator+=(const TensorMult<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator+=(const TensorMult<Derived_,T>& other)
         {
             mult(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)1);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator-=(const TensorMult<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator-=(const TensorMult<Derived_,T>& other)
         {
             mult(-other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)1);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator=(const TensorDiv<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator=(const TensorDiv<Derived_,T>& other)
         {
             div(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)0);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator+=(const TensorDiv<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator+=(const TensorDiv<Derived_,T>& other)
         {
             div(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)1);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator-=(const TensorDiv<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator-=(const TensorDiv<Derived_,T>& other)
         {
             div(-other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)1);
             return getDerived();
@@ -147,122 +148,101 @@ class Tensor
          *
          *********************************************************************/
 
-        /*
-         * Automatically generated assignment operator exists in spite of
-         * (and precedes) template assignment operator, so a non-template
-         * one must be given
-         */
         Derived& operator=(const Derived& other)
         {
             sum((T)1, false, other, (T)0);
             return getDerived();
         }
 
-        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
-        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator=(cvDerived& other)
-        {
-            sum((T)1, false, other, (T)0);
-            return getDerived();
-        }
-
-        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
-        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator+=(cvDerived& other)
+        Derived& operator+=(const Derived& other)
         {
             sum((T)1, false, other, (T)1);
             return getDerived();
         }
 
-        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
-        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator-=(cvDerived& other)
+        Derived& operator-=(const Derived& other)
         {
             sum((T)(-1), false, other, (T)1);
             return getDerived();
         }
 
-        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
-        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator*=(cvDerived& other)
+        Derived& operator*=(const Derived& other)
         {
             mult((T)1, false, getDerived(), false, other, (T)0);
             return getDerived();
         }
 
-        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, Derived&>
-        //ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator/=(cvDerived& other)
+        Derived& operator/=(const Derived& other)
         {
             div((T)1, false, getDerived(), false, other, (T)0);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator=(const ScaledTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator=(const ScaledTensor<Derived_,T>& other)
         {
             sum(other.factor_, other.conj_, other.tensor_, (T)0);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator+=(const ScaledTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator+=(const ScaledTensor<Derived_,T>& other)
         {
             sum(other.factor_, other.conj_, other.tensor_, (T)1);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator-=(const ScaledTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator-=(const ScaledTensor<Derived_,T>& other)
         {
             sum(-other.factor_, other.conj_, other.tensor_, (T)1);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator*=(const ScaledTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator*=(const ScaledTensor<Derived_,T>& other)
         {
             mult(other.factor_, false, getDerived(), other.conj_, other.tensor_, (T)0);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator/=(const ScaledTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator/=(const ScaledTensor<Derived_,T>& other)
         {
             div((T)1/other.factor_, false, getDerived(), other.conj_, other.tensor_, (T)0);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator=(const InvertedTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator=(const InvertedTensor<Derived_,T>& other)
         {
             invert(other.factor_, other.conj_, other.tensor_, (T)0);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator+=(const InvertedTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator+=(const InvertedTensor<Derived_,T>& other)
         {
             invert(other.factor_, other.conj_, other.tensor_, (T)1);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator-=(const InvertedTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator-=(const InvertedTensor<Derived_,T>& other)
         {
             invert(-other.factor_, other.conj_, other.tensor_, (T)0);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator*=(const InvertedTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator*=(const InvertedTensor<Derived_,T>& other)
         {
             div(other.factor_, false, getDerived(), other.conj_, other.tensor_, (T)0);
             return getDerived();
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,Derived&)
-        operator/=(const InvertedTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        Derived& operator/=(const InvertedTensor<Derived_,T>& other)
         {
             mult((T)1/other.factor_, false, getDerived(), other.conj_, other.tensor_, (T)0);
             return getDerived();
@@ -273,6 +253,7 @@ class Tensor
          * Intermediate operations
          *
          *********************************************************************/
+
         friend ScaledTensor<Derived,T> operator*(const T factor, Derived& other)
         {
             return ScaledTensor<Derived,T>(other.getDerived(), factor);
@@ -323,17 +304,13 @@ class Tensor
             return ScaledTensor<const Derived,T>(t.getDerived(), (T)1, true);
         }
 
-        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, TensorMult<Derived,T>>
-        //ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
-        operator*(const cvDerived& other) const
+        TensorMult<Derived,T> operator*(const Derived& other) const
         {
             return TensorMult<Derived,T>(ScaledTensor<const Derived,T>(getDerived(), (T)1),
                                          ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
         }
 
-        template <typename cvDerived> if_exists_t<typename cvDerived::dtype, TensorDiv<Derived,T>>
-        //ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorDiv<Derived,T>))
-        operator/(const cvDerived& other) const
+        TensorDiv<Derived,T> operator/(const Derived& other) const
         {
             return TensorDiv<Derived,T>(ScaledTensor<const Derived,T>(getDerived(), (T)1),
                                         ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
@@ -391,8 +368,8 @@ class ScaledTensor
         T factor_;
         bool conj_;
 
-        template <typename cvDerived>
-        ScaledTensor(const ScaledTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor(const ScaledTensor<Derived_,T>& other)
         : tensor_(other.tensor_), factor_(other.factor_), conj_(other.conj_) {}
 
         ScaledTensor(Derived& tensor, const T factor, const bool conj_=false)
@@ -403,6 +380,7 @@ class ScaledTensor
          * Unary negation, conjugation
          *
          *********************************************************************/
+
         ScaledTensor<Derived,T> operator-() const
         {
             ScaledTensor<Derived,T> ret(*this);
@@ -422,36 +400,32 @@ class ScaledTensor
          * Unary tensor operations
          *
          *********************************************************************/
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator=(const cvDerived& other)
+
+        ScaledTensor<Derived,T>& operator=(const Derived& other)
         {
             tensor_.sum((T)1, false, other, (T)0);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator+=(const cvDerived& other)
+        ScaledTensor<Derived,T>& operator+=(const Derived& other)
         {
             tensor_.sum((T)1, false, other, factor_);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator-=(const cvDerived& other)
+        ScaledTensor<Derived,T>& operator-=(const Derived& other)
         {
             tensor_.sum((T)(-1), false, other, factor_);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator*=(const cvDerived& other)
+        ScaledTensor<Derived,T>& operator*=(const Derived& other)
         {
             tensor_.mult(factor_, false, tensor_, false, other, (T)0);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator/=(const cvDerived& other)
+        ScaledTensor<Derived,T>& operator/=(const Derived& other)
         {
             tensor_.div(factor_, false, tensor_, false, other, (T)0);
             return *this;
@@ -463,71 +437,71 @@ class ScaledTensor
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator=(const ScaledTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator=(const ScaledTensor<Derived_,T>& other)
         {
             tensor_.sum(other.factor_, other.conj_, other.tensor_, (T)0);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator+=(const ScaledTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator+=(const ScaledTensor<Derived_,T>& other)
         {
             tensor_.sum(other.factor_, other.conj_, other.tensor_, factor_);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator-=(const ScaledTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator-=(const ScaledTensor<Derived_,T>& other)
         {
             tensor_.sum(-other.factor_, other.conj_, other.tensor_, factor_);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator*=(const ScaledTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator*=(const ScaledTensor<Derived_,T>& other)
         {
             tensor_.mult(factor_*other.factor_, false, tensor_, other.conj_, other.tensor_, (T)0);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator/=(const ScaledTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator/=(const ScaledTensor<Derived_,T>& other)
         {
             tensor_.div(factor_/other.factor_, false, tensor_, other.conj_, other.tensor_, (T)0);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator=(const InvertedTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator=(const InvertedTensor<Derived_,T>& other)
         {
             tensor_.invert(other.factor_, other.conj_, other.tensor_, (T)0);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator+=(const InvertedTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator+=(const InvertedTensor<Derived_,T>& other)
         {
             tensor_.invert(other.factor_, other.conj_, other.tensor_, factor_);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator-=(const InvertedTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator-=(const InvertedTensor<Derived_,T>& other)
         {
             tensor_.invert(-other.factor_, other.conj_, other.tensor_, factor_);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator*=(const InvertedTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator*=(const InvertedTensor<Derived_,T>& other)
         {
             tensor_.div(factor_*other.factor_, false, tensor_, other.conj_, other.tensor_, (T)0);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator/=(const InvertedTensor<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator/=(const InvertedTensor<Derived_,T>& other)
         {
             tensor_.mult(factor_/other.factor_, false, tensor_, other.conj_, other.tensor_, (T)0);
             return *this;
@@ -538,68 +512,67 @@ class ScaledTensor
          * Binary tensor operations
          *
          *********************************************************************/
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator=(const TensorMult<cvDerived,T>& other)
+
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator=(const TensorMult<Derived_,T>& other)
         {
             tensor_.mult(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)0);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator+=(const TensorMult<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator+=(const TensorMult<Derived_,T>& other)
         {
             tensor_.mult(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, factor_);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator-=(const TensorMult<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator-=(const TensorMult<Derived_,T>& other)
         {
             tensor_.mult(-other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, factor_);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator=(const TensorDiv<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator=(const TensorDiv<Derived_,T>& other)
         {
             tensor_.div(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, (T)0);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator+=(const TensorDiv<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator+=(const TensorDiv<Derived_,T>& other)
         {
             tensor_.div(other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, factor_);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(ScaledTensor<Derived,T>&))
-        operator-=(const TensorDiv<cvDerived,T>& other)
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        ScaledTensor<Derived,T>& operator-=(const TensorDiv<Derived_,T>& other)
         {
             tensor_.div(-other.factor_, other.A_.conj_, other.A_.tensor_, other.B_.conj_, other.B_.tensor_, factor_);
             return *this;
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
-        operator*(const ScaledTensor<cvDerived,T>& other) const
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        TensorMult<Derived,T> operator*(const ScaledTensor<Derived_,T>& other) const
         {
             return TensorMult<Derived,T>(*this, other);
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorMult<Derived,T>))
-        operator*(const cvDerived& other) const
+        TensorMult<Derived,T> operator*(const Derived& other) const
         {
             return TensorMult<Derived,T>(*this, ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorDiv<Derived,T>))
-        operator/(const ScaledTensor<cvDerived,T>& other) const
+        template <typename Derived_, typename=enable_if_similar_t<Derived,Derived_>>
+        TensorDiv<Derived,T> operator/(const ScaledTensor<Derived_,T>& other) const
         {
             return TensorDiv<Derived,T>(*this, other);
         }
 
-        ENABLE_IF_SAME(Derived,cvDerived,CONCAT(TensorDiv<Derived,T>))
-        operator/(const cvDerived& other) const
+        TensorDiv<Derived,T> operator/(const Derived& other) const
         {
             return TensorDiv<Derived,T>(*this, ScaledTensor<const Derived,T>(other.getDerived(), (T)1));
         }

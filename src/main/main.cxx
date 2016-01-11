@@ -37,21 +37,103 @@ int main(int argc, char **argv)
 
         if (world.rank == 0)
         {
-            printf("================================================================================\n");
-            printf("                                                                                \n");
-            printf("                                                          ii                    \n");
-            printf("            aaaaa        qqq    u   u    aaaa    rr rrr        u   u   sssss    \n");
-            printf("        aaaaaaaaaaa    qq  qq  uu  uu   aa  aa    rr  rr  ii  uu  uu  ss  ss    \n");
-            printf("      aaaa       aaa  qq   qq  uu  uu  aa  aaa   rr       ii  uu  uu  sss       \n");
-            printf("    aaa          aaa   qqqqq    uuuu    aaaa aa  r         ii  uuuu     sss     \n");
-            printf("   aaa           aaa      qq  q                                           ss    \n");
-            printf("   aaa           aaa       qqq                                       sss  ss    \n");
-            printf("    aaa        aaaaa                                                   sss      \n");
-            printf("     aaaaaaaaaaaa aaa                                                           \n");
-            printf("       aaaaaaa     aaa                Welcome to the New Age                    \n");
-            printf("                                                                                \n");
-            printf("                                                                                \n");
-            printf("================================================================================\n");
+            srand(time(NULL));
+            switch (rand()%5)
+            {
+                case 0:
+                    printf("================================================================================\n");
+                    printf("                                                                                \n");
+                    printf("                                                          ii                    \n");
+                    printf("            aaaaa        qqq    u   u    aaaa    rr rrr        u   u   sssss    \n");
+                    printf("        aaaaaaaaaaa    qq  qq  uu  uu   aa  aa    rr  rr  ii  uu  uu  ss  ss    \n");
+                    printf("      aaaa       aaa  qq   qq  uu  uu  aa  aaa   rr       ii  uu  uu  sss       \n");
+                    printf("    aaa          aaa   qqqqq    uuuu    aaaa aa  r         ii  uuuu     sss     \n");
+                    printf("   aaa           aaa      qq  q                                           ss    \n");
+                    printf("   aaa           aaa       qqq                                       sss  ss    \n");
+                    printf("    aaa        aaaaa                                                   sss      \n");
+                    printf("     aaaaaaaaaaaa aaa                                                           \n");
+                    printf("       aaaaaaa     aaa                Welcome to the New Age                    \n");
+                    printf("                                                                                \n");
+                    printf("                                                                                \n");
+                    printf("================================================================================\n");
+                break;
+                case 1:
+                    printf("================================================================================\n");
+                    printf("                                                                                \n");
+                    printf("                 \ \ /\ / /                                                     \n");
+                    printf("               ---- /__\ ----                                                   \n");
+                    printf("             ----  /|_O|\ ----                              ||                  \n");
+                    printf("              --- /______\ ---                                                  \n");
+                    printf("               / __________ \    /==\   || ||  /==\   \/=\  ||  || ||  /==\     \n");
+                    printf("                /_|____|___\    ||  ||  || || ||  ||  ||    ||  || || |\        \n");
+                    printf("               /____|____|__\    \==||  \|=|/  \==/\\ ||    ||  \|=|/  \=\      \n");
+                    printf("              /__|____|____|_\      //                                   \|     \n");
+                    printf("             /|____|____|____|\     \=/                                \==/     \n");
+                    printf("            /___|____|____|____\                                                \n");
+                    printf("           /___|____|____|____|_\                                               \n");
+                    printf("          /_|____|____|____|____|\                                              \n");
+                    printf("         /____|____|____|____|____\          Novus Ordo Seclorum                \n");
+                    printf("        /_|____|____|____|____|____\                                            \n");
+                    printf("       /|___|____|____|____|____|___\                                           \n");
+                    printf("      /__|____|____|____|____|____|__\                                          \n");
+                    printf("     /__|____|____|____|____|____|____\                                         \n");
+                    printf("    /|____|____|____|____|____|____|___\                                        \n");
+                    printf("                                                                                \n");
+                    printf("================================================================================\n");
+                break;
+                case 2:
+                    printf("================================================================================\n");
+                    printf("                                                                                \n");
+                    printf("                                     __                                         \n");
+                    printf("                                    /  \                                        \n");
+                    printf("                 ____   ____ ____   \__/    ______    _____ ____ ____  ____     \n");
+                    printf("        /\      / __ \   | | | |     /\      |  _ \    | |   | | | |  / ___\|   \n");
+                    printf("       /  \    / /  \ \  | | | |    /  \     | |/ /    | |   | | | |  | |__     \n");
+                    printf("      / /\ \   | |  | |  | | | |   / /\ \    |   \     | |   | | | |  \__  \    \n");
+                    printf("     / ____ \  \ \__/ /  | \_/ /  / /  \ \   | |\ \    | |   \ \_/ /  ___| |    \n");
+                    printf("   _/_/_  _\_\_ \__  /    \___/  /__\  /__\ _|_| \_\_ _|_|_   \___/  |\____/    \n");
+                    printf("                   \_\                                                          \n");
+                    printf("                                                                                \n");
+                    printf("                                  KREE!                                         \n");
+                    printf("                                                                                \n");
+                    printf("================================================================================\n");
+                break;
+                case 3:
+                    printf("================================================================================\n");
+                    printf("                                                                                \n");
+                    printf("                                                                                \n");
+                    printf("      ____        ____      __  __   ____        _____     __   __  __   _____  \n");
+                    printf("     |__  \      /___ \    / / / /  |___ \      /____ \   / /  / / / /  / ___/  \n");
+                    printf("     __ | |     __  / /   / / / /   __ | |     _____/ /  / /  / / / /  | |__    \n");
+                    printf("    / / | |    / / / /   / / / /   / / | |    / __  _/  / /  / / / /    \__ \   \n");
+                    printf("   / /  | |   / / / /   / / / /   / /  | |   / / | |   / /  / / / /        \ \  \n");
+                    printf("  / /___| |  / /_/ /_  / /_/ /   / /___| |  / /  / /  / /  / /_/ /  _______/ |  \n");
+                    printf(" /________|  \______/  \____/   /________| /_/  /_/  /_/   \____/  /________/   \n");
+                    printf("                                                                                \n");
+                    printf("                                                                                \n");
+                    printf("                      Where No Computation Has Gone Before                      \n");
+                    printf("                                                                                \n");
+                    printf("                                                                                \n");
+                    printf("================================================================================\n");
+                break;
+                case 4:
+                    printf("================================================================================\n");
+                    printf("                                                                                \n");
+                    printf("                ============                                                    \n");
+                    printf("              //            \\                                                  \n");
+                    printf("             //              \\                                                 \n");
+                    printf("     /\     //      ====      \\  ||  ||     /\      ====    ||   ||  ||  /===  \n");
+                    printf("    //\\    ||     //  \\     ||  ||  ||    //\\    ||  \\   ||   ||  ||  \\    \n");
+                    printf("   //==\\   ||     ||  ||     ||  ||  ||   //==\\   ||==/    ||   ||  ||    \\  \n");
+                    printf("  //    \\  ||     \\__//     ||   \==/   //    \\  ||  \\   ||    \==/   ===/  \n");
+                    printf("            \\        \\      //                                                \n");
+                    printf("             \\              //                                                 \n");
+                    printf("              \\            //           I WANT TO COMPUTE                      \n");
+                    printf("                ============                                                    \n");
+                    printf("                                                                                \n");
+                    printf("================================================================================\n");
+                break;
+            }
             printf("\n");
             printf("Running on %d process%s with %d thread%s%s\n\n",
                    world.size,

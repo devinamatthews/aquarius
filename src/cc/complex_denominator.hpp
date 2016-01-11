@@ -111,12 +111,12 @@ class ComplexDenominator : op::Denominator<T>
                                     assert(k == pairsi[i].k);
 
                                     T den = T();
-                                    for (int i = 0;i < ndim;i++)
+                                    for (int j = 0;j < ndim;j++)
                                     {
-                                        int len = dens[i][sym[i]].size();
+                                        int len = dens[j][sym[j]].size();
                                         int idx = k%len;
                                         k /= len;
-                                        den += dens[i][sym[i]][idx];
+                                        den += dens[j][sym[j]][idx];
                                     }
 
                                     T num = den+omega.real();
