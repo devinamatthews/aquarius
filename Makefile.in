@@ -107,9 +107,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/aq_check_func_with_path.m4 \
 	$(top_srcdir)/m4/ax_cxx_compile_stdcxx_11.m4 \
 	$(top_srcdir)/m4/ax_lapack.m4 \
 	$(top_srcdir)/m4/ax_prog_cc_mpi.m4 \
-	$(top_srcdir)/m4/ax_prog_cxx_mpi.m4 \
-	$(top_srcdir)/m4/ax_prog_f77_mpi.m4 \
-	$(top_srcdir)/m4/ax_prog_fc_mpi.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/ax_prog_cxx_mpi.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
@@ -335,8 +333,6 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 F77 = @F77@
-FC = @FC@
-FCFLAGS = @FCFLAGS@
 FFLAGS = @FFLAGS@
 FLIBS = @FLIBS@
 GREP = @GREP@
@@ -356,8 +352,6 @@ MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
 MPICC = @MPICC@
 MPICXX = @MPICXX@
-MPIF77 = @MPIF77@
-MPIFC = @MPIFC@
 OBJEXT = @OBJEXT@
 OPENMP_CXXFLAGS = @OPENMP_CXXFLAGS@
 PACKAGE = @PACKAGE@
@@ -379,7 +373,6 @@ abs_top_srcdir = @abs_top_srcdir@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
 ac_ct_F77 = @ac_ct_F77@
-ac_ct_FC = @ac_ct_FC@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
