@@ -87,13 +87,13 @@ bool CCSDTQ<U>::run(task::TaskDAG& dag, const Arena& arena)
 
     if (guess == "ccsd")
     {
-        auto& Tccsd = this->get<ExcitationOperator<U,2>>("Tccsd");
+        auto& Tccsd = this->template get<ExcitationOperator<U,2>>("Tccsd");
         T(1) = Tccsd(1);
         T(2) = Tccsd(2);
     }
     else if (guess == "ccsdt")
     {
-        auto& Tccsdt = this->get<ExcitationOperator<U,3>>("Tccsdt");
+        auto& Tccsdt = this->template get<ExcitationOperator<U,3>>("Tccsdt");
         T(1) = Tccsdt(1);
         T(2) = Tccsdt(2);
         T(3) = Tccsdt(3);
