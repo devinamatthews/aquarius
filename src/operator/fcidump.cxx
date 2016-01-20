@@ -15,24 +15,26 @@ namespace op
 {
 
 template <typename T>
-void writeIntegrals(vector<kv_pair>& buf, CTFTensor<T>& tensor)
+bool writeIntegrals(vector<kv_pair>& buf, CTFTensor<T>& tensor)
 {
-    cout << "dump " << tensor.getLengths() << endl;
+    size_t len = buf.size();
     tensor.writeRemoteData(buf);
     buf.clear();
+    tensor.arena.comm().Allreduce(&len, 1, MPI_MAX);
+    return len > 0;
 }
 
 template <typename T>
 void writeIntegral(int64_t key, double val, vector<kv_pair>& buf, CTFTensor<T>& tensor)
 {
-    //cout << key << " " << val << endl;
     buf.emplace_back(key, val);
     if (buf.size() == BUFFER_SIZE) writeIntegrals(buf, tensor);
 }
 
 template <typename T>
 FCIDUMP<T>::FCIDUMP(const string& name, Config& config)
-: Task(name, config), path(config.get<string>("filename"))
+: Task(name, config), path(config.get<string>("filename")),
+  semi(config.get<bool>("semicanonical"))
 {
     addProduct("moints", "H");
 }
@@ -62,8 +64,9 @@ bool FCIDUMP<T>::run(TaskDAG& dag, const Arena& arena)
 
     this->log(arena) << "There are " << no << " occupied and " << nv << " virtual orbitals." << endl;
 
-    Space occ(PointGroup::C1(), {no}, {no});
-    Space vrt(PointGroup::C1(), {nv}, {nv});
+    const PointGroup& group = PointGroup::C1();
+    Space occ(group, {no}, {no});
+    Space vrt(group, {nv}, {nv});
 
     auto& H = this->put("H", new TwoElectronOperator<T>("H", arena, occ, vrt));
 
@@ -80,6 +83,10 @@ bool FCIDUMP<T>::run(TaskDAG& dag, const Arena& arena)
     vector<kv_pair> abci_buf; abci_buf.reserve(BUFFER_SIZE);
     vector<kv_pair> abcd_buf; abcd_buf.reserve(BUFFER_SIZE);
 
+    CTFTensor<T>& fIJ = H.getIJ()({0,1},{0,1})({0,0});
+    CTFTensor<T>& fAI = H.getAI()({1,0},{0,1})({0,0});
+    CTFTensor<T>& fIA = H.getIA()({0,1},{1,0})({0,0});
+    CTFTensor<T>& fAB = H.getAB()({1,0},{1,0})({0,0});
     CTFTensor<T>& VIJKL = H.getIJKL()({0,1},{0,1})({0,0,0,0});
     CTFTensor<T>& VAIJK = H.getAIJK()({1,0},{0,1})({0,0,0,0});
     CTFTensor<T>& VABIJ = H.getABIJ()({1,0},{0,1})({0,0,0,0});
@@ -89,8 +96,11 @@ bool FCIDUMP<T>::run(TaskDAG& dag, const Arena& arena)
 
     //vector<int> orbmap{0, 1, 2, 5, 6, 7, 8, 11, 3, 9, 4, 10};
 
+    long lineno = 0;
     while (getline(ifs, line))
     {
+        if (lineno++ % arena.size != arena.rank) continue;
+
         double val;
         int64_t p, q, r, s;
 
@@ -267,72 +277,204 @@ bool FCIDUMP<T>::run(TaskDAG& dag, const Arena& arena)
         }
     }
 
-    double norm_ij = 0;
-    vector<kv_pair> ij_buf;
-    for (int i = 0;i < no;i++)
-    {
-        for (int j = 0;j < no;j++)
-        {
-            if (i != j) norm_ij = max(norm_ij, fabs(fij[i][j]));
-            ij_buf.emplace_back(i+j*no, fij[i][j]);
-        }
-    }
+    while (writeIntegrals(abcd_buf, VABCD)) continue;
+    while (writeIntegrals(abci_buf, VABCI)) continue;
+    while (writeIntegrals(abij_buf, VABIJ)) continue;
+    while (writeIntegrals(aibj_buf, VAIBJ)) continue;
+    while (writeIntegrals(aijk_buf, VAIJK)) continue;
+    while (writeIntegrals(ijkl_buf, VIJKL)) continue;
 
-    double norm_ia = 0;
-    vector<kv_pair> ia_buf;
-    for (int i = 0;i < no;i++)
-    {
-        for (int a = 0;a < nv;a++)
-        {
-            norm_ia = max(norm_ia, fabs(fia[i][a]));
-            ia_buf.emplace_back(i+a*no, fia[i][a]);
-        }
-    }
+    arena.comm().Allreduce(&escf, 1, MPI_SUM);
 
-    double norm_ai = 0;
-    vector<kv_pair> ai_buf;
-    for (int a = 0;a < nv;a++)
+    if (arena.rank == 0)
     {
+        arena.comm().Reduce(fab.data(), nv*nv, MPI_SUM);
+        arena.comm().Reduce(fai.data(), nv*no, MPI_SUM);
+        arena.comm().Reduce(fia.data(), no*nv, MPI_SUM);
+        arena.comm().Reduce(fij.data(), no*no, MPI_SUM);
+
+        double norm_ij = 0;
+        vector<kv_pair> ij_buf;
         for (int i = 0;i < no;i++)
         {
-            norm_ai = max(norm_ai, fabs(fai[a][i]));
-            ai_buf.emplace_back(a+i*nv, fai[a][i]);
+            for (int j = 0;j < no;j++)
+            {
+                if (i != j) norm_ij = max(norm_ij, fabs(fij[i][j]));
+                ij_buf.emplace_back(i+j*no, fij[i][j]);
+            }
         }
-    }
 
-    double norm_ab = 0;
-    vector<kv_pair> ab_buf;
-    for (int a = 0;a < nv;a++)
-    {
-        for (int b = 0;b < nv;b++)
+        double norm_ia = 0;
+        vector<kv_pair> ia_buf;
+        for (int i = 0;i < no;i++)
         {
-            if (a != b) norm_ab = max(norm_ab, fabs(fab[a][b]));
-            ab_buf.emplace_back(a+b*nv, fab[a][b]);
+            for (int a = 0;a < nv;a++)
+            {
+                norm_ia = max(norm_ia, fabs(fia[i][a]));
+                ia_buf.emplace_back(i+a*no, fia[i][a]);
+            }
         }
+
+        double norm_ai = 0;
+        vector<kv_pair> ai_buf;
+        for (int a = 0;a < nv;a++)
+        {
+            for (int i = 0;i < no;i++)
+            {
+                norm_ai = max(norm_ai, fabs(fai[a][i]));
+                ai_buf.emplace_back(a+i*nv, fai[a][i]);
+            }
+        }
+
+        double norm_ab = 0;
+        vector<kv_pair> ab_buf;
+        for (int a = 0;a < nv;a++)
+        {
+            for (int b = 0;b < nv;b++)
+            {
+                if (a != b) norm_ab = max(norm_ab, fabs(fab[a][b]));
+                ab_buf.emplace_back(a+b*nv, fab[a][b]);
+            }
+        }
+
+        fIJ.writeRemoteData(ij_buf);
+        fAI.writeRemoteData(ai_buf);
+        fIA.writeRemoteData(ia_buf);
+        fAB.writeRemoteData(ab_buf);
+
+        log(arena) << "E(SCF): " << printToAccuracy(escf, 1e-12) << endl;
+        log(arena) << "norm IJ: " << norm_ij << endl;
+        log(arena) << "norm IA: " << norm_ia << endl;
+        log(arena) << "norm AI: " << norm_ai << endl;
+        log(arena) << "norm AB: " << norm_ab << endl;
+    }
+    else
+    {
+        arena.comm().Reduce(fab.data(), nv*nv, MPI_SUM, 0);
+        arena.comm().Reduce(fai.data(), nv*no, MPI_SUM, 0);
+        arena.comm().Reduce(fia.data(), no*nv, MPI_SUM, 0);
+        arena.comm().Reduce(fij.data(), no*no, MPI_SUM, 0);
+
+        fIJ.writeRemoteData();
+        fAI.writeRemoteData();
+        fIA.writeRemoteData();
+        fAB.writeRemoteData();
     }
 
-    cout << "E(SCF): " << printToAccuracy(escf, 1e-12) << endl;
-    cout << "norm IJ: " << norm_ij << endl;
-    cout << "norm IA: " << norm_ia << endl;
-    cout << "norm AI: " << norm_ai << endl;
-    cout << "norm AB: " << norm_ab << endl;
+    if (semi)
+    {
+        int info;
 
-    H.getIJ()({0,1},{0,1})({0,0}).writeRemoteData(ij_buf);
-    H.getAI()({1,0},{0,1})({0,0}).writeRemoteData(ai_buf);
-    H.getIA()({0,1},{1,0})({0,0}).writeRemoteData(ia_buf);
-    H.getAB()({1,0},{1,0})({0,0}).writeRemoteData(ab_buf);
+        CTFTensor<T> CAB("C(AB)", arena, 2, {nv,nv}, {NS,NS});
+        CTFTensor<T> CIJ("C(IJ)", arena, 2, {no,no}, {NS,NS});
+
+        vector<double> e_occ(no);
+        vector<double> e_vrt(nv);
+
+        if (arena.rank == 0)
+        {
+            info = heev('V', 'U', no, fij.data(), no, e_occ.data());
+            assert(info == 0);
+
+            info = heev('V', 'U', nv, fab.data(), nv, e_vrt.data());
+            assert(info == 0);
+
+            vector<kv_pair> ij_buf;
+            for (int i = 0;i < no;i++)
+                for (int j = 0;j < no;j++)
+                    ij_buf.emplace_back(i+j*no, fij[i][j]);
+
+            vector<kv_pair> ab_buf;
+            for (int a = 0;a < nv;a++)
+                for (int b = 0;b < nv;b++)
+                    ab_buf.emplace_back(a+b*nv, fab[a][b]);
+
+            CAB.writeRemoteData(ab_buf);
+            CIJ.writeRemoteData(ij_buf);
+        }
+        else
+        {
+            CAB.writeRemoteData();
+            CIJ.writeRemoteData();
+        }
+
+        {
+            CTFTensor<T> tmp("tmp", arena, 2, {nv,nv}, {NS,NS});
+            tmp["AQ"] = fAB["PQ"]*CAB["PA"];
+            fAB["AB"] = tmp["AQ"]*CAB["QB"];
+        }
+
+        {
+            CTFTensor<T> tmp("tmp", arena, 2, {nv,no}, {NS,NS});
+            tmp["AQ"] = fAI["PQ"]*CAB["PA"];
+            fAI["AI"] = tmp["AQ"]*CIJ["QI"];
+        }
+
+        {
+            CTFTensor<T> tmp("tmp", arena, 2, {no,nv}, {NS,NS});
+            tmp["IQ"] = fIA["PQ"]*CIJ["PI"];
+            fIA["IA"] = tmp["IQ"]*CAB["QA"];
+        }
+
+        {
+            CTFTensor<T> tmp("tmp", arena, 2, {no,no}, {NS,NS});
+            tmp["IQ"] = fIJ["PQ"]*CIJ["PI"];
+            fIJ["IJ"] = tmp["IQ"]*CIJ["QJ"];
+        }
+
+        {
+            CTFTensor<T> tmp("tmp", arena, 4, {nv,nv,nv,nv}, {NS,NS,NS,NS});
+              tmp["AQRS"] = VABCD["PQRS"]*CAB["PA"];
+            VABCD["ABRS"] =   tmp["AQRS"]*CAB["QB"];
+              tmp["ABCS"] = VABCD["ABRS"]*CAB["RC"];
+            VABCD["ABCD"] =   tmp["ABCS"]*CAB["SD"];
+        }
+
+        {
+            CTFTensor<T> tmp("tmp", arena, 4, {nv,nv,nv,no}, {NS,NS,NS,NS});
+              tmp["AQRS"] = VABCI["PQRS"]*CAB["PA"];
+            VABCI["ABRS"] =   tmp["AQRS"]*CAB["QB"];
+              tmp["ABCS"] = VABCI["ABRS"]*CAB["RC"];
+            VABCI["ABCI"] =   tmp["ABCS"]*CIJ["SI"];
+        }
+
+        {
+            CTFTensor<T> tmp("tmp", arena, 4, {nv,nv,no,no}, {NS,NS,NS,NS});
+              tmp["AQRS"] = VABIJ["PQRS"]*CAB["PA"];
+            VABIJ["ABRS"] =   tmp["AQRS"]*CAB["QB"];
+              tmp["ABIS"] = VABIJ["ABRS"]*CIJ["RI"];
+            VABIJ["ABIJ"] =   tmp["ABIS"]*CIJ["SJ"];
+        }
+
+        {
+            CTFTensor<T> tmp("tmp", arena, 4, {nv,no,nv,no}, {NS,NS,NS,NS});
+              tmp["AQRS"] = VAIBJ["PQRS"]*CAB["PA"];
+            VAIBJ["AIRS"] =   tmp["AQRS"]*CIJ["QI"];
+              tmp["AIBS"] = VAIBJ["AIRS"]*CAB["RB"];
+            VAIBJ["AIBJ"] =   tmp["AIBS"]*CIJ["SJ"];
+        }
+
+        {
+            CTFTensor<T> tmp("tmp", arena, 4, {nv,no,no,no}, {NS,NS,NS,NS});
+              tmp["AQRS"] = VAIJK["PQRS"]*CAB["PA"];
+            VAIJK["AIRS"] =   tmp["AQRS"]*CIJ["QI"];
+              tmp["AIJS"] = VAIJK["AIRS"]*CIJ["RJ"];
+            VAIJK["AIJK"] =   tmp["AIJS"]*CIJ["SK"];
+        }
+
+        {
+            CTFTensor<T> tmp("tmp", arena, 4, {no,no,no,no}, {NS,NS,NS,NS});
+              tmp["IQRS"] = VIJKL["PQRS"]*CIJ["PI"];
+            VIJKL["IJRS"] =   tmp["IQRS"]*CIJ["QJ"];
+              tmp["IJKS"] = VIJKL["IJRS"]*CIJ["RK"];
+            VIJKL["IJKL"] =   tmp["IJKS"]*CIJ["SL"];
+        }
+    }
 
     H.getIJ()({0,0},{0,0}) = H.getIJ()({0,1},{0,1});
     H.getAI()({0,0},{0,0}) = H.getAI()({1,0},{0,1});
     H.getIA()({0,0},{0,0}) = H.getIA()({0,1},{1,0});
     H.getAB()({0,0},{0,0}) = H.getAB()({1,0},{1,0});
-
-    writeIntegrals(abcd_buf, VABCD);
-    writeIntegrals(abci_buf, VABCI);
-    writeIntegrals(abij_buf, VABIJ);
-    writeIntegrals(aibj_buf, VAIBJ);
-    writeIntegrals(aijk_buf, VAIJK);
-    writeIntegrals(ijkl_buf, VIJKL);
 
     H.getABCD()({2,0},{2,0})["ABCD"]  = 0.5*H.getABCD()({1,0},{1,0})["ABCD"];
     H.getABCD()({0,0},{0,0})["abcd"]  = 0.5*H.getABCD()({1,0},{1,0})["abcd"];
@@ -382,7 +524,9 @@ bool FCIDUMP<T>::run(TaskDAG& dag, const Arena& arena)
 static const char* spec = R"!(
 
 filename?
-    string FCIDUMP
+    string FCIDUMP,
+semicanonical?
+    bool false
 
 )!";
 
