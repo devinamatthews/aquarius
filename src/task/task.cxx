@@ -121,7 +121,7 @@ Requirement::Requirement(const string& type, const string& name)
 
 void Requirement::fulfil(const Product& product)
 {
-    this->product.reset(new Product(product));
+    this->product.set(new Product(product));
     *this->product->used = true;
 }
 
@@ -469,6 +469,7 @@ void TaskDAG::execute(Arena& world)
      */
     while (!tasks.empty())
     {
+        bool ran_something = false;
         for (auto i = tasks.pbegin();i != tasks.pend();)
         {
             bool can_execute = true;
@@ -489,6 +490,8 @@ void TaskDAG::execute(Arena& world)
 
             if (can_execute)
             {
+                ran_something = true;
+
                 Logger::log(world) << "Starting task: " << t.getName() << endl;
                 Timer timer;
 
@@ -535,11 +538,11 @@ void TaskDAG::execute(Arena& world)
                 ++i;
             }
         }
-    }
 
-    if (!tasks.empty())
-    {
-        Logger::error(world) << "Some tasks were not executed" << endl;
+        if (!ran_something)
+        {
+            Logger::error(world) << "Some tasks were not executed due to missing dependencies" << endl;
+        }
     }
 }
 

@@ -169,7 +169,7 @@ class Product
 
         template <typename T> T& put(T* resource)
         {
-            data.reset(new Resource<T>(resource));
+            data.set(new Resource<T>(resource));
             return *resource;
         }
 

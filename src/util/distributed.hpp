@@ -69,7 +69,7 @@ inline tCTF_World<float>& Arena::ctf<float>()
 template <>
 inline tCTF_World<double>& Arena::ctf<double>()
 {
-    if (!ctfd) ctfd.reset(new tCTF_World<double>(*comm_));
+    if (!ctfd) ctfd.set(new tCTF_World<double>(*comm_));
     return *ctfd;
 }
 
