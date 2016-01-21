@@ -1359,9 +1359,9 @@ bool CCSDT_Q_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     U E201 = (1.0/576.0)*scalar(L_2(4)["mnopefgh"]*DT_1(4)["efghmnop"]);
     U E102 = (1.0/576.0)*scalar(L_1(4)["mnopefgh"]*DT_2(4)["efghmnop"]);
 
-    this->log(arena) << strprintf("E201: %18.15f\n", E201);
-    this->log(arena) << strprintf("E102: %18.15f\n", E102);
-    this->log(arena) << strprintf("\n");
+    this->log(arena) << printos("E201: %18.15f\n", E201);
+    this->log(arena) << printos("E102: %18.15f\n", E102);
+    this->log(arena) << printos("\n");
 
     U E3 = E102;
 
@@ -1378,10 +1378,10 @@ bool CCSDT_Q_N<U>::run(task::TaskDAG& dag, const Arena& arena)
              +(1.0/576.0)*scalar(L_2(4)["mnopefgh"]*DT_2(4)["efghmnop"]);
     U E103 =  (1.0/576.0)*scalar(L_1(4)["mnopefgh"]*DT_3(4)["efghmnop"]);
 
-    this->log(arena) << strprintf("E301: %18.15f\n", E301);
-    this->log(arena) << strprintf("E202: %18.15f\n", E202);
-    this->log(arena) << strprintf("E103: %18.15f\n", E103);
-    this->log(arena) << strprintf("\n");
+    this->log(arena) << printos("E301: %18.15f\n", E301);
+    this->log(arena) << printos("E202: %18.15f\n", E202);
+    this->log(arena) << printos("E103: %18.15f\n", E103);
+    this->log(arena) << printos("\n");
 
     U E4 = E103;
 
@@ -1405,36 +1405,36 @@ bool CCSDT_Q_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     U E203 = E203s+E203d+E203t+E203q;
     U E104 = (1.0/576.0)*scalar(L_1(4)["mnopefgh"]*DT_4(4)["efghmnop"]);
 
-    this->log(arena) << strprintf("E401:  %18.15f\n", E401);
-    this->log(arena) << strprintf("E302s: %18.15f\n", E302s);
-    this->log(arena) << strprintf("E302d: %18.15f\n", E302d);
-    this->log(arena) << strprintf("E302t: %18.15f\n", E302t);
-    this->log(arena) << strprintf("E302q: %18.15f\n", E302q);
-    this->log(arena) << strprintf("E302:  %18.15f\n", E302);
-    this->log(arena) << strprintf("E203s: %18.15f\n", E203s);
-    this->log(arena) << strprintf("E203d: %18.15f\n", E203d);
-    this->log(arena) << strprintf("E203t: %18.15f\n", E203t);
-    this->log(arena) << strprintf("E203q: %18.15f\n", E203q);
-    this->log(arena) << strprintf("E203:  %18.15f\n", E203);
-    this->log(arena) << strprintf("E104:  %18.15f\n", E104);
-    this->log(arena) << strprintf("\n");
+    this->log(arena) << printos("E401:  %18.15f\n", E401);
+    this->log(arena) << printos("E302s: %18.15f\n", E302s);
+    this->log(arena) << printos("E302d: %18.15f\n", E302d);
+    this->log(arena) << printos("E302t: %18.15f\n", E302t);
+    this->log(arena) << printos("E302q: %18.15f\n", E302q);
+    this->log(arena) << printos("E302:  %18.15f\n", E302);
+    this->log(arena) << printos("E203s: %18.15f\n", E203s);
+    this->log(arena) << printos("E203d: %18.15f\n", E203d);
+    this->log(arena) << printos("E203t: %18.15f\n", E203t);
+    this->log(arena) << printos("E203q: %18.15f\n", E203q);
+    this->log(arena) << printos("E203:  %18.15f\n", E203);
+    this->log(arena) << printos("E104:  %18.15f\n", E104);
+    this->log(arena) << printos("\n");
 
-    this->log(arena) << strprintf("E0113: %18.15f\n", E0113);
-    this->log(arena) << strprintf("E0122: %18.15f\n", E0122);
-    this->log(arena) << strprintf("E1112: %18.15f\n", E1112);
-    this->log(arena) << strprintf("\n");
+    this->log(arena) << printos("E0113: %18.15f\n", E0113);
+    this->log(arena) << printos("E0122: %18.15f\n", E0122);
+    this->log(arena) << printos("E1112: %18.15f\n", E1112);
+    this->log(arena) << printos("\n");
 
-    this->log(arena) << strprintf("E401:             %18.15f\n", E401);
-    this->log(arena) << strprintf("E302+E0113+E1112: %18.15f\n", E302+E0113+E1112);
-    this->log(arena) << strprintf("\n");
+    this->log(arena) << printos("E401:             %18.15f\n", E401);
+    this->log(arena) << printos("E302+E0113+E1112: %18.15f\n", E302+E0113+E1112);
+    this->log(arena) << printos("\n");
 
-    this->log(arena) << strprintf("E302:               %18.15f\n", E302);
-    this->log(arena) << strprintf("E203+2*E0122+E1112: %18.15f\n", E203+2*E0122+E1112);
-    this->log(arena) << strprintf("\n");
+    this->log(arena) << printos("E302:               %18.15f\n", E302);
+    this->log(arena) << printos("E203+2*E0122+E1112: %18.15f\n", E203+2*E0122+E1112);
+    this->log(arena) << printos("\n");
 
-    this->log(arena) << strprintf("E203:             %18.15f\n", E203);
-    this->log(arena) << strprintf("E104+E0113-E1112: %18.15f\n", E104+E0113-E1112);
-    this->log(arena) << strprintf("\n");
+    this->log(arena) << printos("E203:             %18.15f\n", E203);
+    this->log(arena) << printos("E104+E0113-E1112: %18.15f\n", E104+E0113-E1112);
+    this->log(arena) << printos("\n");
 
     U E5 = E203 + E1112 + E0122;
 
@@ -1463,55 +1463,55 @@ bool CCSDT_Q_N<U>::run(task::TaskDAG& dag, const Arena& arena)
     U E204 = E204s+E204d+E204t+E204q;
     U E105 = (1.0/576.0)*scalar(L_1(4)["mnopefgh"]*DT_5(4)["efghmnop"]);
 
-    this->log(arena) << strprintf("E501:  %18.15f\n", E501);
-    this->log(arena) << strprintf("E402s: %18.15f\n", E402s);
-    this->log(arena) << strprintf("E402d: %18.15f\n", E402d);
-    this->log(arena) << strprintf("E402t: %18.15f\n", E402t);
-    this->log(arena) << strprintf("E402q: %18.15f\n", E402q);
-    this->log(arena) << strprintf("E402:  %18.15f\n", E402);
-    this->log(arena) << strprintf("E303s: %18.15f\n", E303s);
-    this->log(arena) << strprintf("E303d: %18.15f\n", E303d);
-    this->log(arena) << strprintf("E303t: %18.15f\n", E303t);
-    this->log(arena) << strprintf("E303q: %18.15f\n", E303q);
-    this->log(arena) << strprintf("E303:  %18.15f\n", E303);
-    this->log(arena) << strprintf("E204s: %18.15f\n", E204s);
-    this->log(arena) << strprintf("E204d: %18.15f\n", E204d);
-    this->log(arena) << strprintf("E204t: %18.15f\n", E204t);
-    this->log(arena) << strprintf("E204q: %18.15f\n", E204q);
-    this->log(arena) << strprintf("E204:  %18.15f\n", E204);
-    this->log(arena) << strprintf("E105:  %18.15f\n", E105);
-    this->log(arena) << strprintf("\n");
+    this->log(arena) << printos("E501:  %18.15f\n", E501);
+    this->log(arena) << printos("E402s: %18.15f\n", E402s);
+    this->log(arena) << printos("E402d: %18.15f\n", E402d);
+    this->log(arena) << printos("E402t: %18.15f\n", E402t);
+    this->log(arena) << printos("E402q: %18.15f\n", E402q);
+    this->log(arena) << printos("E402:  %18.15f\n", E402);
+    this->log(arena) << printos("E303s: %18.15f\n", E303s);
+    this->log(arena) << printos("E303d: %18.15f\n", E303d);
+    this->log(arena) << printos("E303t: %18.15f\n", E303t);
+    this->log(arena) << printos("E303q: %18.15f\n", E303q);
+    this->log(arena) << printos("E303:  %18.15f\n", E303);
+    this->log(arena) << printos("E204s: %18.15f\n", E204s);
+    this->log(arena) << printos("E204d: %18.15f\n", E204d);
+    this->log(arena) << printos("E204t: %18.15f\n", E204t);
+    this->log(arena) << printos("E204q: %18.15f\n", E204q);
+    this->log(arena) << printos("E204:  %18.15f\n", E204);
+    this->log(arena) << printos("E105:  %18.15f\n", E105);
+    this->log(arena) << printos("\n");
 
-    this->log(arena) << strprintf("E0114: %18.15f\n", E0114);
-    this->log(arena) << strprintf("E0123: %18.15f\n", E0123);
-    this->log(arena) << strprintf("E1113: %18.15f\n", E1113);
-    this->log(arena) << strprintf("E1122: %18.15f\n", E1122);
-    this->log(arena) << strprintf("E2112: %18.15f\n", E2112);
-    this->log(arena) << strprintf("\n");
+    this->log(arena) << printos("E0114: %18.15f\n", E0114);
+    this->log(arena) << printos("E0123: %18.15f\n", E0123);
+    this->log(arena) << printos("E1113: %18.15f\n", E1113);
+    this->log(arena) << printos("E1122: %18.15f\n", E1122);
+    this->log(arena) << printos("E2112: %18.15f\n", E2112);
+    this->log(arena) << printos("\n");
 
-    this->log(arena) << strprintf("E501:                   %18.15f\n", E501);
-    this->log(arena) << strprintf("E402+E0114+E1113+E2112: %18.15f\n", E402+E0114+E1113+E2112);
-    this->log(arena) << strprintf("\n");
+    this->log(arena) << printos("E501:                   %18.15f\n", E501);
+    this->log(arena) << printos("E402+E0114+E1113+E2112: %18.15f\n", E402+E0114+E1113+E2112);
+    this->log(arena) << printos("\n");
 
-    this->log(arena) << strprintf("E402:                     %18.15f\n", E402);
-    this->log(arena) << strprintf("E303+E0123+2*E1122+E2112: %18.15f\n", E303+E0123+2*E1122+E2112);
-    this->log(arena) << strprintf("\n");
+    this->log(arena) << printos("E402:                     %18.15f\n", E402);
+    this->log(arena) << printos("E303+E0123+2*E1122+E2112: %18.15f\n", E303+E0123+2*E1122+E2112);
+    this->log(arena) << printos("\n");
 
-    this->log(arena) << strprintf("E303:                   %18.15f\n", E303);
-    this->log(arena) << strprintf("E204+E0123+E1113-E2112: %18.15f\n", E204+E0123+E1113-E2112);
-    this->log(arena) << strprintf("\n");
+    this->log(arena) << printos("E303:                   %18.15f\n", E303);
+    this->log(arena) << printos("E204+E0123+E1113-E2112: %18.15f\n", E204+E0123+E1113-E2112);
+    this->log(arena) << printos("\n");
 
-    this->log(arena) << strprintf("E204:                   %18.15f\n", E204);
-    this->log(arena) << strprintf("E105+E0114-E1113-E1122: %18.15f\n", E105+E0114-E1113-E1122);
-    this->log(arena) << strprintf("\n");
+    this->log(arena) << printos("E204:                   %18.15f\n", E204);
+    this->log(arena) << printos("E105+E0114-E1113-E1122: %18.15f\n", E105+E0114-E1113-E1122);
+    this->log(arena) << printos("\n");
 
     U E6 = E204 + E1122 + E1113 + E0123;
 
-    this->log(arena) << strprintf("CCSDT(Q-2): %18.15f\n", E2);
-    this->log(arena) << strprintf("CCSDT(Q-3): %18.15f\n", E3);
-    this->log(arena) << strprintf("CCSDT(Q-4): %18.15f\n", E4);
-    this->log(arena) << strprintf("CCSDT(Q-5): %18.15f\n", E5);
-    this->log(arena) << strprintf("CCSDT(Q-6): %18.15f\n", E6);
+    this->log(arena) << printos("CCSDT(Q-2): %18.15f\n", E2);
+    this->log(arena) << printos("CCSDT(Q-3): %18.15f\n", E3);
+    this->log(arena) << printos("CCSDT(Q-4): %18.15f\n", E4);
+    this->log(arena) << printos("CCSDT(Q-5): %18.15f\n", E5);
+    this->log(arena) << printos("CCSDT(Q-6): %18.15f\n", E6);
 
     this->put("E(2)", new U(E2));
     this->put("E(3)", new U(E3));

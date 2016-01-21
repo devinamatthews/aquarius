@@ -68,7 +68,7 @@ bool CCSDT_Q<U>::run(task::TaskDAG& dag, const Arena& arena)
 
     U E = (1.0/576.0)*scalar(Z4*T4);
 
-    this->log(arena) << str("energy: %18.15f\n", E) << endl;
+    this->log(arena) << printos("energy: %18.15f\n", E) << endl;
 
     this->put("energy", new U(E));
 

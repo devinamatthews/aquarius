@@ -54,7 +54,7 @@ bool CCSD_T_L<U>::run(task::TaskDAG& dag, const Arena& arena)
     Z3["ijkabc"] += VIJAB["ijab"]*L(1)[  "kc"];
 
     U E_T = (1.0/36.0)*scalar(T3["efgmno"]*Z3["mnoefg"]);
-    this->log(arena) << str("energy: %18.15f", E_T) << endl;
+    this->log(arena) << printos("energy: %18.15f", E_T) << endl;
 
     this->put("energy", new U(E_T));
 

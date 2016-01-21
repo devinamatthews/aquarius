@@ -1227,10 +1227,7 @@ void SymmetryBlockedTensor<T>::scale(T alpha, const string& idx_A)
 {
     int n = group.getNumIrreps();
 
-    string inds_A(idx_A);
-
-    uniq(inds_A);
-
+    string inds_A = uniqued(idx_A);
     int nA = inds_A.size();
 
     vector<int> stride_A = getStrides(inds_A, ndim, n, idx_A);

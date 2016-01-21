@@ -616,16 +616,16 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
         }
 
         vector<Line> lines_CnotAB_out = lines_C_out;
-        uniq(lines_AandC_out);
-        uniq(lines_BandC_out);
-        uniq(lines_CnotAB_out);
+        unique(lines_AandC_out);
+        unique(lines_BandC_out);
+        unique(lines_CnotAB_out);
         exclude(lines_CnotAB_out, lines_AandC_out);
         exclude(lines_CnotAB_out, lines_BandC_out);
 
         vector<Line> lines_CnotAB_in = lines_C_in;
-        uniq(lines_AandC_in);
-        uniq(lines_BandC_in);
-        uniq(lines_CnotAB_in);
+        unique(lines_AandC_in);
+        unique(lines_BandC_in);
+        unique(lines_CnotAB_in);
         exclude(lines_CnotAB_in, lines_AandC_in);
         exclude(lines_CnotAB_in, lines_BandC_in);
 
@@ -682,8 +682,8 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
                 {
                     for (vector<Term>::iterator t2 = t1+1;t2 != terms.end();++t2)
                     {
-                        if (Term(*t1).fixorder(filter_copy(t1->indices(), and1(isSpin(spin),isType(s)))) ==
-                            Term(*t2).fixorder(filter_copy(t2->indices(), and1(isSpin(spin),isType(s)))))
+                        if (Term(*t1).fixorder(filtered(t1->indices(), and1(isSpin(spin),isType(s)))) ==
+                            Term(*t2).fixorder(filtered(t2->indices(), and1(isSpin(spin),isType(s)))))
                         {
                             d -= *t1;
                             break;
@@ -894,13 +894,13 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
         }
 
         vector<Line> lines_BnotA_out = lines_B_out;
-        uniq(lines_AandB_out);
-        uniq(lines_BnotA_out);
+        unique(lines_AandB_out);
+        unique(lines_BnotA_out);
         exclude(lines_BnotA_out, lines_AandB_out);
 
         vector<Line> lines_BnotA_in = lines_B_in;
-        uniq(lines_AandB_in);
-        uniq(lines_BnotA_in);
+        unique(lines_AandB_in);
+        unique(lines_BnotA_in);
         exclude(lines_BnotA_in, lines_AandB_in);
 
         Diagram d = Diagram(Diagram::SPINORBITAL,
@@ -945,8 +945,8 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
                 {
                     for (vector<Term>::iterator t2 = t1+1;t2 != terms.end();++t2)
                     {
-                        if (Term(*t1).fixorder(filter_copy(t1->indices(), and1(isSpin(spin),isType(s)))) ==
-                            Term(*t2).fixorder(filter_copy(t2->indices(), and1(isSpin(spin),isType(s)))))
+                        if (Term(*t1).fixorder(filtered(t1->indices(), and1(isSpin(spin),isType(s)))) ==
+                            Term(*t2).fixorder(filtered(t2->indices(), and1(isSpin(spin),isType(s)))))
                         {
                             d -= *t1;
                             break;

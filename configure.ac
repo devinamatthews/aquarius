@@ -77,7 +77,7 @@ AQ_WITH_PACKAGE([STLExt], [https://github.com/devinamatthews/stl_ext],
                  string.hpp \
                  type_traits.hpp \
                  vector.hpp \
-                 zip.hpp], [.])
+                 zip.hpp], [])
 
 #
 # Configure CTF

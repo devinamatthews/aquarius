@@ -64,8 +64,8 @@ bool Fragment::operator<(const Fragment& other) const
     }
 
     /*
-    int npext1 = filter_copy(in+out, isType<PARTICLE+EXTERNAL>()).size();
-    int npext2 = filter_copy(other.in+other.out, isType<PARTICLE+EXTERNAL>()).size();
+    int npext1 = filtered(in+out, isType<PARTICLE+EXTERNAL>()).size();
+    int npext2 = filtered(other.in+other.out, isType<PARTICLE+EXTERNAL>()).size();
 
     if (npext1 < npext2)
     {
@@ -76,8 +76,8 @@ bool Fragment::operator<(const Fragment& other) const
         return false;
     }
 
-    int nhext1 = filter_copy(in+out, isType<HOLE+EXTERNAL>()).size();
-    int nhext2 = filter_copy(other.in+other.out, isType<HOLE+EXTERNAL>()).size();
+    int nhext1 = filtered(in+out, isType<HOLE+EXTERNAL>()).size();
+    int nhext2 = filtered(other.in+other.out, isType<HOLE+EXTERNAL>()).size();
 
     if (nhext1 < nhext2)
     {

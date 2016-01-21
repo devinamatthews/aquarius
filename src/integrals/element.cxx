@@ -45,9 +45,9 @@ const Element& Element::getElement(string symbol, int A)
         {
             if (e.A == A) return e;
         }
-        throw runtime_error(strprintf("Isotope A=%d not found for element %s", A, symbol.c_str()));
+        throw runtime_error(str("Isotope A=%d not found for element %s", A, symbol.c_str()));
     }
-    throw runtime_error(strprintf("Element %s not found", symbol.c_str()));
+    throw runtime_error(str("Element %s not found", symbol.c_str()));
 }
 
 const Element& Element::getElement(string symbol)
@@ -62,7 +62,7 @@ const Element& Element::getElement(string symbol)
     {
         return i->second[0];
     }
-    throw runtime_error(strprintf("Element %s not found", symbol.c_str()));
+    throw runtime_error(str("Element %s not found", symbol.c_str()));
 }
 
 }

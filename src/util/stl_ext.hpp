@@ -99,6 +99,9 @@ namespace aquarius
     using std::tuple_element;
 
     using std::complex;
+    using std::real;
+    using std::imag;
+    using std::conj;
     using std::numeric_limits;
 
     using std::min;

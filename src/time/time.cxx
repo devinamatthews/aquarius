@@ -190,7 +190,7 @@ void Timer::printTimers(const Arena& arena)
         int64_t count = it->count;
         arena.comm().Allreduce(&count, 1, MPI_SUM);
         double gflops = it->gflops(arena);
-        Logger::log(arena) << strprintf("%s:%*s %13.6f s %10ld x %11.6f gflops/sec\n", it->name.c_str(), (int)(max_len-it->name.size()), "", tot, count, gflops) << endl;
+        Logger::log(arena) << printos("%s:%*s %13.6f s %10ld x %11.6f gflops/sec\n", it->name.c_str(), (int)(max_len-it->name.size()), "", tot, count, gflops) << endl;
     }
 }
 
