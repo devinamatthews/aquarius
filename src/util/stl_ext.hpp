@@ -84,7 +84,6 @@ do \
 
 namespace aquarius
 {
-
     using std::string;
     using std::tuple;
     using std::map;
