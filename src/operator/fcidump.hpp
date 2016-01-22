@@ -19,6 +19,7 @@ class FCIDUMP : public task::Task
     protected:
         string path;
         bool semi;
+        bool full_fock;
 
     public:
         FCIDUMP(const string& name, input::Config& config);
