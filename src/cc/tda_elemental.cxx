@@ -18,7 +18,6 @@ ElementalTDA<U>::ElementalTDA(const string& name, Config& config)
 : Task(name, config)
 {
     vector<Requirement> reqs;
-    reqs.push_back(Requirement("molecule", "molecule"));
     reqs.push_back(Requirement("moints", "H"));
     addProduct(Product("tda.TDAevals", "TDAevals", reqs));
     addProduct(Product("tda.TDAevecs", "TDAevecs", reqs));
@@ -27,13 +26,12 @@ ElementalTDA<U>::ElementalTDA(const string& name, Config& config)
 template <typename U>
 bool ElementalTDA<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const Molecule& molecule = get<Molecule>("molecule");
-    const PointGroup& group = molecule.getGroup();
-    int nirrep = group.getNumIrreps();
-
     const auto& W = get<TwoElectronOperator<U>>("H");
     const Space& occ = W.occ;
     const Space& vrt = W.vrt;
+
+    const PointGroup& group = occ.group;
+    int nirrep = group.getNumIrreps();
 
     SpinorbitalTensor<U> Hguess("Hguess", arena, group, {vrt,occ}, {1,1}, {1,1});
     Hguess = 0;
