@@ -34,7 +34,7 @@ void writeIntegral(int64_t key, double val, vector<kv_pair>& buf, CTFTensor<T>& 
 template <typename T>
 FCIDUMP<T>::FCIDUMP(const string& name, Config& config)
 : Task(name, config), path(config.get<string>("filename")),
-  semi(config.get<bool>("semicanonical"))
+  semi(config.get<bool>("semicanonical")), full_fock(config.get<string>("1eints") == "full")
 {
     addProduct("moints", "H");
 }
@@ -128,33 +128,31 @@ bool FCIDUMP<T>::run(TaskDAG& dag, const Arena& arena)
                 if (q_is_vrt)
                 {
                     fab[p][q] += val;
-                    if (p != q) fab[q][p] += val;
+                    if (p != q && !full_fock) fab[q][p] += val;
                 }
                 else
                 {
                     fai[p][q] += val;
-                    fia[q][p] += val;
+                    if (!full_fock) fia[q][p] += val;
                 }
             }
             else
             {
                 if (q_is_vrt)
                 {
-                    //hermitian
-                    //fia[p][q] += val;
+                    fia[p][q] += val;
+                    if (!full_fock) fai[q][p] += val;
                 }
                 else
                 {
                     if (p == q) escf += 2*val;
                     fij[p][q] += val;
-                    if (p != q) fij[q][p] += val;
+                    if (p != q && !full_fock) fij[q][p] += val;
                 }
             }
         }
         else
         {
-            val /= 2;
-
             /*
              * Switch to <pq|rs> with p>=r, q>=s, pr>=qs.
              */
@@ -163,8 +161,8 @@ bool FCIDUMP<T>::run(TaskDAG& dag, const Arena& arena)
             if (p < r || (p == r && q < s))
             {
                 continue;
-                swap(p, r);
-                swap(q, s);
+                //swap(p, r);
+                //swap(q, s);
             }
             swap(q, r);
 
@@ -343,10 +341,10 @@ bool FCIDUMP<T>::run(TaskDAG& dag, const Arena& arena)
         fAB.writeRemoteData(ab_buf);
 
         log(arena) << "E(SCF): " << printToAccuracy(escf, 1e-12) << endl;
-        log(arena) << "norm IJ: " << norm_ij << endl;
-        log(arena) << "norm IA: " << norm_ia << endl;
-        log(arena) << "norm AI: " << norm_ai << endl;
-        log(arena) << "norm AB: " << norm_ab << endl;
+        //log(arena) << "norm IJ: " << norm_ij << endl;
+        //log(arena) << "norm IA: " << norm_ia << endl;
+        //log(arena) << "norm AI: " << norm_ai << endl;
+        //log(arena) << "norm AB: " << norm_ab << endl;
     }
     else
     {
@@ -382,12 +380,12 @@ bool FCIDUMP<T>::run(TaskDAG& dag, const Arena& arena)
             vector<kv_pair> ij_buf;
             for (int i = 0;i < no;i++)
                 for (int j = 0;j < no;j++)
-                    ij_buf.emplace_back(i+j*no, fij[i][j]);
+                    ij_buf.emplace_back(i+j*no, fij[j][i]);
 
             vector<kv_pair> ab_buf;
             for (int a = 0;a < nv;a++)
                 for (int b = 0;b < nv;b++)
-                    ab_buf.emplace_back(a+b*nv, fab[a][b]);
+                    ab_buf.emplace_back(a+b*nv, fab[b][a]);
 
             CAB.writeRemoteData(ab_buf);
             CIJ.writeRemoteData(ij_buf);
@@ -526,7 +524,9 @@ static const char* spec = R"!(
 filename?
     string FCIDUMP,
 semicanonical?
-    bool false
+    bool false,
+1eints?
+    enum { symmetric, full }
 
 )!";
 

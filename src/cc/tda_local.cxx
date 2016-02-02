@@ -16,7 +16,6 @@ LocalTDA<U>::LocalTDA(const string& name, Config& config)
 : Task(name, config)
 {
     vector<Requirement> reqs;
-    reqs.push_back(Requirement("molecule", "molecule"));
     reqs.push_back(Requirement("moints", "H"));
     addProduct(Product("tda.TDAevals", "TDAevals", reqs));
     addProduct(Product("tda.TDAevecs", "TDAevecs", reqs));
@@ -25,13 +24,12 @@ LocalTDA<U>::LocalTDA(const string& name, Config& config)
 template <typename U>
 bool LocalTDA<U>::run(TaskDAG& dag, const Arena& arena)
 {
-    const Molecule& molecule = get<Molecule>("molecule");
-    const PointGroup& group = molecule.getGroup();
-    int nirrep = group.getNumIrreps();
-
     const auto& W = get<TwoElectronOperator<U>>("H");
     const Space& occ = W.occ;
     const Space& vrt = W.vrt;
+
+    const PointGroup& group = occ.group;
+    int nirrep = group.getNumIrreps();
 
     SpinorbitalTensor<U> Hguess("Hguess", arena, group, {vrt,occ}, {1,1}, {1,1});
     Hguess = 0;
@@ -43,9 +41,6 @@ bool LocalTDA<U>::run(TaskDAG& dag, const Arena& arena)
     Hguess["aibi"]  = FAB["ab"];
     Hguess["aibj"] -= WAIBJ["aibj"];
     Hguess["aiaj"] -= FIJ["ij"];
-
-    printf("WAIBJ: %.15f\n", WAIBJ({1,0},{1,0}).norm(2));
-    printf("WAIJB: %.15f\n", WAIBJ({1,0},{0,1}).norm(2));
 
     auto& TDAevecs = put("TDAevecs", new vector<unique_vector<SpinorbitalTensor<U>>>(nirrep));
     auto& TDAevals = put("TDAevals", new vector<vector<U>>(nirrep));
