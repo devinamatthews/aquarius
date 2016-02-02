@@ -20,17 +20,8 @@ struct RHFInnerProd
     template <typename a_container, typename b_container>
     U operator()(const a_container& a, const b_container& b) const
     {
-        if (triplet)
-        {
-            return 2*scalar(a[0][  "ai"]*b[0][  "ai"]) +
-                     scalar(a[1]["abij"]*b[1]["abij"]);
-        }
-        else
-        {
-            return 2*scalar(a[0][  "ai"]*b[0][  "ai"]) +
-                   2*scalar(a[1]["abij"]*b[1]["abij"]) -
-                     scalar(a[1]["abij"]*b[1]["abji"]);
-        }
+        return scalar(a[0][  "ai"]*b[0][  "ai"]) +
+               scalar(a[1]["abij"]*b[1]["abij"]);
     }
 };
 
@@ -204,6 +195,7 @@ bool RHFEOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
         for (int spin : {0,1})
         {
+            quintet = false;
             triplet = spin == 1;
 
             auto& davidson = this->puttmp("Davidson", new RHFDavidson<U>(davidson_config, 1, 2, RHFInnerProd<U>{triplet}));
@@ -302,7 +294,23 @@ void RHFEOMEECCSD<U>::iterate(const Arena& arena)
     auto& D = this->template gettmp<Denominator<U>>("D");
     auto& davidson = this->template gettmp<RHFDavidson<U>>("Davidson");
 
-    if (triplet)
+    if (quintet)
+    {
+        XAMIJ["amij"]  =      VABCI["efam"]*  R2["efij"];
+        XMNIJ["mnij"]  =      VABIJ["efmn"]*  R2["efij"];
+
+           Z2["abij"]  = -0.5*XAMIJ["amij"]*  T1[  "bm"];
+           Z2["abij"] +=  0.5*  FAE[  "ae"]*  R2["ebij"];
+           Z2["abij"] -=  0.5*  FMI[  "mi"]*  R2["abmj"];
+           Z2["abij"] += 0.25*WMNIJ["mnij"]*  R2["abmn"];
+           Z2["abij"] += 0.25*XMNIJ["mnij"]* Tau["abmn"];
+           Z2["abij"] += 0.25*VABCD["abef"]*  R2["efij"];
+           Z2["abij"] -=      WAMEI["amei"]*  R2["ebmj"];
+
+           Z2["abij"] -= Z2["abji"];
+           Z2["abij"] -= Z2["baij"];
+    }
+    else if (triplet)
     {
           XMI[  "mi"]  =     VABIJ["efmn"]*  R2["efin"];
 

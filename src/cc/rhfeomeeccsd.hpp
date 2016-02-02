@@ -25,6 +25,7 @@ class RHFEOMEECCSD : public Iterative<U>
         int nsinglet;
         int ntriplet;
         bool triplet;
+        bool quintet;
 
     public:
         RHFEOMEECCSD(const string& name, input::Config& config);
