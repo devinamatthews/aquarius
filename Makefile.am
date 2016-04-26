@@ -54,10 +54,12 @@ __top_builddir__bin_aquarius_SOURCES = \
 	src/cc/mp4dq.cxx \
 	src/cc/perturbedccsd.cxx \
 	src/cc/perturbedlambdaccsd.cxx \
+	src/cc/piccsd.cxx \
 	src/cc/rhfccsd.cxx \
 	src/cc/tda_local.cxx \
 	src/cc/rhftda_local.cxx \
 	src/cc/rhfeomeeccsd.cxx \
+	src/cc/upsilonccsd.cxx \
 	\
 	src/input/basis.cxx \
 	src/input/config.cxx \

@@ -223,7 +223,11 @@ bool RHFEOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                 Logger::log(arena) << "Starting root number " << idx << endl;
                 Logger::log(arena) << "Guess energy: " << fixed << setprecision(12) << get<0>(root) << endl;
 
-                if (triplet)
+                if (quintet)
+                {
+                    Logger::log(arena) << "Quintet initial guess" << endl;
+                }
+                else if (triplet)
                 {
                     Logger::log(arena) << "Triplet initial guess" << endl;
                 }
