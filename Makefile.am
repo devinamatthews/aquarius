@@ -85,6 +85,7 @@ __top_builddir__bin_aquarius_SOURCES = \
 	\
 	src/operator/2eoperator.cxx \
 	src/operator/aomoints.cxx \
+	src/operator/fakemoints.cxx \
 	src/operator/rhfaomoints.cxx \
 	src/operator/moints.cxx \
 	src/operator/sparseaomoints.cxx \

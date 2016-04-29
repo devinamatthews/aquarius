@@ -155,8 +155,9 @@ am____top_builddir__bin_aquarius_SOURCES_DIST = src/autocc/autocc.cxx \
 	src/integrals/os.cxx src/integrals/ovi.cxx \
 	src/integrals/shell.cxx src/jellium/jellium.cxx \
 	src/main/main.cxx src/operator/2eoperator.cxx \
-	src/operator/aomoints.cxx src/operator/rhfaomoints.cxx \
-	src/operator/moints.cxx src/operator/sparseaomoints.cxx \
+	src/operator/aomoints.cxx src/operator/fakemoints.cxx \
+	src/operator/rhfaomoints.cxx src/operator/moints.cxx \
+	src/operator/sparseaomoints.cxx \
 	src/operator/sparserhfaomoints.cxx src/operator/fcidump.cxx \
 	src/scf/aouhf.cxx src/scf/cfourscf.cxx src/scf/uhf_local.cxx \
 	src/scf/uhf.cxx src/symmetry/symmetry.cxx src/task/task.cxx \
@@ -215,6 +216,7 @@ am___top_builddir__bin_aquarius_OBJECTS = src/autocc/autocc.$(OBJEXT) \
 	src/jellium/jellium.$(OBJEXT) src/main/main.$(OBJEXT) \
 	src/operator/2eoperator.$(OBJEXT) \
 	src/operator/aomoints.$(OBJEXT) \
+	src/operator/fakemoints.$(OBJEXT) \
 	src/operator/rhfaomoints.$(OBJEXT) \
 	src/operator/moints.$(OBJEXT) \
 	src/operator/sparseaomoints.$(OBJEXT) \
@@ -469,8 +471,9 @@ __top_builddir__bin_aquarius_SOURCES = src/autocc/autocc.cxx \
 	src/integrals/os.cxx src/integrals/ovi.cxx \
 	src/integrals/shell.cxx src/jellium/jellium.cxx \
 	src/main/main.cxx src/operator/2eoperator.cxx \
-	src/operator/aomoints.cxx src/operator/rhfaomoints.cxx \
-	src/operator/moints.cxx src/operator/sparseaomoints.cxx \
+	src/operator/aomoints.cxx src/operator/fakemoints.cxx \
+	src/operator/rhfaomoints.cxx src/operator/moints.cxx \
+	src/operator/sparseaomoints.cxx \
 	src/operator/sparserhfaomoints.cxx src/operator/fcidump.cxx \
 	src/scf/aouhf.cxx src/scf/cfourscf.cxx src/scf/uhf_local.cxx \
 	src/scf/uhf.cxx src/symmetry/symmetry.cxx src/task/task.cxx \
@@ -777,6 +780,8 @@ src/operator/2eoperator.$(OBJEXT): src/operator/$(am__dirstamp) \
 	src/operator/$(DEPDIR)/$(am__dirstamp)
 src/operator/aomoints.$(OBJEXT): src/operator/$(am__dirstamp) \
 	src/operator/$(DEPDIR)/$(am__dirstamp)
+src/operator/fakemoints.$(OBJEXT): src/operator/$(am__dirstamp) \
+	src/operator/$(DEPDIR)/$(am__dirstamp)
 src/operator/rhfaomoints.$(OBJEXT): src/operator/$(am__dirstamp) \
 	src/operator/$(DEPDIR)/$(am__dirstamp)
 src/operator/moints.$(OBJEXT): src/operator/$(am__dirstamp) \
@@ -954,6 +959,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/main/$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/2eoperator.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/aomoints.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/fakemoints.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/fcidump.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/moints.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/operator/$(DEPDIR)/rhfaomoints.Po@am__quote@
