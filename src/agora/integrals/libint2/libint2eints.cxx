@@ -1,6 +1,7 @@
-#include "libint2eints.hpp"
-
 #include "fmgamma.hpp"
+#include "../../frameworks/integrals/libint2eints.hpp"
+
+#include "../../frameworks/integrals/fmgamma.hpp"
 
 using namespace aquarius::input;
 using namespace aquarius::symmetry;
@@ -170,14 +171,3 @@ void Libint2eIntegrals::prims(const vec3& posa, const vec3& posb, const vec3& po
 
 }
 }
-
-static const char* spec = R"(
-
-storage_cutoff?
-    double 1e-14,
-calc_cutoff?
-    double 1e-15
-
-)";
-
-REGISTER_TASK(aquarius::integrals::Libint2eIntegralsTask,"libint2eints",spec);

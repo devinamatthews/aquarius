@@ -1,4 +1,4 @@
-#include "cfourscf.hpp"
+#include "../../frameworks/scf/cfourscf.hpp"
 
 using namespace aquarius::task;
 using namespace aquarius::input;

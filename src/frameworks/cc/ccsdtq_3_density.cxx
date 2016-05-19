@@ -1,4 +1,4 @@
-#include "ccsdtq_3_density.hpp"
+#include "../../frameworks/cc/ccsdtq_3_density.hpp"
 
 using namespace aquarius::op;
 using namespace aquarius::input;

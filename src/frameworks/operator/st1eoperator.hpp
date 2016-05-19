@@ -1,10 +1,9 @@
 #ifndef _AQUARIUS_OPERATOR_ST1EOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_ST1EOPERATOR_HPP_
 
-#include "util/global.hpp"
-
-#include "1eoperator.hpp"
-#include "excitationoperator.hpp"
+#include "../../frameworks/operator/1eoperator.hpp"
+#include "../../frameworks/operator/excitationoperator.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

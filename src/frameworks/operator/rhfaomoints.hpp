@@ -1,13 +1,11 @@
 #ifndef _AQUARIUS_OPERATOR_RHFAOMOINTS_HPP_
 #define _AQUARIUS_OPERATOR_RHFAOMOINTS_HPP_
 
-#include "util/global.hpp"
-
-#include "scf/aouhf.hpp"
-#include "integrals/2eints.hpp"
-#include "task/task.hpp"
-
-#include "aomoints.hpp"
+#include "../../frameworks/integrals/2eints.hpp"
+#include "../../frameworks/operator/aomoints.hpp"
+#include "../../frameworks/scf/aouhf.hpp"
+#include "../../frameworks/task/task.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

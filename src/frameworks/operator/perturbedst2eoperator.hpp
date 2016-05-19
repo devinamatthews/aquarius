@@ -1,10 +1,9 @@
 #ifndef _AQUARIUS_OPERATOR_PERTURBEDST2EOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_PERTURBEDST2EOPERATOR_HPP_
 
-#include "util/global.hpp"
-
-#include "2eoperator.hpp"
-#include "st2eoperator.hpp"
+#include "../../frameworks/operator/2eoperator.hpp"
+#include "../../frameworks/operator/st2eoperator.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

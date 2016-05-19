@@ -1,7 +1,9 @@
 #include "cholesky.hpp"
 
+#include "frameworks/symmetry.hpp"
+
 using namespace aquarius::tensor;
-using namespace aquarius::input;
+using namespace aquarius::molecule;
 using namespace aquarius::task;
 using namespace aquarius::symmetry;
 
@@ -10,15 +12,13 @@ namespace aquarius
 namespace integrals
 {
 
-template <typename T>
-CholeskyIntegrals<T>::CholeskyIntegrals(const Arena& arena, const Context& ctx, Config& config, const Molecule& molecule)
-: Distributed(arena),
-  molecule(molecule),
+CholeskyIntegrals::CholeskyIntegrals(const Context& ctx, Config& config, const Molecule& molecule)
+: molecule(molecule),
   ctx(ctx),
   nvec(0),
-  shells(molecule.getShellsBegin(),molecule.getShellsEnd()),
-  delta(config.get<T>("delta")),
-  cond(config.get<T>("cond_max"))
+  shells(molecule.getShells()),
+  delta(config.get<double>("delta")),
+  cond(config.get<double>("cond_max"))
 {
     nfunc = 0;
     for (int i = 0;i < shells.size();i++) nfunc += shells[i].getNFunc()*shells[i].getNContr();
@@ -27,12 +27,11 @@ CholeskyIntegrals<T>::CholeskyIntegrals(const Arena& arena, const Context& ctx, 
     decompose();
 }
 
-template <typename T>
-void CholeskyIntegrals<T>::test()
+void CholeskyIntegrals::test()
 {
     const PointGroup& group = molecule.getGroup();
-    SymmetryBlockedTensor<T> LD("LD", this->arena, group, 3, {{nfunc},{nfunc},{ndiag}}, {SY,NS,NS}, false);
-    SymmetryBlockedTensor<T> ints("V", this->arena, group, 4, {{nfunc},{nfunc},{nfunc},{nfunc}}, {NS,NS,NS,NS}, false);
+    SymmetryBlockedTensor<T> LD("LD", arena(), group, 3, {{nfunc},{nfunc},{ndiag}}, {SY,NS,NS}, false);
+    SymmetryBlockedTensor<T> ints("V", arena(), group, 4, {{nfunc},{nfunc},{nfunc},{nfunc}}, {NS,NS,NS,NS}, false);
 
     LD["pqJ"] = (*L)["pqJ"]*(*D)["J"];
     ints["pqrs"] = (*L)["pqJ"]*LD["rsJ"];
@@ -244,8 +243,8 @@ void CholeskyIntegrals<T>::decompose()
 
     const PointGroup& group = molecule.getGroup();
 
-    this->D = new SymmetryBlockedTensor<T>("D", this->arena, group, 1, {{nvec}}, {NS}, false);
-    this->L = new SymmetryBlockedTensor<T>("L", this->arena, group, 3, {{nfunc},{nfunc},{nvec}}, {SY,NS,NS}, false);
+    this->D = new SymmetryBlockedTensor<T>("D", arena(), group, 1, {{nvec}}, {NS}, false);
+    this->L = new SymmetryBlockedTensor<T>("L", arena(), group, 3, {{nfunc},{nfunc},{nvec}}, {SY,NS,NS}, false);
 
     if (arena.rank == 0)
     {
@@ -749,8 +748,6 @@ T CholeskyIntegrals<T>::testBlock(const DenseTensor<T>& block, const Shell& a, c
 
     return err;
 }
-
-INSTANTIATE_SPECIALIZATIONS(CholeskyIntegrals);
 
 }
 }

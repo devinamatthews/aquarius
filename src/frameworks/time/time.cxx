@@ -1,12 +1,8 @@
+#include "time.hpp"
+
 #ifdef __MACH__
 #include <mach/mach_time.h>
 #endif
-
-#include "task/task.hpp"
-
-#include "time.hpp"
-
-using namespace aquarius::task;
 
 extern "C"
 {
@@ -190,7 +186,7 @@ void Timer::printTimers(const Arena& arena)
         int64_t count = it->count;
         arena.comm().Allreduce(&count, 1, MPI_SUM);
         double gflops = it->gflops(arena);
-        Logger::log(arena) << printos("%s:%*s %13.6f s %10ld x %11.6f gflops/sec\n", it->name.c_str(), (int)(max_len-it->name.size()), "", tot, count, gflops) << endl;
+        logging::Logger::log(arena) << printos("%s:%*s %13.6f s %10ld x %11.6f gflops/sec\n", it->name, (int)(max_len-it->name.size()), "", tot, count, gflops) << endl;
     }
 }
 

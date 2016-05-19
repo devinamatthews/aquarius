@@ -1,10 +1,9 @@
+#include "molecule.hpp"
 #include "basis.hpp"
-
-using namespace aquarius::integrals;
 
 namespace aquarius
 {
-namespace input
+namespace molecule
 {
 
 BasisSet::BasisSet(const string& file)
@@ -99,19 +98,16 @@ void BasisSet::apply(Atom& atom, bool spherical, bool contaminants)
 
     for (it2 = v.begin();it2 != v.end();++it2)
     {
-        atom.addShell(Shell(atom.getCenter(), it2->L, it2->nprim, it2->ncontr,
-                      spherical, contaminants, it2->exponents, it2->coefficients));
+        atom.getShells().emplace_back(atom.getCenter(), it2->L, it2->nprim,
+                                      it2->ncontr, spherical, contaminants,
+                                      it2->exponents, it2->coefficients);
     }
 }
 
 void BasisSet::apply(Molecule& molecule, bool spherical, bool contaminants)
 {
-    vector<Atom>::iterator it;
-
-    for (it = molecule.getAtomsBegin();it != molecule.getAtomsEnd();++it)
-    {
-        apply(*it, spherical, contaminants);
-    }
+    for (auto& atom : molecule.getAtoms())
+        apply(atom, spherical, contaminants);
 }
 
 }

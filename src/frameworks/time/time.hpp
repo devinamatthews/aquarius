@@ -1,7 +1,8 @@
-#ifndef _AQUARIUS_TIME_HPP_
-#define _AQUARIUS_TIME_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_TIME_TIME_HPP_
+#define _AQUARIUS_FRAMEWORKS_TIME_TIME_HPP_
 
-#include "util/global.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/logging.hpp"
 
 #ifdef PROFILE
 

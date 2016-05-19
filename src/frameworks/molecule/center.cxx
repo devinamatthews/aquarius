@@ -1,15 +1,14 @@
 #include "center.hpp"
 
-using namespace aquarius::input;
 using namespace aquarius::symmetry;
 
 namespace aquarius
 {
-namespace integrals
+namespace molecule
 {
 
 Center::Center(const PointGroup& group, const vec3& pos, const Element& element)
-: group(&group), centermap(group.getOrder(), -1), centers(1, pos), element(element)
+: group(group), centermap(group.getOrder(), -1), centers(1, pos), element(element)
 {
     for (int g = 0;g < group.getOrder();g++)
     {

@@ -1,4 +1,4 @@
-#include "cc4_density.hpp"
+#include "../../frameworks/cc/cc4_density.hpp"
 
 using namespace aquarius::op;
 using namespace aquarius::input;

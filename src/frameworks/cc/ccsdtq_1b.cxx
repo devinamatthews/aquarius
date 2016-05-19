@@ -1,4 +1,4 @@
-#include "ccsdtq_1b.hpp"
+#include "../../frameworks/cc/ccsdtq_1b.hpp"
 
 using namespace aquarius::op;
 using namespace aquarius::input;

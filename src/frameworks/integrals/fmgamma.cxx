@@ -5,20 +5,40 @@ namespace aquarius
 namespace integrals
 {
 
-const int Fm::TMAX[40] = { 33, 37, 40, 43, 46, 49, 51, 53, 56, 58,
-                              60, 62, 64, 66, 68, 70, 72, 74, 76, 78,
-                              80, 82, 83, 85, 87, 89, 90, 92, 94, 96,
-                              97, 99, 101, 102, 104, 106, 108, 110, 112, 114 };
+double FmGamma::TaylorTable::FMTABLE[2421][40];
 
-double Fm::FMTABLE[2421][40];
+FmGamma::TaylorTable::TaylorTable()
+{
+    // store tabulated points for T=0,TMAX[m],0.05, m=0,39
+    #pragma omp parallel for
+    for (int m = 0;m < 40;m++)
+    {
+        for (int Tidx = 0;Tidx < (TMAX[m]+TAYLOR_N-1)*20+1;Tidx++)
+        {
+            FMTABLE[Tidx][m] = direct(((double)Tidx)/20.0, m);
+        }
+    }
+}
 
-bool Fm::inited = false;
+const int FmGamma::TMAX[40] =
+{
+     33,  37,  40,  43,  46,  49,  51,  53,  56,  58,
+     60,  62,  64,  66,  68,  70,  72,  74,  76,  78,
+     80,  82,  83,  85,  87,  89,  90,  92,  94,  96,
+     97,  99, 101, 102, 104, 106, 108, 110, 112, 114
+};
 
-double Fm::direct(double T, int m)
+FmGamma::TaylorTable& FmGamma::table()
+{
+    static TaylorTable t;
+    return t;
+}
+
+double FmGamma::direct(double T, int m)
 {
     constexpr double epsilon = numeric_limits<double>::epsilon();
 
-    double ap = m + 0.5;
+    const double ap = m + 0.5;
 
     assert(T >= 0.0);
     if (T < 1e-13)
@@ -43,8 +63,10 @@ double Fm::direct(double T, int m)
     return sum;
 }
 
-double Fm::taylor(double T, int n)
+double FmGamma::taylor(double T, int n)
 {
+    const auto& fmtable = table().FMTABLE;
+
     int tidx = (int)round(T*20.0);
     double tr = (double)tidx/20.0;
     double trmt = tr-T;
@@ -60,13 +82,13 @@ double Fm::taylor(double T, int n)
 
     for (int i = 0;i < TAYLOR_N;i++)
     {
-        ans += FMTABLE[tidx][n+i]*fac[i];
+        ans += fmtable[tidx][n+i]*fac[i];
     }
 
     return ans;
 }
 
-double Fm::asymptotic(double T, int m)
+double FmGamma::asymptotic(double T, int m)
 {
     double sum = -m*log(2*T);
     for (int i = 3;i < 2*m;i += 2)
@@ -76,21 +98,7 @@ double Fm::asymptotic(double T, int m)
     return exp(sum) * sqrt(M_PI/T)/2;
 }
 
-void Fm::calcTable()
-{
-    // store tabulated points for T=0,TMAX[m],0.05, m=0,39
-    #pragma omp parallel for
-    for (int m = 0;m < 40;m++)
-    {
-        for (int Tidx = 0;Tidx < (TMAX[m]+TAYLOR_N-1)*20+1;Tidx++)
-        {
-            FMTABLE[Tidx][m] = direct(((double)Tidx)/20.0, m);
-        }
-    }
-    inited = true;
-}
-
-void Fm::operator()(double T, int n, double* array)
+void FmGamma::operator()(double T, int n, double* array)
 {
     if (T > TMAX[n])
     {

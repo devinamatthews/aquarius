@@ -1,6 +1,7 @@
-#include "fakemoints.hpp"
-
 #include "time/time.hpp"
+#include "../../frameworks/operator/fakemoints.hpp"
+
+#include "../../frameworks/time/time.hpp"
 
 using namespace aquarius::tensor;
 using namespace aquarius::input;

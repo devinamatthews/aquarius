@@ -1,4 +1,4 @@
-#include "eomeeccsd.hpp"
+#include "../../frameworks/cc/eomeeccsd.hpp"
 
 using namespace aquarius::op;
 using namespace aquarius::input;

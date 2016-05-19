@@ -1,4 +1,4 @@
-#include "2edensity.hpp"
+#include "../../frameworks/cc/2edensity.hpp"
 
 using namespace aquarius::op;
 using namespace aquarius::tensor;

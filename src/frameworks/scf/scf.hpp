@@ -1,10 +1,9 @@
 #ifndef _AQUARIUS_SCF_HPP_
 #define _AQUARIUS_SCF_HPP_
 
-#include "util/global.hpp"
-
-#include "input/config.hpp"
-#include "task/task.hpp"
+#include "../../frameworks/task/task.hpp"
+#include "../../frameworks/util/global.hpp"
+#include "../task/config.hpp"
 
 namespace aquarius
 {

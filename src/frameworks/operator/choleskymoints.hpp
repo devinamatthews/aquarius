@@ -1,12 +1,10 @@
 #ifndef _AQUARIUS_OPERATOR_CHOLESKYMOINTS_HPP_
 #define _AQUARIUS_OPERATOR_CHOLESKYMOINTS_HPP_
 
-#include "util/global.hpp"
-
-#include "scf/choleskyuhf.hpp"
-#include "integrals/cholesky.hpp"
-
-#include "moints.hpp"
+#include "../../frameworks/integrals/cholesky.hpp"
+#include "../../frameworks/operator/moints.hpp"
+#include "../../frameworks/scf/choleskyuhf.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

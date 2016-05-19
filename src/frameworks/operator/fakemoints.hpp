@@ -1,9 +1,8 @@
 #ifndef _AQUARIUS_OPERATOR_FAKEMOINTS_HPP_
 #define _AQUARIUS_OPERATOR_FAKEMOINTS_HPP_
 
-#include "util/global.hpp"
-
-#include "moints.hpp"
+#include "../../frameworks/operator/moints.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

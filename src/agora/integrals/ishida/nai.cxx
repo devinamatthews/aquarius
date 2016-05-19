@@ -1,6 +1,7 @@
-#include "nai.hpp"
-
 #include "fmgamma.hpp"
+#include "../../frameworks/integrals/nai.hpp"
+
+#include "../../frameworks/integrals/fmgamma.hpp"
 
 namespace aquarius
 {

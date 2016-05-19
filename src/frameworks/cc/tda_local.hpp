@@ -1,15 +1,13 @@
 #ifndef _AQUARIUS_CC_TDA_LOCAL_HPP_
 #define _AQUARIUS_CC_TDA_LOCAL_HPP_
 
-#include "util/global.hpp"
-
-#include "operator/2eoperator.hpp"
-#include "operator/st2eoperator.hpp"
-#include "operator/excitationoperator.hpp"
-#include "operator/denominator.hpp"
-#include "input/molecule.hpp"
-
-#include "ccsd.hpp"
+#include "../../frameworks/cc/ccsd.hpp"
+#include "../../frameworks/operator/2eoperator.hpp"
+#include "../../frameworks/operator/denominator.hpp"
+#include "../../frameworks/operator/excitationoperator.hpp"
+#include "../../frameworks/operator/st2eoperator.hpp"
+#include "../../frameworks/util/global.hpp"
+#include "../molecule/molecule.hpp"
 
 namespace aquarius
 {

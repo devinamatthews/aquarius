@@ -1,13 +1,12 @@
 #ifndef _AQUARIUS_CC_CCSDT_DENSITY_HPP_
 #define _AQUARIUS_CC_CCSDT_DENSITY_HPP_
 
-#include "util/global.hpp"
-
-#include "time/time.hpp"
-#include "task/task.hpp"
-#include "operator/2eoperator.hpp"
-#include "operator/excitationoperator.hpp"
-#include "operator/deexcitationoperator.hpp"
+#include "../../frameworks/operator/2eoperator.hpp"
+#include "../../frameworks/operator/deexcitationoperator.hpp"
+#include "../../frameworks/operator/excitationoperator.hpp"
+#include "../../frameworks/task/task.hpp"
+#include "../../frameworks/time/time.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

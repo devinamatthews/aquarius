@@ -1,18 +1,15 @@
-#ifndef _AQUARIUS_JELLIUM_JELLIUM_HPP_
-#define _AQUARIUS_JELLIUM_JELLIUM_HPP_
+#ifndef _AQUARIUS_TASKS_JELLIUM_HPP_
+#define _AQUARIUS_TASKS_JELLIUM_HPP_
 
-#include "util/global.hpp"
-
-#include "task/task.hpp"
-#include "operator/2eoperator.hpp"
-#include "tensor/symblocked_tensor.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/task.hpp"
+#include "frameworks/tensor.hpp"
 
 namespace aquarius
 {
 namespace jellium
 {
 
-template <typename U>
 class Jellium : public task::Task
 {
     protected:
@@ -26,10 +23,10 @@ class Jellium : public task::Task
         double PotVm;
 
         void writeIntegrals(bool pvirt, bool qvirt, bool rvirt, bool svirt,
-                            tensor::SymmetryBlockedTensor<U>& tensor);
+                            tensor::Tensor<PGSYMMETRIC>& tensor);
 
     public:
-        Jellium(const string& name, input::Config& config);
+        Jellium(const string& name, task::Config& config);
 
         bool run(task::TaskDAG& dag, const Arena& arena);
 };

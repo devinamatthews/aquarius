@@ -1,10 +1,9 @@
 #ifndef _AQUARIUS_AUTOCC_TERM_HPP_
 #define _AQUARIUS_AUTOCC_TERM_HPP_
 
-#include "util/global.hpp"
-
-#include "fraction.hpp"
-#include "diagram.hpp"
+#include "../../frameworks/autocc/diagram.hpp"
+#include "../../frameworks/autocc/fraction.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

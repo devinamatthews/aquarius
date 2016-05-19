@@ -1,4 +1,4 @@
-#include "ccsdt_q_n.hpp"
+#include "../../frameworks/cc/ccsdt_q_n.hpp"
 
 using namespace aquarius::op;
 using namespace aquarius::input;

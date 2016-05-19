@@ -1,4 +1,4 @@
-#include "multipole.hpp"
+#include "../../frameworks/operator/multipole.hpp"
 
 using namespace aquarius::tensor;
 using namespace aquarius::integrals;

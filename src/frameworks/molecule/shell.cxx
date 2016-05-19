@@ -1,24 +1,22 @@
 #include "shell.hpp"
 
-#include "input/molecule.hpp"
-
-using namespace aquarius::input;
 using namespace aquarius::symmetry;
 
 namespace aquarius
 {
-namespace integrals
+namespace molecule
 {
 
 Shell::Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bool keep_contaminants,
-             const vector<double>& exponents, const vector<double>& coefficients)
-: center(pos), L(L), nprim(nprim), ncontr(ncontr), nfunc(spherical && !keep_contaminants ? 2*L+1 : (L+1)*(L+2)/2),
-  ndegen(pos.getCenters().size()), spherical(spherical), keep_contaminants(keep_contaminants),
-  exponents(exponents), coefficients(coefficients)
+             const vector<double>& exponents, const matrix<double>& coeffs)
+: center(pos), L(L), spherical(spherical), keep_contaminants(keep_contaminants),
+  exponents(exponents), coefficients(coeffs)
 {
     const PointGroup& group = pos.getPointGroup();
     int nirrep = group.getNumIrreps();
     int order = group.getOrder();
+    int nfunc = getNFunc();
+    int ndegen = pos.getCenters().size();
 
     vector<int> proj(order);
 
@@ -124,13 +122,13 @@ Shell::Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bo
             for (int k = 0;k < nprim;k++)
             {
                 double zeta = sqrt(exponents[j]*exponents[k])/(exponents[j]+exponents[k]);
-                norm += coefficients[i*nprim+j]*coefficients[i*nprim+k]*pow(2*zeta,(double)L+1.5);
+                norm += coefficients[j][i]*coefficients[k][i]*pow(2*zeta,(double)L+1.5);
             }
         }
 
         for (int j = 0;j < nprim;j++)
         {
-            this->coefficients[i*nprim+j] *= PI2_N34*pow(4*exponents[j],((double)L+1.5)/2)/sqrt(norm);
+            coefficients[j][i] *= PI2_N34*pow(4*exponents[j],((double)L+1.5)/2)/sqrt(norm);
         }
     }
 
@@ -139,124 +137,34 @@ Shell::Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bo
      */
     if (spherical)
     {
-        cart2spher.resize(nfunc*(L+1)*(L+2)/2);
-        int k = 0;
+        cart2spher.resize((L+1)*(L+2)/2, nfunc);
+        int sf = 0;
         for (int l = L;l >= (keep_contaminants ? 0 : L);l -= 2)
         {
             for (int m = l;m > 0;m--)
             {
-                for (int x = L;x >= 0;x--)
-                    for (int y = L-x;y >= 0;y--)
-                        cart2spher[k++] = cartcoef(l, m, x, y, L-x-y);
-                for (int x = L;x >= 0;x--)
-                    for (int y = L-x;y >= 0;y--)
-                        cart2spher[k++] = cartcoef(l, -m, x, y, L-x-y);
+                for (int x = L, cf = 0;x >= 0;x--)
+                    for (int y = L-x;y >= 0;y--, cf++)
+                        cart2spher[cf][sf] = cartcoef(l, m, x, y, L-x-y);
+                sf++;
+                for (int x = L, cf = 0;x >= 0;x--)
+                    for (int y = L-x;y >= 0;y--, cf++)
+                        cart2spher[cf][sf] = cartcoef(l, -m, x, y, L-x-y);
+                sf++;
             }
-            for (int x = L;x >= 0;x--)
-                for (int y = L-x;y >= 0;y--)
-                    cart2spher[k++] = cartcoef(l, 0, x, y, L-x-y);
+            for (int x = L, cf = 0;x >= 0;x--)
+                for (int y = L-x;y >= 0;y--, cf++)
+                    cart2spher[cf][sf] = cartcoef(l, 0, x, y, L-x-y);
+            sf++;
         }
-        assert(k == nfunc*(L+1)*(L+2)/2);
-    }
-}
-
-vector<vector<int>> Shell::setupIndices(const Context& ctx, const Molecule& m)
-{
-    int nirrep = m.getGroup().getNumIrreps();
-
-    vector<vector<int>> idx;
-    vector<int> nfunc(nirrep, (int)0);
-
-    for (Molecule::const_shell_iterator s = m.getShellsBegin();s != m.getShellsEnd();++s)
-    {
-        idx.push_back(vector<int>(nirrep));
-        vector<int>& index = idx.back();
-
-        if (ctx.getOrdering() == Context::ISCF || ctx.getOrdering() == Context::ISFC)
-        {
-            for (int i = 0;i < nirrep;i++) index[i] = nfunc[i];
-        }
-        else
-        {
-            if (ctx.getOrdering() == Context::SICF || ctx.getOrdering() == Context::SIFC)
-            {
-                for (int i = 0;i < nirrep-1;i++)
-                {
-                    index[i+1] = index[i] + s->getNFuncInIrrep(i)*s->getNContr();
-                }
-            }
-            else if (ctx.getOrdering() == Context::SFIC ||
-                     ctx.getOrdering() == Context::SFCI ||
-                     ctx.getOrdering() == Context::SCFI)
-            {
-                for (int i = 0;i < nirrep-1;i++)
-                {
-                    index[i+1] = index[i];
-                }
-            }
-            else if (ctx.getOrdering() == Context::SCIF)
-            {
-                for (int i = 0;i < nirrep-1;i++)
-                {
-                    index[i+1] = index[i] + s->getNFuncInIrrep(i);
-                }
-            }
-
-            int nfunctot = 0;
-            for (int i = 0;i < nirrep;i++) nfunctot += nfunc[i];
-            for (int i = 0;i < nirrep;i++) index[i] += nfunctot;
-        }
-
-        for (int i = 0;i < nirrep;i++) nfunc[i] += s->getNFuncInIrrep(i)*s->getNContr();
-    }
-
-    for (int i = 1;i < nirrep;i++) nfunc[i] += nfunc[i-1];
-
-    if (ctx.getOrdering() == Context::ISCF || ctx.getOrdering() == Context::ISFC)
-    {
-        for (vector<vector<int>>::iterator s = idx.begin();s != idx.end();++s)
-        {
-            vector<int>& index = *s;
-            for (int i = 1;i < nirrep;i++) index[i] += nfunc[i-1];
-        }
-    }
-
-    return idx;
-}
-
-int Shell::getIndex(const Context& ctx, vector<int> idx, int func, int contr, int degen) const
-{
-    int irrep = irreps[func][degen];
-
-    int ffunc;
-    if (spherical)
-    {
-        ffunc = ctx.getSphericalOrdering(L)[func];
+        assert(sf == nfunc);
     }
     else
     {
-        ffunc = ctx.getCartesianOrdering(L)[func];
+        cart2spher.resize((L+1)*(L+2)/2, (L+1)*(L+2)/2);
+        for (int i = 0;i < (L+1)*(L+2)/2;i++)
+            cart2spher[i][i] = 1.0;
     }
-
-    switch (ctx.getOrdering())
-    {
-        case Context::ISCF:
-        case Context::SICF:
-            return idx[irrep] + contr*nfunc_per_irrep[irrep] + func_irrep[func][degen];
-        case Context::ISFC:
-        case Context::SIFC:
-            return idx[irrep] + contr + func_irrep[func][degen]*ncontr;
-        case Context::SCIF:
-            return idx[irrep] + contr*nfunc*ndegen + func_irrep[func][degen];
-        case Context::SCFI:
-            return idx[irrep] + (contr*nfunc + ffunc)*ndegen + irrep_pos[func][irrep];
-        case Context::SFIC:
-            return idx[irrep] + contr + (ffunc*ndegen + irrep_pos[func][irrep])*ncontr;
-        case Context::SFCI:
-            return idx[irrep] + (contr + ffunc*ncontr)*ndegen + irrep_pos[func][irrep];
-    }
-
-    return 0;
 }
 
 double Shell::cartcoef(int l, int m, int lx, int ly, int lz)

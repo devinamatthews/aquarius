@@ -1,12 +1,11 @@
 #ifndef _AQUARIUS_CC_COMPLEX_DENOMINATOR_HPP_
 #define _AQUARIUS_CC_COMPLEX_DENOMINATOR_HPP_
 
-#include "util/global.hpp"
-
-#include "operator/denominator.hpp"
-#include "operator/excitationoperator.hpp"
-#include "operator/deexcitationoperator.hpp"
-#include "symmetry/symmetry.hpp"
+#include "../../frameworks/operator/deexcitationoperator.hpp"
+#include "../../frameworks/operator/denominator.hpp"
+#include "../../frameworks/operator/excitationoperator.hpp"
+#include "../../frameworks/symmetry/symmetry.hpp"
+#include "../../frameworks/util/global.hpp"
 #include "tensor/ctf_tensor.hpp"
 #include "tensor/symblocked_tensor.hpp"
 #include "tensor/spinorbital_tensor.hpp"

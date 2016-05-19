@@ -1,9 +1,8 @@
 #ifndef _AQUARIUS_INTEGRALS_OS_HPP_
 #define _AQUARIUS_INTEGRALS_OS_HPP_
 
-#include "util/global.hpp"
-
-#include "2eints.hpp"
+#include "../../frameworks/integrals/2eints.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

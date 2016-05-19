@@ -1,12 +1,10 @@
 #ifndef _AQUARIUS_SCF_AOUHF_HPP_
 #define _AQUARIUS_SCF_AOUHF_HPP_
 
-#include "util/global.hpp"
-
-#include "integrals/2eints.hpp"
-
-#include "uhf_local.hpp"
-#include "uhf_elemental.hpp"
+#include "../../frameworks/integrals/2eints.hpp"
+#include "../../frameworks/scf/uhf_elemental.hpp"
+#include "../../frameworks/scf/uhf_local.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

@@ -1,9 +1,9 @@
 #ifndef _AQUARIUS_UTIL_MATH_EXT_H_
 #define _AQUARIUS_UTIL_MATH_EXT_H_
 
-#include "stl_ext.hpp"
-#include "lawrap.hpp"
 #include "marray.hpp"
+#include "../../frameworks/util/lawrap.hpp"
+#include "../../frameworks/util/stl_ext.hpp"
 
 namespace aquarius
 {
@@ -80,7 +80,7 @@ dfact(T n)
 
 template <typename T>
 void transpose(size_t data_, size_t n, const T& alpha, const T* restrict A, size_t lda,
-                                   const T&  beta,       T* restrict B, size_t ldb)
+                                       const T&  beta,       T* restrict B, size_t ldb)
 {
     size_t i, j;
 

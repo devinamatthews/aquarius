@@ -1,7 +1,8 @@
-#ifndef _AQUARIUS_INTEGRALS_ISHIDA_HPP_
-#define _AQUARIUS_INTEGRALS_ISHIDA_HPP_
+#ifndef _AQUARIUS_VENDORS_INTEGRALS_ISHIDA_HPP_
+#define _AQUARIUS_VENDORS_INTEGRALS_ISHIDA_HPP_
 
-#include "util/global.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/integrals.hpp"
 
 namespace aquarius
 {

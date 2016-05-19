@@ -1,15 +1,11 @@
-#include "util/global.hpp"
-
-#include "tensor/symblocked_tensor.hpp"
-#include "time/time.hpp"
-#include "task/task.hpp"
-
-#ifdef HAVE_LIBINT2
-#include "libint2.h"
-#endif
+#include "frameworks/util.hpp"
+#include "frameworks/task.hpp"
+#include "frameworks/logging.hpp"
+#include "frameworks/time.hpp"
 
 using namespace aquarius;
 using namespace aquarius::time;
+using namespace aquarius::logging;
 using namespace aquarius::task;
 
 int main(int argc, char **argv)
@@ -22,7 +18,6 @@ int main(int argc, char **argv)
 
     #ifdef HAVE_LIBINT2
     libint2_static_init();
-    printf("sdflkjsdf\n");
     #endif
 
     if (getenv("OMP_NUM_THREADS") == NULL)
@@ -33,7 +28,7 @@ int main(int argc, char **argv)
     int status = 0;
 
     {
-        Arena world;
+        Arena& world = arena();
 
         if (world.rank == 0)
         {

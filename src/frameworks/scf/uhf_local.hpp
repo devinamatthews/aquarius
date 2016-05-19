@@ -1,9 +1,8 @@
 #ifndef _AQUARIUS_SCF_UHF_LOCAL_HPP_
 #define _AQUARIUS_SCF_UHF_LOCAL_HPP_
 
-#include "util/global.hpp"
-
-#include "uhf.hpp"
+#include "../../frameworks/scf/uhf.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

@@ -35,6 +35,7 @@
 #include <stdexcept>
 
 #include "algorithm.hpp"
+#include "any.hpp"
 #include "complex.hpp"
 #include "cosort.hpp"
 #include "global_ptr.hpp"
@@ -128,6 +129,9 @@ namespace aquarius
     using std::bidirectional_iterator_tag;
     using std::random_access_iterator_tag;
 
+    using std::type_info;
+    using std::true_type;
+    using std::false_type;
     using std::unary_function;
     using std::binary_function;
 

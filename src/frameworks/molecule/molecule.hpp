@@ -1,34 +1,58 @@
-#ifndef _AQUARIUS_INPUT_MOLECULE_HPP_
-#define _AQUARIUS_INPUT_MOLECULE_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_MOLECULE_MOLECULE_HPP_
+#define _AQUARIUS_FRAMEWORKS_MOLECULE_MOLECULE_HPP_
 
-#include "util/global.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/task.hpp"
+#include "frameworks/symmetry.hpp"
 
-#include "integrals/shell.hpp"
-#include "symmetry/symmetry.hpp"
-#include "task/task.hpp"
-
-#include "config.hpp"
+#include "basis.hpp"
+#include "center.hpp"
+#include "element.hpp"
+#include "shell.hpp"
 
 namespace aquarius
 {
-namespace input
+namespace molecule
 {
-
-class Atom;
-class AtomCartSpec;
 
 class Molecule
 {
-    friend class MoleculeTask;
-
     protected:
         vector<Atom> atoms;
         int multiplicity;
         int nelec;
         vector<int> norb;
         double nucrep;
-        const symmetry::PointGroup *group;
+        const symmetry::PointGroup* group;
         double rota[3];
+
+        struct AtomSpec
+        {
+            string symbol;
+            string basisSet;
+            string truncation;
+            double charge_from_input;
+            AtomSpec() : charge_from_input(0.0) {}
+            AtomSpec(const string& symbol, const string& basisSet,
+                     const string& truncation, double charge_from_input)
+            : symbol(symbol), basisSet(basisSet), truncation(truncation),
+              charge_from_input(charge_from_input) {}
+        };
+
+        struct AtomZmatSpec : AtomSpec
+        {
+            int distanceFrom, angleFrom, dihedralFrom;
+            double distance, angle, dihedral;
+            AtomZmatSpec() : distanceFrom(-1), angleFrom(-1), dihedralFrom(-1) {}
+        };
+
+        struct AtomCartSpec : AtomSpec
+        {
+            vec3 pos;
+            AtomCartSpec() {}
+            AtomCartSpec(const string& symbol, const string& basisSet, const string& truncation, const double& charge_from_input, const vec3& pos)
+            : AtomSpec(symbol, basisSet, truncation, charge_from_input), pos(pos) {}
+        };
 
         template <typename shell_type, typename atom_iterator_type, typename shell_iterator_type>
         class shell_iterator_ : public iterator<forward_iterator_tag, shell_type>
@@ -127,16 +151,14 @@ class Molecule
 
         static bool isSymmetric(const vector<AtomCartSpec>& cartpos, const mat3x3& op);
 
-        void initGeometry(input::Config& config, vector<AtomCartSpec>& cartpos);
+        vector<AtomCartSpec> initGeometry(const task::Config& config);
 
-        void initSymmetry(input::Config& config, vector<AtomCartSpec>& cartpos);
+        void initSymmetry(const task::Config& config, vector<AtomCartSpec>& cartpos);
 
-        void initBasis(input::Config& config, const vector<AtomCartSpec>& cartpos);
+        void initBasis(const task::Config& config, const vector<AtomCartSpec>& cartpos);
 
     public:
-        Molecule(Config& config, const Arena& arena);
-
-        void print(task::Printer& p) const {}
+        Molecule(task::Config& config, const Arena& arena);
 
         int getNumElectrons() const { return nelec; }
 
@@ -152,12 +174,12 @@ class Molecule
 
         const symmetry::PointGroup& getGroup() const { return *group; }
 
-        typedef shell_iterator_<integrals::Shell,
+        typedef shell_iterator_<Shell,
                                 vector<Atom>::iterator,
-                                vector<integrals::Shell>::iterator > shell_iterator;
-        typedef shell_iterator_<const integrals::Shell,
+                                vector<Shell>::iterator > shell_iterator;
+        typedef shell_iterator_<const Shell,
                                 vector<Atom>::const_iterator,
-                                vector<integrals::Shell>::const_iterator > const_shell_iterator;
+                                vector<Shell>::const_iterator > const_shell_iterator;
 
         shell_iterator getShellsBegin();
 
@@ -167,52 +189,11 @@ class Molecule
 
         const_shell_iterator getShellsEnd() const;
 
+        vector<Shell> getShells() const { return vector<Shell>(getShellsBegin(), getShellsEnd()); }
+
         vector<Atom>& getAtoms() { return atoms; }
 
         const vector<Atom>& getAtoms() const { return atoms; }
-
-        vector<Atom>::iterator getAtomsBegin() { return atoms.begin(); }
-
-        vector<Atom>::iterator getAtomsEnd() { return atoms.end(); }
-
-        vector<Atom>::const_iterator getAtomsBegin() const { return atoms.begin(); }
-
-        vector<Atom>::const_iterator getAtomsEnd() const { return atoms.end(); }
-};
-
-class Atom
-{
-    private:
-        integrals::Center center;
-        vector<integrals::Shell> shells;
-
-    public:
-        Atom(const integrals::Center& center) : center(center) {}
-
-        void addShell(const integrals::Shell& shell) { shells.push_back(shell); }
-
-        integrals::Center& getCenter() { return center; }
-
-        const integrals::Center& getCenter() const { return center; }
-
-        vector<integrals::Shell>::iterator getShellsBegin() { return shells.begin(); }
-
-        vector<integrals::Shell>::iterator getShellsEnd() { return shells.end(); }
-
-        vector<integrals::Shell>::const_iterator getShellsBegin() const { return shells.begin(); }
-
-        vector<integrals::Shell>::const_iterator getShellsEnd() const { return shells.end(); }
-};
-
-class MoleculeTask : public task::Task
-{
-    protected:
-        Config config;
-
-    public:
-        MoleculeTask(const string& name, input::Config& config);
-
-        bool run(task::TaskDAG& dag, const Arena& arena);
 };
 
 }

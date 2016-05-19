@@ -1,82 +1,45 @@
 #include "1eints.hpp"
 
-#include "kei.hpp"
-#include "ovi.hpp"
-#include "nai.hpp"
-
 #define IDX_EQ(i,r,e,j,s,f) ((i) == (j) && (r) == (s) && (e) == (f))
 #define IDX_GE(i,r,e,j,s,f) ((i) > (j) || ((i) == (j) && ((r) > (s) || ((r) == (s) && (e) >= (f)))))
 #define IDX_GT(i,r,e,j,s,f) ((i) > (j) || ((i) == (j) && ((r) > (s) || ((r) == (s) && (e) >  (f)))))
 
-using namespace aquarius::input;
+using namespace aquarius::molecule;
 using namespace aquarius::symmetry;
-using namespace aquarius::task;
-using namespace aquarius::tensor;
 
 namespace aquarius
 {
 namespace integrals
 {
 
-OneElectronIntegrals::OneElectronIntegrals(const Shell& a, const Shell& b)
-: sa(a), sb(b), group(a.getCenter().getPointGroup()),
-  ca(a.getCenter()), cb(b.getCenter()), la(a.getL()), lb(b.getL()),
-  na(a.getNPrim()), nb(b.getNPrim()), ma(a.getNContr()), mb(b.getNContr()),
-  da(a.getDegeneracy()), db(b.getDegeneracy()), fsa(a.getNFunc()), fsb(b.getNFunc()),
-  za(a.getExponents()), zb(b.getExponents()), num_processed(0)
+size_t OneElectronIntegrals::ShellBlock::process(const Context& ctx,
+                                                 const vector<int>& idxa,
+                                                 const vector<int>& idxb,
+                                                 size_t nprocess,
+                                                 double* integrals,
+                                                 idx2_t* indices,
+                                                 double cutoff)
 {
-    fca = (la+1)*(la+2)/2;
-    fcb = (lb+1)*(lb+2)/2;
-
-    int nints = 0;
-    for (int j = 0;j < fsb;j++)
-    {
-        for (int i = 0;i < fsa;i++)
-        {
-            for (int s = 0;s < db;s++)
-            {
-                for (int r = 0;r < da;r++)
-                {
-                    const Representation& w = group.getIrrep(a.getIrrepOfFunc(i, r));
-                    const Representation& x = group.getIrrep(b.getIrrepOfFunc(j, s));
-
-                    if ((w*x).isTotallySymmetric()) nints += ma*mb;
-                }
-            }
-        }
-    }
-
-    ints.resize(nints);
-}
-
-void OneElectronIntegrals::run()
-{
-    so(ints.data());
-}
-
-size_t OneElectronIntegrals::process(const Context& ctx, const vector<int>& idxa, const vector<int>& idxb,
-                                     size_t nprocess, double* integrals, idx2_t* indices, double cutoff)
-{
-    const PointGroup& group = ca.getPointGroup();
+    auto& group = a.getCenter().getPointGroup();
 
     size_t m = 0;
     size_t n = 0;
-    for (int j = 0;j < fsb;j++)
+    for (int j = 0;j < b.getNFunc();j++)
     {
-        for (int i = 0;i < fsa;i++)
+        for (int i = 0;i < a.getNFunc();i++)
         {
-            for (int s = 0;s < db;s++)
+            for (int s = 0;s < b.getDegeneracy();s++)
             {
-                for (int r = 0;r < da;r++)
+                for (int r = 0;r < a.getDegeneracy();r++)
                 {
-                    const Representation w = group.getIrrep(sa.getIrrepOfFunc(i,r));
-                    const Representation x = group.getIrrep(sb.getIrrepOfFunc(j,s));
+                    const Representation w = group.getIrrep(a.getIrrepOfFunc(i,r));
+                    const Representation x = group.getIrrep(b.getIrrepOfFunc(j,s));
 
                     if (!(w*x).isTotallySymmetric()) continue;
 
-                    for (int f = 0;f < mb;f++)
+                    for (int f = 0;f < b.getNContr();f++)
                     {
-                        for (int e = 0;e < ma;e++)
+                        for (int e = 0;e < a.getNContr();e++)
                         {
                             if (num_processed > m)
                             {
@@ -84,10 +47,10 @@ size_t OneElectronIntegrals::process(const Context& ctx, const vector<int>& idxa
                                 continue;
                             }
 
-                            if (aquarius::abs(ints[m]) > cutoff && (&sa != &sb || IDX_GE(i,r,e,j,s,f)))
+                            if (aquarius::abs(ints[m]) > cutoff && (&a != &b || IDX_GE(i,r,e,j,s,f)))
                             {
-                                indices[n].i = sa.getIndex(ctx, idxa, i, e, r);
-                                indices[n].j = sb.getIndex(ctx, idxb, j, f, s);
+                                indices[n].i = ctx.getIndex(a, idxa, i, e, r);
+                                indices[n].j = ctx.getIndex(b, idxb, j, f, s);
                                 integrals[n++] = ints[m];
                             }
 
@@ -105,53 +68,115 @@ size_t OneElectronIntegrals::process(const Context& ctx, const vector<int>& idxa
     return n;
 }
 
-void OneElectronIntegrals::prim(const vec3& posa, int e,
-                                const vec3& posb, int f, double* integrals)
+OneElectronIntegrals::ShellBlock OneElectronIntegrals::calculate(const Shell& a, const Shell& b)
+{
+    auto& group = a.getCenter().getPointGroup();
+
+    int nints = 0;
+    for (int j = 0;j < b.getNFunc();j++)
+    {
+        for (int i = 0;i < a.getNFunc();i++)
+        {
+            for (int s = 0;s < b.getDegeneracy();s++)
+            {
+                for (int r = 0;r < a.getDegeneracy();r++)
+                {
+                    const Representation& w = group.getIrrep(a.getIrrepOfFunc(i, r));
+                    const Representation& x = group.getIrrep(b.getIrrepOfFunc(j, s));
+
+                    if ((w*x).isTotallySymmetric())
+                        nints += a.getNContr()*b.getNContr();
+                }
+            }
+        }
+    }
+
+    vector<double> ints(nints);
+    so(a.getCenter(), a.getL(), a.getCoefficients()ints.data());
+
+    return ShellBlock(a, b, move(ints));
+}
+
+void OneElectronIntegrals::prim(const vec3& posa, int la, double za,
+                                const vec3& posb, int lb, double zb,
+                                double* integrals)
 {
     assert(0);
 }
 
-void OneElectronIntegrals::prims(const vec3& posa, const vec3& posb,
+void OneElectronIntegrals::prims(const vec3& posa, int la, const vector<double>& za,
+                                 const vec3& posb, int lb, const vector<double>& zb,
                                  double* integrals)
 {
-    #pragma omp parallel
+    int na = za.size();
+    int nb = zb.size();
+    int fca = (la+1)*(la+2)/2;
+    int fcb = (lb+1)*(lb+2)/2;
+
+    #pragma omp parallel for
+    for (int m = 0;m < na*nb;m++)
     {
-        #pragma omp for
-        for (int m = 0;m < na*nb;m++)
-        {
-            int f = m/na;
-            int e = m%na;
-            prim(posa, e, posb, f, integrals+fca*fcb*m);
-        }
+        int f = m/na;
+        int e = m%na;
+        prim(posa, la, za[e],
+             posb, la, zb[f],
+             integrals+fca*fcb*m);
     }
 }
 
-void OneElectronIntegrals::contr(const vec3& posa, const vec3& posb,
+void OneElectronIntegrals::contr(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca,
+                                 const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb,
                                  double* integrals)
 {
+    int na = za.size();
+    int nb = zb.size();
+    int fca = (la+1)*(la+2)/2;
+    int fcb = (lb+1)*(lb+2)/2;
+
     vector<double> pintegrals(fca*fcb*na*nb);
-    prims(posa, posb, pintegrals.data());
-    prim2contr2r(fca*fcb, pintegrals.data(), integrals);
+    prims(posa, la, za,
+          posb, lb, zb,
+          pintegrals.data());
+    prim2contr(fca*fcb, ca, cb, pintegrals.data(), integrals);
 }
 
-void OneElectronIntegrals::spher(const vec3& posa, const vec3& posb,
+void OneElectronIntegrals::spher(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca, const matrix<double>& sa,
+                                 const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb, const matrix<double>& sb,
                                  double* integrals)
 {
+    int na = ca.length(0);
+    int nb = cb.length(0);
+    int ma = ca.length(1);
+    int mb = cb.length(1);
+    int fca = sa.length(0);
+    int fcb = sb.length(0);
+    int fsa = sa.length(1);
+    int fsb = sb.length(1);
+
     vector<double> cintegrals(fca*fcb*na*nb);
-    contr(posa, posb, integrals);
-    cart2spher2r(ma*mb, integrals, cintegrals.data());
+    contr(posa, la, za, ca,
+          posb, lb, zb, cb,
+          integrals);
+    cart2spher(ma*mb, sa, sb, integrals, cintegrals.data());
     transpose(fsa*fsb, ma*mb, 1.0, cintegrals.data(), fsa*fsb,
                               0.0,  integrals       ,   ma*mb);
 }
 
-void OneElectronIntegrals::so(double* integrals)
+void OneElectronIntegrals::so(const molecule::Center& posa, int la, const vector<double>& za, const matrix<double>& ca, const matrix<double>& sa,
+                              const molecule::Center& posb, int lb, const vector<double>& zb, const matrix<double>& cb, const matrix<double>& sb,
+                              double* integrals)
 {
-    const PointGroup& group = ca.getPointGroup();
+    const PointGroup& group = posa.getPointGroup();
+
+    int na = za.size();
+    int nb = zb.size();
+    int fca = (la+1)*(la+2)/2;
+    int fcb = (lb+1)*(lb+2)/2;
 
     vector<double> aointegrals(fca*fcb*na*nb);
 
     int lambdar;
-    vector<int> dcrr = group.DCR(ca.getStabilizer(), cb.getStabilizer(), lambdar);
+    vector<int> dcrr = group.DCR(posa.getStabilizer(), b.getStabilizer(), lambdar);
     double coef = (double)group.getOrder()/(double)lambdar;
 
     for (int r : dcrr)
@@ -302,5 +327,3 @@ void OneElectronIntegrals::prim2contr2l(size_t nother, double* buf1, double* buf
 
 }
 }
-
-REGISTER_TASK(aquarius::integrals::Ishida1eIntegralsTask,"1eints");

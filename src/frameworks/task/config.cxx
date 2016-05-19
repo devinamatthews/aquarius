@@ -2,7 +2,7 @@
 
 namespace aquarius
 {
-namespace input
+namespace task
 {
 
 class Tokenizer

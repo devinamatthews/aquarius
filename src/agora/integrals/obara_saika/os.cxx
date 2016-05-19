@@ -1,6 +1,7 @@
-#include "os.hpp"
-
 #include "fmgamma.hpp"
+#include "../../frameworks/integrals/os.hpp"
+
+#include "../../frameworks/integrals/fmgamma.hpp"
 
 namespace aquarius
 {

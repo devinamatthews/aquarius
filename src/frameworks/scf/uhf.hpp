@@ -1,16 +1,15 @@
 #ifndef _AQUARIUS_SCF_UHF_COMMON_HPP_
 #define _AQUARIUS_SCF_UHF_COMMON_HPP_
 
-#include "util/global.hpp"
-
+#include "../../frameworks/convergence/diis.hpp"
+#include "../../frameworks/input/config.hpp"
+#include "../../frameworks/input/molecule.hpp"
+#include "../../frameworks/integrals/1eints.hpp"
+#include "../../frameworks/operator/space.hpp"
+#include "../../frameworks/task/task.hpp"
+#include "../../frameworks/util/global.hpp"
+#include "../../frameworks/util/iterative.hpp"
 #include "tensor/symblocked_tensor.hpp"
-#include "integrals/1eints.hpp"
-#include "input/molecule.hpp"
-#include "input/config.hpp"
-#include "util/iterative.hpp"
-#include "convergence/diis.hpp"
-#include "task/task.hpp"
-#include "operator/space.hpp"
 
 namespace aquarius
 {

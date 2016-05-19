@@ -1,11 +1,9 @@
 #ifndef _AQUARIUS_OPERATOR_MOOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_MOOPERATOR_HPP_
 
-#include "util/global.hpp"
-
-#include "task/task.hpp"
-
-#include "space.hpp"
+#include "../../frameworks/operator/space.hpp"
+#include "../../frameworks/task/task.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

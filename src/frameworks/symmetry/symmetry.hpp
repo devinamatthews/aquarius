@@ -1,7 +1,7 @@
-#ifndef _AQUARIUS_SYMMETRY_HPP_
-#define _AQUARIUS_SYMMETRY_HPP_
+#ifndef _AQUARIUS_FRAMEROWORKS_SYMMETRY_SYMMETRY_HPP_
+#define _AQUARIUS_FRAMEROWORKS_SYMMETRY_SYMMETRY_HPP_
 
-#include "util/global.hpp"
+#include "frameworks/util.hpp"
 
 namespace aquarius
 {

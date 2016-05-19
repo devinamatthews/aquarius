@@ -1,48 +1,16 @@
 #include "molecule.hpp"
 
-#include "util/math_ext.hpp"
-#include "basis.hpp"
-
-using namespace aquarius::integrals;
 using namespace aquarius::symmetry;
-using namespace aquarius::input;
 using namespace aquarius::task;
 
 namespace aquarius
 {
-namespace input
-{
 
-struct AtomSpec
+namespace molecule
 {
-    string symbol;
-    string basisSet;
-    string truncation;
-    double charge_from_input;
-    AtomSpec() : charge_from_input(0.0) {}
-    AtomSpec(const string& symbol, const string& basisSet,
-             const string& truncation, double charge_from_input)
-    : symbol(symbol), basisSet(basisSet), truncation(truncation),
-      charge_from_input(charge_from_input) {}
-};
-
-struct AtomZmatSpec : AtomSpec
-{
-    int distanceFrom, angleFrom, dihedralFrom;
-    double distance, angle, dihedral;
-    AtomZmatSpec() : distanceFrom(-1), angleFrom(-1), dihedralFrom(-1) {}
-};
-
-struct AtomCartSpec : AtomSpec
-{
-    vec3 pos;
-    AtomCartSpec() {}
-    AtomCartSpec(const string& symbol, const string& basisSet, const string& truncation, const double& charge_from_input, const vec3& pos)
-    : AtomSpec(symbol, basisSet, truncation, charge_from_input), pos(pos) {}
-};
 
 template<>
-class Config::Extractor<AtomZmatSpec>
+class Config::Extractor<Molecule::AtomZmatSpec>
 {
     protected:
         static bool nextSpec(shared_list<Node>::iterator& i, shared_list<Node>::iterator end)
@@ -52,6 +20,8 @@ class Config::Extractor<AtomZmatSpec>
         }
 
     public:
+        typedef molecule::Molecule::AtomZmatSpec AtomZmatSpec;
+
         static AtomZmatSpec extract(Node& node, int which = 0)
         {
             AtomZmatSpec s;
@@ -89,7 +59,7 @@ class Config::Extractor<AtomZmatSpec>
 };
 
 template<>
-class Config::Extractor<AtomCartSpec>
+class Config::Extractor<Molecule::AtomCartSpec>
 {
     protected:
         static bool nextSpec(shared_list<Node>::iterator& i, shared_list<Node>::iterator end)
@@ -99,6 +69,8 @@ class Config::Extractor<AtomCartSpec>
         }
 
     public:
+        typedef molecule::Molecule::AtomCartSpec AtomCartSpec;
+
         static AtomCartSpec extract(Node& node, int which = 0)
         {
             AtomCartSpec s;
@@ -129,30 +101,16 @@ class Config::Extractor<AtomCartSpec>
         }
 };
 
-MoleculeTask::MoleculeTask(const string& name, input::Config& config)
-: Task(name, config), config(config)
-{
-    addProduct(Product("molecule", "molecule"));
-}
-
-bool MoleculeTask::run(task::TaskDAG& dag, const Arena& arena)
-{
-    put("molecule", new Molecule(config, arena));
-    return true;
-}
-
 Molecule::Molecule(Config& config, const Arena& arena)
 {
     nelec = -config.get<int>("charge");
     multiplicity = config.get<int>("multiplicity");
 
-    vector<AtomCartSpec> cartpos;
-    initGeometry(config, cartpos);
+    vector<AtomCartSpec> cartpos = initGeometry(config);
     initSymmetry(config, cartpos);
     initBasis(config, cartpos);
 
-
-    if (arena.rank == 0) 
+    if (arena.rank == 0)
     {
         printf("\nMolecular Geometry:\n\n");
         for (vector<Atom>::iterator it = atoms.begin();it != atoms.end();++it)
@@ -175,50 +133,69 @@ Molecule::Molecule(Config& config, const Arena& arena)
     }
 }
 
-void Molecule::initGeometry(Config& config, vector<AtomCartSpec>& cartpos)
+bool Molecule::isSymmetric(const vector<AtomCartSpec>& cartpos, const mat3x3& op)
+{
+    for (vector<AtomCartSpec>::const_iterator i1 = cartpos.begin();i1 != cartpos.end();++i1)
+    {
+        vec3 newpos = op*i1->pos;
+
+        bool found = false;
+        for (vector<AtomCartSpec>::const_iterator i2 = cartpos.begin();i2 != cartpos.end();++i2)
+        {
+            if (norm(newpos-i2->pos) < 1e-8) found = true;
+        }
+        if (!found) return false;
+    }
+
+    return true;
+}
+
+vector<Molecule::AtomCartSpec> Molecule::initGeometry(const Config& config)
 {
     bool angstrom = (config.get<string>("units") == "angstrom");
     bool zmat = (config.get<string>("coords") == "internal");
-    double bohr = (angstrom ? config.get<double>("angstrom2bohr") : 1);
+    double angstrom2bohr = (angstrom ? config.get<double>("angstrom2bohr") : 1.0);
+
+    vector<AtomCartSpec> cartpos;
 
     if (zmat)
     {
-        vector<pair<string,AtomZmatSpec>> atomspecs = config.find<AtomZmatSpec>("atom");
-        for (vector<pair<string,AtomZmatSpec>>::iterator it = atomspecs.begin();it != atomspecs.end();++it)
+        for (auto& match : config.find<AtomZmatSpec>("atom"))
         {
             vec3 pos, posb, posc, posd;
-            AtomZmatSpec a = it->second;
+            AtomZmatSpec spec = match.second;
             double rad = 0.01745329251994329576923690768489;
 
-            if (a.dihedralFrom != -1)
+            if (spec.dihedralFrom != -1)
             {
-                posb = cartpos[a.distanceFrom].pos;
-                posc = cartpos[a.angleFrom].pos;
-                posd = cartpos[a.dihedralFrom].pos;
+                posb = cartpos[spec.distanceFrom].pos;
+                posc = cartpos[spec.angleFrom].pos;
+                posd = cartpos[spec.dihedralFrom].pos;
 
                 vec3 cb = unit(posb-posc);
                 vec3 dcxcb = unit((posc-posd)^(posb-posc));
                 vec3 dcperp = unit((posc-posd)/cb);
 
-                pos = posb + a.distance*(sin(rad*a.angle)*(sin(rad*a.dihedral)*dcxcb -
-                                                           cos(rad*a.dihedral)*dcperp) -
-                                                           cos(rad*a.angle)*cb);
+                pos = posb + spec.distance*(sin(rad*spec.angle)*
+                                            (sin(rad*spec.dihedral)*dcxcb -
+                                             cos(rad*spec.dihedral)*dcperp) -
+                                            cos(rad*spec.angle)*cb);
             }
-            else if (a.angleFrom != -1)
+            else if (spec.angleFrom != -1)
             {
-                posb = cartpos[a.distanceFrom].pos;
-                posc = cartpos[a.angleFrom].pos;
+                posb = cartpos[spec.distanceFrom].pos;
+                posc = cartpos[spec.angleFrom].pos;
 
                 vec3 cb = unit(posb-posc);
-                pos[2] = posb[2]-cb[2]*a.distance*cos(rad*a.angle);
-                pos[1] = a.distance*sin(rad*a.angle);
+                pos[2] = posb[2]-cb[2]*spec.distance*cos(rad*spec.angle);
+                pos[1] = spec.distance*sin(rad*spec.angle);
             }
-            else if (a.distanceFrom != -1)
+            else if (spec.distanceFrom != -1)
             {
-                pos[2] = a.distance;
+                pos[2] = spec.distance;
             }
 
-            cartpos.push_back(AtomCartSpec(a.symbol, a.basisSet, a.truncation, a.charge_from_input, pos));
+            cartpos.emplace_back(spec.symbol, spec.basisSet, spec.truncation, spec.charge_from_input, pos);
         }
     }
     else
@@ -237,7 +214,7 @@ void Molecule::initGeometry(Config& config, vector<AtomCartSpec>& cartpos)
     {
         Element e = Element::getElement(it->symbol.c_str());
         nelec += e.getAtomicNumber();
-                it->pos *= bohr;
+                it->pos *= angstrom2bohr;
         com += it->pos*e.getMass();
         totmass += e.getMass();
     }
@@ -267,27 +244,14 @@ void Molecule::initGeometry(Config& config, vector<AtomCartSpec>& cartpos)
             nucrep += ea.getCharge()*eb.getCharge()/norm(a->pos-b->pos);
         }
     }
+
+    return cartpos;
 }
 
-bool Molecule::isSymmetric(const vector<AtomCartSpec>& cartpos, const mat3x3& op)
+void Molecule::initSymmetry(const Config& config, vector<AtomCartSpec>& cartpos)
 {
-    for (vector<AtomCartSpec>::const_iterator i1 = cartpos.begin();i1 != cartpos.end();++i1)
-    {
-        vec3 newpos = op*i1->pos;
+    string subgrp = config.get<string>("subgroup");
 
-        bool found = false;
-        for (vector<AtomCartSpec>::const_iterator i2 = cartpos.begin();i2 != cartpos.end();++i2)
-        {
-            if (norm(newpos-i2->pos) < 1e-8) found = true;
-        }
-        if (!found) return false;
-    }
-
-    return true;
-}
-
-void Molecule::initSymmetry(Config& config, vector<AtomCartSpec>& cartpos)
-{
     mat3x3 I;
 
     for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
@@ -329,8 +293,6 @@ void Molecule::initSymmetry(Config& config, vector<AtomCartSpec>& cartpos)
     vec3 z(0,0,1);
     vec3 xyz(1,1,1);
     mat3x3 O = Identity();
-
-    string subgrp = config.get<string>("subgroup");
 
     if (A[1] < 1e-8)
     {
@@ -1236,22 +1198,17 @@ void Molecule::initSymmetry(Config& config, vector<AtomCartSpec>& cartpos)
     }
 }
 
-void Molecule::initBasis(Config& config, const vector<AtomCartSpec>& cartpos)
+void Molecule::initBasis(const Config& config, const vector<AtomCartSpec>& cartpos)
 {
     bool contaminants = config.get<bool>("basis.contaminants");
     bool spherical = config.get<bool>("basis.spherical");
+    bool hasDefaultBasis = !config.find<string>("basis.basis_set").empty();
 
     BasisSet defaultBasis;
-    bool hasDefaultBasis;
-    try
+    if (hasDefaultBasis)
     {
         string name = config.get<string>("basis.basis_set");
         defaultBasis = BasisSet(TOPDIR "/basis/" + name);
-        hasDefaultBasis = true;
-    }
-    catch (EntryNotFoundError& e)
-    {
-        hasDefaultBasis = false;
     }
 
     norb.resize(group->getNumIrreps(), 0);
@@ -1275,11 +1232,11 @@ void Molecule::initBasis(Config& config, const vector<AtomCartSpec>& cartpos)
 
         atoms.push_back(a);
 
-        for (vector<Shell>::iterator s = a.getShellsBegin();s != a.getShellsEnd();++s)
+        for (auto& s : a.getShells())
         {
             for (int i = 0;i < group->getNumIrreps();i++)
             {
-                norb[i] += s->getNFuncInIrrep(i)*s->getNContr();
+                norb[i] += s.getNFuncInIrrep(i)*s.getNContr();
             }
         }
     }
@@ -1287,13 +1244,13 @@ void Molecule::initBasis(Config& config, const vector<AtomCartSpec>& cartpos)
 
 Molecule::shell_iterator Molecule::getShellsBegin()
 {
-		vector<Atom>::iterator non_zero = atoms.begin();
+    vector<Atom>::iterator non_zero = atoms.begin();
 
-		while (non_zero != atoms.end() && non_zero->getShellsBegin() == non_zero->getShellsEnd()) ++non_zero;
+    while (non_zero != atoms.end() && non_zero->getShells().begin() == non_zero->getShells().end()) ++non_zero;
 
     if (non_zero != atoms.end())
     {
-        return shell_iterator(non_zero, atoms.end(), non_zero->getShellsBegin());
+        return shell_iterator(non_zero, atoms.end(), non_zero->getShells().begin());
     }
     else
     {
@@ -1305,11 +1262,11 @@ Molecule::shell_iterator Molecule::getShellsEnd()
 {
 		vector<Atom>::iterator non_zero = atoms.begin();
 
-		while (non_zero != atoms.end() && non_zero->getShellsBegin() == non_zero->getShellsEnd()) ++non_zero;
+		while (non_zero != atoms.end() && non_zero->getShells().begin() == non_zero->getShells().end()) ++non_zero;
 
     if (non_zero != atoms.end())
     {
-        return shell_iterator(atoms.end(), atoms.end(), atoms.back().getShellsEnd());
+        return shell_iterator(atoms.end(), atoms.end(), atoms.back().getShells().end());
     }
     else
     {
@@ -1329,52 +1286,3 @@ Molecule::const_shell_iterator Molecule::getShellsEnd() const
 
 }
 }
-
-static const char* spec = R"(
-
-angstrom2bohr?
-    double 1.88972612456506198632428439,
-units?
-    enum { angstrom, bohr },
-coords?
-    enum { internal, cartesian },
-multiplicity?
-    int 1,
-charge?
-    int 0,
-subgroup?
-    enum
-    {
-        C1, full,
-        Cs, Ci, C2, C2v, C2h, D2, D2h,
-        C3, C4, C5, C6, C3v, C4v, C5v, C6v,
-        C3h, C4h, C5h, C6h, D3, D4, D5, D6,
-        D3h, D4h, D5h, D6h, S4, S6, Td, Oh, Ih
-    },
-atom+
-{
-    basis_set? string,
-    truncation? string,
-    # ZMAT specification, e.g. H 2 R 1 A
-    # or xyz position
-    *+
-},
-basis?
-{
-    contaminants?
-        bool false,
-    spherical?
-        bool true,
-    basis_set? string,
-    truncation*
-    {
-        # elements affected, e.g. H-Ne
-        *,
-        # same format as molecule.atom.truncation
-        *
-    }
-}
-
-)";
-
-REGISTER_TASK(aquarius::input::MoleculeTask,"molecule",spec);

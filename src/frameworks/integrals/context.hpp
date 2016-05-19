@@ -1,9 +1,8 @@
-#ifndef _AQUARIUS_INTEGRALS_CONTEXT_HPP_
-#define _AQUARIUS_INTEGRALS_CONTEXT_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_INTEGRALS_CONTEXT_HPP_
+#define _AQUARIUS_FRAMEWORKS_INTEGRALS_CONTEXT_HPP_
 
-#include "util/global.hpp"
-
-#include "symmetry/symmetry.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/molecule.hpp"
 
 namespace aquarius
 {
@@ -35,6 +34,13 @@ class Context
         void setOrdering(Ordering ordering) { this->ordering = ordering; }
 
         Ordering getOrdering() const { return ordering; }
+
+        vector<vector<int>> setupIndices(const molecule::Molecule& m);
+
+        int getIndex(const molecule::Shell& shell, const vector<int>& idx,
+                     int func, int contr, int degen) const;
+
+        //void aoToSo(Context::Ordering primitive_ordering, double* aoso, int ld) const;
 };
 
 }

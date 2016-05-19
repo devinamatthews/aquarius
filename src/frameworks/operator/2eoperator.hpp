@@ -1,9 +1,8 @@
 #ifndef _AQUARIUS_OPERATOR_2EOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_2EOPERATOR_HPP_
 
-#include "util/global.hpp"
-
-#include "1eoperator.hpp"
+#include "../../frameworks/operator/1eoperator.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

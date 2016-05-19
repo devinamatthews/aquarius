@@ -1,17 +1,11 @@
-#ifndef _AQUARIUS_INTEGRALS_2EINTS_HPP_
-#define _AQUARIUS_INTEGRALS_2EINTS_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_INTEGRALS_2EINTS_HPP_
+#define _AQUARIUS_FRAMEWORKS_INTEGRALS_2EINTS_HPP_
 
-#include "util/global.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/symmetry.hpp"
+#include "frameworks/molecule.hpp"
 
-#include "symmetry/symmetry.hpp"
-#include "task/task.hpp"
-#include "input/molecule.hpp"
-#include "input/config.hpp"
-
-#include "shell.hpp"
-
-#define TMP_BUFSIZE 65536
-#define INTEGRAL_CUTOFF 1e-14
+#include "context.hpp"
 
 #define IDX_EQ(i,r,e,j,s,f) ((i) == (j) && (r) == (s) && (e) == (f))
 #define IDX_GE(i,r,e,j,s,f) ((i) > (j) || ((i) == (j) && ((r) > (s) || ((r) == (s) && (e) >= (f)))))
@@ -22,31 +16,26 @@ namespace aquarius
 
 struct idx4_t
 {
-    uint16_t i;
-    uint16_t j;
-    uint16_t k;
-    uint16_t l;
-
-    idx4_t() : i(0), j(0), k(0), l(0) {}
-
-    idx4_t(uint16_t i, uint16_t j, uint16_t k, uint16_t l) : i(i), j(j), k(k), l(l) {}
+    uint16_t i = 0, j = 0, k = 0, l = 0;
 };
 
 namespace integrals
 {
 
+class OSERI;
+
 class TwoElectronIntegrals
 {
     protected:
-        const Shell& sa;
-        const Shell& sb;
-        const Shell& sc;
-        const Shell& sd;
+        const molecule::Shell& sa;
+        const molecule::Shell& sb;
+        const molecule::Shell& sc;
+        const molecule::Shell& sd;
         const symmetry::PointGroup& group;
-        const Center& ca;
-        const Center& cb;
-        const Center& cc;
-        const Center& cd;
+        const molecule::Center& ca;
+        const molecule::Center& cb;
+        const molecule::Center& cc;
+        const molecule::Center& cd;
         int la, lb, lc, ld;
         int na, nb, nc, nd;
         int ma, mb, mc, md;
@@ -62,7 +51,8 @@ class TwoElectronIntegrals
         double accuracy_;
 
     public:
-        TwoElectronIntegrals(const Shell& a, const Shell& b, const Shell& c, const Shell& d);
+        TwoElectronIntegrals(const molecule::Shell& a, const molecule::Shell& b,
+                             const molecule::Shell& c, const molecule::Shell& d);
 
         virtual ~TwoElectronIntegrals() {}
 
@@ -104,7 +94,7 @@ class TwoElectronIntegrals
         void prim2contr4l(size_t nother, double* buf1, double* buf2);
 };
 
-class ERI : public task::Destructible, public Distributed
+class ERI : public Distributed
 {
     public:
         const symmetry::PointGroup& group;
@@ -112,92 +102,7 @@ class ERI : public task::Destructible, public Distributed
         deque<idx4_t> idxs;
 
         ERI(const Arena& arena, const symmetry::PointGroup& group) : Distributed(arena), group(group) {}
-
-        void print(task::Printer& p) const;
 };
-
-template <typename ERIType>
-class TwoElectronIntegralsTask : public task::Task
-{
-    public:
-        TwoElectronIntegralsTask(const string& name, input::Config& config)
-        : task::Task(name, config)
-        {
-            vector<task::Requirement> reqs;
-            reqs.push_back(task::Requirement("molecule", "molecule"));
-            addProduct(task::Product("eri", "I", reqs));
-        }
-
-        bool run(task::TaskDAG& dag, const Arena& arena)
-        {
-            const auto& molecule = get<input::Molecule>("molecule");
-
-            ERI* eri = new ERI(arena, molecule.getGroup());
-
-            Context ctx(Context::ISCF);
-
-            vector<double> tmpval(TMP_BUFSIZE);
-            vector<idx4_t> tmpidx(TMP_BUFSIZE);
-
-            const vector<int>& N = molecule.getNumOrbitals();
-            int nirrep = molecule.getGroup().getNumIrreps();
-
-            vector<vector<int>> idx = Shell::setupIndices(Context(), molecule);
-            vector<Shell> shells(molecule.getShellsBegin(), molecule.getShellsEnd());
-
-            int abcd = 0;
-            for (int a = 0;a < shells.size();++a)
-            {
-                for (int b = 0;b <= a;++b)
-                {
-                    for (int c = 0;c <= a;++c)
-                    {
-                        int dmax = c;
-                        if (a == c) dmax = b;
-                        for (int d = 0;d <= dmax;++d)
-                        {
-                            if (abcd%arena.size == arena.rank)
-                            {
-                                ERIType block(shells[a], shells[b], shells[c], shells[d]);
-                                block.run();
-
-                                size_t n;
-                                while ((n = block.process(ctx, idx[a], idx[b], idx[c], idx[d],
-                                                          TMP_BUFSIZE, tmpval.data(), tmpidx.data(), INTEGRAL_CUTOFF)) != 0)
-                                {
-                                    eri->ints.insert(eri->ints.end(), tmpval.data(), tmpval.data()+n);
-                                    eri->idxs.insert(eri->idxs.end(), tmpidx.data(), tmpidx.data()+n);
-                                }
-                            }
-                            abcd++;
-                        }
-                    }
-                }
-            }
-
-            //TODO: load balance
-
-            for (int i = 0;i < eri->ints.size();++i)
-            {
-                if (eri->idxs[i].i  > eri->idxs[i].j) swap(eri->idxs[i].i, eri->idxs[i].j);
-                if (eri->idxs[i].k  > eri->idxs[i].l) swap(eri->idxs[i].k, eri->idxs[i].l);
-                if (eri->idxs[i].i  > eri->idxs[i].k ||
-                   (eri->idxs[i].i == eri->idxs[i].k &&
-                    eri->idxs[i].j  > eri->idxs[i].l))
-                {
-                    swap(eri->idxs[i].i, eri->idxs[i].k);
-                    swap(eri->idxs[i].j, eri->idxs[i].l);
-                }
-            }
-
-            put("I", eri);
-
-            return true;
-        }
-};
-
-class OSERI;
-using OS2eIntegralsTask = TwoElectronIntegralsTask<OSERI>;
 
 }
 }

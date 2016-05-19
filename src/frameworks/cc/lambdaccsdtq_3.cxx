@@ -1,4 +1,4 @@
-#include "lambdaccsdtq_3.hpp"
+#include "../../frameworks/cc/lambdaccsdtq_3.hpp"
 
 using namespace aquarius::op;
 using namespace aquarius::input;

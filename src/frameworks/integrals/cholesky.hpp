@@ -1,32 +1,28 @@
-#ifndef _AQUARIUS_INTEGRALS_CHOLESKY_HPP_
-#define _AQUARIUS_INTEGRALS_CHOLESKY_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_INTEGRALS_CHOLESKY_HPP_
+#define _AQUARIUS_FRAMEWORKS_INTEGRALS_CHOLESKY_HPP_
 
-#include "util/global.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/molecule.hpp"
+#include "frameworks/tensor.hpp"
+#include "frameworks/task.hpp"
 
-#include "tensor/symblocked_tensor.hpp"
-#include "tensor/dense_tensor.hpp"
-#include "input/molecule.hpp"
-#include "input/config.hpp"
-#include "task/task.hpp"
-
-#include "2eints.hpp"
+#include "context.hpp"
 
 namespace aquarius
 {
 namespace integrals
 {
 
-template <typename T>
-class CholeskyIntegrals : public Distributed
+class CholeskyIntegrals
 {
     public:
-        const input::Molecule& molecule;
+        const molecule::Molecule& molecule;
 
     protected:
         enum Status {TODO, ACTIVE, DONE};
         struct diag_elem_t
         {
-            T elem;
+            double elem;
             int shelli;
             int shellj;
             int funci;
@@ -44,44 +40,46 @@ class CholeskyIntegrals : public Distributed
 
         const Context& ctx;
         int nvec;
-        vector<Shell> shells;
-        T delta;
-        T cond;
-        unique_ptr<tensor::SymmetryBlockedTensor<T>> L;
-        unique_ptr<tensor::SymmetryBlockedTensor<T>> D;
+        vector<molecule::Shell> shells;
+        double delta;
+        double cond;
+        tensor::Tensor<PGSYMMETRIC> L;
+        tensor::Tensor<PGSYMMETRIC> D;
         int ndiag;
         int nfunc;
         int nblock;
 
     public:
-        CholeskyIntegrals(const Arena& arena, const Context& ctx, input::Config& config, const input::Molecule& molecule);
+        CholeskyIntegrals(const Context& ctx, task::Config& config, const molecule::Molecule& molecule);
 
         void test();
 
         int getRank() const { return nvec; }
 
-        const tensor::SymmetryBlockedTensor<T>& getL() const { return *L; }
+        tensor::ConstTensor<PGSYMMETRIC> getL() const { return L; }
 
-        const tensor::SymmetryBlockedTensor<T>& getD() const { return *D; }
+        tensor::ConstTensor<PGSYMMETRIC> getD() const { return D; }
 
     protected:
 
         void decompose();
 
-        void resortBlock(const int block_size, T* L, diag_elem_t* diag, T* tmp);
+        void resortBlock(const int block_size, double* L, diag_elem_t* diag, double* tmp);
 
-        int collectActiveRows(const int block_size, const T* L, diag_elem_t* diag,
-                              T* L_active, diag_elem_t* diag_active);
+        int collectActiveRows(const int block_size, const double* L, diag_elem_t* diag,
+                              double* L_active, diag_elem_t* diag_active);
 
-        bool isBlockConverged(const diag_elem_t* diag, int block_size, T& max_elem);
+        bool isBlockConverged(const diag_elem_t* diag, int block_size, double& max_elem);
 
         void sortBlocks(diag_elem_t* diag, int* block_start, int* block_size);
 
-        void getShellOffsets(const Shell& a, const Shell& b, const Shell& c, const Shell& d,
+        void getShellOffsets(const molecule::Shell& a, const molecule::Shell& b,
+                             const molecule::Shell& c, const molecule::Shell& d,
                              size_t& controffa, size_t& funcoffa, size_t& controffb, size_t& funcoffb,
                              size_t& controffc, size_t& funcoffc, size_t& controffd, size_t& funcoffd);
 
-        int getDiagonalBlock(const Shell& a, const Shell& b, diag_elem_t* diag);
+        int getDiagonalBlock(const molecule::Shell& a, const molecule::Shell& b,
+                             diag_elem_t* diag);
 
         /*
          * perform a modified Cholesky decomposition (LDL^T) on a matrix subblock
@@ -94,7 +92,7 @@ class CholeskyIntegrals : public Distributed
          *
          * return value     - rank after update
          */
-        void decomposeBlock(int block_size, T* L_, T* D, diag_elem_t* diag);
+        void decomposeBlock(int block_size, double* L_, double* D, diag_elem_t* diag);
 
         /*
          * update a block of Cholesky vectors
@@ -112,11 +110,12 @@ class CholeskyIntegrals : public Distributed
          *                    dimensions diag_j[block_size_j] (the full block)
          * D                - the diagonal factor of the decomposition, dimensions D[rank]
          */
-        void updateBlock(int old_rank, int block_size_i, T* L_i_, diag_elem_t* diag_i,
-                         int block_size_j, T* L_j_, diag_elem_t* diag_j, T* D);
+        void updateBlock(int old_rank, int block_size_i, double* L_i_, diag_elem_t* diag_i,
+                         int block_size_j, double* L_j_, diag_elem_t* diag_j, double* D);
 
-        T testBlock(const tensor::DenseTensor<T>& block, const Shell& a, const Shell& b,
-                                                         const Shell& c, const Shell& d);
+        double testBlock(const tensor::Tensor<BOUNDED>& block,
+                         const molecule::Shell& a, const molecule::Shell& b,
+                         const molecule::Shell& c, const molecule::Shell& d);
 };
 
 }

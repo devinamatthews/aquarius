@@ -1,12 +1,11 @@
 #ifndef _AQUARIUS_OPERATOR_1EOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_1EOPERATOR_HPP_
 
-#include "util/global.hpp"
-
+#include "../../frameworks/operator/mooperator.hpp"
+#include "../../frameworks/operator/space.hpp"
+#include "../../frameworks/util/global.hpp"
 #include "tensor/spinorbital_tensor.hpp"
 
-#include "mooperator.hpp"
-#include "space.hpp"
 
 namespace aquarius
 {

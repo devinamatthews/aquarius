@@ -1,7 +1,7 @@
 #ifndef _AQUARIUS_OPERATOR_AOOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_AOOPERATOR_HPP_
 
-#include "util/global.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

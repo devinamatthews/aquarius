@@ -1,11 +1,9 @@
 #ifndef _AQUARIUS_CC_DENSITY_HPP_
 #define _AQUARIUS_CC_DENSITY_HPP_
 
-#include "util/global.hpp"
-
-#include "operator/2eoperator.hpp"
-
-#include "1edensity.hpp"
+#include "../../frameworks/cc/1edensity.hpp"
+#include "../../frameworks/operator/2eoperator.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

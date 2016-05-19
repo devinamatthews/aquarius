@@ -1,16 +1,15 @@
-#ifndef _AQUARIUS_INPUT_BASIS_HPP_
-#define _AQUARIUS_INPUT_BASIS_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_MOLECULE_BASIS_HPP_
+#define _AQUARIUS_FRAMEWORKS_MOLECULE_BASIS_HPP_
 
-#include "util/global.hpp"
-
-#include "integrals/shell.hpp"
-
-#include "molecule.hpp"
+#include "frameworks/util.hpp"
 
 namespace aquarius
 {
-namespace input
+namespace molecule
 {
+
+class Atom;
+class Molecule;
 
 class BasisSetNotFoundError : public runtime_error
 {

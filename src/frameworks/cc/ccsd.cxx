@@ -1,4 +1,4 @@
-#include "ccsd.hpp"
+#include "../../frameworks/cc/ccsd.hpp"
 
 using namespace aquarius::op;
 using namespace aquarius::input;

@@ -1,11 +1,9 @@
 #ifndef _AQUARIUS_OPERATOR_MOINTS_HPP_
 #define _AQUARIUS_OPERATOR_MOINTS_HPP_
 
-#include "util/global.hpp"
-
-#include "task/task.hpp"
-
-#include "2eoperator.hpp"
+#include "../../frameworks/operator/2eoperator.hpp"
+#include "../../frameworks/task/task.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

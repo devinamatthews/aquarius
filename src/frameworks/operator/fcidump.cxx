@@ -1,4 +1,4 @@
-#include "fcidump.hpp"
+#include "../../frameworks/operator/fcidump.hpp"
 
 using namespace aquarius::input;
 using namespace aquarius::tensor;

@@ -1,8 +1,9 @@
 #include "jellium.hpp"
 
-using namespace aquarius::input;
+#include "frameworks/logging.hpp"
+
 using namespace aquarius::task;
-using namespace aquarius::op;
+using namespace aquarius::logging;
 using namespace aquarius::tensor;
 using namespace aquarius::symmetry;
 
@@ -11,26 +12,25 @@ namespace aquarius
 namespace jellium
 {
 
-template <typename U>
-Jellium<U>::Jellium(const string& name, Config& config)
+Jellium::Jellium(const string& name, Config& config)
 : Task(name, config),
   nelec(config.get<int>("num_electrons")),
   norb(config.get<int>("num_orbitals")),
   radius(config.get<double>("radius"))
 {
     vector<Requirement> reqs;
-    addProduct("double", "energy", reqs);
-    addProduct("Ea", "Ea", reqs);
-    addProduct("Eb", "Eb", reqs);
-    addProduct("Fa", "Fa", reqs);
-    addProduct("Fb", "Fb", reqs);
-    addProduct("Da", "Da", reqs);
-    addProduct("Db", "Db", reqs);
+    addProduct("scf.energy", "energy", reqs);
+    addProduct("scf.E", "E", reqs);
+    addProduct("scf.F", "F", reqs);
+    addProduct("scf.D", "D", reqs);
     addProduct("moints", "H", reqs);
 
     int d = config.get<int>("dimension");
     assert(d == 3);
+}
 
+bool Jellium::run(TaskDAG& dag, const Arena& arena)
+{
     vector<double> glen;
 
     for (int r = 0;;r++)
@@ -65,12 +65,8 @@ Jellium<U>::Jellium(const string& name, Config& config)
     V = nelec*(4.0/3.0)*M_PI*pow(radius,3);
     L = pow(V, 1.0/3.0);
     PotVm = 2.83729747948149/L;
-}
 
-template <typename U>
-bool Jellium<U>::run(TaskDAG& dag, const Arena& arena)
-{
-    vector<vector<real_type_t<U>>> E{vector<real_type_t<U>>(norb)};
+    vector<vector<double>> E = {vector<double>(norb)};
 
     int nvrt = norb-nocc;
 
@@ -90,10 +86,9 @@ bool Jellium<U>::run(TaskDAG& dag, const Arena& arena)
         }
     }
 
-    this->put("Ea", new vector<vector<real_type_t<U>>>(E));
-    this->put("Eb", new vector<vector<real_type_t<U>>>(E));
+    this->put("E", vector<vector<vector<double>>>{E,E});
 
-    U energy = 0;
+    double energy = 0;
     for (int i = 0;i < nocc;i++)
     {
         energy += 2*E[0][i];
@@ -114,19 +109,18 @@ bool Jellium<U>::run(TaskDAG& dag, const Arena& arena)
     auto& Fb = this->put("Fb", new SymmetryBlockedTensor<U>("Fb", arena, PointGroup::C1(), 2, {{norb},{norb}}, {NS,NS}, true));
     auto& Da = this->put("Da", new SymmetryBlockedTensor<U>("Da", arena, PointGroup::C1(), 2, {{norb},{norb}}, {NS,NS}, true));
     auto& Db = this->put("Db", new SymmetryBlockedTensor<U>("Db", arena, PointGroup::C1(), 2, {{norb},{norb}}, {NS,NS}, true));
-    this->put("energy", new double(energy));
+    this->put("energy", energy);
 
     Logger::log(arena) << "SCF energy = " << setprecision(15) << energy << endl;
 
-    vector<tkv_pair<U>> dpairs;
-    vector<tkv_pair<U>> fpairs;
+    KeyValueVector dpairs, fpairs;
     for (int i = 0;i < nocc;i++)
     {
-        dpairs.emplace_back(i*norb+i, 1);
+        dpairs.push_back(i*norb+i, 1);
     }
     for (int i = 0;i < norb;i++)
     {
-        fpairs.emplace_back(i*norb+i, E[0][i]);
+        fpairs.push_back(i*norb+i, E[0][i]);
     }
 
     if (arena.rank == 0)

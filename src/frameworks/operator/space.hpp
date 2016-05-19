@@ -1,10 +1,9 @@
 #ifndef _AQUARIUS_OPERATOR_SPACE_HPP_
 #define _AQUARIUS_OPERATOR_SPACE_HPP_
 
-#include "util/global.hpp"
-
+#include "../../frameworks/task/task.hpp"
+#include "../../frameworks/util/global.hpp"
 #include "tensor/symblocked_tensor.hpp"
-#include "task/task.hpp"
 
 namespace aquarius
 {

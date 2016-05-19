@@ -1,11 +1,11 @@
-#ifndef _AQUARIUS_INPUT_CONFIG_HPP_
-#define _AQUARIUS_INPUT_CONFIG_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_TASK_CONFIG_HPP_
+#define _AQUARIUS_FRAMEWORKS_TASK_CONFIG_HPP_
 
-#include "util/global.hpp"
+#include "frameworks/util.hpp"
 
 namespace aquarius
 {
-namespace input
+namespace task
 {
 
 class Config;
@@ -130,9 +130,9 @@ class Config
 
         Config(Config&& config) = default;
 
-        Config(istream& is);
+        explicit Config(istream& is);
 
-        Config(const string& s);
+        explicit Config(const string& s);
 
         Config clone() const;
 

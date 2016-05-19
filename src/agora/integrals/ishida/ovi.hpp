@@ -1,9 +1,8 @@
 #ifndef _AQUARIUS_INTEGRALS_OVI_HPP_
 #define _AQUARIUS_INTEGRALS_OVI_HPP_
 
-#include "util/global.hpp"
-
-#include "1eints.hpp"
+#include "../../frameworks/integrals/1eints.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

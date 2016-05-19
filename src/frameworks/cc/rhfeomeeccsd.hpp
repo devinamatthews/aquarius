@@ -1,15 +1,14 @@
 #ifndef _AQUARIUS_CC_EOMEECCSD_HPP_
 #define _AQUARIUS_CC_EOMEECCSD_HPP_
 
-#include "util/global.hpp"
-
-#include "convergence/davidson.hpp"
-#include "util/iterative.hpp"
-#include "operator/2eoperator.hpp"
-#include "operator/st2eoperator.hpp"
-#include "operator/excitationoperator.hpp"
-#include "operator/denominator.hpp"
-#include "input/molecule.hpp"
+#include "../../frameworks/convergence/davidson.hpp"
+#include "../../frameworks/operator/2eoperator.hpp"
+#include "../../frameworks/operator/denominator.hpp"
+#include "../../frameworks/operator/excitationoperator.hpp"
+#include "../../frameworks/operator/st2eoperator.hpp"
+#include "../../frameworks/util/global.hpp"
+#include "../../frameworks/util/iterative.hpp"
+#include "../molecule/molecule.hpp"
 
 namespace aquarius
 {

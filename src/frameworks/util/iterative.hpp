@@ -1,10 +1,9 @@
 #ifndef _AQUARIUS_UTIL_ITERATIVE_HPP_
 #define _AQUARIUS_UTIL_ITERATIVE_HPP_
 
-#include "time/time.hpp"
-#include "task/task.hpp"
-
-#include "distributed.hpp"
+#include "../../frameworks/task/task.hpp"
+#include "../../frameworks/time/time.hpp"
+#include "../../frameworks/util/distributed.hpp"
 #include "tensor/ctf_tensor.hpp"
 
 namespace aquarius

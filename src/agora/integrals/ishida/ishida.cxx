@@ -1,4 +1,4 @@
-#include "ishida.hpp"
+#include "../../../agora/integrals/ishida/ishida.hpp"
 
 namespace aquarius
 {
@@ -42,9 +42,6 @@ void IshidaERI::prim(const vec3& posa, int e, const vec3& posb, int f,
         row<double> ccfac(nrys);
         row<double> ddfac(nrys);
 
-        /*
-         * there is a typo in Ishida (JCP v98), the definition of G after Eq. 5 should read G = \xi s_i^2
-         */
         row<double> gfac(nrys);
 
         for (int v = 0;v < nrys;v++)

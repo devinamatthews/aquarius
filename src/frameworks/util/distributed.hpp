@@ -9,21 +9,12 @@
 #endif
 
 #include "ctf.hpp"
-#include "util/stl_ext.hpp"
+#include "stl_ext.hpp"
 
 namespace aquarius
 {
 
 using namespace MPIWrap;
-
-namespace tensor
-{
-
-template <typename T> class CTFTensor;
-template <typename T> class SymmetryBlockedTensor;
-template <typename T> class SpinorbitalTensor;
-
-}
 
 class Arena
 {
@@ -53,56 +44,21 @@ class Arena
         template <typename T>
         const tCTF_World<T>& ctf() const
         {
-            return const_cast<const tCTF_World<T>&>(const_cast<Arena&>(*this).ctf<T>());
+            return const_cast<Arena&>(*this).ctf<T>();
         }
 };
 
-/*
-template <>
-inline tCTF_World<float>& Arena::ctf<float>()
-{
-    if (!ctfs) ctfs = new tCTF_World<float>(*comm_);
-    return *ctfs;
-}
-*/
-
-template <>
-inline tCTF_World<double>& Arena::ctf<double>()
-{
-    if (!ctfd) ctfd.set(new tCTF_World<double>(*comm_));
-    return *ctfd;
-}
-
-/*
-template <>
-inline tCTF_World<complex<float>>& Arena::ctf<complex<float>>()
-{
-    if (!ctfc) ctfc = new tCTF_World<complex<float>>(*comm_);
-    return *ctfc;
-}
-
-template <>
-inline tCTF_World<complex<double>>& Arena::ctf<complex<double>>()
-{
-    if (!ctfz) ctfz = new tCTF_World<complex<double>>(*comm_);
-    return *ctfz;
-}
-*/
+Arena& arena();
 
 class Distributed
 {
-    public:
+    protected:
         Arena arena;
 
+    public:
         Distributed(const Arena& arena) : arena(arena) {}
 
-        static ostream& debug()
-        {
-            static Arena world;
-            static fstream fs(str("debug.%d", world.rank).c_str(),
-                                   fstream::out|fstream::trunc);
-            return fs;
-        }
+        const Arena& getArena() const { return arena; }
 };
 
 }

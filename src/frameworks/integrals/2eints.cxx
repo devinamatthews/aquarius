@@ -1,9 +1,7 @@
 #include "2eints.hpp"
-#include "os.hpp"
 
-using namespace aquarius::input;
+using namespace aquarius::molecule;
 using namespace aquarius::symmetry;
-using namespace aquarius::task;
 
 namespace aquarius
 {
@@ -126,10 +124,10 @@ size_t TwoElectronIntegrals::process(const Context& ctx, const vector<int>& idxa
 
                                                     if (!bad && aquarius::abs(ints[m]) > cutoff)
                                                     {
-                                                        indices[n].i = sa.getIndex(ctx, idxa, i, e, r);
-                                                        indices[n].j = sb.getIndex(ctx, idxb, j, f, s);
-                                                        indices[n].k = sc.getIndex(ctx, idxc, k, g, t);
-                                                        indices[n].l = sd.getIndex(ctx, idxd, l, h, u);
+                                                        indices[n].i = ctx.getIndex(sa, idxa, i, e, r);
+                                                        indices[n].j = ctx.getIndex(sb, idxb, j, f, s);
+                                                        indices[n].k = ctx.getIndex(sc, idxc, k, g, t);
+                                                        indices[n].l = ctx.getIndex(sd, idxd, l, h, u);
                                                         integrals[n++] = ints[m];
                                                     }
 
@@ -513,21 +511,5 @@ void TwoElectronIntegrals::prim2contr4l(size_t nother, double* buf1, double* buf
     copy(m*n, buf1, 1, buf2, 1);
 }
 
-void ERI::print(Printer& p) const
-{
-    //TODO
-}
-
 }
 }
-
-static const char* spec = R"(
-
-storage_cutoff?
-    double 1e-14,
-calc_cutoff?
-    double 1e-15
-
-)";
-
-REGISTER_TASK(aquarius::integrals::OS2eIntegralsTask,"2eints",spec);

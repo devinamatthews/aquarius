@@ -1,21 +1,20 @@
-#ifndef _AQUARIUS_INTEGRALS_CENTER_HPP_
-#define _AQUARIUS_INTEGRALS_CENTER_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_MOLECULE_CENTER_HPP_
+#define _AQUARIUS_FRAMEWORKS_MOLECULE_CENTER_HPP_
 
-#include "util/global.hpp"
-
-#include "symmetry/symmetry.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/symmetry.hpp"
 
 #include "element.hpp"
 
 namespace aquarius
 {
-namespace integrals
+namespace molecule
 {
 
 class Center
 {
     protected:
-        const symmetry::PointGroup* group;
+        const symmetry::PointGroup& group;
         vector<int> stabilizer;
         vector<int> centermap;
         vector<vec3> centers;
@@ -24,7 +23,7 @@ class Center
     public:
         Center(const symmetry::PointGroup& group, const vec3& pos, const Element& element);
 
-        const symmetry::PointGroup& getPointGroup() const { return *group; }
+        const symmetry::PointGroup& getPointGroup() const { return group; }
 
         const vector<int>& getStabilizer() const { return stabilizer; }
 

@@ -1,14 +1,12 @@
 #ifndef _AQUARIUS_CC_CCSD_T_L_HPP_
 #define _AQUARIUS_CC_CCSD_T_L_HPP_
 
-#include "util/global.hpp"
-
-#include "task/task.hpp"
-#include "time/time.hpp"
-#include "operator/2eoperator.hpp"
-#include "operator/excitationoperator.hpp"
-
-#include "ccsd.hpp"
+#include "../../frameworks/cc/ccsd.hpp"
+#include "../../frameworks/operator/2eoperator.hpp"
+#include "../../frameworks/operator/excitationoperator.hpp"
+#include "../../frameworks/task/task.hpp"
+#include "../../frameworks/time/time.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

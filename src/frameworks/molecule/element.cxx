@@ -1,11 +1,8 @@
 #include "element.hpp"
 
-using namespace aquarius::input;
-using namespace aquarius::symmetry;
-
 namespace aquarius
 {
-namespace integrals
+namespace molecule
 {
 
 const map<string,vector<Element>>& Element::elements()

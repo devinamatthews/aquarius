@@ -1,120 +1,15 @@
 #include "task.hpp"
 
+#include "frameworks/logging.hpp"
+using namespace aquarius::logging;
+
+#include "frameworks/time.hpp"
 using namespace aquarius::time;
-using namespace aquarius::input;
 
 namespace aquarius
 {
 namespace task
 {
-
-Logger::NullStream Logger::nullstream;
-Logger::SelfDestructStream Logger::sddstream;
-
-int Logger::LogToStreamBuffer::sync()
-{
-    if (os.flush()) return 0;
-    else return -1;
-}
-
-streamsize Logger::LogToStreamBuffer::xsputn (const char* s, streamsize n)
-{
-    if (os.write(s, n)) return n;
-    else return 0;
-}
-
-int Logger::LogToStreamBuffer::overflow (int c)
-{
-    if (c != EOF) os << traits_type::to_char_type(c);
-    if (c == EOF || !os) return EOF;
-    else return traits_type::to_int_type(c);
-}
-
-Logger::LogToStreamBuffer::LogToStreamBuffer(ostream& os)
-: os(os) {}
-
-int Logger::SelfDestructBuffer::sync()
-{
-    LogToStreamBuffer::sync();
-    abort();
-    return -1;
-}
-
-Logger::SelfDestructBuffer::SelfDestructBuffer()
-: LogToStreamBuffer(cerr) {}
-
-streamsize Logger::NullBuffer::xsputn (const char* s, streamsize n)
-{
-    return n;
-}
-
-int Logger::NullBuffer::overflow (int c)
-{
-    if (c == EOF) return EOF;
-    else return traits_type::to_int_type(c);
-}
-
-Logger::NullStream::NullStream()
-: ostream(new NullBuffer()) {}
-
-Logger::NullStream::~NullStream()
-{
-    delete rdbuf();
-}
-
-Logger::SelfDestructStream::SelfDestructStream()
-: ostream(new SelfDestructBuffer()) {}
-
-string Logger::dateTime()
-{
-    char buf[256];
-    time_t t = ::time(NULL);
-    tm* timeptr = localtime(&t);
-    strftime(buf, 256, "%c", timeptr);
-    return string(buf);
-}
-
-ostream& Logger::log(const Arena& arena)
-{
-    if (arena.rank == 0)
-    {
-        cout << dateTime() << ": ";
-        return cout;
-    }
-    else
-    {
-        return nullstream;
-    }
-}
-
-ostream& Logger::warn(const Arena& arena)
-{
-    if (arena.rank == 0)
-    {
-        cerr << dateTime() << ": warning: ";
-        return cerr;
-    }
-    else
-    {
-        return nullstream;
-    }
-}
-
-ostream& Logger::error(const Arena& arena)
-{
-    arena.comm().Barrier();
-    if (arena.rank == 0)
-    {
-        sddstream << dateTime() << ": error: ";
-        return sddstream;
-        //cout << dateTime() << ": error: ";
-        //return cout;
-    }
-    else
-    {
-        return nullstream;
-    }
-}
 
 Requirement::Requirement(const string& type, const string& name)
 : type(type), name(name) {}
@@ -138,15 +33,15 @@ Product& Requirement::get()
 }
 
 Product::Product(const string& type, const string& name)
-: type(type), name(name), requirements(new vector<Requirement>()), used(new bool(false)) {}
+: type(type), name(name),
+  requirements(make_shared<vector<Requirement>>()),
+  used(make_shared<bool>(false)) {}
 
-Product::Product(const string& type, const string& name, const vector<Requirement>& reqs)
-: type(type), name(name), requirements(new vector<Requirement>(reqs)), used(new bool(false)) {}
-
-void Product::addRequirement(Requirement&& req)
-{
-    requirements->push_back(forward<Requirement>(req));
-}
+Product::Product(const string& type, const string& name,
+                 const vector<Requirement>& reqs)
+: type(type), name(name),
+  requirements(make_shared<vector<Requirement>>(reqs)),
+  used(make_shared<bool>(false)) {}
 
 void Product::addRequirements(const vector<Requirement>& reqs)
 {
@@ -155,14 +50,10 @@ void Product::addRequirements(const vector<Requirement>& reqs)
 
 void Product::addRequirements(vector<Requirement>&& reqs)
 {
-    requirements->reserve(requirements->size()+reqs.size());
-    for (Requirement& req : reqs) requirements->push_back(move(req));
+    requirements->insert(requirements->end(),
+                         make_move_iterator(reqs.begin()),
+                         make_move_iterator(reqs.end()));
 }
-
-template <> string Task::type_string<float>() { return "<float>"; }
-template <> string Task::type_string<double>() { return ""; }
-template <> string Task::type_string<complex<float>>() { return "<scomplex>"; }
-template <> string Task::type_string<complex<double>>() { return "<dcomplex>"; }
 
 Task::Task(const string& name, Config& config)
 : name(name), config(config.clone()) {}
@@ -215,7 +106,7 @@ const Product& Task::getProduct(const string& name) const
     return const_cast<Task&>(*this).getProduct(name);
 }
 
-unique_ptr<Task> Task::createTask(const string& type, const string& name, input::Config& config)
+unique_ptr<Task> Task::createTask(const string& type, const string& name, Config& config)
 {
     auto i = tasks().find(type);
     if (i == tasks().end()) throw logic_error("Task type " + type + " not found");

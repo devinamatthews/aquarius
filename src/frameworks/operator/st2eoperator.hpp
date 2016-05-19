@@ -1,13 +1,12 @@
 #ifndef _AQUARIUS_OPERATOR_ST2EOPERATOR_HPP_
 #define _AQUARIUS_OPERATOR_ST2EOPERATOR_HPP_
 
-#include "util/global.hpp"
-
+#include "../../frameworks/operator/2eoperator.hpp"
+#include "../../frameworks/operator/deexcitationoperator.hpp"
+#include "../../frameworks/operator/excitationoperator.hpp"
+#include "../../frameworks/util/global.hpp"
 #include "tensor/spinorbital_tensor.hpp"
 
-#include "2eoperator.hpp"
-#include "deexcitationoperator.hpp"
-#include "excitationoperator.hpp"
 
 namespace aquarius
 {

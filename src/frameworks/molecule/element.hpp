@@ -1,18 +1,11 @@
-#ifndef _AQUARIUS_INTEGRALS_ELEMENT_HPP_
-#define _AQUARIUS_INTEGRALS_ELEMENT_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_MOLECULE_ELEMENT_HPP_
+#define _AQUARIUS_FRAMEWORKS_MOLECULE_ELEMENT_HPP_
 
-#include "util/global.hpp"
-
-#include "symmetry/symmetry.hpp"
+#include "frameworks/util.hpp"
 
 namespace aquarius
 {
-namespace input
-{
-class Molecule;
-}
-
-namespace integrals
+namespace molecule
 {
 
 class Element

@@ -1,11 +1,10 @@
 #ifndef _AQUARIUS_CC_1EDENSITY_HPP_
 #define _AQUARIUS_CC_1EDENSITY_HPP_
 
-#include "util/global.hpp"
-
-#include "operator/excitationoperator.hpp"
-#include "operator/deexcitationoperator.hpp"
-#include "operator/1eoperator.hpp"
+#include "../../frameworks/operator/1eoperator.hpp"
+#include "../../frameworks/operator/deexcitationoperator.hpp"
+#include "../../frameworks/operator/excitationoperator.hpp"
+#include "../../frameworks/util/global.hpp"
 
 namespace aquarius
 {

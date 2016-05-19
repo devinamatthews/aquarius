@@ -1,14 +1,13 @@
 #ifndef _AQUARIUS_CC_LAMBDACCSDTQ_1B_HPP_
 #define _AQUARIUS_CC_LAMBDACCSDTQ_1B_HPP_
 
-#include "util/global.hpp"
-
-#include "operator/st2eoperator.hpp"
-#include "operator/deexcitationoperator.hpp"
-#include "operator/excitationoperator.hpp"
-#include "convergence/diis.hpp"
-#include "util/iterative.hpp"
-#include "task/task.hpp"
+#include "../../frameworks/convergence/diis.hpp"
+#include "../../frameworks/operator/deexcitationoperator.hpp"
+#include "../../frameworks/operator/excitationoperator.hpp"
+#include "../../frameworks/operator/st2eoperator.hpp"
+#include "../../frameworks/task/task.hpp"
+#include "../../frameworks/util/global.hpp"
+#include "../../frameworks/util/iterative.hpp"
 
 namespace aquarius
 {

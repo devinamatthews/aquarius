@@ -1,9 +1,8 @@
 #ifndef _AQUARIUS_INTEGRALS_MOMENTS_HPP_
 #define _AQUARIUS_INTEGRALS_MOMENTS_HPP_
 
-#include "util/global.hpp"
-
-#include "shell.hpp"
+#include "../../frameworks/util/global.hpp"
+#include "../molecule/shell.hpp"
 
 namespace aquarius
 {
