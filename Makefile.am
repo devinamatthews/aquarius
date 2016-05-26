@@ -109,7 +109,9 @@ __top_builddir__bin_aquarius_SOURCES = \
 	
 VPATH += $(srcdir)
 
-AM_CPPFLAGS = -I$(srcdir)/src @ctf_INCLUDES@ @marray_INCLUDES@ @mpiwrap_INCLUDES@ @lawrap_INCLUDES@ @stlext_INCLUDES@
+AM_CPPFLAGS = -I$(srcdir)/src -I$(srcdir)/external/lawrap \
+	-I$(srcdir)/external/marray/include -I$(srcdir)/external/mpiwrap/include \
+	-I$(srcdir)/external/stl_exp/include @ctf_INCLUDES@
 __top_builddir__bin_aquarius_LDADD = @ctf_LIBS@
 	
 if HAVE_ELEMENTAL

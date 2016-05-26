@@ -1,12 +1,14 @@
-#ifndef _AQUARIUS_UTIL_MATH_EXT_H_
-#define _AQUARIUS_UTIL_MATH_EXT_H_
+#ifndef _AQUARIUS_FRAMEWORKS_UTIL_MATH_EXT_H_
+#define _AQUARIUS_FRAMEWORKS_UTIL_MATH_EXT_H_
 
 #include "marray.hpp"
-#include "../../frameworks/util/lawrap.hpp"
-#include "../../frameworks/util/stl_ext.hpp"
+#include "lawrap.hpp"
+#include "stl_ext.hpp"
 
 namespace aquarius
 {
+
+using namespace MArray;
 
 template <typename T>
 enable_if_t<is_integral<T>::value,T>
@@ -79,8 +81,8 @@ dfact(T n)
 }
 
 template <typename T>
-void transpose(size_t data_, size_t n, const T& alpha, const T* restrict A, size_t lda,
-                                       const T&  beta,       T* restrict B, size_t ldb)
+void transpose(size_t m, size_t n, const T& alpha, const T* restrict A, size_t lda,
+                                   const T&  beta,       T* restrict B, size_t ldb)
 {
     size_t i, j;
 
@@ -88,7 +90,7 @@ void transpose(size_t data_, size_t n, const T& alpha, const T* restrict A, size
     {
         if (beta == 0.0)
         {
-            for (i = 0;i < data_;i++)
+            for (i = 0;i < m;i++)
             {
                 for (j = 0;j < n;j++)
                 {
@@ -98,7 +100,7 @@ void transpose(size_t data_, size_t n, const T& alpha, const T* restrict A, size
         }
         else if (beta == 1.0)
         {
-            for (i = 0;i < data_;i++)
+            for (i = 0;i < m;i++)
             {
                 for (j = 0;j < n;j++)
                 {
@@ -108,7 +110,7 @@ void transpose(size_t data_, size_t n, const T& alpha, const T* restrict A, size
         }
         else
         {
-            for (i = 0;i < data_;i++)
+            for (i = 0;i < m;i++)
             {
                 for (j = 0;j < n;j++)
                 {
@@ -121,7 +123,7 @@ void transpose(size_t data_, size_t n, const T& alpha, const T* restrict A, size
     {
         if (beta == 0.0)
         {
-            for (i = 0;i < data_;i++)
+            for (i = 0;i < m;i++)
             {
                 for (j = 0;j < n;j++)
                 {
@@ -131,7 +133,7 @@ void transpose(size_t data_, size_t n, const T& alpha, const T* restrict A, size
         }
         else if (beta == 1.0)
         {
-            for (i = 0;i < data_;i++)
+            for (i = 0;i < m;i++)
             {
                 for (j = 0;j < n;j++)
                 {
@@ -141,7 +143,7 @@ void transpose(size_t data_, size_t n, const T& alpha, const T* restrict A, size
         }
         else
         {
-            for (i = 0;i < data_;i++)
+            for (i = 0;i < m;i++)
             {
                 for (j = 0;j < n;j++)
                 {
@@ -237,9 +239,9 @@ class vec3 : public marray<double, 1>
     public:
         vec3() : marray<double, 1>(3) {}
 
-        vec3(vec3&& other) : marray<double, 1>(other) {}
+        vec3(vec3&& other) : marray<double, 1>(move(other)) {}
 
-        vec3(const vec3& other) : marray<double, 1>(other, construct_copy) {}
+        vec3(const vec3& other) : marray<double, 1>(other) {}
 
         vec3(double pos[3]) : marray<double, 1>(3)
         {
@@ -418,9 +420,9 @@ class mat3x3 : public marray<double, 2>
     public:
         mat3x3() : marray<double, 2>(3,3) {}
 
-        mat3x3(mat3x3&& other) : marray<double, 2>(other) {}
+        mat3x3(mat3x3&& other) : marray<double, 2>(move(other)) {}
 
-        mat3x3(const mat3x3& other) : marray<double, 2>(other, construct_copy) {}
+        mat3x3(const mat3x3& other) : marray<double, 2>(other) {}
 
         mat3x3(double m00, double m01, double m02,
                double m10, double m11, double m12,

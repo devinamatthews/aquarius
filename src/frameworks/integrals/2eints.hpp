@@ -22,86 +22,100 @@ struct idx4_t
 namespace integrals
 {
 
-class OSERI;
+void transform(const matrix<double>& ai, const matrix<double>& bj,
+               const matrix<double>& ck, const matrix<double>& dl,
+               size_t nother, double* buf1, double* buf2);
+
+void transform(size_t nother,
+               const matrix<double>& ai, const matrix<double>& bj,
+               const matrix<double>& ck, const matrix<double>& dl,
+               double* buf1, double* buf2);
 
 class TwoElectronIntegrals
 {
-    protected:
-        const molecule::Shell& sa;
-        const molecule::Shell& sb;
-        const molecule::Shell& sc;
-        const molecule::Shell& sd;
-        const symmetry::PointGroup& group;
-        const molecule::Center& ca;
-        const molecule::Center& cb;
-        const molecule::Center& cc;
-        const molecule::Center& cd;
-        int la, lb, lc, ld;
-        int na, nb, nc, nd;
-        int ma, mb, mc, md;
-        int da, db, dc, dd;
-        int fca, fcb, fcc, fcd;
-        int fsa, fsb, fsc, fsd;
-        const vector<double>& za;
-        const vector<double>& zb;
-        const vector<double>& zc;
-        const vector<double>& zd;
-        vector<double> ints;
-        size_t num_processed;
-        double accuracy_;
-
     public:
-        TwoElectronIntegrals(const molecule::Shell& a, const molecule::Shell& b,
-                             const molecule::Shell& c, const molecule::Shell& d);
+        class ShellBlock
+        {
+            friend class TwoElectronIntegrals;
+
+            public:
+                const vector<double>& getIntegrals() const { return ints; }
+
+                size_t process(const Context& ctx, const vector<int>& idxa, const vector<int>& idxb,
+                               const vector<int>& idxc, const vector<int>& idxd,
+                               size_t nprocess, double* integrals, idx4_t* indices, double cutoff = -1);
+
+                Context::Ordering getOrdering() const { return ordering; }
+
+                double accuracy() const { return accuracy_; }
+
+                void accuracy(double val) { accuracy_ = val; }
+
+            protected:
+                const molecule::Shell& a;
+                const molecule::Shell& b;
+                const molecule::Shell& c;
+                const molecule::Shell& d;
+                Context::Ordering ordering;
+                vector<double> ints;
+                size_t num_processed = 0;
+                double accuracy_ = 1e-15;
+
+                ShellBlock(const molecule::Shell& a, const molecule::Shell& b,
+                           const molecule::Shell& c, const molecule::Shell& d,
+                           Context::Ordering ordering, vector<double>&& ints)
+                : a(a), b(b), c(c), d(d), ordering(ordering), ints(move(ints)) {}
+        };
 
         virtual ~TwoElectronIntegrals() {}
 
-        void run();
-
-        const vector<double>& getIntegrals() const { return ints; }
-
-        size_t process(const Context& ctx, const vector<int>& idxa, const vector<int>& idxb,
-                       const vector<int>& idxc, const vector<int>& idxd,
-                       size_t nprocess, double* integrals, idx4_t* indices, double cutoff = -1);
+        ShellBlock calculate(const molecule::Shell& a, const molecule::Shell& b,
+                             const molecule::Shell& c, const molecule::Shell& d);
 
         double accuracy() const { return accuracy_; }
 
         void accuracy(double val) { accuracy_ = val; }
 
     protected:
-        virtual void prim(const vec3& posa, int e, const vec3& posb, int f,
-                          const vec3& posc, int g, const vec3& posd, int h, double* integrals);
+        double accuracy_ = 1e-15;
 
-        virtual void prims(const vec3& posa, const vec3& posb, const vec3& posc, const vec3& posd,
+        virtual void prim(const vec3& posa, int la, double za,
+                          const vec3& posb, int lb, double zb,
+                          const vec3& posc, int lc, double zc,
+                          const vec3& posd, int ld, double zd,
+                          double* integrals);
+
+        virtual void prims(const vec3& posa, int la, const vector<double>& za,
+                           const vec3& posb, int lb, const vector<double>& zb,
+                           const vec3& posc, int lc, const vector<double>& zc,
+                           const vec3& posd, int ld, const vector<double>& zd,
                            double* integrals);
 
-        virtual void contr(const vec3& posa, const vec3& posb, const vec3& posc, const vec3& posd,
+        virtual void contr(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca,
+                           const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb,
+                           const vec3& posc, int lc, const vector<double>& zc, const matrix<double>& cc,
+                           const vec3& posd, int ld, const vector<double>& zd, const matrix<double>& cd,
                            double* integrals);
 
-        virtual void spher(const vec3& posa, const vec3& posb, const vec3& posc, const vec3& posd,
+        virtual void spher(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca, const matrix<double>& sa,
+                           const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb, const matrix<double>& sb,
+                           const vec3& posc, int lc, const vector<double>& zc, const matrix<double>& cc, const matrix<double>& sc,
+                           const vec3& posd, int ld, const vector<double>& zd, const matrix<double>& cd, const matrix<double>& sd,
                            double* integrals);
 
-        virtual void so(double* integrals);
-
-        void ao2so4(size_t nother, int r, int t, int st, double* aointegrals, double* sointegrals);
-
-        void cart2spher4r(size_t nother, double* buf1, double* buf2);
-
-        void cart2spher4l(size_t nother, double* buf1, double* buf2);
-
-        void prim2contr4r(size_t nother, double* buf1, double* buf2);
-
-        void prim2contr4l(size_t nother, double* buf1, double* buf2);
+        virtual void so(const molecule::Shell& a, const molecule::Shell& b,
+                        const molecule::Shell& c, const molecule::Shell& d,
+                        double* integrals);
 };
 
-class ERI : public Distributed
+class AOintegrals : public Distributed
 {
     public:
         const symmetry::PointGroup& group;
         deque<double> ints;
         deque<idx4_t> idxs;
 
-        ERI(const Arena& arena, const symmetry::PointGroup& group) : Distributed(arena), group(group) {}
+        AOintegrals(const Arena& arena, const symmetry::PointGroup& group) : Distributed(arena), group(group) {}
 };
 
 }

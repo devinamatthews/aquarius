@@ -1,5 +1,5 @@
-#ifndef _AQUARIUS_FRAMEWORKS_INTEGRALS_1EINTS_HPP_
-#define _AQUARIUS_FRAMEWORKS_INTEGRALS_1EINTS_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_INTEGRALS_MOMINTS_HPP_
+#define _AQUARIUS_FRAMEWORKS_INTEGRALS_MOMINTS_HPP_
 
 #include "frameworks/util.hpp"
 #include "frameworks/symmetry.hpp"
@@ -8,33 +8,27 @@
 namespace aquarius
 {
 
-struct idx2_t
+struct idx3_t
 {
-    uint16_t i = 0, j = 0;
+    uint16_t i = 0, j = 0, k = 0;
 };
 
 namespace integrals
 {
 
-void transform(size_t nother, const matrix<double>& xa, const matrix<double>& xb,
-               double* buf1, double* buf2);
-
-void transform(const matrix<double>& xa, const matrix<double>& xa, size_t nother,
-               double* buf1, double* buf2);
-
-class OneElectronIntegrals
+class MomentIntegrals
 {
     public:
         class ShellBlock
         {
-            friend class OneElectronIntegrals;
+            friend class MomentIntegrals;
 
             public:
                 virtual ~ShellBlock() {}
 
                 size_t process(const Context& ctx, const vector<int>& idxa,
                                const vector<int>& idxb, size_t nprocess,
-                               double* integrals, idx2_t* indices,
+                               double* integrals, idx3_t* indices,
                                double cutoff = -1);
 
                 Context::Ordering getOrdering() const { return ordering; }
@@ -44,37 +38,40 @@ class OneElectronIntegrals
             protected:
                 const molecule::Shell& a;
                 const molecule::Shell& b;
+                int L;
                 Context::Ordering ordering;
                 vector<double> ints;
                 size_t num_processed = 0;
 
                 ShellBlock(const molecule::Shell& a, const molecule::Shell& b,
-                           Context::Ordering ordering, vector<double>&& integrals)
-                : a(a), b(b), ordering(ordering), ints(move(integrals)) {}
+                           int L, Context::Ordering ordering, vector<double>&& integrals)
+                : a(a), b(b), L(L), ordering(ordering), ints(move(integrals)) {}
         };
 
-        virtual ~OneElectronIntegrals() {}
+        virtual ~MomentIntegrals() {}
 
-        ShellBlock calculate(const molecule::Shell& a, const molecule::Shell& b);
+        ShellBlock calculate(const molecule::Shell& a, const molecule::Shell& b,
+                             const vec3& origin, int L);
 
     protected:
         virtual void prim(const vec3& posa, int la, double za,
                           const vec3& posb, int lb, double zb,
-                          double* integrals);
+                          const vec3& posc, int lc, double* integrals);
 
         virtual void prims(const vec3& posa, int la, const vector<double>& za,
                            const vec3& posb, int lb, const vector<double>& zb,
-                           double* integrals);
+                           const vec3& posc, int lc, double* integrals);
 
         virtual void contr(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca,
                            const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb,
-                           double* integrals);
+                           const vec3& posc, int lc, double* integrals);
 
         virtual void spher(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca, const matrix<double>& sa,
                            const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb, const matrix<double>& sb,
-                           double* integrals);
+                           const vec3& posc, int lc, double* integrals);
 
-        virtual void so(const molecule::Shell& a, const molecule::Shell& b, double* integrals);
+        virtual void so(const molecule::Shell& a, const molecule::Shell& b,
+                        const vec3& posc, int lc, double* integrals);
 };
 
 }

@@ -21,6 +21,21 @@
 #define MARRAY_STRIDE_ALIGNMENT VECTOR_ALIGNMENT
 #endif
 
+extern "C"
+{
+
+void sgemm_(const char* transa, const char* transb,
+            const float* alpha, const float* A, const int* lda,
+                                const float* B, const int* ldb,
+            const float*  beta,       float* C, const int* ldc);
+
+void dgemm_(const char* transa, const char* transb,
+            const double* alpha, const double* A, const int* lda,
+                                 const double* B, const int* ldb,
+            const double*  beta,       double* C, const int* ldc);
+
+}
+
 namespace MArray
 {
     namespace detail
@@ -1337,6 +1352,59 @@ namespace MArray
                 return permute(make_array((unsigned)std::forward<Args>(args)...));
             }
 
+            template <typename U, unsigned newdim>
+            const_marray_view<T, newdim+1> lower(const std::array<U, newdim>& split) const
+            {
+                assert(newdim < ndim);
+
+                for (unsigned i = 0;i < newdim;i++)
+                {
+                    assert(split[i] <= ndim);
+                    if (i != 0) assert(split[i-1] <= split[i]);
+                }
+
+                std::array<idx_type, newdim> newlen;
+                std::array<stride_type, newdim> newstride;
+
+                for (unsigned i = 0;i <= newdim;i++)
+                {
+                    int begin = (i == 0 ? 0 : split[i-1]);
+                    int end = (i == newdim-1 ? ndim-1 : split[i]-1);
+                    if (begin > end) continue;
+
+                    if (stride_[begin] < stride_[end])
+                    {
+                        newlen[i] = len_[end];
+                        newstride[i] = stride_[begin];
+                        for (unsigned j = begin;j < end;j++)
+                        {
+                            assert(stride_[j+1] == stride_[j]*len_[j]);
+                            newlen[i] *= len_[j];
+                        }
+                    }
+                    else
+                    {
+                        newlen[i] = len_[end];
+                        newstride[i] = stride_[end];
+                        for (unsigned j = begin;j < end;j++)
+                        {
+                            assert(stride_[j] == stride_[j+1]*len_[j+1]);
+                            newlen[i] *= len_[j];
+                        }
+                    }
+                }
+
+                return {newlen, data_, newstride};
+            }
+
+            template <typename... Args>
+            detail::enable_if_t<detail::are_convertible<unsigned, Args...>::value,
+                                const_marray_view<T, sizeof...(Args)+1>>
+            lower(Args&&... args) const
+            {
+                return lower(make_array((unsigned)std::forward<Args>(args)...));
+            }
+
             template <unsigned ndim_=ndim>
             typename std::enable_if<ndim_==1, const_reference>::type
             front() const
@@ -1614,6 +1682,22 @@ namespace MArray
             permute(Args&&... args)
             {
                 return base::permute(std::forward<Args>(args)...);
+            }
+
+            using base::lower;
+
+            template <typename U, unsigned newdim>
+            marray_view<T, newdim+1> lower(const std::array<U, newdim>& split)
+            {
+                return base::lower(split);
+            }
+
+            template <typename... Args>
+            detail::enable_if_t<detail::are_convertible<unsigned, Args...>::value,
+                                marray_view<T, sizeof...(Args)+1>>
+            lower(Args&&... args)
+            {
+                return base::lower(std::forward<Args>(args)...);
             }
 
             void rotate_dim(unsigned dim, stride_type shift)
@@ -2125,6 +2209,9 @@ namespace MArray
             using base::permute;
             using parent::permute;
 
+            using base::lower;
+            using parent::lower;
+
             using parent::rotate_dim;
             using parent::rotate;
 
@@ -2218,27 +2305,63 @@ namespace MArray
         return const_cast<matrix_view<T>&>(m)^transpose::T;
     }
 
-    template <typename T>
-    void gemm(const T& alpha, const matrix_view<T>& a,
-                              const matrix_view<T>& b,
-              const T&  beta,       matrix_view<T>& c)
+    void gemm(float alpha, const float* a, int lda
+                           const float* b, int ldb,
+              float  beta,       float* c, int ldc)
     {
-        //TODO
+        sgemm_("N", "N", &alpha, a, &lda,
+                                 b, &ldb,
+                          &beta, c, &ldc);
+    }
+
+    void gemm(double alpha, const double* a, int lda
+                            const double* b, int ldb,
+              double  beta,       double* c, int ldc)
+    {
+        dgemm_("N", "N", &alpha, a, &lda,
+                                 b, &ldb,
+                          &beta, c, &ldc);
     }
 
     template <typename T>
-    void gemm(const T& alpha, const matrix_view<T>&  a,
-                              const matrix_view<T>&  b,
-              const T&  beta,       matrix_view<T>&& c)
+    void gemm(const T& alpha, const const_matrix_view<T>& a,
+                              const const_matrix_view<T>& b,
+              const T&  beta,             matrix_view<T>& c)
+    {
+        assert(a.stride(0) == 1 || a.stride(1) == 1);
+        assert(b.stride(0) == 1 || b.stride(1) == 1);
+        assert(c.stride(0) == 1 || c.stride(1) == 1);
+
+        bool transc =  c.stride(1) == 1;
+        bool transa = (a.stride(1) == 1) != transc;
+        bool transb = (b.stride(1) == 1) != transc;
+
+        const_matrix_view<T> at = (transa ? a^T : a);
+        const_matrix_view<T> bt = (transb ? b^T : b);
+              matrix_view<T> ct = (transc ? c^T : c);
+
+        assert(at.length(0) == ct.length(0));
+        assert(bt.length(1) == ct.length(1));
+        assert(at.length(1) == bt.length(0));
+
+        gemm(alpha, at.data(), at.stride(1),
+                    bt.data(), bt.stride(1),
+              beta, ct.data(), ct.stride(1));
+    }
+
+    template <typename T>
+    void gemm(const T& alpha, const const_matrix_view<T>&  a,
+                              const const_matrix_view<T>&  b,
+              const T&  beta,             matrix_view<T>&& c)
     {
         gemm(alpha, a, b, beta, c);
     }
 
     template <typename U>
     void gemm(char transa, char transb,
-              const U& alpha, const matrix_view<U>& a,
-                              const matrix_view<U>& b,
-              const U&  beta,       matrix_view<U>& c)
+              const U& alpha, const const_matrix_view<U>& a,
+                              const const_matrix_view<U>& b,
+              const U&  beta,             matrix_view<U>& c)
     {
         using transpose::T;
 

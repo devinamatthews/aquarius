@@ -9,9 +9,6 @@
    libraries. */
 #undef F77_DUMMY_MAIN
 
-/* Type of FORTRAN name-mangling. */
-#undef F77_NAME
-
 /* Define if F77 and FC dummy `main' functions are identical. */
 #undef FC_DUMMY_MAIN_EQ_F77
 
@@ -33,14 +30,8 @@
 /* Define if you have LAPACK library. */
 #undef HAVE_LAPACK
 
-/* Define if LAWrap is to be used. */
-#undef HAVE_LAWRAP
-
 /* Define if libint2 is to be used. */
 #undef HAVE_LIBINT2
-
-/* Define if MArray is to be used. */
-#undef HAVE_MARRAY
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -48,17 +39,11 @@
 /* Define if you have the MPI library. */
 #undef HAVE_MPI
 
-/* Define if MPIWrap is to be used. */
-#undef HAVE_MPIWRAP
-
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
-
-/* Define if STLExt is to be used. */
-#undef HAVE_STLEXT
 
 /* Define to 1 if you have the <strings.h> header file. */
 #undef HAVE_STRINGS_H
@@ -74,12 +59,6 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
-
-/* FORTRAN name-mangling scheme. */
-#undef LOWER_NO_UNDERSCORE
-
-/* FORTRAN name-mangling scheme. */
-#undef LOWER_UNDERSCORE
 
 /* Name of package */
 #undef PACKAGE
@@ -107,12 +86,6 @@
 
 /* The top source directory. */
 #undef TOPDIR
-
-/* FORTRAN name-mangling scheme. */
-#undef UPPER_NO_UNDERSCORE
-
-/* FORTRAN name-mangling scheme. */
-#undef UPPER_UNDERSCORE
 
 /* Version number of package */
 #undef VERSION

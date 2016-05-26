@@ -1,4 +1,8 @@
-#include "util/global.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/molecule.hpp"
+#include "frameworks/integrals.hpp"
+
+using namespace aquarius::molecule;
 
 namespace aquarius
 {
@@ -125,7 +129,7 @@ class HGP
         row<double> t2fac(nabcd);
         row<double>  gfac(nabcd);
 
-        Fm fm;
+        FmGamma fm;
         vector<double> ssssm(vmax+1);
 
         for (int e = 0, i = 0;e < na;e++)

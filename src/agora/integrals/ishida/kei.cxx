@@ -1,12 +1,13 @@
-#include "../../frameworks/integrals/kei.hpp"
+#include "kei.hpp"
 
 namespace aquarius
 {
 namespace integrals
 {
 
-void IshidaKEI::prim(const vec3& posa, int e,
-                     const vec3& posb, int f, double* restrict integrals)
+void IshidaKEI::prim(const vec3& posa, int la, double za,
+                     const vec3& posb, int lb, double zb,
+                     double* integrals)
 {
     constexpr double PI_32 = 5.5683279968317078452848179821188; // pi^(3/2)
 
@@ -15,10 +16,10 @@ void IshidaKEI::prim(const vec3& posa, int e,
     marray<double,3> stable(3, lb+2, la+2);
     marray<double,3> ttable(3, lb+1, la+1);
 
-    double zp = za[e] + zb[f];
-    double A0 = PI_32*exp(-za[e]*zb[f]*norm2(posa-posb)/zp)/pow(zp,1.5);
+    double zp = za + zb;
+    double A0 = PI_32*exp(-za*zb*norm2(posa-posb)/zp)/pow(zp,1.5);
 
-    vec3 posp = (posa*za[e]+posb*zb[f])/zp;
+    vec3 posp = (posa*za+posb*zb)/zp;
     vec3 afac = posp-posa;
     vec3 bfac = posp-posb;
     double gfac = 0.5/zp;
@@ -54,28 +55,28 @@ void IshidaKEI::prim(const vec3& posa, int e,
             }
         }
 
-        ttable[xyz][0][0] = 2*za[e]*zb[f]*stable[xyz][1][1];
+        ttable[xyz][0][0] = 2*za*zb*stable[xyz][1][1];
 
         for (int b = 1;b <= lb;b++)
         {
-            ttable[xyz][b][0] = 2*za[e]*zb[f]*stable[xyz][b+1][1] -
-                                  za[e]*    b*stable[xyz][b-1][1];
+            ttable[xyz][b][0] = 2*za*zb*stable[xyz][b+1][1] -
+                                  za* b*stable[xyz][b-1][1];
         }
 
         for (int a = 1;a <= la;a++)
         {
-            ttable[xyz][0][a] = 2*za[e]*zb[f]*stable[xyz][1][a+1] -
-                                      a*zb[f]*stable[xyz][1][a-1];
+            ttable[xyz][0][a] = 2*za*zb*stable[xyz][1][a+1] -
+                                   a*zb*stable[xyz][1][a-1];
         }
 
         for (int a = 1;a <= la;a++)
         {
             for (int b = 1;b <= lb;b++)
             {
-                ttable[xyz][b][a] = 2*za[e]*zb[f]*stable[xyz][b+1][a+1] -
-                                          a*zb[f]*stable[xyz][b+1][a-1] -
-                                      za[e]*    b*stable[xyz][b-1][a+1] +
-                                          a*    b*stable[xyz][b-1][a-1]/2;
+                ttable[xyz][b][a] = 2*za*zb*stable[xyz][b+1][a+1] -
+                                       a*zb*stable[xyz][b+1][a-1] -
+                                      za* b*stable[xyz][b-1][a+1] +
+                                       a* b*stable[xyz][b-1][a-1]/2;
             }
         }
     }

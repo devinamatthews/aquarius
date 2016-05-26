@@ -1,8 +1,10 @@
-#ifndef _AQUARIUS_INTEGRALS_NAI_HPP_
-#define _AQUARIUS_INTEGRALS_NAI_HPP_
+#ifndef _AQUARIUS_AGORA_INTEGRALS_NAI_HPP_
+#define _AQUARIUS_AGORA_INTEGRALS_NAI_HPP_
 
-#include "../../frameworks/integrals/1eints.hpp"
-#include "../../frameworks/util/global.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/integrals.hpp"
+#include "frameworks/molecule.hpp"
+#include "agora/integrals/integrals.hpp"
 
 namespace aquarius
 {
@@ -14,11 +16,9 @@ namespace integrals
  *  K. Ishida, J. Chem. Phys. 95, 5198-205 (1991)
  *  Ishida, K., J. Chem. Phys., 98, 2176 (1993)
  */
-class IshidaNAI : public OneElectronIntegrals
+class IshidaNAI : public NAI
 {
     protected:
-        vector<Center> centers;
-
         void filltable(double afac, double bfac, double cfac, double sfac, marray<double,3>&& gtable)
         {
             filltable(afac, bfac, cfac, sfac, gtable);
@@ -26,13 +26,12 @@ class IshidaNAI : public OneElectronIntegrals
 
         void filltable(double afac, double bfac, double cfac, double sfac, marray<double,3>& gtable);
 
-    public:
-        IshidaNAI(const Shell& a, const Shell& b, const vector<Center>& centers)
-        : OneElectronIntegrals(a, b), centers(centers) {}
-
-        void prim(const vec3& posa, int e,
-                  const vec3& posb, int f, double* integrals);
+        void prim(const vec3& posa, int la, double za,
+                  const vec3& posb, int lb, double zb,
+                  const vec3& posc, double charge, double* integrals) override;
 };
+
+REGISTER_VENDOR(Integrals, NAI, IshidaNAI);
 
 }
 }

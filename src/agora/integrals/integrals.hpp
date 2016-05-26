@@ -9,20 +9,44 @@ namespace aquarius
 namespace integrals
 {
 
-class Integrals
-{
-    public:
-        enum IntegralType {OVI, KEI, NAI, ERI};
+class OVI : OneElectronIntegrals { void check() const {} };
+class KEI : OneElectronIntegrals { void check() const {} };
+class NAI :     NuclearIntegrals { void check() const {} };
+class ERI : TwoElectronIntegrals { void check() const {} };
+class MOM :      MomentIntegrals { void check() const {} };
 
-        template <IntegralType type> class Vendor;
+class Integrals : public agora::Marketplace<Integrals>
+{
+    protected:
+        OVI& getBestVendor(ptr_vector<OVI>& matches)
+        {
+            return matches[0];
+        }
+
+        KEI& getBestVendor(ptr_vector<KEI>& matches)
+        {
+            return matches[0];
+        }
+
+        NAI& getBestVendor(ptr_vector<NAI>& matches)
+        {
+            return matches[0];
+        }
+
+        ERI& getBestVendor(ptr_vector<ERI>& matches)
+        {
+            return matches[0];
+        }
+
+        MOM& getBestVendor(ptr_vector<MOM>& matches)
+        {
+            return matches[0];
+        }
 };
 
-template <>
-class Integrals::Vendor<Integrals::OVI> : OneElectronIntegrals {};
+REGISTER_MARKETPLACE(Integrals, "integrals");
 
 }
 }
-
-REGISTER_MARKETPLACE(aquarius::integrals::Integrals, "integrals");
 
 #endif

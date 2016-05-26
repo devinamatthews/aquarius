@@ -1,5 +1,5 @@
-#ifndef _AQUARIUS_STL_EXT_HPP_
-#define _AQUARIUS_STL_EXT_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_UTIL_STL_EXT_HPP_
+#define _AQUARIUS_FRAMEWORKS_UTIL_STL_EXT_HPP_
 
 #include <cassert>
 #include <cctype>
@@ -30,6 +30,7 @@
 #include <sstream>
 #include <stack>
 #include <tuple>
+#include <typeinfo>
 #include <utility>
 #include <regex>
 #include <stdexcept>
@@ -46,15 +47,6 @@
 #include "type_traits.hpp"
 #include "vector.hpp"
 #include "zip.hpp"
-
-#define INSTANTIATE_SPECIALIZATIONS(name) \
-template class name<double>;
-
-#define INSTANTIATE_SPECIALIZATIONS_2(name,extra1) \
-template class name<double,extra1>;
-
-#define INSTANTIATE_SPECIALIZATIONS_3(name,extra1,extra2) \
-template class name<double,extra1,extra2>;
 
 #define CONCAT(...) __VA_ARGS__
 
@@ -118,6 +110,8 @@ namespace aquarius
 
     using std::runtime_error;
     using std::logic_error;
+    using std::bad_cast;
+    using std::bad_alloc;
 
     using std::move;
     using std::forward;

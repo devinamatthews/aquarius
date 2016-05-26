@@ -9,13 +9,6 @@
 
 #include "config.h"
 
-#include "marray.hpp"
-
-namespace aquarius
-{
-using namespace MArray;
-}
-
 #include "util/stl_ext.hpp"
 #include "util/math_ext.hpp"
 #include "util/distributed.hpp"

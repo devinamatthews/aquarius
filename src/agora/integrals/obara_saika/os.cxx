@@ -1,24 +1,24 @@
-#include "fmgamma.hpp"
-#include "../../frameworks/integrals/os.hpp"
-
-#include "../../frameworks/integrals/fmgamma.hpp"
+#include "os.hpp"
 
 namespace aquarius
 {
 namespace integrals
 {
 
-void OSERI::prim(const vec3& posa, int e, const vec3& posb, int f,
-                 const vec3& posc, int g, const vec3& posd, int h, double* restrict integrals)
+void OSERI::prim(const vec3& posa, int la, double za,
+                 const vec3& posb, int lb, double zb,
+                 const vec3& posc, int lc, double zc,
+                 const vec3& posd, int ld, double zd,
+                 double* restrict integrals)
 {
     constexpr double TWO_PI_52 = 34.98683665524972497; // 2*pi^(5/2)
     int vmax = la+lb+lc+ld;
 
-    double zp = za[e]+zb[f];
-    double zq = zc[g]+zd[h];
+    double zp = za+zb;
+    double zq = zc+zd;
 
-    double A0 = TWO_PI_52*exp(-za[e]*zb[f]*norm2(posa-posb)/zp
-    		                  -zc[g]*zd[h]*norm2(posc-posd)/zq)/(zp*zq*sqrt(zp+zq));
+    double A0 = TWO_PI_52*exp(-za*zb*norm2(posa-posb)/zp
+    		                  -zc*zd*norm2(posc-posd)/zq)/(zp*zq*sqrt(zp+zq));
 
     /*
     if (fabs(A0) < 1e-14)
@@ -29,9 +29,9 @@ void OSERI::prim(const vec3& posa, int e, const vec3& posb, int f,
     }
     */
 
-    vec3 posp = (posa*za[e] + posb*zb[f])/zp;
-    vec3 posq = (posc*zc[g] + posd*zd[h])/zq;
-    vec3 posw = (posp*zp    + posq*zq   )/(zp+zq);
+    vec3 posp = (posa*za + posb*zb)/zp;
+    vec3 posq = (posc*zc + posd*zd)/zq;
+    vec3 posw = (posp*zp + posq*zq)/(zp+zq);
 
     vec3 afac = posp - posa;
     vec3 bfac = posp - posb;
@@ -50,7 +50,7 @@ void OSERI::prim(const vec3& posa, int e, const vec3& posb, int f,
 
     marray<double,5> xtable(ld+1, lc+1, lb+1, la+1, vmax+1);
 
-    Fm fm;
+    FmGamma fm;
     fm(Z, vmax, xtable[0][0][0][0].data());
     for (int v = 0;v <= vmax;v++)
     {

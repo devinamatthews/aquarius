@@ -31,50 +31,41 @@ namespace detail
         virtual std::unique_ptr<any_container_base> clone() const = 0;
     };
 
+    template <typename T, typename=void>
+    struct any_container;
+
     template <typename T>
-    struct any_container : any_container_base
+    struct any_container<T, enable_if_t<std::is_scalar<T>::value>> : any_container_base
     {
-        T* ptr;
+        T data;
 
-        any_container(T* value)
-        : any_container_base(typeid(T)), ptr(value) {}
-
-        ~any_container()
-        {
-            if (ptr) delete ptr;
-        }
+        any_container(T obj)
+        : any_container_base(typeid(T)), data(obj) {}
 
         std::unique_ptr<any_container_base> clone() const
         {
-            return new any_container(ptr);
+            return new any_container(data);
         }
     };
 
     template <typename T>
-    struct any_container_with_data : any_container<T>
+    struct any_container<T, enable_if_t<!std::is_scalar<T>::value>> : T, any_container_base
     {
-        T data;
+        any_container(const T& obj)
+        : any_container_base(typeid(T)), T(obj) {}
 
-        template <typename... Args>
-        any_container_with_data(Args&&... args)
-        : any_container(&data), data(std::forward<Args>(args)...) {}
-
-        ~any_container_with_data()
-        {
-            this->ptr = nullptr;
-        }
+        any_container(T&& obj)
+        : any_container_base(typeid(T)), T(std::move(obj)) {}
 
         std::unique_ptr<any_container_base> clone() const
         {
-            return new any_container_with_data(data);
+            return new any_container(*this);
         }
     };
 }
 
 class any
 {
-    template <typename T, typename... Args> friend any make_any(Args&&... args);
-
     public:
         any() {}
 
@@ -83,24 +74,13 @@ class any
 
         any(any&& other) = default;
 
-        template <typename T>
-        any(T* value)
-        : data_(new detail::any_container<decay_t<T>>(value)) {}
-
         template <typename T, typename=enable_if_t<!is_same<decay_t<T>,any>::value>>
         any(T&& value)
-        : data_(new detail::any_container_with_data<decay_t<T>>(std::forward<T>(value))) {}
+        : data_(new detail::any_container<decay_t<T>>(std::forward<T>(value))) {}
 
         any& operator=(any other)
         {
             other.swap(*this);
-            return *this;
-        }
-
-        template <typename T>
-        any& operator=(T* value)
-        {
-            any(value).swap(*this);
             return *this;
         }
 
@@ -129,14 +109,21 @@ class any
 
         const std::type_info& type() const
         {
-            return data_->type;
+            return (data_ ? data_->type : typeid(void));
         }
 
         template <typename T>
-        T& get()
+        enable_if_t<std::is_scalar<T>::value,T&> get()
         {
-            if (typeid(T) != type()) throw std::bad_cast();
-            return *static_cast<detail::any_container<T>&>(*data_).ptr;
+            if (typeid(T) != type() || !data_) throw std::bad_cast();
+            return static_cast<detail::any_container<T>&>(*data_).data;
+        }
+
+        template <typename T>
+        enable_if_t<!std::is_scalar<T>::value,T&> get()
+        {
+            if (!data_) throw std::bad_cast();
+            return dynamic_cast<T&>(*data_);
         }
 
         template <typename T>
@@ -157,9 +144,7 @@ class any
 template <typename T, typename... Args>
 any make_any(Args&&... args)
 {
-    any a;
-    a.data_ = new detail::any_container_with_data<T>(std::forward<Args>(args)...);
-    return a;
+    return any(T(std::forward<Args>(args)...));
 }
 
 }

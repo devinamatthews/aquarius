@@ -621,10 +621,12 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
+enable_option_checking=no
 ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+subdirs
 HAVE_LIBINT2_FALSE
 HAVE_LIBINT2_TRUE
 libint2_LIBS
@@ -639,22 +641,6 @@ HAVE_CTF_FALSE
 HAVE_CTF_TRUE
 ctf_LIBS
 ctf_INCLUDES
-HAVE_STLEXT_FALSE
-HAVE_STLEXT_TRUE
-stlext_LIBS
-stlext_INCLUDES
-HAVE_MPIWRAP_FALSE
-HAVE_MPIWRAP_TRUE
-mpiwrap_LIBS
-mpiwrap_INCLUDES
-HAVE_MARRAY_FALSE
-HAVE_MARRAY_TRUE
-marray_LIBS
-marray_INCLUDES
-HAVE_LAWRAP_FALSE
-HAVE_LAWRAP_TRUE
-lawrap_LIBS
-lawrap_INCLUDES
 EGREP
 GREP
 CXXCPP
@@ -776,10 +762,6 @@ enable_dependency_tracking
 enable_openmp
 with_blas
 with_lapack
-with_lawrap
-with_marray
-with_mpiwrap
-with_stlext
 with_ctf
 with_ctf_libs
 with_elemental
@@ -803,7 +785,7 @@ CCC
 F77
 FFLAGS
 CXXCPP'
-
+ac_subdirs_all='external/lawrap external/marray external/mpiwrap external/stl_ext'
 
 # Initialize some variables set by options.
 ac_init_help=
@@ -1437,10 +1419,6 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-blas=<lib>       use BLAS library <lib>
   --with-lapack=<lib>     use LAPACK library <lib>
-  --with-lawrap=<dir>     Specify the location of LAWrap.
-  --with-marray=<dir>     Specify the location of MArray.
-  --with-mpiwrap=<dir>    Specify the location of MPIWrap.
-  --with-stlext=<dir>     Specify the location of STLExt.
   --with-ctf=<dir>        Specify the location of CTF.
   --with-ctf-libs=<...>   Specify the libraries to link for CTF.
   --with-elemental=<dir>  Specify the location of Elemental.
@@ -7570,61 +7548,8 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-
-$as_echo "#define LOWER_NO_UNDERSCORE 1" >>confdefs.h
-
-
-$as_echo "#define LOWER_UNDERSCORE 2" >>confdefs.h
-
-
-$as_echo "#define UPPER_NO_UNDERSCORE 3" >>confdefs.h
-
-
-$as_echo "#define UPPER_UNDERSCORE 4" >>confdefs.h
-
-
-ac_ext=f
-ac_compile='$F77 -c $FFLAGS conftest.$ac_ext >&5'
-ac_link='$F77 -o conftest$ac_exeext $FFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_f77_compiler_gnu
-case $ac_cv_f77_mangling in
-  upper*) ac_val="SGEMM" ;;
-  lower*) ac_val="sgemm" ;;
-  *)      ac_val="unknown" ;;
-esac
-case $ac_cv_f77_mangling in *," underscore"*) ac_val="$ac_val"_ ;; esac
-
-sgemm="$ac_val"
-
-ac_ext=cpp
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
-
-if test $sgemm = sgemm; then :
-
-$as_echo "#define F77_NAME LOWER_NO_UNDERSCORE" >>confdefs.h
-
-fi
-if test $sgemm = sgemm_; then :
-
-$as_echo "#define F77_NAME LOWER_UNDERSCORE" >>confdefs.h
-
-fi
-if test $sgemm = SGEMM; then :
-
-$as_echo "#define F77_NAME UPPER_NO_UNDERSCORE" >>confdefs.h
-
-fi
-if test $sgemm = SGEMM_; then :
-
-$as_echo "#define F77_NAME UPPER_UNDERSCORE" >>confdefs.h
-
-fi
-
 #
-# Configure LAWrap
+# Configure CTF
 #
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
@@ -8031,464 +7956,6 @@ done
     download=no
     downloaded=no
 
-# Check whether --with-lawrap was given.
-if test "${with_lawrap+set}" = set; then :
-  withval=$with_lawrap;
-else
-  download=yes
-fi
-
-
-    pkg_dir=$with_lawrap
-    if test x"$pkg_dir" = xno; then
-        as_fn_error $? "LAWrap is a required package." "$LINENO" 5
-        include_package=no
-    elif test x"$download" = xyes && test x"https://github.com/devinamatthews/lawrap" = x; then
-        include_package=no
-    else
-        if test x"$download" = xyes && test x"https://github.com/devinamatthews/lawrap" != x; then
-            pkg_dir=src/external/lawrap
-            if ! test -d $pkg_dir; then
-                { $as_echo "$as_me:${as_lineno-$LINENO}: downloading LAWrap from external Git repository..." >&5
-$as_echo "$as_me: downloading LAWrap from external Git repository..." >&6;}
-                if ! git clone -q https://github.com/devinamatthews/lawrap $pkg_dir; then
-                    as_fn_error $? "could not download LAWrap repository" "$LINENO" 5
-                fi
-            fi
-            if test -f $pkg_dir/configure; then
-                { $as_echo "$as_me:${as_lineno-$LINENO}: configuring LAWrap in $pkg_dir" >&5
-$as_echo "$as_me: configuring LAWrap in $pkg_dir" >&6;}
-                ( cd $pkg_dir && ./configure )
-                { $as_echo "$as_me:${as_lineno-$LINENO}: done configuring LAWrap" >&5
-$as_echo "$as_me: done configuring LAWrap" >&6;}
-            fi
-            downloaded=yes
-        fi
-
-            include_flags=
-            for dir_path in .; do
-                as_fn_append include_flags " -I$pkg_dir/$dir_path"
-            done
-            for header in blas.h lapack.h; do
-                  ac_save_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="$CPPFLAGS $include_flags"
-  as_ac_Header=`$as_echo "ac_cv_header_$header" | $as_tr_sh`
-ac_fn_cxx_check_header_compile "$LINENO" "$header" "$as_ac_Header" "$ac_includes_default
-"
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
-
-else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "Could not find $header.
-See \`config.log' for more details" "$LINENO" 5; }
-fi
-
-
-  CPPFLAGS="$ac_save_CPPFLAGS"
-
-            done
-            lawrap_INCLUDES=$include_flags
-
-
-        if test x"" != x; then
-            lib_flags=
-            for dir_path in lib lib64; do
-                as_fn_append lib_flags " -L$pkg_dir/$dir_path"
-            done
-            as_fn_append lib_flags " $libraries"
-            if test x"$downloaded" != xyes; then
-                for symbol in ; do
-                      ac_save_LIBS="$LIBS"
-  LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
-  as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
-ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
-if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
-
-else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "Could not find $symbol in $libraries.
-See \`config.log' for more details" "$LINENO" 5; }
-fi
-
-  LIBS="$ac_save_LIBS"
-
-                done
-            fi
-            lawrap_LIBS=$lib_flags
-
-        fi
-        include_package=yes
-    fi
-    if test x"$include_package" = xyes; then :
-
-$as_echo "#define HAVE_LAWRAP 1" >>confdefs.h
-
-fi
-     if test x"$include_package" = xyes; then
-  HAVE_LAWRAP_TRUE=
-  HAVE_LAWRAP_FALSE='#'
-else
-  HAVE_LAWRAP_TRUE='#'
-  HAVE_LAWRAP_FALSE=
-fi
-
-
-
-#
-# Configure MArray
-#
-
-    download=no
-    downloaded=no
-
-# Check whether --with-marray was given.
-if test "${with_marray+set}" = set; then :
-  withval=$with_marray;
-else
-  download=yes
-fi
-
-
-    pkg_dir=$with_marray
-    if test x"$pkg_dir" = xno; then
-        as_fn_error $? "MArray is a required package." "$LINENO" 5
-        include_package=no
-    elif test x"$download" = xyes && test x"https://github.com/devinamatthews/marray" = x; then
-        include_package=no
-    else
-        if test x"$download" = xyes && test x"https://github.com/devinamatthews/marray" != x; then
-            pkg_dir=src/external/marray
-            if ! test -d $pkg_dir; then
-                { $as_echo "$as_me:${as_lineno-$LINENO}: downloading MArray from external Git repository..." >&5
-$as_echo "$as_me: downloading MArray from external Git repository..." >&6;}
-                if ! git clone -q https://github.com/devinamatthews/marray $pkg_dir; then
-                    as_fn_error $? "could not download MArray repository" "$LINENO" 5
-                fi
-            fi
-            if test -f $pkg_dir/configure; then
-                { $as_echo "$as_me:${as_lineno-$LINENO}: configuring MArray in $pkg_dir" >&5
-$as_echo "$as_me: configuring MArray in $pkg_dir" >&6;}
-                ( cd $pkg_dir && ./configure )
-                { $as_echo "$as_me:${as_lineno-$LINENO}: done configuring MArray" >&5
-$as_echo "$as_me: done configuring MArray" >&6;}
-            fi
-            downloaded=yes
-        fi
-
-            include_flags=
-            for dir_path in .; do
-                as_fn_append include_flags " -I$pkg_dir/$dir_path"
-            done
-            for header in marray.hpp; do
-                  ac_save_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="$CPPFLAGS $include_flags"
-  as_ac_Header=`$as_echo "ac_cv_header_$header" | $as_tr_sh`
-ac_fn_cxx_check_header_compile "$LINENO" "$header" "$as_ac_Header" "$ac_includes_default
-"
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
-
-else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "Could not find $header.
-See \`config.log' for more details" "$LINENO" 5; }
-fi
-
-
-  CPPFLAGS="$ac_save_CPPFLAGS"
-
-            done
-            marray_INCLUDES=$include_flags
-
-
-        if test x"" != x; then
-            lib_flags=
-            for dir_path in lib lib64; do
-                as_fn_append lib_flags " -L$pkg_dir/$dir_path"
-            done
-            as_fn_append lib_flags " $libraries"
-            if test x"$downloaded" != xyes; then
-                for symbol in ; do
-                      ac_save_LIBS="$LIBS"
-  LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
-  as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
-ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
-if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
-
-else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "Could not find $symbol in $libraries.
-See \`config.log' for more details" "$LINENO" 5; }
-fi
-
-  LIBS="$ac_save_LIBS"
-
-                done
-            fi
-            marray_LIBS=$lib_flags
-
-        fi
-        include_package=yes
-    fi
-    if test x"$include_package" = xyes; then :
-
-$as_echo "#define HAVE_MARRAY 1" >>confdefs.h
-
-fi
-     if test x"$include_package" = xyes; then
-  HAVE_MARRAY_TRUE=
-  HAVE_MARRAY_FALSE='#'
-else
-  HAVE_MARRAY_TRUE='#'
-  HAVE_MARRAY_FALSE=
-fi
-
-
-
-#
-# Configure MPIWrap
-#
-
-    download=no
-    downloaded=no
-
-# Check whether --with-mpiwrap was given.
-if test "${with_mpiwrap+set}" = set; then :
-  withval=$with_mpiwrap;
-else
-  download=yes
-fi
-
-
-    pkg_dir=$with_mpiwrap
-    if test x"$pkg_dir" = xno; then
-        as_fn_error $? "MPIWrap is a required package." "$LINENO" 5
-        include_package=no
-    elif test x"$download" = xyes && test x"https://github.com/devinamatthews/mpiwrap" = x; then
-        include_package=no
-    else
-        if test x"$download" = xyes && test x"https://github.com/devinamatthews/mpiwrap" != x; then
-            pkg_dir=src/external/mpiwrap
-            if ! test -d $pkg_dir; then
-                { $as_echo "$as_me:${as_lineno-$LINENO}: downloading MPIWrap from external Git repository..." >&5
-$as_echo "$as_me: downloading MPIWrap from external Git repository..." >&6;}
-                if ! git clone -q https://github.com/devinamatthews/mpiwrap $pkg_dir; then
-                    as_fn_error $? "could not download MPIWrap repository" "$LINENO" 5
-                fi
-            fi
-            if test -f $pkg_dir/configure; then
-                { $as_echo "$as_me:${as_lineno-$LINENO}: configuring MPIWrap in $pkg_dir" >&5
-$as_echo "$as_me: configuring MPIWrap in $pkg_dir" >&6;}
-                ( cd $pkg_dir && ./configure )
-                { $as_echo "$as_me:${as_lineno-$LINENO}: done configuring MPIWrap" >&5
-$as_echo "$as_me: done configuring MPIWrap" >&6;}
-            fi
-            downloaded=yes
-        fi
-
-            include_flags=
-            for dir_path in include; do
-                as_fn_append include_flags " -I$pkg_dir/$dir_path"
-            done
-            for header in mpiwrap.hpp; do
-                  ac_save_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="$CPPFLAGS $include_flags"
-  as_ac_Header=`$as_echo "ac_cv_header_$header" | $as_tr_sh`
-ac_fn_cxx_check_header_compile "$LINENO" "$header" "$as_ac_Header" "$ac_includes_default
-"
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
-
-else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "Could not find $header.
-See \`config.log' for more details" "$LINENO" 5; }
-fi
-
-
-  CPPFLAGS="$ac_save_CPPFLAGS"
-
-            done
-            mpiwrap_INCLUDES=$include_flags
-
-
-        if test x"" != x; then
-            lib_flags=
-            for dir_path in lib lib64; do
-                as_fn_append lib_flags " -L$pkg_dir/$dir_path"
-            done
-            as_fn_append lib_flags " $libraries"
-            if test x"$downloaded" != xyes; then
-                for symbol in ; do
-                      ac_save_LIBS="$LIBS"
-  LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
-  as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
-ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
-if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
-
-else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "Could not find $symbol in $libraries.
-See \`config.log' for more details" "$LINENO" 5; }
-fi
-
-  LIBS="$ac_save_LIBS"
-
-                done
-            fi
-            mpiwrap_LIBS=$lib_flags
-
-        fi
-        include_package=yes
-    fi
-    if test x"$include_package" = xyes; then :
-
-$as_echo "#define HAVE_MPIWRAP 1" >>confdefs.h
-
-fi
-     if test x"$include_package" = xyes; then
-  HAVE_MPIWRAP_TRUE=
-  HAVE_MPIWRAP_FALSE='#'
-else
-  HAVE_MPIWRAP_TRUE='#'
-  HAVE_MPIWRAP_FALSE=
-fi
-
-
-
-#
-# Configure StlExt
-#
-
-    download=no
-    downloaded=no
-
-# Check whether --with-stlext was given.
-if test "${with_stlext+set}" = set; then :
-  withval=$with_stlext;
-else
-  download=yes
-fi
-
-
-    pkg_dir=$with_stlext
-    if test x"$pkg_dir" = xno; then
-        as_fn_error $? "STLExt is a required package." "$LINENO" 5
-        include_package=no
-    elif test x"$download" = xyes && test x"https://github.com/devinamatthews/stl_ext" = x; then
-        include_package=no
-    else
-        if test x"$download" = xyes && test x"https://github.com/devinamatthews/stl_ext" != x; then
-            pkg_dir=src/external/stlext
-            if ! test -d $pkg_dir; then
-                { $as_echo "$as_me:${as_lineno-$LINENO}: downloading STLExt from external Git repository..." >&5
-$as_echo "$as_me: downloading STLExt from external Git repository..." >&6;}
-                if ! git clone -q https://github.com/devinamatthews/stl_ext $pkg_dir; then
-                    as_fn_error $? "could not download STLExt repository" "$LINENO" 5
-                fi
-            fi
-            if test -f $pkg_dir/configure; then
-                { $as_echo "$as_me:${as_lineno-$LINENO}: configuring STLExt in $pkg_dir" >&5
-$as_echo "$as_me: configuring STLExt in $pkg_dir" >&6;}
-                ( cd $pkg_dir && ./configure )
-                { $as_echo "$as_me:${as_lineno-$LINENO}: done configuring STLExt" >&5
-$as_echo "$as_me: done configuring STLExt" >&6;}
-            fi
-            downloaded=yes
-        fi
-
-            include_flags=
-            for dir_path in include; do
-                as_fn_append include_flags " -I$pkg_dir/$dir_path"
-            done
-            for header in algorithm.hpp \
-                 complex.hpp \
-                 cosort.hpp \
-                 global_ptr.hpp \
-                 iostream.hpp \
-                 ptr_list.hpp \
-                 ptr_vector.hpp \
-                 string.hpp \
-                 type_traits.hpp \
-                 vector.hpp \
-                 zip.hpp; do
-                  ac_save_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="$CPPFLAGS $include_flags"
-  as_ac_Header=`$as_echo "ac_cv_header_$header" | $as_tr_sh`
-ac_fn_cxx_check_header_compile "$LINENO" "$header" "$as_ac_Header" "$ac_includes_default
-"
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
-
-else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "Could not find $header.
-See \`config.log' for more details" "$LINENO" 5; }
-fi
-
-
-  CPPFLAGS="$ac_save_CPPFLAGS"
-
-            done
-            stlext_INCLUDES=$include_flags
-
-
-        if test x"" != x; then
-            lib_flags=
-            for dir_path in lib lib64; do
-                as_fn_append lib_flags " -L$pkg_dir/$dir_path"
-            done
-            as_fn_append lib_flags " $libraries"
-            if test x"$downloaded" != xyes; then
-                for symbol in ; do
-                      ac_save_LIBS="$LIBS"
-  LIBS="$LIBS $lib_flags $LAPACK_LIBS $BLAS_LIBS"
-  as_ac_var=`$as_echo "ac_cv_func_$symbol" | $as_tr_sh`
-ac_fn_cxx_check_func "$LINENO" "$symbol" "$as_ac_var"
-if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
-
-else
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "Could not find $symbol in $libraries.
-See \`config.log' for more details" "$LINENO" 5; }
-fi
-
-  LIBS="$ac_save_LIBS"
-
-                done
-            fi
-            stlext_LIBS=$lib_flags
-
-        fi
-        include_package=yes
-    fi
-    if test x"$include_package" = xyes; then :
-
-$as_echo "#define HAVE_STLEXT 1" >>confdefs.h
-
-fi
-     if test x"$include_package" = xyes; then
-  HAVE_STLEXT_TRUE=
-  HAVE_STLEXT_FALSE='#'
-else
-  HAVE_STLEXT_TRUE='#'
-  HAVE_STLEXT_FALSE=
-fi
-
-
-
-#
-# Configure CTF
-#
-
-    download=no
-    downloaded=no
-
 # Check whether --with-ctf was given.
 if test "${with_ctf+set}" = set; then :
   withval=$with_ctf;
@@ -8867,6 +8334,10 @@ fi
 
 mkdir -p bin
 
+
+
+subdirs="$subdirs external/lawrap external/marray external/mpiwrap external/stl_ext"
+
 ac_config_files="$ac_config_files Makefile"
 
 cat >confcache <<\_ACEOF
@@ -9007,22 +8478,6 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCXX_TRUE}" && test -z "${am__fastdepCXX_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCXX\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${HAVE_LAWRAP_TRUE}" && test -z "${HAVE_LAWRAP_FALSE}"; then
-  as_fn_error $? "conditional \"HAVE_LAWRAP\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${HAVE_MARRAY_TRUE}" && test -z "${HAVE_MARRAY_FALSE}"; then
-  as_fn_error $? "conditional \"HAVE_MARRAY\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${HAVE_MPIWRAP_TRUE}" && test -z "${HAVE_MPIWRAP_FALSE}"; then
-  as_fn_error $? "conditional \"HAVE_MPIWRAP\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${HAVE_STLEXT_TRUE}" && test -z "${HAVE_STLEXT_FALSE}"; then
-  as_fn_error $? "conditional \"HAVE_STLEXT\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_CTF_TRUE}" && test -z "${HAVE_CTF_FALSE}"; then
@@ -10357,6 +9812,151 @@ if test "$no_create" != yes; then
   # Use ||, not &&, to avoid exiting from the if with $? = 1, which
   # would make configure fail if this is the last instruction.
   $ac_cs_success || as_fn_exit 1
+fi
+
+#
+# CONFIG_SUBDIRS section.
+#
+if test "$no_recursion" != yes; then
+
+  # Remove --cache-file, --srcdir, and --disable-option-checking arguments
+  # so they do not pile up.
+  ac_sub_configure_args=
+  ac_prev=
+  eval "set x $ac_configure_args"
+  shift
+  for ac_arg
+  do
+    if test -n "$ac_prev"; then
+      ac_prev=
+      continue
+    fi
+    case $ac_arg in
+    -cache-file | --cache-file | --cache-fil | --cache-fi \
+    | --cache-f | --cache- | --cache | --cach | --cac | --ca | --c)
+      ac_prev=cache_file ;;
+    -cache-file=* | --cache-file=* | --cache-fil=* | --cache-fi=* \
+    | --cache-f=* | --cache-=* | --cache=* | --cach=* | --cac=* | --ca=* \
+    | --c=*)
+      ;;
+    --config-cache | -C)
+      ;;
+    -srcdir | --srcdir | --srcdi | --srcd | --src | --sr)
+      ac_prev=srcdir ;;
+    -srcdir=* | --srcdir=* | --srcdi=* | --srcd=* | --src=* | --sr=*)
+      ;;
+    -prefix | --prefix | --prefi | --pref | --pre | --pr | --p)
+      ac_prev=prefix ;;
+    -prefix=* | --prefix=* | --prefi=* | --pref=* | --pre=* | --pr=* | --p=*)
+      ;;
+    --disable-option-checking)
+      ;;
+    *)
+      case $ac_arg in
+      *\'*) ac_arg=`$as_echo "$ac_arg" | sed "s/'/'\\\\\\\\''/g"` ;;
+      esac
+      as_fn_append ac_sub_configure_args " '$ac_arg'" ;;
+    esac
+  done
+
+  # Always prepend --prefix to ensure using the same prefix
+  # in subdir configurations.
+  ac_arg="--prefix=$prefix"
+  case $ac_arg in
+  *\'*) ac_arg=`$as_echo "$ac_arg" | sed "s/'/'\\\\\\\\''/g"` ;;
+  esac
+  ac_sub_configure_args="'$ac_arg' $ac_sub_configure_args"
+
+  # Pass --silent
+  if test "$silent" = yes; then
+    ac_sub_configure_args="--silent $ac_sub_configure_args"
+  fi
+
+  # Always prepend --disable-option-checking to silence warnings, since
+  # different subdirs can have different --enable and --with options.
+  ac_sub_configure_args="--disable-option-checking $ac_sub_configure_args"
+
+  ac_popdir=`pwd`
+  for ac_dir in : $subdirs; do test "x$ac_dir" = x: && continue
+
+    # Do not complain, so a configure script can configure whichever
+    # parts of a large source tree are present.
+    test -d "$srcdir/$ac_dir" || continue
+
+    ac_msg="=== configuring in $ac_dir (`pwd`/$ac_dir)"
+    $as_echo "$as_me:${as_lineno-$LINENO}: $ac_msg" >&5
+    $as_echo "$ac_msg" >&6
+    as_dir="$ac_dir"; as_fn_mkdir_p
+    ac_builddir=.
+
+case "$ac_dir" in
+.) ac_dir_suffix= ac_top_builddir_sub=. ac_top_build_prefix= ;;
+*)
+  ac_dir_suffix=/`$as_echo "$ac_dir" | sed 's|^\.[\\/]||'`
+  # A ".." for each directory in $ac_dir_suffix.
+  ac_top_builddir_sub=`$as_echo "$ac_dir_suffix" | sed 's|/[^\\/]*|/..|g;s|/||'`
+  case $ac_top_builddir_sub in
+  "") ac_top_builddir_sub=. ac_top_build_prefix= ;;
+  *)  ac_top_build_prefix=$ac_top_builddir_sub/ ;;
+  esac ;;
+esac
+ac_abs_top_builddir=$ac_pwd
+ac_abs_builddir=$ac_pwd$ac_dir_suffix
+# for backward compatibility:
+ac_top_builddir=$ac_top_build_prefix
+
+case $srcdir in
+  .)  # We are building in place.
+    ac_srcdir=.
+    ac_top_srcdir=$ac_top_builddir_sub
+    ac_abs_top_srcdir=$ac_pwd ;;
+  [\\/]* | ?:[\\/]* )  # Absolute name.
+    ac_srcdir=$srcdir$ac_dir_suffix;
+    ac_top_srcdir=$srcdir
+    ac_abs_top_srcdir=$srcdir ;;
+  *) # Relative name.
+    ac_srcdir=$ac_top_build_prefix$srcdir$ac_dir_suffix
+    ac_top_srcdir=$ac_top_build_prefix$srcdir
+    ac_abs_top_srcdir=$ac_pwd/$srcdir ;;
+esac
+ac_abs_srcdir=$ac_abs_top_srcdir$ac_dir_suffix
+
+
+    cd "$ac_dir"
+
+    # Check for guested configure; otherwise get Cygnus style configure.
+    if test -f "$ac_srcdir/configure.gnu"; then
+      ac_sub_configure=$ac_srcdir/configure.gnu
+    elif test -f "$ac_srcdir/configure"; then
+      ac_sub_configure=$ac_srcdir/configure
+    elif test -f "$ac_srcdir/configure.in"; then
+      # This should be Cygnus configure.
+      ac_sub_configure=$ac_aux_dir/configure
+    else
+      { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: no configuration information is in $ac_dir" >&5
+$as_echo "$as_me: WARNING: no configuration information is in $ac_dir" >&2;}
+      ac_sub_configure=
+    fi
+
+    # The recursion is here.
+    if test -n "$ac_sub_configure"; then
+      # Make the cache file name correct relative to the subdirectory.
+      case $cache_file in
+      [\\/]* | ?:[\\/]* ) ac_sub_cache_file=$cache_file ;;
+      *) # Relative name.
+	ac_sub_cache_file=$ac_top_build_prefix$cache_file ;;
+      esac
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: running $SHELL $ac_sub_configure $ac_sub_configure_args --cache-file=$ac_sub_cache_file --srcdir=$ac_srcdir" >&5
+$as_echo "$as_me: running $SHELL $ac_sub_configure $ac_sub_configure_args --cache-file=$ac_sub_cache_file --srcdir=$ac_srcdir" >&6;}
+      # The eval makes quoting arguments work.
+      eval "\$SHELL \"\$ac_sub_configure\" $ac_sub_configure_args \
+	   --cache-file=\"\$ac_sub_cache_file\" --srcdir=\"\$ac_srcdir\"" ||
+	as_fn_error $? "$ac_sub_configure failed for $ac_dir" "$LINENO" 5
+    fi
+
+    cd "$ac_popdir"
+  done
 fi
 if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unrecognized options: $ac_unrecognized_opts" >&5

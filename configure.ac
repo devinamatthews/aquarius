@@ -34,51 +34,6 @@ AX_LAPACK([], [AC_MSG_FAILURE([Could not find LAPACK library.])])
 topdir="\"`(cd $srcdir && pwd)`\""
 AC_DEFINE_UNQUOTED([TOPDIR], [$topdir], [The top source directory.])
 
-AC_DEFINE([LOWER_NO_UNDERSCORE], [1], [FORTRAN name-mangling scheme.])
-AC_DEFINE([LOWER_UNDERSCORE], [2], [FORTRAN name-mangling scheme.])
-AC_DEFINE([UPPER_NO_UNDERSCORE], [3], [FORTRAN name-mangling scheme.])
-AC_DEFINE([UPPER_UNDERSCORE], [4], [FORTRAN name-mangling scheme.])
-
-AC_F77_FUNC(sgemm)
-AS_IF([test $sgemm = sgemm], [AC_DEFINE([F77_NAME], [LOWER_NO_UNDERSCORE], [Type of FORTRAN name-mangling.])])
-AS_IF([test $sgemm = sgemm_], [AC_DEFINE([F77_NAME], [LOWER_UNDERSCORE], [Type of FORTRAN name-mangling.])])
-AS_IF([test $sgemm = SGEMM], [AC_DEFINE([F77_NAME], [UPPER_NO_UNDERSCORE], [Type of FORTRAN name-mangling.])])
-AS_IF([test $sgemm = SGEMM_], [AC_DEFINE([F77_NAME], [UPPER_UNDERSCORE], [Type of FORTRAN name-mangling.])])
-
-#
-# Configure LAWrap
-#
-AQ_WITH_PACKAGE([LAWrap], [https://github.com/devinamatthews/lawrap],
-                [blas.h lapack.h], [.])
-
-#
-# Configure MArray
-#
-AQ_WITH_PACKAGE([MArray], [https://github.com/devinamatthews/marray],
-                [marray.hpp], [.])
-
-#
-# Configure MPIWrap
-#
-AQ_WITH_PACKAGE([MPIWrap], [https://github.com/devinamatthews/mpiwrap],
-                [mpiwrap.hpp], [])
-
-#
-# Configure StlExt
-#
-AQ_WITH_PACKAGE([STLExt], [https://github.com/devinamatthews/stl_ext],
-                [algorithm.hpp \
-                 complex.hpp \
-                 cosort.hpp \
-                 global_ptr.hpp \
-                 iostream.hpp \
-                 ptr_list.hpp \
-                 ptr_vector.hpp \
-                 string.hpp \
-                 type_traits.hpp \
-                 vector.hpp \
-                 zip.hpp], [])
-
 #
 # Configure CTF
 #
@@ -100,8 +55,9 @@ AQ_WITH_PACKAGE([Elemental], [],
 AQ_WITH_PACKAGE([libint2], [],
                 [libint2.h], [],
                 [libint2_static_init], [-lint2])
-                
+
 mkdir -p bin
 
+AC_CONFIG_SUBDIRS([external/lawrap external/marray external/mpiwrap external/stl_ext])
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

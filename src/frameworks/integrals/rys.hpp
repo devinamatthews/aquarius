@@ -1,4 +1,7 @@
-#include "../../frameworks/util/global.hpp"
+#ifndef _AQUARIUS_FRAMEWORKS_INTEGRALS_RYS_HPP_
+#define _AQUARIUS_FRAMEWORKS_INTEGRALS_RYS_HPP_
+
+#include "frameworks/util.hpp"
 
 namespace aquarius
 {
@@ -19,3 +22,5 @@ class Rys
 
 }
 }
+
+#endif

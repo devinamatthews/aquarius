@@ -1,20 +1,21 @@
-#include "fmgamma.hpp"
-#include "../../frameworks/integrals/libint2eints.hpp"
+#include "libint2eints.hpp"
 
-#include "../../frameworks/integrals/fmgamma.hpp"
-
-using namespace aquarius::input;
-using namespace aquarius::symmetry;
-using namespace aquarius::task;
+using namespace aquarius::molecule;
 
 namespace aquarius
 {
 namespace integrals
 {
 
-Libint2eIntegrals::Libint2eIntegrals(const Shell& a, const Shell& b, const Shell& c, const Shell& d)
-: TwoElectronIntegrals(a, b, c, d)
+void Libint2eIntegrals::prims(const vec3& posa, int la, const vector<double>& za,
+                              const vec3& posb, int lb, const vector<double>& zb,
+                              const vec3& posc, int lc, const vector<double>& zc,
+                              const vec3& posd, int ld, const vector<double>& zd,
+                              double* integrals)
 {
+    constexpr double TWO_PI_52 = 34.98683665524972497; // 2*pi^(5/2)
+    FmGamma fm;
+
     int nt = omp_get_max_threads();
     inteval.resize(nt);
     for (int i = 0;i < nt;i++)
@@ -23,13 +24,16 @@ Libint2eIntegrals::Libint2eIntegrals(const Shell& a, const Shell& b, const Shell
         inteval[i].contrdepth = 1;
         assert(LIBINT2_MAX_VECLEN == 1);
     }
-}
 
-void Libint2eIntegrals::prims(const vec3& posa, const vec3& posb, const vec3& posc, const vec3& posd,
-                              double* integrals)
-{
-    constexpr double TWO_PI_52 = 34.98683665524972497; // 2*pi^(5/2)
-    Fm fm;
+    int na = za.size();
+    int nb = za.size();
+    int nc = za.size();
+    int nd = za.size();
+
+    int fca = (la+1)*(la+2)/2;
+    int fcb = (lb+1)*(lb+2)/2;
+    int fcc = (lc+1)*(lc+2)/2;
+    int fcd = (ld+1)*(ld+2)/2;
 
     matrix<double> Kab(na, nb), Kcd(nc, nd);
 
@@ -52,8 +56,6 @@ void Libint2eIntegrals::prims(const vec3& posa, const vec3& posb, const vec3& po
         double zq = zc[g]+zd[h];
         Kcd[g][h] = exp(-zc[g]*zd[h]*norm2(posc-posd)/zq)/zq;
     }
-
-    accuracy_ = 1e-13;
 
     #pragma omp parallel
     {

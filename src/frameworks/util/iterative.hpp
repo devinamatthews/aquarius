@@ -1,29 +1,27 @@
-#ifndef _AQUARIUS_UTIL_ITERATIVE_HPP_
-#define _AQUARIUS_UTIL_ITERATIVE_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_UTIL_ITERATIVE_HPP_
+#define _AQUARIUS_FRAMEWORKS_UTIL_ITERATIVE_HPP_
 
-#include "../../frameworks/task/task.hpp"
-#include "../../frameworks/time/time.hpp"
-#include "../../frameworks/util/distributed.hpp"
-#include "tensor/ctf_tensor.hpp"
+#include "frameworks/task.hpp"
+#include "frameworks/time.hpp"
+#include "distributed.hpp"
 
 namespace aquarius
 {
 
-template <typename U>
-class Iterative : public task::Task
+class Iterative
 {
     public:
         enum ConvergenceType {MAX_ABS, RMSD, MAD};
 
     private:
-        vector<U> energy_;
+        vector<Scalar> energy_;
         vector<double> conv_;
         double convtol;
         int iter_;
         int maxiter;
         int nsolution_;
 
-        static ConvergenceType getConvType(const input::Config& config)
+        static ConvergenceType getConvType(const task::Config& config)
         {
             string sconv = config.get<string>("conv_type");
 
@@ -47,13 +45,13 @@ class Iterative : public task::Task
     protected:
         const ConvergenceType convtype;
 
-        U& energy()
+        Scalar& energy()
         {
             assert(energy_.size() == 1);
             return energy_[0];
         }
 
-        U& energy(int i)
+        Scalar& energy(int i)
         {
             assert(i >= 0 && i < energy_.size());
             return energy_[i];
@@ -71,13 +69,13 @@ class Iterative : public task::Task
             return conv_[i];
         }
 
-        const U& energy() const
+        const Scalar& energy() const
         {
             assert(energy_.size() == 1);
             return energy_[0];
         }
 
-        const U& energy(int i) const
+        const Scalar& energy(int i) const
         {
             assert(i >= 0 && i < energy_.size());
             return energy_[i];

@@ -33,7 +33,9 @@ class Center
 
         const vec3& getCenter(int degen) const { return centers[degen]; }
 
-        int getCenterAfterOp(int op) const { return centermap[op]; }
+        const vec3& getCenterAfterOp(int op) const { return centers[getIdxAfterOp(op)]; }
+
+        int getIdxAfterOp(int op) const { return centermap[op]; }
 };
 
 }

@@ -1,15 +1,17 @@
-#ifndef _AQUARIUS_INTEGRALS_OS_HPP_
-#define _AQUARIUS_INTEGRALS_OS_HPP_
+#ifndef _AQUARIUS_AGORA_INTEGRALS_OS_HPP_
+#define _AQUARIUS_AGORA_INTEGRALS_OS_HPP_
 
-#include "../../frameworks/integrals/2eints.hpp"
-#include "../../frameworks/util/global.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/molecule.hpp"
+#include "frameworks/integrals.hpp"
+#include "agora/integrals/integrals.hpp"
 
 namespace aquarius
 {
 namespace integrals
 {
 
-class OSERI : public TwoElectronIntegrals
+class OSERI : public ERI
 {
     protected:
         void filltable(double afac, double bfac, double cfac, double dfac, double pfac, double qfac,
@@ -24,17 +26,18 @@ class OSERI : public TwoElectronIntegrals
                        double s1fac, double s2fac, double t1fac, double t2fac, double gfac,
                        marray<double,5>& table);
 
-    public:
-        OSERI(const Shell& a, const Shell& b, const Shell& c, const Shell& d)
-        : TwoElectronIntegrals(a, b, c, d) {}
-
         /**
          * Calculate ERIs with the recursive algorithm of Obara and Saika
          *  S. Obara; A. Saika, J. Chem. Phys. 84, 3963 (1986)
          */
-        void prim(const vec3& posa, int e, const vec3& posb, int f,
-                  const vec3& posc, int g, const vec3& posd, int h, double* restrict integrals);
+        void prim(const vec3& posa, int la, double za,
+                  const vec3& posb, int lb, double zb,
+                  const vec3& posc, int lc, double zc,
+                  const vec3& posd, int ld, double zd,
+                  double* integrals) override;
 };
+
+REGISTER_VENDOR(Integrals, OSERI);
 
 }
 }

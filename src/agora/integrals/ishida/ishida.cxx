@@ -1,26 +1,29 @@
-#include "../../../agora/integrals/ishida/ishida.hpp"
+#include "ishida.hpp"
 
 namespace aquarius
 {
 namespace integrals
 {
 
-void IshidaERI::prim(const vec3& posa, int e, const vec3& posb, int f,
-                     const vec3& posc, int g, const vec3& posd, int h, double* restrict integrals)
+void IshidaERI::prim(const vec3& posa, int la, double za,
+                     const vec3& posb, int lb, double zb,
+                     const vec3& posc, int lc, double zc,
+                     const vec3& posd, int ld, double zd,
+                     double* integrals)
 {
     constexpr double PI_52 = 17.493418327624862846262821679872;
     int nrys = (la+lb+lc+ld)/2 + 1;
 
     marray<double,6> xtable(3, ld+1, lc+1, lb+1, la+1, nrys);
 
-    double zp = za[e] + zb[f];
-    double zq = zc[g] + zd[h];
+    double zp = za + zb;
+    double zq = zc + zd;
 
-    vec3 posp = (posa*za[e] + posb*zb[f])/zp;
-    vec3 posq = (posc*zc[g] + posd*zd[h])/zq;
+    vec3 posp = (posa*za + posb*zb)/zp;
+    vec3 posq = (posc*zc + posd*zd)/zq;
 
-    double A0 = 2*PI_52*exp(-za[e]*zb[f]*norm2(posa-posb)/zp
-                            -zc[g]*zd[h]*norm2(posc-posd)/zq)/(sqrt(zp+zq)*zp*zq);
+    double A0 = 2*PI_52*exp(-za*zb*norm2(posa-posb)/zp
+                            -zc*zd*norm2(posc-posd)/zq)/(sqrt(zp+zq)*zp*zq);
     double Z = norm2(posp-posq)*zp*zq/(zp+zq);
 
     Rys rys;
@@ -106,6 +109,10 @@ void IshidaERI::filltable(double factor,
                           row<double>& aafac, row<double>& bbfac, row<double>& ccfac, row<double>& ddfac,
                           double s1fac, double s2fac, row<double>& gfac, marray<double,5>&& xtable)
 {
+    int la = xtable.length(3)-1;
+    int lb = xtable.length(2)-1;
+    int lc = xtable.length(1)-1;
+    int ld = xtable.length(0)-1;
     int nrys = (la+lb+lc+ld)/2 + 1;
 
     for (int v = 0;v < nrys;v++)

@@ -1,4 +1,4 @@
-#include "../../frameworks/integrals/moments.hpp"
+#include "moments.hpp"
 
 namespace aquarius
 {
@@ -9,15 +9,16 @@ namespace integrals
  * Calculate moment integrals with the algorithm of Obara and Saika
  *  S. Obara; A. Saika, J. Chem. Phys. 84, 3963 (1986)
  */
-void OSMoments::prim(const vec3& posa, int e,
-                     const vec3& posb, int f, double* integrals)
+void OSMoments::prim(const vec3& posa, int la, double za,
+                     const vec3& posb, int lb, double zb,
+                     const vec3& posc, int lc, double* integrals)
 {
     constexpr double PI_32 = 5.5683279968317078452848179821188;
 
-    double zp = za[e] + zb[f];
-    double A0 = PI_32*exp(-za[e]*zb[f]*norm2(posa-posb)/zp)/pow(zp, 1.5);
+    double zp = za + zb;
+    double A0 = PI_32*exp(-za*zb*norm2(posa-posb)/zp)/pow(zp, 1.5);
 
-    vec3 posp = (posa*za[e] + posb*zb[f])/zp;
+    vec3 posp = (posa*za + posb*zb)/zp;
 
     vec3 afac = posp - posa;
     vec3 bfac = posp - posb;

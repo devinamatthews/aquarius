@@ -1,5 +1,5 @@
-#ifndef _AQUARIUS_FRAMEWORKS_INTEGRALS_1EINTS_HPP_
-#define _AQUARIUS_FRAMEWORKS_INTEGRALS_1EINTS_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_INTEGRALS_NUCINTS_HPP_
+#define _AQUARIUS_FRAMEWORKS_INTEGRALS_NUCINTS_HPP_
 
 #include "frameworks/util.hpp"
 #include "frameworks/symmetry.hpp"
@@ -8,26 +8,15 @@
 namespace aquarius
 {
 
-struct idx2_t
-{
-    uint16_t i = 0, j = 0;
-};
-
 namespace integrals
 {
 
-void transform(size_t nother, const matrix<double>& xa, const matrix<double>& xb,
-               double* buf1, double* buf2);
-
-void transform(const matrix<double>& xa, const matrix<double>& xa, size_t nother,
-               double* buf1, double* buf2);
-
-class OneElectronIntegrals
+class NuclearIntegrals
 {
     public:
         class ShellBlock
         {
-            friend class OneElectronIntegrals;
+            friend class NuclearIntegrals;
 
             public:
                 virtual ~ShellBlock() {}
@@ -53,28 +42,30 @@ class OneElectronIntegrals
                 : a(a), b(b), ordering(ordering), ints(move(integrals)) {}
         };
 
-        virtual ~OneElectronIntegrals() {}
+        virtual ~NuclearIntegrals() {}
 
-        ShellBlock calculate(const molecule::Shell& a, const molecule::Shell& b);
+        ShellBlock calculate(const molecule::Shell& a, const molecule::Shell& b,
+                             const vector<molecule::Center>& centers);
 
     protected:
         virtual void prim(const vec3& posa, int la, double za,
                           const vec3& posb, int lb, double zb,
-                          double* integrals);
+                          const vec3& posc, double charge, double* integrals);
 
         virtual void prims(const vec3& posa, int la, const vector<double>& za,
                            const vec3& posb, int lb, const vector<double>& zb,
-                           double* integrals);
+                           const vec3& posc, double charge, double* integrals);
 
         virtual void contr(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca,
                            const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb,
-                           double* integrals);
+                           const vec3& posc, double charge, double* integrals);
 
         virtual void spher(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca, const matrix<double>& sa,
                            const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb, const matrix<double>& sb,
-                           double* integrals);
+                           const vec3& posc, double charge, double* integrals);
 
-        virtual void so(const molecule::Shell& a, const molecule::Shell& b, double* integrals);
+        virtual void so(const molecule::Shell& a, const molecule::Shell& b,
+                        const vector<molecule::Center>& centers, double* integrals);
 };
 
 }
