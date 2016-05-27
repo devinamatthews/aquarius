@@ -15,7 +15,7 @@ class OSERI : public TwoElectronIntegrals
     protected:
         void filltable(double afac, double bfac, double cfac, double dfac, double pfac, double qfac,
                        double s1fac, double s2fac, double t1fac, double t2fac, double gfac,
-                       marray<double,5>&& table)
+                       marray_view<double,5>&& table)
         {
             filltable(afac, bfac, cfac, dfac, pfac, qfac,
                       s1fac, s2fac, t1fac, t2fac, gfac, table);
@@ -23,7 +23,7 @@ class OSERI : public TwoElectronIntegrals
 
         void filltable(double afac, double bfac, double cfac, double dfac, double pfac, double qfac,
                        double s1fac, double s2fac, double t1fac, double t2fac, double gfac,
-                       marray<double,5>& table);
+                       marray_view<double,5>& table);
 
     public:
         OSERI(const Shell& a, const Shell& b, const Shell& c, const Shell& d)

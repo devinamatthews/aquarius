@@ -237,9 +237,9 @@ class vec3 : public marray<double, 1>
     public:
         vec3() : marray<double, 1>(3) {}
 
-        vec3(vec3&& other) : marray<double, 1>(other) {}
+        vec3(vec3&& other) : marray<double, 1>(move(other)) {}
 
-        vec3(const vec3& other) : marray<double, 1>(other, construct_copy) {}
+        vec3(const vec3& other) : marray<double, 1>(other) {}
 
         vec3(double pos[3]) : marray<double, 1>(3)
         {
@@ -418,9 +418,9 @@ class mat3x3 : public marray<double, 2>
     public:
         mat3x3() : marray<double, 2>(3,3) {}
 
-        mat3x3(mat3x3&& other) : marray<double, 2>(other) {}
+        mat3x3(mat3x3&& other) : marray<double, 2>(move(other)) {}
 
-        mat3x3(const mat3x3& other) : marray<double, 2>(other, construct_copy) {}
+        mat3x3(const mat3x3& other) : marray<double, 2>(other) {}
 
         mat3x3(double m00, double m01, double m02,
                double m10, double m11, double m12,

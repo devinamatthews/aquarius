@@ -89,7 +89,7 @@ void IshidaKEI::prim(const vec3& posa, int e,
         }
     }
 
-    matrix<double> integral((lb+1)*(lb+2)/2, (la+1)*(la+2)/2, integrals);
+    matrix_view<double> integral((lb+1)*(lb+2)/2, (la+1)*(la+2)/2, integrals);
 
     for (int bx = lb;bx >= 0;bx--)
     {

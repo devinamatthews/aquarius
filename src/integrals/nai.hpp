@@ -20,12 +20,12 @@ class IshidaNAI : public OneElectronIntegrals
     protected:
         vector<Center> centers;
 
-        void filltable(double afac, double bfac, double cfac, double sfac, marray<double,3>&& gtable)
+        void filltable(double afac, double bfac, double cfac, double sfac, marray_view<double,3>&& gtable)
         {
             filltable(afac, bfac, cfac, sfac, gtable);
         }
 
-        void filltable(double afac, double bfac, double cfac, double sfac, marray<double,3>& gtable);
+        void filltable(double afac, double bfac, double cfac, double sfac, marray_view<double,3>& gtable);
 
     public:
         IshidaNAI(const Shell& a, const Shell& b, const vector<Center>& centers)

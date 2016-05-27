@@ -27,7 +27,7 @@ void OSMoments::prim(const vec3& posa, int e,
     marray<double,3> table(la+1, lb+1, lc+1);
     table[0][0][0] = A0;
 
-    marray<double,3> integral((la+1)*(la+2)/2, (lb+1)*(lb+2)/2, (lc+1)*(lc+2)/2, integrals);
+    marray_view<double,3> integral((la+1)*(la+2)/2, (lb+1)*(lb+2)/2, (lc+1)*(lc+2)/2, integrals);
 
     // fill table with x
     filltable(afac[0], bfac[0], cfac[0], sfac, table);
@@ -68,7 +68,7 @@ void OSMoments::prim(const vec3& posa, int e,
 }
 
 void OSMoments::filltable(double afac, double bfac, double cfac, double sfac,
-                          marray<double,3>& table)
+                          marray_view<double,3>&& table)
 {
     int la = table.length(0)-1;
     int lb = table.length(1)-1;

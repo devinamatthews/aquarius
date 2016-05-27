@@ -113,7 +113,7 @@ class HGP
 
         int nabcd = na*nb*nc*nd;
 
-        marray<double,4> xtable({le1+1,lf1+1,vmax+1,nabcd});
+        marray<double,4> xtable(le1+1, lf1+1, vmax+1, nabcd);
 
         matrix<double> efac(3, nabcd);
         matrix<double> ffac(3, nabcd);
@@ -208,23 +208,16 @@ class HGP
         }
     }
 
-    void filltable(marray<double,1>&& efac, marray<double,1>&& ffac,
-                   marray<double,1>&& pfac, marray<double,1>&& qfac,
-                   const row<double>& s1fac, const row<double>& t1fac,
-                   const row<double>& s2fac, const row<double>& t2fac,
+    void filltable(const marray_view<double,1>& efac,
+                   const marray_view<double,1>& ffac,
+                   const marray_view<double,1>& pfac,
+                   const marray_view<double,1>& qfac,
+                   const row<double>& s1fac,
+                   const row<double>& t1fac,
+                   const row<double>& s2fac,
+                   const row<double>& t2fac,
                    const row<double>& gfac,
-                   marray<double,4>&& table);
-    {
-        filltable(move(efac), move(ffac), move(pfac), move(qfac),
-                  s1fac, t1fac, s2fac, t2fac, gfac, table);
-    }
-
-    void filltable(marray<double,1>&& efac, marray<double,1>&& ffac,
-                   marray<double,1>&& pfac, marray<double,1>&& qfac,
-                   const row<double>& s1fac, const row<double>& t1fac,
-                   const row<double>& s2fac, const row<double>& t2fac,
-                   const row<double>& gfac,
-                   marray<double,4>& table);
+                   marray_view<double,4>&& table)
     {
         int le = table.length(0)-1;
         int lf = table.length(1)-1;

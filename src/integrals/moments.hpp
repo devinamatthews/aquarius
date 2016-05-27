@@ -17,13 +17,7 @@ class OSMoments : public OneElectronIntegrals
         vec3 posc;
 
         void filltable(double afac, double bfac, double cfac, double sfac,
-                       marray<double,3>&& table)
-        {
-            filltable(afac, bfac, cfac, sfac, table);
-        }
-
-        void filltable(double afac, double bfac, double cfac, double sfac,
-                       marray<double,3>& table);
+                       marray_view<double,3>&& table);
 
     public:
         /*

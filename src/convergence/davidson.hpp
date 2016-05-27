@@ -476,9 +476,9 @@ class Davidson : public task::Destructible
              * Diagonalize the subspace matrix to obtain approximate solutions
              */
             vector<dtype> beta(nvec*nextrap);
-            marray<dtype,4> e_tmp = copy(e);
-            marray<dtype,4> s_tmp = copy(s);
-            marray<dtype,3> vr_tmp = copy(vr);
+            marray<dtype,4> e_tmp(e);
+            marray<dtype,4> s_tmp(s);
+            marray<dtype,3> vr_tmp(vr);
 
             int info = ggev('V', 'N', nextrap*nvec, e_tmp.data(), nextrap*nvec,
                         s_tmp.data(), nextrap*nvec, l.data(), beta.data(),

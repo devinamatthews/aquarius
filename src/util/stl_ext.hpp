@@ -184,6 +184,8 @@ namespace aquarius
 
     using namespace stl_ext;
     using stl_ext::sort;
+    using stl_ext::toupper;
+    using stl_ext::tolower;
 }
 
 #endif

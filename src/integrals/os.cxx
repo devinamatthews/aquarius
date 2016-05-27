@@ -56,8 +56,8 @@ void OSERI::prim(const vec3& posa, int e, const vec3& posb, int f,
         xtable[0][0][0][0][v] *= A0;
     }
 
-    marray<double,4> integral((ld+1)*(ld+2)/2, (lc+1)*(lc+2)/2,
-                              (lb+1)*(lb+2)/2, (la+1)*(la+2)/2, integrals);
+    marray_view<double,4> integral((ld+1)*(ld+2)/2, (lc+1)*(lc+2)/2,
+                                   (lb+1)*(lb+2)/2, (la+1)*(la+2)/2, integrals);
 
     // fill table with x
     filltable(afac[0], bfac[0], cfac[0], dfac[0], pfac[0], qfac[0],
@@ -111,7 +111,7 @@ void OSERI::prim(const vec3& posa, int e, const vec3& posb, int f,
 
 void OSERI::filltable(double afac, double bfac, double cfac, double dfac, double pfac, double qfac,
                       double s1fac, double t1fac, double s2fac, double t2fac, double gfac,
-                      marray<double,5>& table)
+                      marray_view<double,5>& table)
 {
     int ld = table.length(0)-1;
     int lc = table.length(1)-1;

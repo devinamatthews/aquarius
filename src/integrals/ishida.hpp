@@ -13,7 +13,7 @@ class IshidaERI : public TwoElectronIntegrals
     protected:
         void filltable(double factor,
                        row<double>& aafac, row<double>& bbfac, row<double>& ccfac, row<double>& ddfac,
-                       double s1fac, double s2fac, row<double>& gfac, marray<double,5>&& xtable);
+                       double s1fac, double s2fac, row<double>& gfac, marray_view<double,5>&& xtable);
 
     public:
         /*

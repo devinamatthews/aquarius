@@ -23,7 +23,7 @@ void IshidaNAI::prim(const vec3& posa, int e,
     vec3 posp = (posa*za[e]+posb*zb[f])/zp;
 
     marray<double,3> gtable(lb+1, la+1, vmax+1);
-    matrix<double> integral((lb+1)*(lb+2)/2, (la+1)*(la+2)/2, integrals);
+    matrix_view<double> integral((lb+1)*(lb+2)/2, (la+1)*(la+2)/2, integrals);
 
     for (auto& center : centers)
     {
@@ -73,7 +73,7 @@ void IshidaNAI::prim(const vec3& posa, int e,
     }
 }
 
-void IshidaNAI::filltable(double afac, double bfac, double cfac, double sfac, marray<double,3>& gtable)
+void IshidaNAI::filltable(double afac, double bfac, double cfac, double sfac, marray_view<double,3>& gtable)
 {
     int lb = gtable.length(0)-1;
     int la = gtable.length(1)-1;

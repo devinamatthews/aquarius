@@ -167,7 +167,7 @@ class ComplexLinearKrylov : public task::Destructible
              * Solve the linear problem in the subspace
              */
             vector<integer> ipiv(nextrap);
-            marray<CU,2> tmp(e, construct_copy);
+            marray<CU,2> tmp(e);
             v = b;
 
             /*

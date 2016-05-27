@@ -39,6 +39,7 @@ __top_builddir__bin_aquarius_SOURCES = \
 	src/cc/ccsdtq_1b.cxx \
 	src/cc/ccsdtq_3.cxx \
 	src/cc/cc4.cxx \
+	src/cc/cfourgrad.cxx \
 	src/cc/eomeeccsd.cxx \
 	src/cc/eomeeccsdt.cxx \
 	src/cc/lambdaccsd.cxx \

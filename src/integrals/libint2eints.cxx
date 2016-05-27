@@ -152,8 +152,8 @@ void Libint2eIntegrals::prims(const vec3& posa, const vec3& posb, const vec3& po
             if (swapab) swap(perm[2], perm[3]);
             if (swapcd) swap(perm[0], perm[1]);
 
-            array<marray<double, 4>::idx_type, 4> to_len = {fcd, fcc, fcb, fca};
-            array<marray<double, 4>::idx_type, 4> from_len;
+            array<int, 4> to_len = {fcd, fcc, fcb, fca};
+            array<int, 4> from_len;
             from_len[perm[0]] = to_len[0];
             from_len[perm[1]] = to_len[1];
             from_len[perm[2]] = to_len[2];

@@ -9,6 +9,9 @@
 
 #include "config.h"
 
+#include "lawrap.hpp"
+
+#define MARRAY_BLAS_PROTOTYPED
 #include "marray.hpp"
 
 namespace aquarius
