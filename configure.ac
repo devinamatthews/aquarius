@@ -55,7 +55,7 @@ AQ_WITH_PACKAGE([LAWrap], [https://github.com/devinamatthews/lawrap],
 # Configure MArray
 #
 AQ_WITH_PACKAGE([MArray], [https://github.com/devinamatthews/marray],
-                [marray.hpp], [.])
+                [marray.hpp], [])
 
 #
 # Configure MPIWrap

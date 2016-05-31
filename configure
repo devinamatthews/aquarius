@@ -8178,7 +8178,7 @@ $as_echo "$as_me: done configuring MArray" >&6;}
         fi
 
             include_flags=
-            for dir_path in .; do
+            for dir_path in include; do
                 as_fn_append include_flags " -I$pkg_dir/$dir_path"
             done
             for header in marray.hpp; do
