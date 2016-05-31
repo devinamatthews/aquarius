@@ -114,7 +114,8 @@ Shell::Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bo
     /*
      * Normalize the shell
      */
-    const double PI2_N34 = 0.25197943553838073034791409490358;
+    // TWOPI_N34 = (2 pi)^(-3/4)
+    const double TWOPI_N34 = 0.25197943553838073034791409490358;
 
     for (int i = 0;i < ncontr;i++)
     {
@@ -124,13 +125,13 @@ Shell::Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bo
             for (int k = 0;k < nprim;k++)
             {
                 double zeta = sqrt(exponents[j]*exponents[k])/(exponents[j]+exponents[k]);
-                norm += coefficients[i*nprim+j]*coefficients[i*nprim+k]*pow(2*zeta,(double)L+1.5);
+                norm += coefficients[i*nprim+j]*coefficients[i*nprim+k]*pow(zeta,(double)L+1.5);
             }
         }
 
         for (int j = 0;j < nprim;j++)
         {
-            this->coefficients[i*nprim+j] *= PI2_N34*pow(4*exponents[j],((double)L+1.5)/2)/sqrt(norm);
+            this->coefficients[i*nprim+j] *= TWOPI_N34*pow(2*exponents[j],((double)L+1.5)/2)/sqrt(norm);
         }
     }
 

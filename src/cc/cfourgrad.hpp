@@ -6,6 +6,7 @@
 #include "task/task.hpp"
 #include "time/time.hpp"
 #include "operator/2eoperator.hpp"
+#include "input/molecule.hpp"
 
 namespace aquarius
 {
@@ -18,6 +19,26 @@ class CFOURGradient : public task::Task
         CFOURGradient(const string& name, input::Config& config);
 
         bool run(task::TaskDAG& dag, const Arena& arena);
+
+        void writeZMAT();
+
+        void writeGENBAS();
+
+        void execute(const Arena& arena, const string& module);
+
+        void readIntegrals(const Arena& arena);
+
+        void readIntegrals(ifstream& ifs, const tensor::CTFTensor<double>& H, bool transpq, bool transrs);
+
+        void readIntegrals(ifstream& ifs, const tensor::CTFTensor<double>& H);
+
+        void writeDensity();
+
+        void writeDensity(ofstream& ofs, const tensor::CTFTensor<double>& D, bool transpq, bool transrs);
+
+        void writeDensity(ofstream& ofs, const tensor::CTFTensor<double>& D);
+
+        void clean();
 };
 
 }
