@@ -20,8 +20,17 @@ struct RHFInnerProd
     template <typename a_container, typename b_container>
     U operator()(const a_container& a, const b_container& b) const
     {
-        return scalar(a[0][  "ai"]*b[0][  "ai"]) +
-               scalar(a[1]["abij"]*b[1]["abij"]);
+        if (triplet)
+        {
+            return scalar(a[0][  "ai"]*b[0][  "ai"]) +
+                   scalar(a[1]["abij"]*b[1]["abij"]);
+        }
+        else
+        {
+            return 2*scalar(a[0][  "ai"]*b[0][  "ai"]) +
+                   2*scalar(a[1]["abij"]*b[1]["abij"]) -
+                     scalar(a[1]["abij"]*b[1]["abji"]);
+        }
     }
 };
 
