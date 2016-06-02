@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <errno.h>
+#include <stdlib.h>
 
 using namespace aquarius::op;
 using namespace aquarius::input;
@@ -96,8 +98,6 @@ class JOBARC
 
             reclen = read_int(ja, recsize);
             assert(reclen == 8000 + 2001*intsize);
-
-            fclose(fd);
         }
 
         ~JOBARC()
@@ -368,50 +368,56 @@ class JOBARC
 };
 
 CFOURGradient::CFOURGradient(const string& name, Config& config)
-: Task(name, config)
+: Task(name, config), config(config.clone())
 {
     vector<Requirement> reqs;
     reqs.emplace_back("molecule", "molecule");
     addProduct("gradient", "gradient", reqs);
+    addProduct("moints", "H", reqs);
 }
 
 bool CFOURGradient::run(task::TaskDAG& dag, const Arena& arena)
 {
-    /*
-     * Create additional dependencies (density) or skip to below if already
-     * satisfied.
-     */
-
-    if (mkdir(".cfour", 0777))
+    if (getProduct("gradient").getRequirements().size() == 1)
     {
-        perror("mkdir");
-        abort();
+        clean();
+        if (mkdir(".cfour", 0777))
+        {
+            perror("mkdir");
+            abort();
+        }
+        chdir(".cfour");
+
+        writeZMAT();
+        writeGENBAS();
+
+        execute(arena, "xjoda");
+        execute(arena, "xvmol");
+        execute(arena, "xvmol2ja");
+        execute(arena, "xvscf");
+        execute(arena, "xvtran");
+        execute(arena, "xintprc");
+
+        readIntegrals(arena);
+
+        Requirement r(config.get<string>("source")+".D", "D");
+        getProduct("gradient").addRequirement(r);
+        config.remove("source");
+        config.remove("scf");
+
+        for (auto& c : config.find("*"))
+        {
+            Task& t = dag.addTask(arena, c.first, getName(), c.second);
+            for (auto& p : t.getProducts())
+            {
+                if (p.getType() == r.getType()) r.fulfil(p);
+            }
+        }
+
+        return false;
     }
-    chdir(".cfour");
 
-    writeZMAT(molecule);
-    writeGENBAS(molecule);
-
-    execute(arena, "xjoda");
-    execute(arena, "xvmol");
-    execute(arena, "xvmol2ja");
-    execute(arena, "xvscf");
-    execute(arena, "xvtran");
-    execute(arena, "xintprc");
-
-    /*
-     * Read integrals
-     */
-
-    /*
-     * Create CC task and connect dependencies
-     */
-
-    /*
-     * Yield and run CC
-     */
-
-    writeDensity(D);
+    writeDensity();
 
     execute(arena, "xdens");
     execute(arena, "xanti");
@@ -422,14 +428,8 @@ bool CFOURGradient::run(task::TaskDAG& dag, const Arena& arena)
      * Read gradient
      */
 
-    clean();
-
     chdir("..");
-    if (rmdir(".cfour"))
-    {
-        perror("rmdir");
-        abort();
-    }
+    clean();
 
     return true;
 }
@@ -456,7 +456,14 @@ void CFOURGradient::writeZMAT()
     ofs << "*CFOUR(BASIS=SPECIAL" << endl;
     ofs << "CALC=CCSD" << endl;
     ofs << "CC_PROG=MRCC" << endl;
+    ofs << "SCF_CONV=" << lround(-log10(config.get<double>("scf.convergence"))) << endl;
+    ofs << "SCF_DAMPING=" << lround(config.get<double>("scf.diis.damping")*1000) << endl;
+    ofs << "SCF_EXPSTART=" << config.get<int>("scf.diis.start") << endl;
+    ofs << "SCF_EXPORDER=" << config.get<int>("scf.diis.order") << endl;
+    ofs << "SCF_MAXCYC=" << config.get<int>("scf.max_iterations") << endl;
+    ofs << "FROZEN_CORE=" << (config.get<bool>("scf.frozen_core") ? "ON" : "OFF") << endl;
     ofs << "SYM=OFF" << endl;
+    ofs << "REF=UHF" << endl;
     ofs << "DERIV_LEV=1" << endl;
     ofs << "MULT=" << (molecule.getNumAlphaElectrons()-
                        molecule.getNumBetaElectrons()+1) << endl;
@@ -573,9 +580,9 @@ void CFOURGradient::readIntegrals(const Arena& arena)
     ifs >> N >> nelec;
     int ndrop = (molecule.getNumAlphaElectrons()+molecule.getNumBetaElectrons()-nelec)/2;
 
-    Space occ(PointGroup::C1, {molecule.getNumAlphaElectrons()-ndrop},
-                              {molecule.getNumBetaElectrons()-ndrop});
-    Space vrt(PointGroup::C1, {N-occ.nalpha[0]}, {N-occ.nbeta[0]});
+    Space occ(PointGroup::C1(), {molecule.getNumAlphaElectrons()-ndrop},
+                                {molecule.getNumBetaElectrons()-ndrop});
+    Space vrt(PointGroup::C1(), {N-occ.nalpha[0]}, {N-occ.nbeta[0]});
 
     auto& H = put("H", new TwoElectronOperator<double>("H", arena, occ, vrt));
 
@@ -585,7 +592,99 @@ void CFOURGradient::readIntegrals(const Arena& arena)
         ifs >> ignore;
     }
 
+    readIntegrals(ifs, H.getIJKL()({0,2},{0,2})({0,0,0,0}), false, false);
 
+    readIntegrals(ifs, H.getIJAK()({0,2},{1,1})({0,0,0,0}), true, true);
+    H.getAIJK()({1,1},{0,2})({0,0,0,0})["rspq"] = H.getIJAK()({0,2},{1,1})({0,0,0,0})["pqrs"];
+
+    readIntegrals(ifs, H.getABIJ()({2,0},{0,2})({0,0,0,0}), false, false);
+    H.getIJAB()({0,2},{2,0})({0,0,0,0})["rspq"] = H.getABIJ()({2,0},{0,2})({0,0,0,0})["pqrs"];
+
+    readIntegrals(ifs, H.getAIBJ()({1,1},{1,1})({0,0,0,0}), true, true);
+
+    readIntegrals(ifs, H.getABCI()({2,0},{1,1})({0,0,0,0}), false, false);
+    H.getAIBC()({1,1},{2,0})({0,0,0,0})["rspq"] = H.getABCI()({2,0},{1,1})({0,0,0,0})["pqrs"];
+
+    readIntegrals(ifs, H.getABCD()({2,0},{2,0})({0,0,0,0}), false, false);
+
+    if (arena.rank == 0)
+    {
+        double value;
+        int p, q, r, s;
+        ifs >> value >> p >> q >> r >> s;
+        assert(p == 0 && q == 0 && r == 0 && s == 0);
+    }
+
+    readIntegrals(ifs, H.getIJKL()({0,0},{0,0})({0,0,0,0}), false, false);
+
+    readIntegrals(ifs, H.getIJAK()({0,0},{0,0})({0,0,0,0}), true, true);
+    H.getAIJK()({0,0},{0,0})({0,0,0,0})["rspq"] = H.getIJAK()({0,0},{0,0})({0,0,0,0})["pqrs"];
+
+    readIntegrals(ifs, H.getABIJ()({0,0},{0,0})({0,0,0,0}), false, false);
+    H.getIJAB()({0,0},{0,0})({0,0,0,0})["rspq"] = H.getABIJ()({0,0},{0,0})({0,0,0,0})["pqrs"];
+
+    readIntegrals(ifs, H.getAIBJ()({0,0},{0,0})({0,0,0,0}), true, true);
+
+    readIntegrals(ifs, H.getABCI()({0,0},{0,0})({0,0,0,0}), false, false);
+    H.getAIBC()({0,0},{0,0})({0,0,0,0})["rspq"] = H.getABCI()({0,0},{0,0})({0,0,0,0})["pqrs"];
+
+    readIntegrals(ifs, H.getABCD()({0,0},{0,0})({0,0,0,0}), false, false);
+
+    if (arena.rank == 0)
+    {
+        double value;
+        int p, q, r, s;
+        ifs >> value >> p >> q >> r >> s;
+        assert(p == 0 && q == 0 && r == 0 && s == 0);
+    }
+
+    readIntegrals(ifs, H.getIJKL()({0,1},{0,1})({0,0,0,0}), false, false);
+
+    readIntegrals(ifs, H.getIJAK()({0,1},{0,1})({0,0,0,0}), false, true);
+    H.getAIJK()({0,1},{0,1})({0,0,0,0})["rspq"] = H.getIJAK()({0,1},{0,1})({0,0,0,0})["pqrs"];
+
+    readIntegrals(ifs, H.getIJAK()({0,1},{1,0})({0,0,0,0}), false, false);
+    H.getAIJK()({1,0},{0,1})({0,0,0,0})["rspq"] = H.getIJAK()({0,1},{1,0})({0,0,0,0})["pqrs"];
+
+    readIntegrals(ifs, H.getABIJ()({1,0},{0,1})({0,0,0,0}), false, false);
+    H.getIJAB()({0,1},{1,0})({0,0,0,0})["rspq"] = H.getABIJ()({1,0},{0,1})({0,0,0,0})["pqrs"];
+
+    readIntegrals(ifs, H.getAIBJ()({1,0},{1,0})({0,0,0,0}), false, false);
+    readIntegrals(ifs, H.getAIBJ()({0,1},{0,1})({0,0,0,0}), true, true);
+
+    readIntegrals(ifs, H.getABCI()({1,0},{1,0})({0,0,0,0}), false, false);
+    H.getAIBC()({1,0},{1,0})({0,0,0,0})["rspq"] = H.getABCI()({1,0},{1,0})({0,0,0,0})["pqrs"];
+
+    readIntegrals(ifs, H.getABCI()({1,0},{0,1})({0,0,0,0}), false, true);
+    H.getAIBC()({0,1},{1,0})({0,0,0,0})["rspq"] = H.getABCI()({1,0},{0,1})({0,0,0,0})["pqrs"];
+
+    readIntegrals(ifs, H.getABCD()({1,0},{1,0})({0,0,0,0}), false, false);
+
+    if (arena.rank == 0)
+    {
+        double value;
+        int p, q, r, s;
+        ifs >> value >> p >> q >> r >> s;
+        assert(p == 0 && q == 0 && r == 0 && s == 0);
+    }
+
+    readIntegrals(ifs, H.getIJ()({0,1},{0,1})({0,0}));
+    readIntegrals(ifs, H.getAB()({1,0},{1,0})({0,0}));
+    readIntegrals(ifs, H.getIA()({0,1},{1,0})({0,0}));
+    H.getAI()({1,0},{0,1})({0,0})["qp"] = H.getIA()({0,1},{1,0})({0,0})["pq"];
+
+    if (arena.rank == 0)
+    {
+        double value;
+        int p, q, r, s;
+        ifs >> value >> p >> q >> r >> s;
+        assert(p == 0 && q == 0 && r == 0 && s == 0);
+    }
+
+    readIntegrals(ifs, H.getIJ()({0,0},{0,0})({0,0}));
+    readIntegrals(ifs, H.getAB()({0,0},{0,0})({0,0}));
+    readIntegrals(ifs, H.getIA()({0,0},{0,0})({0,0}));
+    H.getAI()({0,0},{0,0})({0,0})["qp"] = H.getIA()({0,0},{0,0})({0,0})["pq"];
 }
 
 void CFOURGradient::readIntegrals(ifstream& ifs, CTFTensor<double>& H, bool transpq, bool transrs)
@@ -593,22 +692,20 @@ void CFOURGradient::readIntegrals(ifstream& ifs, CTFTensor<double>& H, bool tran
     auto& len = H.getLengths();
     bool sympq = H.getSymmetry()[0] == AS;
     bool symrs = H.getSymmetry()[2] == AS;
+    int64_t numpq = (sympq ? int64_t(len[0])*(len[1]-1)/2 : int64_t(len[0])*len[1]);
+    int64_t numrs = (symrs ? int64_t(len[2])*(len[3]-1)/2 : int64_t(len[2])*len[3]);
 
     if (H.arena.rank == 0)
     {
-        vector<kv_pair> pairs;
-
-        ofs << printos("%20d", pairs.size()) << endl;
+        vector<kv_pair> pairs(numpq*numrs);
 
         for (auto& pair : pairs)
         {
-            int p = pair.k%len[0];
-            pair.k /= len[0];
-            int q = pair.k%len[1];
-            pair.k /= len[1];
-            int r = pair.k%len[2];
-            pair.k /= len[2];
-            int s = pair.k;
+            int p, q, r, s;
+            double value;
+            ifs >> value >> p >> r >> q >> s;
+            p--, r--, q--, s--;
+            pair.d = value;
 
             if (transpq)
             {
@@ -622,12 +719,51 @@ void CFOURGradient::readIntegrals(ifstream& ifs, CTFTensor<double>& H, bool tran
                 if (!symrs) swap(r, s);
             }
 
-            ofs << printos("%28.20e%4d%4d%4d%4d", pair.d, p, q, r, s) << endl;
+            assert(p >= 0 && p < len[0]);
+            assert(q >= 0 && q < len[1]);
+            assert(r >= 0 && r < len[2]);
+            assert(s >= 0 && s < len[3]);
+            if (sympq) assert(p < q);
+            if (symrs) assert(r < s);
+            pair.k = ((int64_t(s)*len[2]+r)*len[1]+q)*len[0]+p;
         }
+
+        H.writeRemoteData(pairs);
     }
     else
     {
-        D.getAllData(0);
+        H.writeRemoteData();
+    }
+}
+
+void CFOURGradient::readIntegrals(ifstream& ifs, CTFTensor<double>& H)
+{
+    auto& len = H.getLengths();
+
+    if (H.arena.rank == 0)
+    {
+        vector<kv_pair> pairs(len[0]*len[1]);
+
+        for (auto& pair : pairs)
+        {
+            int p, q, r, s;
+            double value;
+            ifs >> value >> p >> q >> r >> s;
+            p--, q--;
+            pair.d = value;
+
+            assert(p >= 0 && p < len[0]);
+            assert(q >= 0 && q < len[1]);
+            assert(r == 0);
+            assert(s == 0);
+            pair.k = int64_t(q)*len[0]+p;
+        }
+
+        H.writeRemoteData(pairs);
+    }
+    else
+    {
+        H.writeRemoteData();
     }
 }
 
@@ -636,7 +772,9 @@ void CFOURGradient::writeDensity()
     auto& D = get<TwoElectronOperator<double>>("D");
     auto& arena = D.arena;
 
-    ofstream ofs("CCDENSITIES");
+    ofstream ofs;
+
+    if (arena.rank == 0) ofs.open("CCDENSITIES");
 
     if (arena.rank == 0) ofs << " G(IJ,KL)" << endl;
     writeDensity(ofs, D.getIJKL()({0,2},{0,2})({0,0,0,0}), false, false);
@@ -759,7 +897,7 @@ void CFOURGradient::writeDensity()
 
     {
         CTFTensor<double> G(D.getAI()({1,0},{0,1})({0,0}));
-        G["pq"] += D.getIA()({0,1},{1,0})({0,0}))["qp"];
+        G["pq"] += D.getIA()({0,1},{1,0})({0,0})["qp"];
         if (arena.rank == 0) ofs << " D(A,I)  " << endl;
         writeDensity(ofs, G);
     }
@@ -772,7 +910,7 @@ void CFOURGradient::writeDensity()
 
     {
         CTFTensor<double> G(D.getAI()({0,0},{0,0})({0,0}));
-        G["pq"] += D.getIA()({0,0},{0,0})({0,0}))["qp"];
+        G["pq"] += D.getIA()({0,0},{0,0})({0,0})["qp"];
         if (arena.rank == 0) ofs << " D(a,i)  " << endl;
         writeDensity(ofs, G);
     }
@@ -786,34 +924,44 @@ void CFOURGradient::writeDensity(ofstream& ofs, const CTFTensor<double>& D, bool
 
     if (D.arena.rank == 0)
     {
-        vector<kv_pair> pairs;
+        vector<double> pairs;
         D.getAllData(pairs, 0);
 
         ofs << printos("%20d", pairs.size()) << endl;
 
-        for (auto& pair : pairs)
+        int64_t off = 0;
+        for (int ss = 0;ss < len[3];ss++)
         {
-            int p = pair.k%len[0];
-            pair.k /= len[0];
-            int q = pair.k%len[1];
-            pair.k /= len[1];
-            int r = pair.k%len[2];
-            pair.k /= len[2];
-            int s = pair.k;
-
-            if (transpq)
+            int maxr = (symrs ? ss : len[2]);
+            for (int rr = 0;rr < maxr;rr++)
             {
-                pair.d = -pair.d;
-                if (!sympq) swap(p, q);
-            }
+                for (int qq = 0;qq < len[1];qq++)
+                {
+                    int maxp = (sympq ? qq : len[0]);
+                    for (int pp = 0;pp < maxp;pp++)
+                    {
+                        int p = pp;
+                        int q = qq;
+                        int r = rr;
+                        int s = ss;
+                        double value = pairs[off++];
 
-            if (transrs)
-            {
-                pair.d = -pair.d;
-                if (!symrs) swap(r, s);
-            }
+                        if (transpq)
+                        {
+                            value = -value;
+                            if (!sympq) swap(p, q);
+                        }
 
-            ofs << printos("%28.20e%4d%4d%4d%4d", pair.d, p, q, r, s) << endl;
+                        if (transrs)
+                        {
+                            value = -value;
+                            if (!symrs) swap(r, s);
+                        }
+
+                        ofs << printos("%28.20e%4d%4d%4d%4d", value, p, q, r, s) << endl;
+                    }
+                }
+            }
         }
     }
     else
@@ -828,17 +976,18 @@ void CFOURGradient::writeDensity(ofstream& ofs, const CTFTensor<double>& D)
 
     if (D.arena.rank == 0)
     {
-        vector<kv_pair> pairs;
+        vector<double> pairs;
         D.getAllData(pairs, 0);
 
         ofs << printos("%20d", pairs.size()) << endl;
 
-        for (auto& pair : pairs)
+        int64_t off = 0;
+        for (int q = 0;q < len[1];q++)
         {
-            int p = pair.k%len[0];
-            int q = pair.k/len[0];
-
-            ofs << printos("%28.20e%4d%4d", pair.d, p, q) << endl;
+            for (int p = 0;p < len[0];p++)
+            {
+                ofs << printos("%28.20e%4d%4d", pairs[off++], p, q) << endl;
+            }
         }
     }
     else
@@ -849,28 +998,7 @@ void CFOURGradient::writeDensity(ofstream& ofs, const CTFTensor<double>& D)
 
 void CFOURGradient::clean()
 {
-    DIR* dir = opendir(".");
-    if (!dir)
-    {
-        perror("opendir");
-        abort();
-    }
-    while (true)
-    {
-        dirent* ent = readdir(dir);
-        if (!ent) break;
-        struct stat s;
-        lstat(ent->d_name, &s);
-        if (S_ISREG(s.st_mode))
-        {
-            if (unlink(ent->d_name))
-            {
-                perror("unlink");
-                abort();
-            }
-        }
-    }
-    closedir(dir);
+    system("rm -rf .cfour");
 }
 
 }
@@ -879,7 +1007,30 @@ void CFOURGradient::clean()
 static const char* spec = R"!(
 
 source
-    string
+    string,
+scf?
+{
+    frozen_core?
+        bool false,
+    convergence?
+        double 1e-7,
+    max_iterations?
+        int 150,
+    conv_type?
+        enum { MAXE, RMSE, MAE },
+    diis?
+    {
+        damping?
+            double 0.0,
+        start?
+            int 8,
+        order?
+            int 6,
+        jacobi?
+            bool false
+    }
+},
+*+
 
 )!";
 

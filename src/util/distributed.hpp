@@ -105,6 +105,8 @@ class Distributed
         }
 };
 
+const Arena& world();
+
 }
 
 #endif

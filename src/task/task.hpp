@@ -71,6 +71,12 @@ class Logger
         static ostream& warn(const Arena& arena);
 
         static ostream& error(const Arena& arena);
+
+        static ostream& log() { return log(world()); };
+
+        static ostream& warn() { return warn(world()); };
+
+        static ostream& error() { return error(world()); };
 };
 
 class Printer
@@ -352,8 +358,6 @@ class TaskDAG
 
         void parseTasks(const string& context, input::Config& config);
 
-        void satisfyRemainingRequirements(const Arena& world);
-
         void satisfyExplicitRequirements(const Arena& world);
 
     public:
@@ -361,9 +365,11 @@ class TaskDAG
 
         TaskDAG(const string& file);
 
-        void schedule(unique_ptr<Task>&& task);
+        Task& addTask(const Arena& arena, const string& type, const string& context, input::Config& config);
 
-        void execute(Arena& world);
+        Task& addTask(const Arena& arena, unique_ptr<Task>&& task);
+
+        void execute(const Arena& world);
 };
 
 class CompareScalars : public Task

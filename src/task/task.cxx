@@ -219,6 +219,7 @@ unique_ptr<Task> Task::createTask(const string& type, const string& name, input:
 {
     auto i = tasks().find(type);
     if (i == tasks().end()) throw logic_error("Task type " + type + " not found");
+    aquarius::get<0>(i->second).apply(config);
     unique_ptr<Task> t = aquarius::get<1>(i->second)(name, config);
     t->type = type;
     return t;
@@ -228,52 +229,40 @@ void TaskDAG::parseTasks(const string& context, Config& input)
 {
     for (auto& i : input.find<string>("section"))
     {
-        {
-            Config section = input.get("section." + i.second);
-            parseTasks(context+i.second+".", section);
-        }
+        Config section = input.get("section." + i.second);
+        parseTasks(context+i.second+".", section);
         input.remove("section");
     }
 
     for (auto& i : input.find("*"))
     {
         string type = i.first;
-
-        int num = 0;
-        for (Task& t : tasks)
-        {
-            if (t.getName().compare(0, context.size(), context) == 0 &&
-                t.getType() == type) num++;
-        }
-
         Config config = i.second.clone();
+        Config uconfig = i.second.clone();
 
-        string name = context + i.first + (num == 0 ? "" : str(num));
+        while (config.exists("using")) config.remove("using");
+
         if (config.exists("name"))
         {
-            name = config.get<string>("name");
+            string name = config.get<string>("name");
             if (name.find_first_of(".:") != string::npos)
                 Logger::error(Arena()) << "Task names may not contain any of '.:' (" << name << ")" << endl;
             name = context+name;
             config.remove("name");
-        }
 
-        for (Task& t : tasks)
+            addTask(world(), Task::createTask(type, name, config));
+        }
+        else
         {
-            if (t.getName() == name)
-                Logger::error(Arena()) << "More than one task with name " << name << endl;
+            addTask(world(), type, context, config);
         }
 
-        while (config.exists("using"))
+        while (uconfig.exists("using"))
         {
-            string u = config.get<string>("using");
-            Config c = config.get("using");
-            usings.emplace_back(name, u, c);
-            config.remove("using");
+            string u = uconfig.get<string>("using");
+            Config c = uconfig.get("using");
+            usings.emplace_back(tasks.back().getName(), u, c);
         }
-
-        Task::getSchema(i.first).apply(config);
-        tasks.push_back(Task::createTask(i.first, name, config));
     }
 }
 
@@ -284,71 +273,117 @@ TaskDAG::TaskDAG(const string& file)
     parseTasks("", input);
 }
 
-void TaskDAG::schedule(unique_ptr<Task>&& task)
+Task& TaskDAG::addTask(const Arena& arena, const string& type, const string& context, Config& config)
 {
-    tasks.push_back(move(task));
+    int num = 0;
+    for (Task& t : tasks)
+    {
+        if (t.getName().compare(0, context.size(), context) == 0 &&
+            t.getType() == type) num++;
+    }
+
+    string name = context + (!context.empty() && context.back() != '.' ? "." : "") +
+        type + (num == 0 ? "" : str(num));
+
+    return addTask(arena, Task::createTask(type, name, config));
 }
 
-void TaskDAG::satisfyRemainingRequirements(const Arena& world)
+Task& TaskDAG::addTask(const Arena& arena, unique_ptr<Task>&& task)
 {
-    /*
-     * Attempy to satisfy remaining task requirements greedily.
-     * If we are not careful, this could produce cycles.
-     */
-    for (Task& t1 : tasks)
+    for (Task& t : tasks)
     {
-        string context1;
-        size_t sep = t1.getName().find_last_of(".");
+        if (t.getName() == task->getName())
+            Logger::error(arena) << "More than one task with name " << task->getName() << endl;
+    }
+
+    cout << "Adding task " << task->getName() << endl;
+
+    Task& t1 = *task;
+
+    string context1;
+    size_t sep = t1.getName().find_last_of(".");
+    if (sep!=string::npos)
+    {
+        context1 = t1.getName().substr(0, sep+1);
+    }
+
+    for (Task& t2 : tasks)
+    {
+        string context2;
+        size_t sep = t2.getName().find_last_of(".");
         if (sep != string::npos)
         {
-            context1 = t1.getName().substr(0, sep+1);
+            context2 = t2.getName().substr(0, sep+1);
         }
+
+        bool t1_parent_of_t2 = (context2.compare(0, context1.size(), context1) == 0);
+        bool t2_parent_of_t1 = (context1.compare(0, context2.size(), context2) == 0);
+
         for (Product& p1 : t1.getProducts())
         {
+            for (Product& p2 : t2.getProducts())
+            {
+                for (Requirement& r2 : p2.getRequirements())
+                {
+                    if (t1_parent_of_t2)
+                    {
+                        cout << "Checking requirement " << r2.getName() << " of task " << t2.getName() <<
+                            " against product " << p1.getName() << " of task " << t1.getName() << endl;
+                        if (!r2.isFulfilled() && r2.getType() == p1.getType())
+                        {
+                            cout << "yes" << endl;
+                            r2.fulfil(p1);
+                        }
+                    }
+                }
+            }
+
             for (Requirement& r1 : p1.getRequirements())
             {
-                if (r1.isFulfilled()) continue;
-
-                if (r1.getType()=="double")
-                    Logger::error(world) << "scalar requirements must be explicitly fulfilled" << endl;
-
-                for (Task& t2 : tasks)
+                for (Product& p2 : t2.getProducts())
                 {
-                    if (&t1 == &t2) continue;
-
-                    string context2;
-                    size_t sep = t2.getName().find_last_of(".");
-                    if (sep!=string::npos)
+                    if (t2_parent_of_t1)
                     {
-                        context2 = t2.getName().substr(0, sep+1);
-                    }
-                    if (context1.compare(0, context2.size(), context2) != 0) continue;
-
-                    for (Product& p2 : t2.getProducts())
-                    {
-                        if (r1.isFulfilled()) continue;
-
-                        if (r1.getType() == p2.getType())
+                        cout << "Checking requirement " << r1.getName() << " of task " << t1.getName() <<
+                            " against product " << p2.getName() << " of task " << t2.getName() << endl;
+                        if (!r1.isFulfilled() && r1.getType() == p2.getType())
                         {
+                            cout << "yes" << endl;
                             r1.fulfil(p2);
                         }
-                        for (Requirement& r2 : p2.getRequirements())
-                        {
-                            if (r1.isFulfilled()) continue;
-                            if (!r2.isFulfilled()) continue;
+                    }
 
-                            if (r1.getType() == r2.getType())
+                    for (Requirement& r2 : p2.getRequirements())
+                    {
+                        if (t2_parent_of_t1)
+                        {
+                            cout << "Checking requirement " << r1.getName() << " of task " << t1.getName() <<
+                                " against requiremet " << r2.getName() << " of task " << t2.getName() << endl;
+                            if (!r1.isFulfilled() && r2.isFulfilled() && r1.getType() == r2.getType())
                             {
+                                cout << "yes" << endl;
                                 r1.fulfil(r2.get());
+                            }
+                        }
+
+                        if (t1_parent_of_t2)
+                        {
+                            cout << "Checking requirement " << r2.getName() << " of task " << t2.getName() <<
+                                " against requirement " << r1.getName() << " of task " << t1.getName() << endl;
+                            if (!r2.isFulfilled() && r1.isFulfilled() && r2.getType() == r1.getType())
+                            {
+                                cout << "yes" << endl;
+                                r2.fulfil(r1.get());
                             }
                         }
                     }
                 }
-                if (!r1.isFulfilled())
-                    Logger::error(world)<<"Could not fulfil requirement " << r1.getName() << " of task " << t1.getName() << endl;
             }
         }
     }
+
+    tasks.push_back(move(task));
+    return tasks.back();
 }
 
 void TaskDAG::satisfyExplicitRequirements(const Arena& world)
@@ -457,10 +492,9 @@ void TaskDAG::satisfyExplicitRequirements(const Arena& world)
     }
 }
 
-void TaskDAG::execute(Arena& world)
+void TaskDAG::execute(const Arena& world)
 {
     satisfyExplicitRequirements(world);
-    satisfyRemainingRequirements(world);
 
     //TODO: check for cycles
 
@@ -523,15 +557,18 @@ void TaskDAG::execute(Arena& world)
                     throw runtime_error(error);
                 }
 
-                for (Product& p : t.getProducts())
+                if (done)
                 {
-                    if (p.isUsed() && !p.exists())
-                        Logger::error(world) << "Product " << p.getName() <<
-                                                " of task " << t.getName() <<
-                                                " was not successfully produced" << endl;
-                }
+                    for (Product& p : t.getProducts())
+                    {
+                        if (p.isUsed() && !p.exists())
+                            Logger::error(world) << "Product " << p.getName() <<
+                                                    " of task " << t.getName() <<
+                                                    " was not successfully produced" << endl;
+                    }
 
-                if (done) i = tasks.perase(i);
+                    i = tasks.perase(i);
+                }
             }
             else
             {

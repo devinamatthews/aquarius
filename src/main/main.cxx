@@ -33,9 +33,7 @@ int main(int argc, char **argv)
     int status = 0;
 
     {
-        Arena world;
-
-        if (world.rank == 0)
+        if (world().rank == 0)
         {
             srand(::time(NULL));
             switch (rand()%5)
@@ -136,23 +134,23 @@ int main(int argc, char **argv)
             }
             printf("\n");
             printf("Running on %d process%s with %d thread%s%s\n\n",
-                   world.size,
-                   (world.size > 1 ? "es" : ""),
+                   world().size,
+                   (world().size > 1 ? "es" : ""),
                    omp_get_max_threads(),
                    (omp_get_max_threads() > 1 ? "s" : ""),
-                   (world.size > 1 ? " each" : ""));
+                   (world().size > 1 ? " each" : ""));
         }
 
         if (argc < 2)
         {
-            Logger::error(world) << "No input file specified." << endl << endl;
+            Logger::error() << "No input file specified." << endl << endl;
         }
         else
         {
             //try
             //{
                 TaskDAG dag(argv[1]);
-                dag.execute(world);
+                dag.execute(world());
             //}
             //catch (const runtime_error& e)
             //{
@@ -161,7 +159,7 @@ int main(int argc, char **argv)
             //}
         }
 
-        Timer::printTimers(world);
+        Timer::printTimers(world());
     }
 
     #ifdef HAVE_LIBINT2

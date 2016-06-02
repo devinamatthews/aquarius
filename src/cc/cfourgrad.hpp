@@ -15,6 +15,9 @@ namespace cc
 
 class CFOURGradient : public task::Task
 {
+    protected:
+        input::Config config;
+
     public:
         CFOURGradient(const string& name, input::Config& config);
 
@@ -28,9 +31,9 @@ class CFOURGradient : public task::Task
 
         void readIntegrals(const Arena& arena);
 
-        void readIntegrals(ifstream& ifs, const tensor::CTFTensor<double>& H, bool transpq, bool transrs);
+        void readIntegrals(ifstream& ifs, tensor::CTFTensor<double>& H, bool transpq, bool transrs);
 
-        void readIntegrals(ifstream& ifs, const tensor::CTFTensor<double>& H);
+        void readIntegrals(ifstream& ifs, tensor::CTFTensor<double>& H);
 
         void writeDensity();
 
