@@ -353,7 +353,7 @@ template <> bool aquarius::task::TaskFactory<type>::initialized = \
 class TaskDAG
 {
     protected:
-        unique_vector<Task> tasks;
+        unique_list<Task> tasks;
         vector<tuple<string,string,input::Config>> usings;
 
         void parseTasks(const string& context, input::Config& config);

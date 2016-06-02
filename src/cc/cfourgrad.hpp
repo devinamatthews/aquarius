@@ -31,15 +31,21 @@ class CFOURGradient : public task::Task
 
         void readIntegrals(const Arena& arena);
 
-        void readIntegrals(ifstream& ifs, tensor::CTFTensor<double>& H, bool transpq, bool transrs);
+        void readIntegrals(ifstream& ifs, tensor::CTFTensor<double>& H,
+                           int offp, int offq, int offr, int offs,
+                           bool transpq, bool transrs);
 
-        void readIntegrals(ifstream& ifs, tensor::CTFTensor<double>& H);
+        void readIntegrals(ifstream& ifs, tensor::CTFTensor<double>& H,
+                           int offp, int offq);
 
         void writeDensity();
 
-        void writeDensity(ofstream& ofs, const tensor::CTFTensor<double>& D, bool transpq, bool transrs);
+        void writeDensity(ofstream& ofs, const tensor::CTFTensor<double>& D,
+                          int offp, int offq, int offr, int offs,
+                          bool transpq, bool transrs);
 
-        void writeDensity(ofstream& ofs, const tensor::CTFTensor<double>& D);
+        void writeDensity(ofstream& ofs, const tensor::CTFTensor<double>& D,
+                          int offp, int offq);
 
         void clean();
 };

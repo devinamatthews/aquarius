@@ -238,31 +238,7 @@ void TaskDAG::parseTasks(const string& context, Config& input)
     {
         string type = i.first;
         Config config = i.second.clone();
-        Config uconfig = i.second.clone();
-
-        while (config.exists("using")) config.remove("using");
-
-        if (config.exists("name"))
-        {
-            string name = config.get<string>("name");
-            if (name.find_first_of(".:") != string::npos)
-                Logger::error(Arena()) << "Task names may not contain any of '.:' (" << name << ")" << endl;
-            name = context+name;
-            config.remove("name");
-
-            addTask(world(), Task::createTask(type, name, config));
-        }
-        else
-        {
-            addTask(world(), type, context, config);
-        }
-
-        while (uconfig.exists("using"))
-        {
-            string u = uconfig.get<string>("using");
-            Config c = uconfig.get("using");
-            usings.emplace_back(tasks.back().getName(), u, c);
-        }
+        addTask(world(), type, context, config);
     }
 }
 
@@ -275,29 +251,45 @@ TaskDAG::TaskDAG(const string& file)
 
 Task& TaskDAG::addTask(const Arena& arena, const string& type, const string& context, Config& config)
 {
-    int num = 0;
-    for (Task& t : tasks)
+    string name;
+    if (config.exists("name"))
     {
-        if (t.getName().compare(0, context.size(), context) == 0 &&
-            t.getType() == type) num++;
+        name = config.get<string>("name");
+        if (name.find_first_of(".:") != string::npos)
+            Logger::error(Arena()) << "Task names may not contain any of '.:' (" << name << ")" << endl;
+        name = context+name;
+        config.remove("name");
+    }
+    else
+    {
+        int num = 0;
+        for (Task& t : tasks)
+        {
+            if (t.getName().compare(0, context.size(), context) == 0 &&
+                t.getType() == type) num++;
+        }
+
+        name = context + (!context.empty() && context.back() != '.' ? "." : "") +
+            type + (num == 0 ? "" : str(num));
     }
 
-    string name = context + (!context.empty() && context.back() != '.' ? "." : "") +
-        type + (num == 0 ? "" : str(num));
-
-    return addTask(arena, Task::createTask(type, name, config));
-}
-
-Task& TaskDAG::addTask(const Arena& arena, unique_ptr<Task>&& task)
-{
-    for (Task& t : tasks)
+    while (config.exists("using"))
     {
-        if (t.getName() == task->getName())
-            Logger::error(arena) << "More than one task with name " << task->getName() << endl;
+        string u = config.get<string>("using");
+        Config c = config.get("using");
+        usings.emplace_back(tasks.back().getName(), u, c);
+        config.remove("using");
     }
 
-    cout << "Adding task " << task->getName() << endl;
+    for (Task& t : tasks)
+    {
+        if (t.getName() == name)
+            Logger::error(arena) << "More than one task with name " << name << endl;
+    }
 
+    cout << "Adding task " << name << endl;
+
+    auto task = Task::createTask(type, name, config);
     Task& t1 = *task;
 
     string context1;
@@ -316,8 +308,16 @@ Task& TaskDAG::addTask(const Arena& arena, unique_ptr<Task>&& task)
             context2 = t2.getName().substr(0, sep+1);
         }
 
-        bool t1_parent_of_t2 = (context2.compare(0, context1.size(), context1) == 0);
-        bool t2_parent_of_t1 = (context1.compare(0, context2.size(), context2) == 0);
+        //cout << context1 << " " << t1.getName() << endl;
+        //cout << context2 << " " << t2.getName() << endl;
+        //cout << (context2.compare(0, context1.size(), context1) == 0) <<
+        //        (context1.compare(0, t2.getName().size(), t2.getName()) == 0) <<
+        //        (context1.compare(0, context2.size(), context2) == 0) <<
+        //        (context2.compare(0, t1.getName().size(), t1.getName()) == 0) << endl;
+        bool t1_parent_of_t2 = context2.compare(0, context1.size(), context1) == 0 ||
+                               context1.compare(0, t2.getName().size(), t2.getName()) == 0;
+        bool t2_parent_of_t1 = context1.compare(0, context2.size(), context2) == 0 ||
+                               context2.compare(0, t1.getName().size(), t1.getName()) == 0;
 
         for (Product& p1 : t1.getProducts())
         {
@@ -327,11 +327,11 @@ Task& TaskDAG::addTask(const Arena& arena, unique_ptr<Task>&& task)
                 {
                     if (t1_parent_of_t2)
                     {
-                        cout << "Checking requirement " << r2.getName() << " of task " << t2.getName() <<
-                            " against product " << p1.getName() << " of task " << t1.getName() << endl;
+                        //cout << "Checking requirement " << r2.getName() << " of task " << t2.getName() <<
+                        //    " against product " << p1.getName() << " of task " << t1.getName() << endl;
                         if (!r2.isFulfilled() && r2.getType() == p1.getType())
                         {
-                            cout << "yes" << endl;
+                            //cout << "yes" << endl;
                             r2.fulfil(p1);
                         }
                     }
@@ -344,11 +344,11 @@ Task& TaskDAG::addTask(const Arena& arena, unique_ptr<Task>&& task)
                 {
                     if (t2_parent_of_t1)
                     {
-                        cout << "Checking requirement " << r1.getName() << " of task " << t1.getName() <<
-                            " against product " << p2.getName() << " of task " << t2.getName() << endl;
+                        //cout << "Checking requirement " << r1.getName() << " of task " << t1.getName() <<
+                        //    " against product " << p2.getName() << " of task " << t2.getName() << endl;
                         if (!r1.isFulfilled() && r1.getType() == p2.getType())
                         {
-                            cout << "yes" << endl;
+                            //cout << "yes" << endl;
                             r1.fulfil(p2);
                         }
                     }
@@ -357,22 +357,22 @@ Task& TaskDAG::addTask(const Arena& arena, unique_ptr<Task>&& task)
                     {
                         if (t2_parent_of_t1)
                         {
-                            cout << "Checking requirement " << r1.getName() << " of task " << t1.getName() <<
-                                " against requiremet " << r2.getName() << " of task " << t2.getName() << endl;
+                            //cout << "Checking requirement " << r1.getName() << " of task " << t1.getName() <<
+                            //    " against requiremet " << r2.getName() << " of task " << t2.getName() << endl;
                             if (!r1.isFulfilled() && r2.isFulfilled() && r1.getType() == r2.getType())
                             {
-                                cout << "yes" << endl;
+                                //cout << "yes" << endl;
                                 r1.fulfil(r2.get());
                             }
                         }
 
                         if (t1_parent_of_t2)
                         {
-                            cout << "Checking requirement " << r2.getName() << " of task " << t2.getName() <<
-                                " against requirement " << r1.getName() << " of task " << t1.getName() << endl;
+                            //cout << "Checking requirement " << r2.getName() << " of task " << t2.getName() <<
+                            //    " against requirement " << r1.getName() << " of task " << t1.getName() << endl;
                             if (!r2.isFulfilled() && r1.isFulfilled() && r2.getType() == r1.getType())
                             {
-                                cout << "yes" << endl;
+                                //cout << "yes" << endl;
                                 r2.fulfil(r1.get());
                             }
                         }
@@ -568,6 +568,10 @@ void TaskDAG::execute(const Arena& world)
                     }
 
                     i = tasks.perase(i);
+                }
+                else
+                {
+                    ++i;
                 }
             }
             else
