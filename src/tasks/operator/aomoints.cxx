@@ -399,7 +399,7 @@ pqrs_integrals<T> pqrs_integrals<T>::transform(Index index, const vector<int>& n
                                 for (int q = startq[irrepq];q < startq[irrepq]+nq[irrepq];q++)
                                 {
                                     double val = after[c][q];
-                                    if (aquarius::abs(val) > 1e-12)
+                                    if (std::abs(val) > 1e-12)
                                     {
                                         out.idxs.emplace_back(c, q, r, s);
                                         out.ints.push_back(val);
@@ -429,7 +429,7 @@ pqrs_integrals<T> pqrs_integrals<T>::transform(Index index, const vector<int>& n
                                 for (int c = startc[irrepc];c < startc[irrepc]+nc[irrepc];c++)
                                 {
                                     double val = after[p][c];
-                                    if (aquarius::abs(val) > 1e-12)
+                                    if (std::abs(val) > 1e-12)
                                     {
                                         out.idxs.emplace_back(p, c, r, s);
                                         out.ints.push_back(val);

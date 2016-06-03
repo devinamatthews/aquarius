@@ -216,16 +216,16 @@ template <capability_type C=0> class TensorInitializerList
          * Allow initialization of a new initializer list from another which has a
          * subset of capabilities.
          */
-        template <capability_type C_, typename=enable_if_t<IS_STRICT_SUPERSET_OF(C,C_)>>
-        TensorInitializerList(const TensorInitializerList<C_>& other)
+        template <capability_type C_>
+        TensorInitializerList(const TensorInitializerList<C_>& other, enable_if_t<IS_STRICT_SUPERSET_OF(C,C_)>* = nullptr)
         : map<capability_type, any>(other) {}
 
         /*
          * Allow initialization of a new initializer list from another which has
          * the same set or a superset of capabilities.
          */
-        template <capability_type C_, typename=enable_if_t<IS_SUPERSET_OF(C_,C)>>
-        TensorInitializerList(const TensorInitializerList<C_>& other)
+        template <capability_type C_>
+        TensorInitializerList(const TensorInitializerList<C_>& other, enable_if_t<IS_SUPERSET_OF(C_,C)>* = nullptr)
         {
             for (auto& i : other)
             {
@@ -281,13 +281,13 @@ template <capability_type C=0> class TensorInitializerList
             return ret;
         }
 
-        template <capability_type C_>
+        template <capability_type C_=0>
         TensorInitializer<C_>& as()
         {
             return this->at(C_).template get<TensorInitializer<C_>>();
         }
 
-        template <capability_type C_>
+        template <capability_type C_=0>
         const TensorInitializer<C_>& as() const
         {
             return const_cast<TensorInitializerList<C>&>(*this).as<C_>();
@@ -503,10 +503,26 @@ class TensorMult
          *
          *********************************************************************/
 
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        TensorMult operator*(T factor) const
+        {
+            TensorMult ret(*this);
+            ret.factor *= factor;
+            return ret;
+        }
+
         TensorMult operator*(const Scalar& factor) const
         {
             TensorMult ret(*this);
             ret.factor *= factor;
+            return ret;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        TensorMult operator/(T factor) const
+        {
+            TensorMult ret(*this);
+            ret.factor /= factor;
             return ret;
         }
 
@@ -515,6 +531,12 @@ class TensorMult
             TensorMult ret(*this);
             ret.factor /= factor;
             return ret;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        friend TensorMult operator*(T factor, const TensorMult& other)
+        {
+            return other*factor;
         }
 
         friend TensorMult operator*(const Scalar& factor, const TensorMult& other)
@@ -587,6 +609,14 @@ class ConstScaledTensor
          *
          *********************************************************************/
 
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        ConstScaledTensor operator*(T factor)
+        {
+            ConstScaledTensor it(*this);
+            it.factor *= factor;
+            return it;
+        }
+
         ConstScaledTensor operator*(const Scalar& factor) const
         {
             ConstScaledTensor it(*this);
@@ -594,9 +624,23 @@ class ConstScaledTensor
             return it;
         }
 
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        friend ConstScaledTensor operator*(T factor, const ConstScaledTensor& other)
+        {
+            return other*factor;
+        }
+
         friend ConstScaledTensor operator*(const Scalar& factor, const ConstScaledTensor& other)
         {
             return other*factor;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        ConstScaledTensor operator/(T factor) const
+        {
+            ConstScaledTensor it(*this);
+            it.factor /= factor;
+            return it;
         }
 
         ConstScaledTensor operator/(const Scalar& factor) const
@@ -643,33 +687,33 @@ class ScaledTensor : public ConstScaledTensor
         template <capability_type C>
         ScaledTensor& operator+=(const ConstTensor<C>& other)
         {
-            tensor.sum(1, conj_, other.impl(), factor);
+            tensor.sum(Scalar(1), conj_, other.impl(), factor);
             return *this;
         }
 
         template <capability_type C>
         ScaledTensor& operator-=(const ConstTensor<C>& other)
         {
-            tensor.sum(-1, conj_, other.impl(), factor);
+            tensor.sum(Scalar(-1), conj_, other.impl(), factor);
             return *this;
         }
 
         template <capability_type C>
         ScaledTensor& operator*=(const ConstTensor<C>& other)
         {
-            tensor.mult(factor, conj_, tensor, conj_, other.impl(), 0);
+            tensor.mult(factor, conj_, tensor, conj_, other.impl(), Scalar());
             return *this;
         }
 
         ScaledTensor& operator=(const ScaledTensor& other)
         {
-            tensor.sum(other.factor, conj_ != other.conj_, other.tensor, 0);
+            tensor.sum(other.factor, conj_ != other.conj_, other.tensor, Scalar());
             return *this;
         }
 
         ScaledTensor& operator=(const ConstScaledTensor& other)
         {
-            tensor.sum(other.factor, conj_ != other.conj_, other.tensor, 0);
+            tensor.sum(other.factor, conj_ != other.conj_, other.tensor, Scalar());
             return *this;
         }
 
@@ -687,7 +731,7 @@ class ScaledTensor : public ConstScaledTensor
 
         ScaledTensor& operator*=(const ConstScaledTensor& other)
         {
-            tensor.mult(factor*other.factor, conj_, tensor, conj_ != other.conj_, other.tensor, 0);
+            tensor.mult(factor*other.factor, conj_, tensor, conj_ != other.conj_, other.tensor, Scalar());
             return *this;
         }
 
@@ -699,7 +743,7 @@ class ScaledTensor : public ConstScaledTensor
 
         ScaledTensor& operator=(const TensorMult& other)
         {
-            tensor.mult(other.factor, conj_ != other.conja, other.A, conj_ != other.conjb, other.B, 0);
+            tensor.mult(other.factor, conj_ != other.conja, other.A, conj_ != other.conjb, other.B, Scalar());
             return *this;
         }
 
@@ -723,11 +767,31 @@ class ScaledTensor : public ConstScaledTensor
 
         using ConstScaledTensor::operator*;
 
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        ScaledTensor operator*(T factor)
+        {
+            ScaledTensor it(*this);
+            it.factor *= factor;
+            return it;
+        }
+
         ScaledTensor operator*(const Scalar& factor)
         {
             ScaledTensor it(*this);
             it.factor *= factor;
             return it;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        friend ScaledTensor operator*(T factor, ScaledTensor& other)
+        {
+            return other*factor;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        friend ScaledTensor operator*(T factor, ScaledTensor&& other)
+        {
+            return other*factor;
         }
 
         friend ScaledTensor operator*(const Scalar& factor, ScaledTensor& other)
@@ -742,6 +806,14 @@ class ScaledTensor : public ConstScaledTensor
 
         using ConstScaledTensor::operator/;
 
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        ScaledTensor operator/(T factor)
+        {
+            ScaledTensor it(*this);
+            it.factor /= factor;
+            return it;
+        }
+
         ScaledTensor operator/(const Scalar& factor)
         {
             ScaledTensor it(*this);
@@ -749,9 +821,23 @@ class ScaledTensor : public ConstScaledTensor
             return it;
         }
 
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        ScaledTensor& operator*=(T val)
+        {
+            tensor.scale(val*factor);
+            return *this;
+        }
+
         ScaledTensor& operator*=(const Scalar& val)
         {
             tensor.scale(val*factor);
+            return *this;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        ScaledTensor& operator/=(T val)
+        {
+            tensor.scale(factor/val);
             return *this;
         }
 
@@ -810,7 +896,7 @@ struct TensorConstructor : TensorInitBase<C>
     TensorConstructor(const INITIALIZER_TYPE(C)& ilist)
     : TensorInitBase<C>(ilist) {}
 
-    Tensor<(C&~C)> construct(const map<capability_type,shared_ptr<Destructible>>& m)
+    Tensor<(C&~C)> construct(const map<capability_type,any>& m)
     {
         INITIALIZER_TYPE(C) ilist(static_cast<const TensorImplementation<C>&>(*this));
 
@@ -1017,9 +1103,19 @@ class ConstTensor : public TensorWrapperBase<C^CONST_>
             return this->impl().R;
         }
 
+        bool is(capability_type C_) const
+        {
+            return IS_SUPERSET_OF(this->C, C_);
+        }
+
         static Tensor<C&(~CONST_)> construct(const INITIALIZER_TYPE(C)& init)
         {
             return detail::Construct<C&(~CONST_)>::construct(init);
+        }
+
+        static Tensor<C&(~CONST_)> construct(const string& name, const INITIALIZER_TYPE(C)& init)
+        {
+            return detail::Construct<C&(~CONST_)>::construct(TensorInitializer<>(name) << init);
         }
 
         struct Factory
@@ -1074,14 +1170,32 @@ class ConstTensor : public TensorWrapperBase<C^CONST_>
          *
          *********************************************************************/
 
-        friend ConstScaledTensor operator*(const Scalar& factor, const ConstTensor& other)
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        ConstScaledTensor operator*(T factor) const
         {
-            return other*factor;
+            return ConstScaledTensor(this->impl(), factor);
         }
 
         ConstScaledTensor operator*(const Scalar& factor) const
         {
             return ConstScaledTensor(this->impl(), factor);
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        friend ConstScaledTensor operator*(T factor, const ConstTensor& other)
+        {
+            return other*factor;
+        }
+
+        friend ConstScaledTensor operator*(const Scalar& factor, const ConstTensor& other)
+        {
+            return other*factor;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        ConstScaledTensor operator/(T factor) const
+        {
+            return (*this)*(1/factor);
         }
 
         ConstScaledTensor operator/(const Scalar& factor) const
@@ -1157,6 +1271,29 @@ class Tensor : public ConstTensor<C|CONST_>
 
         using ConstTensor<C|CONST_>::operator*;
 
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        ScaledTensor operator*(T factor)
+        {
+            return ScaledTensor(this->impl(), Scalar(factor));
+        }
+
+        ScaledTensor operator*(const Scalar& factor)
+        {
+            return ScaledTensor(this->impl(), factor);
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        friend ScaledTensor operator*(T factor, Tensor& other)
+        {
+            return other*factor;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        friend ScaledTensor operator*(T factor, Tensor&& other)
+        {
+            return other*factor;
+        }
+
         friend ScaledTensor operator*(const Scalar& factor, Tensor& other)
         {
             return other*factor;
@@ -1167,9 +1304,12 @@ class Tensor : public ConstTensor<C|CONST_>
             return other*factor;
         }
 
-        ScaledTensor operator*(const Scalar& factor)
+        using ConstTensor<C|CONST_>::operator/;
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        ScaledTensor operator/(T factor)
         {
-            return ScaledTensor(this->impl(), factor);
+            return (*this)*(1/Scalar(factor));
         }
 
         ScaledTensor operator/(const Scalar& factor)
@@ -1198,10 +1338,23 @@ class Tensor : public ConstTensor<C|CONST_>
          *
          *********************************************************************/
 
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        Tensor& operator*=(T val)
+        {
+            this->impl().scale(Scalar(val));
+            return *this;
+        }
+
         Tensor& operator*=(const Scalar& val)
         {
             this->impl().scale(val);
             return *this;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        Tensor& operator/=(T val)
+        {
+            return (*this) *= (1/Scalar(val));
         }
 
         Tensor& operator/=(const Scalar& val)

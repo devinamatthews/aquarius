@@ -296,8 +296,8 @@ class ComplexLinearKrylov
                 c_i -= olap_i*old_c_r[extrap];
             }
 
-            Scalar norm = sqrt(aquarius::abs((*innerProd)(c_r, c_r)) +
-                               aquarius::abs((*innerProd)(c_i, c_i)));
+            Scalar norm = sqrt(std::abs((*innerProd)(c_r, c_r)) +
+                               std::abs((*innerProd)(c_i, c_i)));
             c_r /= norm;
             c_i /= norm;
 

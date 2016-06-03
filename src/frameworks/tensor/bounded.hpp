@@ -81,13 +81,13 @@ class KeyValueVector
         {
             switch (F.type)
             {
-                case Field::SINGLE:   return  fvalues_[i]; break;
-                case Field::DOUBLE:   return  dvalues_[i]; break;
-                case Field::SCOMPLEX: return fcvalues_[i]; break;
-                case Field::DCOMPLEX: return dcvalues_[i]; break;
+                case Field::SINGLE:   return Scalar( fvalues_[i]); break;
+                case Field::DOUBLE:   return Scalar( dvalues_[i]); break;
+                case Field::SCOMPLEX: return Scalar(fcvalues_[i]); break;
+                case Field::DCOMPLEX: return Scalar(dcvalues_[i]); break;
             }
 
-            return 0.0;
+            return Scalar();
         }
 
         void value(size_type i, const Scalar& s)
@@ -96,10 +96,10 @@ class KeyValueVector
 
             switch (F.type)
             {
-                case Field::SINGLE:    fvalues_[i] = s.to<   float>(); break;
-                case Field::DOUBLE:    dvalues_[i] = s.to<  double>(); break;
-                case Field::SCOMPLEX: fcvalues_[i] = s.to<scomplex>(); break;
-                case Field::DCOMPLEX: dcvalues_[i] = s.to<dcomplex>(); break;
+                case Field::SINGLE:    fvalues_[i] = (   float)s; break;
+                case Field::DOUBLE:    dvalues_[i] = (  double)s; break;
+                case Field::SCOMPLEX: fcvalues_[i] = (scomplex)s; break;
+                case Field::DCOMPLEX: dcvalues_[i] = (dcomplex)s; break;
             }
         }
 
@@ -217,10 +217,10 @@ class KeyValueVector
 
             switch (F.type)
             {
-                case Field::SINGLE:    fvalues_.push_back(v.to<   float>()); break;
-                case Field::DOUBLE:    dvalues_.push_back(v.to<  double>()); break;
-                case Field::SCOMPLEX: fcvalues_.push_back(v.to<scomplex>()); break;
-                case Field::DCOMPLEX: dcvalues_.push_back(v.to<dcomplex>()); break;
+                case Field::SINGLE:    fvalues_.push_back((   float)v); break;
+                case Field::DOUBLE:    dvalues_.push_back((  double)v); break;
+                case Field::SCOMPLEX: fcvalues_.push_back((scomplex)v); break;
+                case Field::DCOMPLEX: dcvalues_.push_back((dcomplex)v); break;
             }
         }
 

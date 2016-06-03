@@ -84,7 +84,7 @@ class Product
             return data->get<T>();
         }
 
-        bool exists() const { return data; }
+        bool exists() const { return (bool)data; }
 
         template <typename... Args>
         void addRequirement(Args&&... args)

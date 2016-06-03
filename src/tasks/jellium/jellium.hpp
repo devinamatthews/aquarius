@@ -23,7 +23,7 @@ class Jellium : public task::Task
         double PotVm;
 
         void writeIntegrals(bool pvirt, bool qvirt, bool rvirt, bool svirt,
-                            tensor::Tensor<PGSYMMETRIC>& tensor);
+                            tensor::Tensor<PGSYMMETRIC> tensor);
 
     public:
         Jellium(const string& name, task::Config& config);

@@ -4,6 +4,8 @@
 #include "frameworks/util.hpp"
 
 #include "diagram.hpp"
+#include "line.hpp"
+#include "term.hpp"
 #include "fraction.hpp"
 #include "generator.hpp"
 
@@ -11,10 +13,6 @@ namespace aquarius
 {
 namespace autocc
 {
-
-class Term;
-class Line;
-class Manifold;
 
 class Operator;
 class BasicOperator;

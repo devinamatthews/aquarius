@@ -5,6 +5,8 @@
 #include "frameworks/symmetry.hpp"
 #include "frameworks/molecule.hpp"
 
+#include "context.hpp"
+
 namespace aquarius
 {
 
@@ -19,7 +21,7 @@ namespace integrals
 void transform(size_t nother, const matrix<double>& xa, const matrix<double>& xb,
                double* buf1, double* buf2);
 
-void transform(const matrix<double>& xa, const matrix<double>& xa, size_t nother,
+void transform(const matrix<double>& xa, const matrix<double>& xb, size_t nother,
                double* buf1, double* buf2);
 
 class OneElectronIntegrals

@@ -7,7 +7,7 @@ namespace aquarius
 namespace molecule
 {
 
-Shell::Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bool keep_contaminants,
+Shell::Shell(const Center& pos, int L, bool spherical, bool keep_contaminants,
              const vector<double>& exponents, const matrix<double>& coeffs)
 : center(pos), L(L), spherical(spherical), keep_contaminants(keep_contaminants),
   exponents(exponents), coefficients(coeffs)
@@ -20,13 +20,13 @@ Shell::Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bo
 
     vector<int> proj(order);
 
+    func_irrep.resize(nfunc, nirrep);
     irreps.resize(nfunc, vector<int>(nirrep));
-    func_irrep.resize(nfunc, vector<int>(nirrep));
-    irrep_pos.resize(nfunc, vector<int>(nirrep));
+    irrep_pos.resize(nfunc, nirrep);
 
     nfunc_per_irrep.resize(nirrep, 0);
 
-    parity.resize(nfunc, vector<int>(order));
+    parity.resize(nfunc, order);
 
     for (int op = 0;op < order;op++)
     {
@@ -114,6 +114,8 @@ Shell::Shell(const Center& pos, int L, int nprim, int ncontr, bool spherical, bo
      */
     const double PI2_N34 = 0.25197943553838073034791409490358;
 
+    int nprim = coefficients.length(0);
+    int ncontr = coefficients.length(1);
     for (int i = 0;i < ncontr;i++)
     {
         double norm = 0.0;

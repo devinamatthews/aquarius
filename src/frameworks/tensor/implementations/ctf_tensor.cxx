@@ -1,27 +1,25 @@
-#include "../../../frameworks/tensor/tensor.hpp"
+#include "ctf_tensor.hpp"
 
 namespace CTF_int { int cdealloc(void * ptr); }
 
 namespace aquarius
+{
+namespace tensor
 {
 
 static const CTF_int::algstrct& getCTFRing(Field F)
 {
     static CTF::Ring<      float, true>   sr;
     static CTF::Ring<     double, true>   dr;
-    static CTF::Ring<long double, true>  ldr;
     static CTF::Ring<   scomplex,false>  scr;
     static CTF::Ring<   dcomplex,false>  dcr;
-    static CTF::Ring<  ldcomplex,false> ldcr;
 
     switch (F.type)
     {
         case Field::SINGLE:    return   sr;
         case Field::DOUBLE:    return   dr;
-        case Field::LDOUBLE:   return  ldr;
         case Field::SCOMPLEX:  return  scr;
         case Field::DCOMPLEX:  return  dcr;
-        case Field::LDCOMPLEX: return ldcr;
     }
 
     return dr;
@@ -54,17 +52,11 @@ CTFTensor::CTFTensor(const INITIALIZER_TYPE(BOUNDED|IPSYMMETRIC|INDEXABLE|DISTRI
             case Field::DOUBLE:
                 scalar = new tCTF_Tensor<double>(0, NULL, NULL, arena.ctf<double>(), "scalar");
                 break;
-            case Field::LDOUBLE:
-                scalar = new tCTF_Tensor<long double>(0, NULL, NULL, arena.ctf<long double>(), "scalar");
-                break;
             case Field::SCOMPLEX:
                 scalar = new tCTF_Tensor<scomplex>(0, NULL, NULL, arena.ctf<scomplex>(), "scalar");
                 break;
             case Field::DCOMPLEX:
                 scalar = new tCTF_Tensor<dcomplex>(0, NULL, NULL, arena.ctf<dcomplex>(), "scalar");
-                break;
-            case Field::LDCOMPLEX:
-                scalar = new tCTF_Tensor<ldcomplex>(0, NULL, NULL, arena.ctf<ldcomplex>(), "scalar");
                 break;
        }
 
@@ -92,17 +84,11 @@ CTFTensor::~CTFTensor()
             case Field::DOUBLE:
                 delete static_cast<tCTF_Tensor<double>*>(it->second.second);
                 break;
-            case Field::LDOUBLE:
-                delete static_cast<tCTF_Tensor<long double>*>(it->second.second);
-                break;
             case Field::SCOMPLEX:
                 delete static_cast<tCTF_Tensor<scomplex>*>(it->second.second);
                 break;
             case Field::DCOMPLEX:
                 delete static_cast<tCTF_Tensor<dcomplex>*>(it->second.second);
-                break;
-            case Field::LDCOMPLEX:
-                delete static_cast<tCTF_Tensor<ldcomplex>*>(it->second.second);
                 break;
        }
 
@@ -162,12 +148,6 @@ Scalar CTFTensor::dot(bool conja, const TensorImplementation<>& A_, const string
             C.read(1, (char*)&p);
             return Scalar(p.d);
         }
-        case Field::LDOUBLE:
-        {
-            CTF::Pair<long double> p;
-            C.read(1, (char*)&p);
-            return Scalar(p.d);
-        }
         case Field::SCOMPLEX:
         {
             CTF::Pair<scomplex> p;
@@ -177,12 +157,6 @@ Scalar CTFTensor::dot(bool conja, const TensorImplementation<>& A_, const string
         case Field::DCOMPLEX:
         {
             CTF::Pair<dcomplex> p;
-            C.read(1, (char*)&p);
-            return Scalar(p.d);
-        }
-        case Field::LDCOMPLEX:
-        {
-            CTF::Pair<ldcomplex> p;
             C.read(1, (char*)&p);
             return Scalar(p.d);
         }
@@ -196,11 +170,11 @@ template <typename T> void div_(key_type n, T alpha, bool conja, const CTF::Pair
                                             T  beta,                   CTF::Pair<T>* C)
 {
     if (conja) if (conjb)
-        for (key_type i = 0;i < n;i++) C[i].d = beta*C[i].d + alpha*aquarius::conj(A[i].d)/aquarius::conj(B[i].d);
+        for (key_type i = 0;i < n;i++) C[i].d = beta*C[i].d + alpha*conj(A[i].d)/conj(B[i].d);
     else
-        for (key_type i = 0;i < n;i++) C[i].d = beta*C[i].d + alpha*aquarius::conj(A[i].d)/     B[i].d;
+        for (key_type i = 0;i < n;i++) C[i].d = beta*C[i].d + alpha*conj(A[i].d)/     B[i].d;
     else if (conjb)
-        for (key_type i = 0;i < n;i++) C[i].d = beta*C[i].d + alpha*     A[i].d /aquarius::conj(B[i].d);
+        for (key_type i = 0;i < n;i++) C[i].d = beta*C[i].d + alpha*     A[i].d /conj(B[i].d);
     else
         for (key_type i = 0;i < n;i++) C[i].d = beta*C[i].d + alpha*     A[i].d /     B[i].d;
 }
@@ -225,34 +199,24 @@ void CTFTensor::div(const Scalar& alpha, bool conja, const TensorImplementation<
     switch (F.type)
     {
         case Field::SINGLE:
-            div_<float>(nA, alpha.to<float>(), conja, (CTF::Pair<float>*)pA,
-                                               conjb, (CTF::Pair<float>*)pB,
-                             beta.to<float>(),        (CTF::Pair<float>*)pC);
+            div_<float>(nA, (float)alpha, conja, (CTF::Pair<float>*)pA,
+                                          conjb, (CTF::Pair<float>*)pB,
+                            (float) beta,        (CTF::Pair<float>*)pC);
             break;
         case Field::DOUBLE:
-            div_<double>(nA, alpha.to<double>(), conja, (CTF::Pair<double>*)pA,
-                                                 conjb, (CTF::Pair<double>*)pB,
-                              beta.to<double>(),        (CTF::Pair<double>*)pC);
-            break;
-        case Field::LDOUBLE:
-            div_<long double>(nA, alpha.to<long double>(), conja, (CTF::Pair<long double>*)pA,
-                                                           conjb, (CTF::Pair<long double>*)pB,
-                                   beta.to<long double>(),        (CTF::Pair<long double>*)pC);
+            div_<double>(nA, (double)alpha, conja, (CTF::Pair<double>*)pA,
+                                            conjb, (CTF::Pair<double>*)pB,
+                             (double) beta,        (CTF::Pair<double>*)pC);
             break;
         case Field::SCOMPLEX:
-            div_<scomplex>(nA, alpha.to<scomplex>(), conja, (CTF::Pair<scomplex>*)pA,
-                                                     conjb, (CTF::Pair<scomplex>*)pB,
-                                beta.to<scomplex>(),        (CTF::Pair<scomplex>*)pC);
+            div_<scomplex>(nA, (scomplex)alpha, conja, (CTF::Pair<scomplex>*)pA,
+                                                conjb, (CTF::Pair<scomplex>*)pB,
+                               (scomplex) beta,        (CTF::Pair<scomplex>*)pC);
             break;
         case Field::DCOMPLEX:
-            div_<dcomplex>(nA, alpha.to<dcomplex>(), conja, (CTF::Pair<dcomplex>*)pA,
-                                                     conjb, (CTF::Pair<dcomplex>*)pB,
-                                beta.to<dcomplex>(),        (CTF::Pair<dcomplex>*)pC);
-            break;
-        case Field::LDCOMPLEX:
-            div_<ldcomplex>(nA, alpha.to<ldcomplex>(), conja, (CTF::Pair<ldcomplex>*)pA,
-                                                       conjb, (CTF::Pair<ldcomplex>*)pB,
-                                 beta.to<ldcomplex>(),        (CTF::Pair<ldcomplex>*)pC);
+            div_<dcomplex>(nA, (dcomplex)alpha, conja, (CTF::Pair<dcomplex>*)pA,
+                                                conjb, (CTF::Pair<dcomplex>*)pB,
+                               (dcomplex) beta,        (CTF::Pair<dcomplex>*)pC);
             break;
     }
 
@@ -266,7 +230,7 @@ template <typename T> void invert_(key_type n, T alpha, bool conja, const CTF::P
                                                T  beta,                   CTF::Pair<T>* B)
 {
     if (conja)
-        for (key_type i = 0;i < n;i++) B[i].d = beta*B[i].d + alpha/aquarius::conj(A[i].d);
+        for (key_type i = 0;i < n;i++) B[i].d = beta*B[i].d + alpha/conj(A[i].d);
     else
         for (key_type i = 0;i < n;i++) B[i].d = beta*B[i].d + alpha/     A[i].d;
 }
@@ -287,28 +251,20 @@ void CTFTensor::invert(const Scalar& alpha, bool conja, const TensorImplementati
     switch (F.type)
     {
         case Field::SINGLE:
-            invert_<float>(nA, alpha.to<float>(), conja, (CTF::Pair<float>*)pA,
-                                beta.to<float>(),        (CTF::Pair<float>*)pB);
+            invert_<float>(nA, (float)alpha, conja, (CTF::Pair<float>*)pA,
+                               (float) beta,        (CTF::Pair<float>*)pB);
             break;
         case Field::DOUBLE:
-            invert_<double>(nA, alpha.to<double>(), conja, (CTF::Pair<double>*)pA,
-                                 beta.to<double>(),        (CTF::Pair<double>*)pB);
-            break;
-        case Field::LDOUBLE:
-            invert_<long double>(nA, alpha.to<long double>(), conja, (CTF::Pair<long double>*)pA,
-                                      beta.to<long double>(),        (CTF::Pair<long double>*)pB);
+            invert_<double>(nA, (double)alpha, conja, (CTF::Pair<double>*)pA,
+                                (double) beta,        (CTF::Pair<double>*)pB);
             break;
         case Field::SCOMPLEX:
-            invert_<scomplex>(nA, alpha.to<scomplex>(), conja, (CTF::Pair<scomplex>*)pA,
-                                   beta.to<scomplex>(),        (CTF::Pair<scomplex>*)pB);
+            invert_<scomplex>(nA, (scomplex)alpha, conja, (CTF::Pair<scomplex>*)pA,
+                                  (scomplex) beta,        (CTF::Pair<scomplex>*)pB);
             break;
         case Field::DCOMPLEX:
-            invert_<dcomplex>(nA, alpha.to<dcomplex>(), conja, (CTF::Pair<dcomplex>*)pA,
-                                   beta.to<dcomplex>(),        (CTF::Pair<dcomplex>*)pB);
-            break;
-        case Field::LDCOMPLEX:
-            invert_<ldcomplex>(nA, alpha.to<ldcomplex>(), conja, (CTF::Pair<ldcomplex>*)pA,
-                                    beta.to<ldcomplex>(),        (CTF::Pair<ldcomplex>*)pB);
+            invert_<dcomplex>(nA, (dcomplex)alpha, conja, (CTF::Pair<dcomplex>*)pA,
+                                  (dcomplex) beta,        (CTF::Pair<dcomplex>*)pB);
             break;
     }
 
@@ -389,10 +345,8 @@ void CTFTensor::getAllData(KeyValueVector& kv) const
     {
         case Field::SINGLE:    copy_n((      float*)d, n, kv.data<      float>()); break;
         case Field::DOUBLE:    copy_n((     double*)d, n, kv.data<     double>()); break;
-        case Field::LDOUBLE:   copy_n((long double*)d, n, kv.data<long double>()); break;
         case Field::SCOMPLEX:  copy_n((   scomplex*)d, n, kv.data<   scomplex>()); break;
         case Field::DCOMPLEX:  copy_n((   dcomplex*)d, n, kv.data<   dcomplex>()); break;
-        case Field::LDCOMPLEX: copy_n((  ldcomplex*)d, n, kv.data<  ldcomplex>()); break;
     }
 
     CTF_int::cdealloc(d);
@@ -416,17 +370,11 @@ void CTFTensor::getLocalKeys(KeyVector& keys) const
         case Field::DOUBLE:
             for (key_type i = 0;i < n;i++) keys[i] = ((CTF::Pair<     double>*)p)[i].k;
             break;
-        case Field::LDOUBLE:
-            for (key_type i = 0;i < n;i++) keys[i] = ((CTF::Pair<long double>*)p)[i].k;
-            break;
         case Field::SCOMPLEX:
             for (key_type i = 0;i < n;i++) keys[i] = ((CTF::Pair<   scomplex>*)p)[i].k;
             break;
         case Field::DCOMPLEX:
             for (key_type i = 0;i < n;i++) keys[i] = ((CTF::Pair<   dcomplex>*)p)[i].k;
-            break;
-        case Field::LDCOMPLEX:
-            for (key_type i = 0;i < n;i++) keys[i] = ((CTF::Pair<  ldcomplex>*)p)[i].k;
             break;
     }
 
@@ -460,14 +408,6 @@ void CTFTensor::getRemoteData(key_type n, key_type* keys, void* values) const
             for (key_type i = 0;i < n;i++) { keys[i] = p[i].k; ((double*)values)[i] = p[i].d; };
         }
         break;
-        case Field::LDOUBLE:
-        {
-            vector<CTF::Pair<long double>> p(n);
-            for (key_type i = 0;i < n;i++) p[i].k = keys[i];
-            ctf->read(n, (char*)p.data());
-            for (key_type i = 0;i < n;i++) { keys[i] = p[i].k; ((long double*)values)[i] = p[i].d; };
-        }
-        break;
         case Field::SCOMPLEX:
         {
             vector<CTF::Pair<scomplex>> p(n);
@@ -482,14 +422,6 @@ void CTFTensor::getRemoteData(key_type n, key_type* keys, void* values) const
             for (key_type i = 0;i < n;i++) p[i].k = keys[i];
             ctf->read(n, (char*)p.data());
             for (key_type i = 0;i < n;i++) { keys[i] = p[i].k; ((dcomplex*)values)[i] = p[i].d; };
-        }
-        break;
-        case Field::LDCOMPLEX:
-        {
-            vector<CTF::Pair<ldcomplex>> p(n);
-            for (key_type i = 0;i < n;i++) p[i].k = keys[i];
-            ctf->read(n, (char*)p.data());
-            for (key_type i = 0;i < n;i++) { keys[i] = p[i].k; ((ldcomplex*)values)[i] = p[i].d; };
         }
         break;
     }
@@ -529,13 +461,6 @@ void CTFTensor::addRemoteData(key_type n, const Scalar& alpha, const key_type* k
             ctf->write(n, (const char*)alpha.data(), (const char*)beta.data(), (char*)p.data());
         }
         break;
-        case Field::LDOUBLE:
-        {
-            vector<CTF::Pair<long double>> p(n);
-            for (key_type i = 0;i < n;i++) { p[i].k = keys[i]; p[i].d = ((long double*)values)[i]; };
-            ctf->write(n, (const char*)alpha.data(), (const char*)beta.data(), (char*)p.data());
-        }
-        break;
         case Field::SCOMPLEX:
         {
             vector<CTF::Pair<scomplex>> p(n);
@@ -547,13 +472,6 @@ void CTFTensor::addRemoteData(key_type n, const Scalar& alpha, const key_type* k
         {
             vector<CTF::Pair<dcomplex>> p(n);
             for (key_type i = 0;i < n;i++) { p[i].k = keys[i]; p[i].d = ((dcomplex*)values)[i]; };
-            ctf->write(n, (const char*)alpha.data(), (const char*)beta.data(), (char*)p.data());
-        }
-        break;
-        case Field::LDCOMPLEX:
-        {
-            vector<CTF::Pair<ldcomplex>> p(n);
-            for (key_type i = 0;i < n;i++) { p[i].k = keys[i]; p[i].d = ((ldcomplex*)values)[i]; };
             ctf->write(n, (const char*)alpha.data(), (const char*)beta.data(), (char*)p.data());
         }
         break;
@@ -586,12 +504,6 @@ Scalar CTFTensor::norm(int p) const
                     ctf->reduce_sumabs((char*)nrm.data(), &mmax);
                 }
                 break;
-                case Field::LDOUBLE:
-                {
-                    CTF::Monoid<long double,true> mmax(nrm.to<long double>(), CTF_int::default_max<long double,true>, MPI_MAX);
-                    ctf->reduce_sumabs((char*)nrm.data(), &mmax);
-                }
-                break;
                 case Field::SCOMPLEX:
                 {
                     CTF::Monoid<scomplex,true> mmax(nrm.to<scomplex>(), CTF_int::default_max<scomplex,true>, MPI_MAX);
@@ -601,12 +513,6 @@ Scalar CTFTensor::norm(int p) const
                 case Field::DCOMPLEX:
                 {
                     CTF::Monoid<dcomplex,true> mmax(nrm.to<dcomplex>(), CTF_int::default_max<dcomplex,true>, MPI_MAX);
-                    ctf->reduce_sumabs((char*)nrm.data(), &mmax);
-                }
-                break;
-                case Field::LDCOMPLEX:
-                {
-                    CTF::Monoid<ldcomplex,true> mmax(nrm.to<ldcomplex>(), CTF_int::default_max<ldcomplex,true>, MPI_MAX);
                     ctf->reduce_sumabs((char*)nrm.data(), &mmax);
                 }
                 break;
@@ -645,4 +551,5 @@ void CTFTensor::slice(const Scalar& alpha, bool conja, const vector<int>& start_
                A.ctf.get(), start_A.data(), end_B.data(), (const char*)alpha.data());
 }
 
+}
 }

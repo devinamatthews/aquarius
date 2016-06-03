@@ -161,12 +161,12 @@ TENSOR_INTERFACE(PGSYMMETRIC_)
 TENSOR_WRAPPER(PGSYMMETRIC_)
 {
     public:
-        const PointGroup& getPointGroup() const
+        const symmetry::PointGroup& getPointGroup() const
         {
             return this->template impl<PGSYMMETRIC>().getPointGroup();
         }
 
-        const Representation& getRepresentation() const
+        const symmetry::Representation& getRepresentation() const
         {
             return this->template impl<PGSYMMETRIC>().getRepresentation();
         }
@@ -476,12 +476,12 @@ TENSOR_DEFINITION(PGSYMMETRIC_)
     public:
         TensorDefinition(const INITIALIZER_TYPE(C)& ilist) : Base(ilist) {}
 
-        const PointGroup& getPointGroup() const
+        const symmetry::PointGroup& getPointGroup() const
         {
             return this->group;
         }
 
-        const Representation& getRepresentation() const
+        const symmetry::Representation& getRepresentation() const
         {
             return this->rep;
         }

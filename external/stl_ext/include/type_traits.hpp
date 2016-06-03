@@ -10,10 +10,6 @@ using std::decay;
 template <typename T>
 using decay_t = typename decay<T>::type;
 
-using std::common_type;
-template <typename T, typename U>
-using common_type_t = typename common_type<T,U>::type;
-
 using std::remove_const;
 template <typename T>
 using remove_const_t = typename remove_const<T>::type;
@@ -33,6 +29,16 @@ using conditional_t = typename conditional<T,U,V>::type;
 using std::enable_if;
 template <bool T, typename U=void>
 using enable_if_t = typename enable_if<T,U>::type;
+
+template <typename T, typename U, typename=void>
+struct common_type;
+template <typename T, typename U>
+struct common_type<T, U, enable_if_t<std::is_arithmetic<T>::value && std::is_arithmetic<U>::value>>
+{
+    typedef typename std::common_type<T,U>::type type;
+};
+template <typename T, typename U>
+using common_type_t = typename common_type<T,U>::type;
 
 using std::is_same;
 template <typename T, typename U>

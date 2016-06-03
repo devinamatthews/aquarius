@@ -6,19 +6,24 @@
 namespace aquarius
 {
 
+class Scalar;
+namespace tensor { class KeyValueVector; }
+
 typedef complex< float> scomplex;
 typedef complex<double> dcomplex;
 
-struct Ring
+class Ring
 {
-    const int type;
-    const size_t size;
+    public:
+        bool operator==(const Ring& other) const { return type == other.type; }
 
-    Ring(int type, size_t size) : type(type), size(size) {}
+        bool operator!=(const Ring& other) const { return type != other.type; }
 
-    bool operator==(const Ring& other) const { return type == other.type; }
+    protected:
+        Ring(int type, size_t size) : type(type), size(size) {}
 
-    bool operator!=(const Ring& other) const { return type != other.type; }
+        int type;
+        size_t size;
 };
 
 namespace detail
@@ -29,33 +34,37 @@ namespace detail
                                    sizeof(dcomplex)};
 }
 
-struct Field : Ring
+class Field : public Ring
 {
-    enum field : int {SINGLE=0, DOUBLE=1, SCOMPLEX=2, DCOMPLEX=3};
+    friend Scalar;
+    friend tensor::KeyValueVector;
 
-    Field(field F) : Ring(F, detail::field_sizes[F]) {}
+    public:
+        enum field : int {SINGLE=0, DOUBLE=1, SCOMPLEX=2, DCOMPLEX=3};
 
-    Field(const    float& val) : Ring(  SINGLE, sizeof(   float)) {}
-    Field(const   double& val) : Ring(  DOUBLE, sizeof(  double)) {}
-    Field(const scomplex& val) : Ring(SCOMPLEX, sizeof(scomplex)) {}
-    Field(const dcomplex& val) : Ring(DCOMPLEX, sizeof(dcomplex)) {}
+        Field(field F) : Ring(F, detail::field_sizes[F]) {}
 
-    static Datatype MPI_TYPE(const Field& F)
-    {
-        return MPI_TYPE((field)F.type);
-    }
+        Field(const    float& val) : Ring(  SINGLE, sizeof(   float)) {}
+        Field(const   double& val) : Ring(  DOUBLE, sizeof(  double)) {}
+        Field(const scomplex& val) : Ring(SCOMPLEX, sizeof(scomplex)) {}
+        Field(const dcomplex& val) : Ring(DCOMPLEX, sizeof(dcomplex)) {}
 
-    static Datatype MPI_TYPE(field F)
-    {
-        switch (F)
+        static Datatype MPI_TYPE(const Field& F)
         {
-            case   SINGLE: return MPI_TYPE_<   float>::value();
-            case   DOUBLE: return MPI_TYPE_<  double>::value();
-            case SCOMPLEX: return MPI_TYPE_<scomplex>::value();
-            case DCOMPLEX: return MPI_TYPE_<dcomplex>::value();
+            return MPI_TYPE((field)F.type);
         }
-        return MPI_TYPE_<double>::value();
-    }
+
+        static Datatype MPI_TYPE(field F)
+        {
+            switch (F)
+            {
+                case   SINGLE: return MPI_TYPE_<   float>::value();
+                case   DOUBLE: return MPI_TYPE_<  double>::value();
+                case SCOMPLEX: return MPI_TYPE_<scomplex>::value();
+                case DCOMPLEX: return MPI_TYPE_<dcomplex>::value();
+            }
+            return MPI_TYPE_<double>::value();
+        }
 };
 
 template <typename T> struct field_type           { static constexpr Field::field val =   Field::DOUBLE; };
@@ -73,7 +82,7 @@ template <>           struct is_field<dcomplex> :  true_type {};
 class Scalar
 {
     protected:
-        Field F;
+        Field F = Field::DOUBLE;
         union
         {
             float fval;
@@ -154,10 +163,10 @@ class Scalar
         {
             switch (s.F.type)
             {
-                case Field::SINGLE:   return Scalar(aquarius::abs( s.fval)); break;
-                case Field::DOUBLE:   return Scalar(aquarius::abs( s.dval)); break;
-                case Field::SCOMPLEX: return Scalar(aquarius::abs(s.fcval)); break;
-                case Field::DCOMPLEX: return Scalar(aquarius::abs(s.dcval)); break;
+                case Field::SINGLE:   return Scalar(std::abs( s.fval)); break;
+                case Field::DOUBLE:   return Scalar(std::abs( s.dval)); break;
+                case Field::SCOMPLEX: return Scalar(std::abs(s.fcval)); break;
+                case Field::DCOMPLEX: return Scalar(std::abs(s.dcval)); break;
             }
             return Scalar(0.0);
         }
@@ -357,37 +366,37 @@ class Scalar
                 case Field::SINGLE:
                     switch (s2.F.type)
                     {
-                        case Field::SINGLE:   return    float(s1.fval) <    float( s2.fval); break;
-                        case Field::DOUBLE:   return   double(s1.fval) <   double( s2.dval); break;
-                        case Field::SCOMPLEX: return scomplex(s1.fval) < scomplex(s2.fcval); break;
-                        case Field::DCOMPLEX: return dcomplex(s1.fval) < dcomplex(s2.dcval); break;
+                        case Field::SINGLE:   return  float(s1.fval) <  float(                        s2.fval); break;
+                        case Field::DOUBLE:   return double(s1.fval) < double(                        s2.dval); break;
+                        case Field::SCOMPLEX: return  float(s1.fval) <  float(s2.fcval.real()+s2.fcval.imag()); break;
+                        case Field::DCOMPLEX: return double(s1.fval) < double(s2.dcval.real()+s2.dcval.imag()); break;
                     }
                     break;
                 case Field::DOUBLE:
                     switch (s2.F.type)
                     {
-                        case Field::SINGLE:   return   double(s1.dval) <   double( s2.fval); break;
-                        case Field::DOUBLE:   return   double(s1.dval) <   double( s2.dval); break;
-                        case Field::SCOMPLEX: return dcomplex(s1.dval) < dcomplex(s2.fcval); break;
-                        case Field::DCOMPLEX: return dcomplex(s1.dval) < dcomplex(s2.dcval); break;
+                        case Field::SINGLE:   return double(s1.dval) < double(                        s2.fval); break;
+                        case Field::DOUBLE:   return double(s1.dval) < double(                        s2.dval); break;
+                        case Field::SCOMPLEX: return double(s1.dval) < double(s2.fcval.real()+s2.fcval.imag()); break;
+                        case Field::DCOMPLEX: return double(s1.dval) < double(s2.dcval.real()+s2.dcval.imag()); break;
                     }
                     break;
                 case Field::SCOMPLEX:
                     switch (s2.F.type)
                     {
-                        case Field::SINGLE:   return scomplex(s1.fcval) < scomplex( s2.fval); break;
-                        case Field::DOUBLE:   return dcomplex(s1.fcval) < dcomplex( s2.dval); break;
-                        case Field::SCOMPLEX: return scomplex(s1.fcval) < scomplex(s2.fcval); break;
-                        case Field::DCOMPLEX: return dcomplex(s1.fcval) < dcomplex(s2.dcval); break;
+                        case Field::SINGLE:   return  float(s1.fcval.real()+s1.fcval.imag()) <  float(                        s2.fval); break;
+                        case Field::DOUBLE:   return double(s1.fcval.real()+s1.fcval.imag()) < double(                        s2.dval); break;
+                        case Field::SCOMPLEX: return  float(s1.fcval.real()+s1.fcval.imag()) <  float(s2.fcval.real()+s2.fcval.imag()); break;
+                        case Field::DCOMPLEX: return double(s1.fcval.real()+s1.fcval.imag()) < double(s2.dcval.real()+s2.dcval.imag()); break;
                     }
                     break;
                 case Field::DCOMPLEX:
                     switch (s2.F.type)
                     {
-                        case Field::SINGLE:   return dcomplex(s1.dcval) < dcomplex( s2.fval); break;
-                        case Field::DOUBLE:   return dcomplex(s1.dcval) < dcomplex( s2.dval); break;
-                        case Field::SCOMPLEX: return dcomplex(s1.dcval) < dcomplex(s2.fcval); break;
-                        case Field::DCOMPLEX: return dcomplex(s1.dcval) < dcomplex(s2.dcval); break;
+                        case Field::SINGLE:   return double(s1.dcval.real()+s1.dcval.imag()) < double(                        s2.fval); break;
+                        case Field::DOUBLE:   return double(s1.dcval.real()+s1.dcval.imag()) < double(                        s2.dval); break;
+                        case Field::SCOMPLEX: return double(s1.dcval.real()+s1.dcval.imag()) < double(s2.fcval.real()+s2.fcval.imag()); break;
+                        case Field::DCOMPLEX: return double(s1.dcval.real()+s1.dcval.imag()) < double(s2.dcval.real()+s2.dcval.imag()); break;
                     }
                     break;
             }
@@ -548,10 +557,10 @@ class Scalar
 
             switch (F.type)
             {
-                case Field::SINGLE:    fval *= aquarius::abs(other); break;
-                case Field::DOUBLE:    dval *= aquarius::abs(other); break;
-                case Field::SCOMPLEX: fcval *=               other ; break;
-                case Field::DCOMPLEX: dcval *=               other ; break;
+                case Field::SINGLE:    fval *= std::abs(other); break;
+                case Field::DOUBLE:    dval *= std::abs(other); break;
+                case Field::SCOMPLEX: fcval *=          other ; break;
+                case Field::DCOMPLEX: dcval *=          other ; break;
             }
 
             return *this;
@@ -593,10 +602,10 @@ class Scalar
 
             switch (F.type)
             {
-                case Field::SINGLE:    fval /= aquarius::abs(other); break;
-                case Field::DOUBLE:    dval /= aquarius::abs(other); break;
-                case Field::SCOMPLEX: fcval /=               other ; break;
-                case Field::DCOMPLEX: dcval /=               other ; break;
+                case Field::SINGLE:    fval /= std::abs(other); break;
+                case Field::DOUBLE:    dval /= std::abs(other); break;
+                case Field::SCOMPLEX: fcval /=          other ; break;
+                case Field::DCOMPLEX: dcval /=          other ; break;
             }
 
             return *this;

@@ -127,7 +127,7 @@ size_t TwoElectronIntegrals::ShellBlock::process(const Context& ctx, const vecto
                                                     if (&a == &c && &b == &d && !(IDX_GT(i,r,e,k,t,g) ||
                                                         (IDX_EQ(i,r,e,k,t,g) && IDX_GE(j,s,f,l,u,h)))) bad = true;
 
-                                                    if (!bad && aquarius::abs(ints[m]) > cutoff)
+                                                    if (!bad && std::abs(ints[m]) > cutoff)
                                                     {
                                                         indices[n].i = ctx.getIndex(a, idxa, i, e, r);
                                                         indices[n].j = ctx.getIndex(b, idxb, j, f, s);

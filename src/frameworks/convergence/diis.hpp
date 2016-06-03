@@ -14,6 +14,12 @@ struct InnerProd
 {
     virtual ~InnerProd() {}
 
+    double operator()(tensor::Tensor<> a,
+                      tensor::Tensor<> b) const
+    {
+        return operator()(make_vector(a), make_vector(b));
+    }
+
     virtual double operator()(const vector<tensor::Tensor<>>& a,
                               const vector<tensor::Tensor<>>& b) const
     {

@@ -387,7 +387,7 @@ void EOMEECCSDT<U>::iterate(const Arena& arena)
     for (int i = 0;i < this->nsolution();i++)
     {
         this->energy(i) = energies[i];
-        this->conv(i) = max(aquarius::abs(energies[i]-previous[i]), Zs[i].norm(00));
+        this->conv(i) = max(std::abs(energies[i]-previous[i]), Zs[i].norm(00));
         previous[i] = energies[i];
     }
 }

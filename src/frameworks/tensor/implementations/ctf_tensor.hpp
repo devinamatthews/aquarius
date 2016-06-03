@@ -1,12 +1,14 @@
-#ifndef _AQUARIUS_TENSOR_CTF_TENSOR_HPP_
-#define _AQUARIUS_TENSOR_CTF_TENSOR_HPP_
+#ifndef _AQUARIUS_TENSOR_IMPLEMENTATIONS_CTF_TENSOR_HPP_
+#define _AQUARIUS_TENSOR_IMPLEMENTATIONS_CTF_TENSOR_HPP_
 
 #include "ctf.hpp"
 
-#include "../../../frameworks/tensor/tensor.hpp"
-#include "../../../frameworks/util/global.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/tensor.hpp"
 
 namespace aquarius
+{
+namespace tensor
 {
 
 class CTFTensor : public TensorImplementation<BOUNDED|IPSYMMETRIC|INDEXABLE|DISTRIBUTED|DIVISIBLE>
@@ -88,6 +90,7 @@ class CTFTensor : public TensorImplementation<BOUNDED|IPSYMMETRIC|INDEXABLE|DIST
         //}
 };
 
+}
 }
 
 #endif

@@ -7985,7 +7985,7 @@ fi
         include_package=no
     else
         if test x"$download" = xyes && test x"https://github.com/solomonik/ctf" != x; then
-            pkg_dir=src/external/ctf
+            pkg_dir=external/ctf
             if ! test -d $pkg_dir; then
                 { $as_echo "$as_me:${as_lineno-$LINENO}: downloading CTF from external Git repository..." >&5
 $as_echo "$as_me: downloading CTF from external Git repository..." >&6;}
@@ -8073,7 +8073,7 @@ else
 fi
 
 
- if test x"$ctf_INCLUDES" = x" -Isrc/external/ctf/include"; then
+ if test x"$ctf_INCLUDES" = x" -Iexternal/ctf/include"; then
   CTF_IS_LOCAL_TRUE=
   CTF_IS_LOCAL_FALSE='#'
 else
@@ -8118,7 +8118,7 @@ fi
         include_package=no
     else
         if test x"$download" = xyes && test x"" != x; then
-            pkg_dir=src/external/elemental
+            pkg_dir=external/elemental
             if ! test -d $pkg_dir; then
                 { $as_echo "$as_me:${as_lineno-$LINENO}: downloading Elemental from external Git repository..." >&5
 $as_echo "$as_me: downloading Elemental from external Git repository..." >&6;}
@@ -8243,7 +8243,7 @@ fi
         include_package=no
     else
         if test x"$download" = xyes && test x"" != x; then
-            pkg_dir=src/external/libint2
+            pkg_dir=external/libint2
             if ! test -d $pkg_dir; then
                 { $as_echo "$as_me:${as_lineno-$LINENO}: downloading libint2 from external Git repository..." >&5
 $as_echo "$as_me: downloading libint2 from external Git repository..." >&6;}

@@ -95,6 +95,9 @@ namespace aquarius
     using std::min;
     using std::max;
     using std::abs;
+    using std::sqrt;
+    using std::real;
+    using std::imag;
     using std::copy;
     using std::copy_n;
     using std::fill;

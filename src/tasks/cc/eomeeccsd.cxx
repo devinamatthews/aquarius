@@ -178,7 +178,7 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
                         Vs.emplace_back("V", arena, occ, vrt, group.getIrrep(i));
                         ExcitationOperator<U,2>& V = Vs.back();
                         davidson.getSolution(j, V);
-                        V /= sqrt(aquarius::abs(scalar(conj(V)*V)));
+                        V /= sqrt(std::abs(scalar(conj(V)*V)));
                     }
                 }
                 */
@@ -276,12 +276,12 @@ bool EOMEECCSD<U>::run(TaskDAG& dag, const Arena& arena)
 
                         sort(amps_sorted);
 
-                        double norm = sqrt(aquarius::abs(scalar(conj(R)*R)));
+                        double norm = sqrt(std::abs(scalar(conj(R)*R)));
 
                         if (arena.rank == 0)
                         {
                             cout << " " << endl;
-                            cout << "sqrt(aquarius::abs(scalar(conj(R)*R))) = " << norm << endl;
+                            cout << "sqrt(std::abs(scalar(conj(R)*R))) = " << norm << endl;
                             cout << " " << endl;
                             cout << "Root " << idx << " R1" << endl;
                             for (int ii=0; ii<30; ii++)

@@ -49,7 +49,7 @@ size_t MomentIntegrals::ShellBlock::process(const Context& ctx,
                                     continue;
                                 }
 
-                                if (aquarius::abs(ints[m]) > cutoff && (&a != &b || IDX_GE(i,r,e,j,s,f)))
+                                if (std::abs(ints[m]) > cutoff && (&a != &b || IDX_GE(i,r,e,j,s,f)))
                                 {
                                     indices[n].i = ctx.getIndex(a, idxa, i, e, r);
                                     indices[n].j = ctx.getIndex(b, idxb, j, f, s);

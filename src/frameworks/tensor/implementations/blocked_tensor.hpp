@@ -1,10 +1,12 @@
-#ifndef _AQUARIUS_TENSOR_BLOCKED_TENSOR_HPP_
-#define _AQUARIUS_TENSOR_BLOCKED_TENSOR_HPP_
+#ifndef _AQUARIUS_TENSOR_IMPLEMENTATIONS_BLOCKED_TENSOR_HPP_
+#define _AQUARIUS_TENSOR_IMPLEMENTATIONS_BLOCKED_TENSOR_HPP_
 
-#include "../../../frameworks/tensor/tensor.hpp"
-#include "../../../frameworks/util/global.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/tensor.hpp"
 
 namespace aquarius
+{
+namespace tensor
 {
 
 namespace detail
@@ -54,6 +56,41 @@ namespace detail
         return strides;
     }
 
+    template<typename RAIterator>
+    int relative_sign(RAIterator s1b, RAIterator s1e, RAIterator s2b, RAIterator s2e)
+    {
+        int sz = s1e-s1b;
+        assert(sz == (int)(s2e-s2b));
+        int i, k;
+        int sign = 1;
+        std::vector<bool> seen(sz);
+
+        for (i = 0;i < sz;i++) seen[i] = false;
+
+        for (i = 0;i < sz;i++)
+        {
+            if (seen[i]) continue;
+            int j = i;
+            while (true)
+            {
+                for (k = 0;k < sz && (!(s1b[k] == s2b[j]) || seen[k]);k++);
+                assert(k < sz);
+                j = k;
+                seen[j] = true;
+                if (j == i) break;
+                sign = -sign;
+            }
+        }
+
+        return sign;
+    }
+
+    template <typename Container>
+    int relative_sign(Container&& a, Container&& b)
+    {
+        return relative_sign(a.begin(), a.end(), b.begin(), b.end());
+    }
+
     struct index_locator_
     {
         int sort;
@@ -82,7 +119,7 @@ namespace detail
 
         bool operator==(int idx)
         {
-            return idx == idx;
+            return this->idx == idx;
         }
     };
 
@@ -477,6 +514,9 @@ class BlockedTensorBase : public Base
         vector<int> stride;
         vector<vector<int>> blocklen;
         unique_vector<SubTensor> tensors;
+        using TensorInitializer_::R;
+        using TensorInitializer<INDEXABLE_>::ndim;
+        using TensorInitializer<BOUNDED_>::len;
 
         void sortIntoBlocks(key_type n, const key_type* keys, const void* values,
                             vector<pair<vector<key_type>,vector<char>>>& kvs) const
@@ -568,7 +608,7 @@ class BlockedTensorBase : public Base
                     {
                         start_A_sub[i] = start_A[i][idx[i]];
                         start_B_sub[i] = start_B[i][idx[i]];
-                        len_sub[i] = len_per_irrep[i][idx[i]];
+                        len_sub[i] = blocklen[i][idx[i]];
                     }
 
                     tensors[off_A].*slice_func(alpha, conja, start_A_sub, A.tensors[off_A],
@@ -618,7 +658,7 @@ class BlockedTensorBase : public Base
 
         SubTensor& operator()(const vector<int>& idx)
         {
-            return *const_cast<SubTensor*>(const_cast<const BlockedTensor&>(*this).get(idx));
+            return *const_cast<SubTensor*>(const_cast<const BlockedTensorBase&>(*this).get(idx));
         }
 
         const SubTensor& operator()(const vector<int>& idx) const
@@ -1056,7 +1096,7 @@ class BlockedTensorBase : public Base
 
         void scale(const Scalar& alpha, const string& idx_A)
         {
-            string inds = uniq(idx_A);
+            string inds = uniqued(idx_A);
             vector<int> stride_A = detail::getStrides(inds, stride, idx_A);
 
             int m = inds.size();
@@ -1074,6 +1114,7 @@ class BlockedTensorBase : public Base
                     idx[i]++;
                     off_A += stride_A[i];
 
+                    int n = blocklen[i].size();
                     if (idx[i] == n)
                     {
                         idx[i] = 0;
@@ -1171,6 +1212,7 @@ class BlockedTensor<C, Base, enable_if_t<C&IPSYMMETRIC_>> : public BlockedTensor
         using BlockedTensorBase<C, Base>::tensors;
         using TensorInitializer<INDEXABLE_>::ndim;
         using TensorInitializer<IPSYMMETRIC_>::sym;
+        using typename BlockedTensorBase<C, Base>::SubTensor;
 
         void put(const vector<int>& idx, Tensor<C>&& t)
         {
@@ -1194,7 +1236,7 @@ class BlockedTensor<C, Base, enable_if_t<C&IPSYMMETRIC_>> : public BlockedTensor
                 if (first) alloced[off] = true;
                 tensors.ptr(off).reset(new SubTensor(t));
                 reorder[off] = r;
-                factor[off] = relative_sign(r, r0);
+                factor[off] = detail::relative_sign(r, r0);
 
                 for (int i = 0;;)
                 {
@@ -1521,12 +1563,12 @@ class BlockedTensor<C, Base, enable_if_t<C&IPSYMMETRIC_>> : public BlockedTensor
                     const vector<int>& subsym = tensors[off_A].getSymmetry();
                     for (int i = 0;i < ndim;)
                     {
-                        int j; for (j = i;sym[j] != NS;j++); j++;
+                        int j; for (j = i;sym[j] != NS;j++) continue; j++;
 
                         int m = j-i;
                         for (int k = i;k < j;)
                         {
-                            int l; for (l = k;subsym[l] != NS;l++); l++;
+                            int l; for (l = k;subsym[l] != NS;l++) continue; l++;
                             int o = l-k;
                             factor *= binom(m,o);
                             m -= o;
@@ -1585,6 +1627,7 @@ class BlockedTensor<C, Base, enable_if_t<!C&IPSYMMETRIC_>> : public BlockedTenso
         using BlockedTensorBase<C, Base>::blocklen;
         using BlockedTensorBase<C, Base>::tensors;
         using TensorInitializer<INDEXABLE_>::ndim;
+        using typename BlockedTensorBase<C, Base>::SubTensor;
 
         void put(const vector<int>& idx, Tensor<C>&& t)
         {
@@ -1782,8 +1825,8 @@ class BlockedTensor<C, Base, enable_if_t<!C&IPSYMMETRIC_>> : public BlockedTenso
                 }
             }
 
-            vector<int> stride_A = detail::getStrides(inds, A.stride, idx_A_);
-            vector<int> stride_B = detail::getStrides(inds,   stride, idx_B_);
+            vector<int> stride_A = detail::getStrides(inds, A.stride, idx_A);
+            vector<int> stride_B = detail::getStrides(inds,   stride, idx_B);
 
             Scalar total(this->F);
 
@@ -1838,7 +1881,7 @@ class BlockedTensor<C, Base, enable_if_t<!C&IPSYMMETRIC_>> : public BlockedTenso
 
                     if (p == 2)
                     {
-                        nrm += factor*subnrm*subnrm;
+                        nrm += subnrm*subnrm;
                     }
                     else if (p == 0)
                     {
@@ -1846,7 +1889,7 @@ class BlockedTensor<C, Base, enable_if_t<!C&IPSYMMETRIC_>> : public BlockedTenso
                     }
                     else if (p == 1)
                     {
-                        nrm += factor*subnrm;
+                        nrm += subnrm;
                     }
                 }
 
@@ -1874,6 +1917,7 @@ class BlockedTensor<C, Base, enable_if_t<!C&IPSYMMETRIC_>> : public BlockedTenso
         }
 };
 
+}
 }
 
 #endif

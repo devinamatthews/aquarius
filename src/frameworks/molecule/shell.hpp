@@ -18,7 +18,7 @@ class Shell
         bool keep_contaminants;
         matrix<int> func_irrep;
         matrix<int> irrep_pos;
-        matrix<int> irreps;
+        vector<vector<int>> irreps;
         vector<double> exponents;
         matrix<double> coefficients;
         matrix<int> parity;

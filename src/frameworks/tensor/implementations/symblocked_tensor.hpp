@@ -1,13 +1,15 @@
-#ifndef _AQUARIUS_TENSOR_SYMBLOCKED_TENSOR_HPP_
-#define _AQUARIUS_TENSOR_SYMBLOCKED_TENSOR_HPP_
+#ifndef _AQUARIUS_TENSOR_IMPLEMENTATIONS_SYMBLOCKED_TENSOR_HPP_
+#define _AQUARIUS_TENSOR_IMPLEMENTATIONS_SYMBLOCKED_TENSOR_HPP_
 
-#include "../../../frameworks/symmetry/symmetry.hpp"
-#include "../../../frameworks/task/task.hpp"
-#include "../../../frameworks/tensor/implementations/blocked_tensor.hpp"
-#include "../../../frameworks/tensor/tensor.hpp"
-#include "../../../frameworks/util/global.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/symmetry.hpp"
+#include "frameworks/tensor.hpp"
+
+#include "blocked_tensor.hpp"
 
 namespace aquarius
+{
+namespace tensor
 {
 
 /*
@@ -28,6 +30,7 @@ class SymmetryBlockedTensor : public BlockedTensor<C&~PGSYMMETRIC,TensorImplemen
         using Base::operator();
         using TensorInitializer<INDEXABLE_>::ndim;
         using TensorInitializer<PGSYMMETRIC_>::group;
+        using TensorInitializer<PGSYMMETRIC_>::rep;
         using TensorInitializer<PGSYMMETRIC_>::len_per_irrep;
 
         template <typename SubFactory, capability_type C_>
@@ -36,14 +39,14 @@ class SymmetryBlockedTensor : public BlockedTensor<C&~PGSYMMETRIC,TensorImplemen
             INITIALIZER_TYPE(C&~(PGSYMMETRIC|BOUNDED|IPSYMMETRIC)) subinit(init);
 
             int n = group.getNumIrreps();
-            vector<Representation> irreps;
+            vector<symmetry::Representation> irreps;
             for (int i = 0;i < n;i++) irreps.push_back(group.getIrrep(i));
 
             vector<int> idx(ndim);
             vector<int> sublen(ndim);
             vector<int> subsym(ndim);
-            vector<Representation> prod(ndim+1, rep);
-            for (bool done = false;!done;t++)
+            vector<symmetry::Representation> prod(ndim+1, rep);
+            for (bool done = false;!done;)
             {
                 if (prod[0].isTotallySymmetric())
                 {
@@ -87,13 +90,13 @@ class SymmetryBlockedTensor : public BlockedTensor<C&~PGSYMMETRIC,TensorImplemen
             INITIALIZER_TYPE(C&~(PGSYMMETRIC|BOUNDED)) subinit(init);
 
             int n = group.getNumIrreps();
-            vector<Representation> irreps;
+            vector<symmetry::Representation> irreps;
             for (int i = 0;i < n;i++) irreps.push_back(group.getIrrep(i));
 
             vector<int> idx(ndim);
             vector<int> sublen(ndim);
-            vector<Representation> prod(ndim+1, rep);
-            for (bool done = false;!done;t++)
+            vector<symmetry::Representation> prod(ndim+1, rep);
+            for (bool done = false;!done;)
             {
                 if (prod[0].isTotallySymmetric())
                 {
@@ -237,6 +240,7 @@ class SymmetryBlockedTensor : public BlockedTensor<C&~PGSYMMETRIC,TensorImplemen
         }
 };
 
+}
 }
 
 #endif

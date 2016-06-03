@@ -117,15 +117,43 @@ template <> class TensorInitializer<SPINORBITAL>
                           const vector<int>& nannihilation,
                           int spin = 0)
         {
-                addInitializer(TensorInitializer<IPSYMMETRIC_>(detail::getSymmetry(ncreation,
-                                                                                   nannihilation)));
-                addInitializer(TensorInitializer<BOUNDED_>(detail::getLengths(nalpha, nbeta,
-                                                                              ncreation,
-                                                                              nannihilation)));
-                addInitializer(TensorInitializer<SPINORBITAL_>(nalpha, nbeta, ncreation,
-                                                               nannihilation, spin));
+            addInitializer(TensorInitializer<IPSYMMETRIC_>(detail::getSymmetry(ncreation,
+                                                                               nannihilation)));
+            addInitializer(TensorInitializer<BOUNDED_>(detail::getLengths(nalpha, nbeta,
+                                                                          ncreation,
+                                                                          nannihilation)));
+            addInitializer(TensorInitializer<SPINORBITAL_>(nalpha, nbeta, ncreation,
+                                                           nannihilation, spin));
+        }
+
+        TensorInitializer(const vector<int>& nalpha,
+                          const vector<int>& nbeta)
+        {
+            addInitializer(TensorInitializer<IPSYMMETRIC_>({}));
+            addInitializer(TensorInitializer<BOUNDED_>({}));
+            addInitializer(TensorInitializer<SPINORBITAL_>(nalpha, nbeta, {}, {}, 0));
+        }
+
+        template <capability_type C, typename=enable_if_t< IS_SUPERSET_OF(C,SPINORBITAL) &&
+                                                          !IS_SUPERSET_OF(C,PGSYMMETRIC)>>
+        TensorInitializer(const TensorInitializerList<C>& ilist,
+                          const vector<int>& ncreation,
+                          const vector<int>& nannihilation,
+                          int spin = 0)
+        {
+            addInitializer(TensorInitializer<IPSYMMETRIC_>(detail::getSymmetry(ncreation,
+                                                                               nannihilation)));
+            addInitializer(TensorInitializer<BOUNDED_>(detail::getLengths(ilist.template as<SPINORBITAL_>().nalpha,
+                                                                          ilist.template as<SPINORBITAL_>().nbeta,
+                                                                          ncreation,
+                                                                          nannihilation)));
+            addInitializer(TensorInitializer<SPINORBITAL_>(ilist.template as<SPINORBITAL_>().nalpha,
+                                                           ilist.template as<SPINORBITAL_>().nbeta,
+                                                           ncreation, nannihilation, spin));
         }
 };
+
+typedef TensorInitializerList<SPINORBITAL> SOInit;
 
 template <> class TensorInitializer<SPINORBITAL|PGSYMMETRIC>
 : public TensorInitializerList<SPINORBITAL|PGSYMMETRIC>
@@ -150,10 +178,20 @@ template <> class TensorInitializer<SPINORBITAL|PGSYMMETRIC>
 
         TensorInitializer(const symmetry::PointGroup& group,
                           const vector<vector<int>>& nalpha,
+                          const vector<vector<int>>& nbeta)
+        {
+            addInitializer(TensorInitializer<PGSYMMETRIC_>(group));
+            addInitializer(TensorInitializer<IPSYMMETRIC_>({}));
+            addInitializer(TensorInitializer<BOUNDED_>({}));
+            addInitializer(TensorInitializer<SPINORBITAL_>(nalpha, nbeta, {}, {}, 0));
+        }
+
+        TensorInitializer(const symmetry::PointGroup& group,
+                          const symmetry::Representation& rep,
+                          const vector<vector<int>>& nalpha,
                           const vector<vector<int>>& nbeta,
                           const vector<int>& ncreation,
                           const vector<int>& nannihilation,
-                          const symmetry::Representation& rep,
                           int spin = 0)
         {
             addInitializer(TensorInitializer<PGSYMMETRIC_>(group, rep));
@@ -165,7 +203,38 @@ template <> class TensorInitializer<SPINORBITAL|PGSYMMETRIC>
             addInitializer(TensorInitializer<SPINORBITAL_>(nalpha, nbeta, ncreation,
                                                            nannihilation, spin));
         }
+
+        TensorInitializer(const symmetry::PointGroup& group,
+                          const symmetry::Representation& rep,
+                          const vector<vector<int>>& nalpha,
+                          const vector<vector<int>>& nbeta)
+        {
+            addInitializer(TensorInitializer<PGSYMMETRIC_>(group, rep));
+            addInitializer(TensorInitializer<IPSYMMETRIC_>({}));
+            addInitializer(TensorInitializer<BOUNDED_>({}));
+            addInitializer(TensorInitializer<SPINORBITAL_>(nalpha, nbeta, {}, {}, 0));
+        }
+
+        template <capability_type C, typename=enable_if_t<IS_SUPERSET_OF(C,SPINORBITAL) &&
+                                                          IS_SUPERSET_OF(C,PGSYMMETRIC)>>
+        TensorInitializer(const TensorInitializerList<C>& ilist,
+                          const vector<int>& ncreation,
+                          const vector<int>& nannihilation,
+                          int spin = 0)
+        {
+                addInitializer(TensorInitializer<IPSYMMETRIC_>(detail::getSymmetry(ncreation,
+                                                                                   nannihilation)));
+                addInitializer(TensorInitializer<BOUNDED_>(detail::getLengths(ilist.template as<SPINORBITAL_>().nalpha,
+                                                                              ilist.template as<SPINORBITAL_>().nbeta,
+                                                                              ncreation,
+                                                                              nannihilation)));
+                addInitializer(TensorInitializer<SPINORBITAL_>(ilist.template as<SPINORBITAL_>().nalpha_per_irrep,
+                                                               ilist.template as<SPINORBITAL_>().nbeta_per_irrep,
+                                                               ncreation, nannihilation, spin));
+        }
 };
+
+typedef TensorInitializerList<SPINORBITAL|PGSYMMETRIC> SOPGInit;
 
 TENSOR_INTERFACE(SPINORBITAL_)
 {

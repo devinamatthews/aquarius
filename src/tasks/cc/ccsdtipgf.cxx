@@ -182,8 +182,8 @@ bool CCSDTIPGF<U>::run(TaskDAG& dag, const Arena& arena)
         Rr = b;
         Ri = 0;
         D.weight(Rr, Ri, omega);
-        U norm = sqrt(aquarius::abs(scalar(Rr*Rr)) +
-                      aquarius::abs(scalar(Ri*Ri)));
+        U norm = sqrt(std::abs(scalar(Rr*Rr)) +
+                      std::abs(scalar(Ri*Ri)));
         Rr /= norm;
         Ri /= norm;
 

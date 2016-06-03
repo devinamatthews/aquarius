@@ -117,7 +117,7 @@ class HGP
 
         int nabcd = na*nb*nc*nd;
 
-        marray<double,4> xtable({le1+1,lf1+1,vmax+1,nabcd});
+        marray<double,4> xtable(le1+1, lf1+1, vmax+1, nabcd);
 
         matrix<double> efac(3, nabcd);
         matrix<double> ffac(3, nabcd);
@@ -131,6 +131,9 @@ class HGP
 
         FmGamma fm;
         vector<double> ssssm(vmax+1);
+
+        marray_view<double,4> integral((ld+1)*(ld+2)/2, (lc+1)*(lc+2)/2,
+                                       (lb+1)*(lb+2)/2, (la+1)*(la+2)/2, integrals);
 
         for (int e = 0, i = 0;e < na;e++)
         {
@@ -197,13 +200,13 @@ class HGP
                                   s1fac, t1fac, s2fac, t2fac, gfac,
                                   xtable[range(ex+ey,le1+1)][range(fx+fy,lf1+1)]);
 
-                        int fxyz = ???;
+                        int fxyz = 0;
                         for (int fz = lf1-fx-fy;fz >= max(0,lf0-fx-fy);fz--)
                         {
-                            int exyz = ???;
+                            int exyz = 0;
                             for (int ez = le1-ex-ey;ez >= max(0,le0-ex-ey);ez--)
                             {
-                                integral[exyz][0][fxyz][0] = xtable[ex+ey+ez][fx+fy+fz][0];
+                                integral[exyz][0][fxyz][0] = xtable[ex+ey+ez][fx+fy+fz][0][0];
                             }
                         }
                     }
@@ -212,23 +215,23 @@ class HGP
         }
     }
 
-    void filltable(marray<double,1>&& efac, marray<double,1>&& ffac,
-                   marray<double,1>&& pfac, marray<double,1>&& qfac,
-                   const row<double>& s1fac, const row<double>& t1fac,
-                   const row<double>& s2fac, const row<double>& t2fac,
-                   const row<double>& gfac,
-                   marray<double,4>&& table);
+    void filltable(row_view<double>&& efac, row_view<double>&& ffac,
+                   row_view<double>&& pfac, row_view<double>&& qfac,
+                   const row_view<double>& s1fac, const row_view<double>& t1fac,
+                   const row_view<double>& s2fac, const row_view<double>& t2fac,
+                   const row_view<double>& gfac,
+                   marray_view<double,4>&& table)
     {
         filltable(move(efac), move(ffac), move(pfac), move(qfac),
                   s1fac, t1fac, s2fac, t2fac, gfac, table);
     }
 
-    void filltable(marray<double,1>&& efac, marray<double,1>&& ffac,
-                   marray<double,1>&& pfac, marray<double,1>&& qfac,
-                   const row<double>& s1fac, const row<double>& t1fac,
-                   const row<double>& s2fac, const row<double>& t2fac,
-                   const row<double>& gfac,
-                   marray<double,4>& table);
+    void filltable(row_view<double>&& efac, row_view<double>&& ffac,
+                   row_view<double>&& pfac, row_view<double>&& qfac,
+                   const row_view<double>& s1fac, const row_view<double>& t1fac,
+                   const row_view<double>& s2fac, const row_view<double>& t2fac,
+                   const row_view<double>& gfac,
+                   marray_view<double,4>& table)
     {
         int le = table.length(0)-1;
         int lf = table.length(1)-1;
@@ -329,7 +332,7 @@ class HGP
             }
         }
     }
-}
+};
 
 }
 }

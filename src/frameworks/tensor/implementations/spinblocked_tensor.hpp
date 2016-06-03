@@ -1,11 +1,13 @@
-#ifndef _AQUARIUS_TENSOR_SPINBLOCKED_TENSOR_HPP_
-#define _AQUARIUS_TENSOR_SPINBLOCKED_TENSOR_HPP_
+#ifndef _AQUARIUS_TENSOR_IMPLEMENTATIONS_SPINBLOCKED_TENSOR_HPP_
+#define _AQUARIUS_TENSOR_IMPLEMENTATIONS_SPINBLOCKED_TENSOR_HPP_
 
-#include "../../../frameworks/autocc/autocc.hpp"
-#include "../../../frameworks/tensor/tensor.hpp"
-#include "../../../frameworks/util/global.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/autocc.hpp"
+#include "frameworks/tensor.hpp"
 
 namespace aquarius
+{
+namespace tensor
 {
 
 template <capability_type C> class SpinBlockedTensor;
@@ -186,9 +188,14 @@ class SpinBlockedTensor : public BlockedTensor<C&~SPINORBITAL_,TensorImplementat
                             alpha_annihilation[whichin[i]]++;
                         }
 
+                        vector<int> beta_creation = ncreation;
+                        vector<int> beta_annihilation = nannihilation;
+
                         bool ok = true;
                         for (int i = 0;i < nspaces;i++)
                         {
+                            beta_creation[i] -= alpha_creation[i];
+                            beta_annihilation[i] -= alpha_annihilation[i];
                             if (alpha_creation[i] > ncreation[i] ||
                                 alpha_annihilation[i] > nannihilation[i])
                             {
@@ -281,7 +288,7 @@ class SpinBlockedTensor : public BlockedTensor<C&~SPINORBITAL_,TensorImplementat
             sliceByBlock(alpha, conja, start_A, A, beta, start_B, length, SubTensor::slice);
         }
 
-        void sliceBySpinAndIrrep(const Scalar& alpha, bool conja, const vector<vector<vector<int>>>& start_A, const TensorImplementation<>& A_,
+        void sliceBySpinAndIrrep(const Scalar& alpha, bool conja, const vector<vector<vector<int>>>& start_A, const TensorImplementation<>& A,
                                  const Scalar&  beta,             const vector<vector<vector<int>>>& start_B, const vector<vector<vector<int>>>& length)
         {
             sliceByBlock(alpha, conja, start_A, A, beta, start_B, length, SubTensor::sliceByIrrep);
@@ -444,6 +451,7 @@ class SpinBlockedTensor : public BlockedTensor<C&~SPINORBITAL_,TensorImplementat
         }
 };
 
+}
 }
 
 #endif

@@ -40,7 +40,7 @@ AC_DEFINE_UNQUOTED([TOPDIR], [$topdir], [The top source directory.])
 AQ_WITH_PACKAGE([CTF], [https://github.com/solomonik/ctf],
                 [ctf.hpp], [],
                 [CTF_linked], [-lctf])
-AM_CONDITIONAL([CTF_IS_LOCAL], [test x"$ctf_INCLUDES" = x" -Isrc/external/ctf/include"])
+AM_CONDITIONAL([CTF_IS_LOCAL], [test x"$ctf_INCLUDES" = x" -Iexternal/ctf/include"])
 
 #
 # Check for Elemental

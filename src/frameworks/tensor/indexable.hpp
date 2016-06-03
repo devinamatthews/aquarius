@@ -149,10 +149,37 @@ class IndexedTensorMult
          *
          *********************************************************************/
 
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        IndexedTensorMult operator*(T factor) const
+        {
+            IndexedTensorMult ret(*this);
+            ret.factor *= factor;
+            return ret;
+        }
+
         IndexedTensorMult operator*(const Scalar& factor) const
         {
             IndexedTensorMult ret(*this);
             ret.factor *= factor;
+            return ret;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        friend IndexedTensorMult operator*(T factor, const IndexedTensorMult& other)
+        {
+            return other*factor;
+        }
+
+        friend IndexedTensorMult operator*(const Scalar& factor, const IndexedTensorMult& other)
+        {
+            return other*factor;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        IndexedTensorMult operator/(T factor) const
+        {
+            IndexedTensorMult ret(*this);
+            ret.factor /= factor;
             return ret;
         }
 
@@ -161,11 +188,6 @@ class IndexedTensorMult
             IndexedTensorMult ret(*this);
             ret.factor /= factor;
             return ret;
-        }
-
-        friend IndexedTensorMult operator*(const Scalar& factor, const IndexedTensorMult& other)
-        {
-            return other*factor;
         }
 };
 
@@ -179,7 +201,7 @@ class ConstIndexedTensor
 
         ConstIndexedTensor(const TensorImplementation<>& tensor,
                            const string& idx,
-                           Scalar factor = 1,
+                           Scalar factor = Scalar(1),
                            bool conj=false)
         : tensor(const_cast<TensorImplementation<>&>(tensor)),
           idx(idx), factor(factor), conj_(conj)
@@ -261,14 +283,13 @@ class ConstIndexedTensor
                                            const ConstIndexedTensor& t2)
         {
             static_assert(C&INDEXABLE, "The operand must be INDEXABLE.");
-            return IndexedTensorMult(
-                ConstIndexedTensor(t1.impl(),
-                                   t2.tensor,
-                                   detail::implicit(t1.impl().template as<INDEXABLE>().getDimension())),
-                                   t2.idx,
-                                   false,
-                                   t2.conj_,
-                                   t2.factor);
+            return IndexedTensorMult(t1.impl(),
+                                    t2.tensor,
+                                    detail::implicit(t1.impl().template as<INDEXABLE>().getDimension()),
+                                    t2.idx,
+                                    false,
+                                    t2.conj_,
+                                    t2.factor);
         }
 
         friend IndexedTensorMult operator*(const ConstScaledTensor& t1,
@@ -290,6 +311,14 @@ class ConstIndexedTensor
          *
          *********************************************************************/
 
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        ConstIndexedTensor operator*(T factor) const
+        {
+            ConstIndexedTensor it(*this);
+            it.factor *= factor;
+            return it;
+        }
+
         ConstIndexedTensor operator*(const Scalar& factor) const
         {
             ConstIndexedTensor it(*this);
@@ -297,9 +326,30 @@ class ConstIndexedTensor
             return it;
         }
 
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        friend ConstIndexedTensor operator*(T factor, const ConstIndexedTensor& other)
+        {
+            return other*factor;
+        }
+
         friend ConstIndexedTensor operator*(const Scalar& factor, const ConstIndexedTensor& other)
         {
             return other*factor;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        ConstIndexedTensor operator/(T factor) const
+        {
+            ConstIndexedTensor it(*this);
+            it.factor /= factor;
+            return it;
+        }
+
+        ConstIndexedTensor operator/(const Scalar& factor) const
+        {
+            ConstIndexedTensor it(*this);
+            it.factor /= factor;
+            return it;
         }
 };
 
@@ -308,7 +358,7 @@ class IndexedTensor : public ConstIndexedTensor
     public:
         IndexedTensor(TensorImplementation<>& tensor,
                       const string& idx,
-                      Scalar factor = 1,
+                      Scalar factor = Scalar(1),
                       bool conj=false)
         : ConstIndexedTensor(tensor, idx, factor, conj) {}
 
@@ -353,16 +403,58 @@ class IndexedTensor : public ConstIndexedTensor
 
         using ConstIndexedTensor::operator*;
 
-        IndexedTensor operator*(const Scalar& factor) const
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        IndexedTensor operator*(T factor)
         {
             IndexedTensor it(*this);
             it.factor *= factor;
             return it;
         }
 
-        friend IndexedTensor operator*(const Scalar& factor, const IndexedTensor& other)
+        IndexedTensor operator*(const Scalar& factor)
+        {
+            IndexedTensor it(*this);
+            it.factor *= factor;
+            return it;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        friend IndexedTensor operator*(T factor, IndexedTensor& other)
         {
             return other*factor;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        friend IndexedTensor operator*(T factor, IndexedTensor&& other)
+        {
+            return other*factor;
+        }
+
+        friend IndexedTensor operator*(const Scalar& factor, IndexedTensor& other)
+        {
+            return other*factor;
+        }
+
+        friend IndexedTensor operator*(const Scalar& factor, IndexedTensor&& other)
+        {
+            return other*factor;
+        }
+
+        using ConstIndexedTensor::operator/;
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+            IndexedTensor operator/(T factor)
+        {
+            IndexedTensor it(*this);
+            it.factor /= factor;
+            return it;
+        }
+
+        IndexedTensor operator/(const Scalar& factor)
+        {
+            IndexedTensor it(*this);
+            it.factor /= factor;
+            return it;
         }
 
         /**********************************************************************
@@ -374,14 +466,14 @@ class IndexedTensor : public ConstIndexedTensor
         IndexedTensor& operator=(const IndexedTensor& other)
         {
             tensor.as<INDEXABLE>().sum(other.factor, conj_ != other.conj_, other.tensor, other.idx,
-                                                  0,                                           idx);
+                                           Scalar(),                                           idx);
             return *this;
         }
 
         IndexedTensor& operator=(const ConstIndexedTensor& other)
         {
             tensor.as<INDEXABLE>().sum(other.factor, conj_ != other.conj_, other.tensor, other.idx,
-                                                  0,                                           idx);
+                                           Scalar(),                                           idx);
             return *this;
         }
 
@@ -409,7 +501,7 @@ class IndexedTensor : public ConstIndexedTensor
         {
             tensor.as<INDEXABLE>().mult(other.factor, conj_ != other.conja, other.A, other.idxa,
                                                       conj_ != other.conjb, other.B, other.idxb,
-                                                   0,                                      idx);
+                                            Scalar(),                                      idx);
             return *this;
         }
 
@@ -435,9 +527,23 @@ class IndexedTensor : public ConstIndexedTensor
          *
          *********************************************************************/
 
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        IndexedTensor& operator*=(T factor)
+        {
+            tensor.as<INDEXABLE>().scale(Scalar(factor), idx);
+            return *this;
+        }
+
         IndexedTensor& operator*=(const Scalar& factor)
         {
             tensor.as<INDEXABLE>().scale(factor, idx);
+            return *this;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        IndexedTensor& operator/=(T factor)
+        {
+            tensor.as<INDEXABLE>().scale(1/Scalar(factor), idx);
             return *this;
         }
 

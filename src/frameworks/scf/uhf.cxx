@@ -281,7 +281,7 @@ void UHF<T>::calcS2()
     tmp["ai"] = Ca_occ["ja"]*S["ij"];
     Delta["ab"] = tmp["ai"]*Cb_occ["ib"];
 
-    S2 -= aquarius::abs(scalar(Delta*conj(Delta)));
+    S2 -= std::abs(scalar(Delta*conj(Delta)));
 
     this->put("S2", new T(S2));
     this->put("multiplicity", new T(sqrt(4*S2+1)));

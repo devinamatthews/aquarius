@@ -56,7 +56,7 @@ double FmGamma::direct(double T, int m)
     {
         delt *= T/ap;
         ap += 1.0;
-        if (aquarius::abs(delt) < epsilon*sum) break;
+        if (std::abs(delt) < epsilon*sum) break;
         sum += delt;
     }
 

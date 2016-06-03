@@ -100,10 +100,10 @@ class Davidson
 
                     if (found) continue;
 
-                    crit = aquarius::abs(real(l[rt])-soln_e[idx]);
+                    crit = std::abs(real(l[rt])-soln_e[idx]);
                     if (crit < mincrit)// && aquarius::abs(imag(l[rt])) < 1e-12)
                     {
-                        if (aquarius::abs(imag(l[rt])) > 1e-12)
+                        if (std::abs(imag(l[rt])) > 1e-12)
                         {
                             logging::Logger::log(arena()) << "WARNING: Root is imaginary! (1)" << endl;
                         }
@@ -164,7 +164,7 @@ class Davidson
                          */
                         for (int idx2 = 0;idx2 < soln_e.size();idx2++)
                         {
-                            if (aquarius::abs(real(l[rt])-soln_e[idx2]) < 1e-6)
+                            if (std::abs(real(l[rt])-soln_e[idx2]) < 1e-6)
                             {
                                 //if (n == 1) //printf("Root %d (%.12f) matches solution %d (%.12f)\n", rt+1, real(l[rt]), idx2, soln_e[idx2]);
                                 //    task::Logger::log(arena) << "Root " << rt+1 << " (" << real(l[rt]) << ") matches solution " << idx2+1 << " (" << soln_e[idx2] << ")" << endl;
@@ -176,7 +176,7 @@ class Davidson
 
                         if (lock[vec])
                         {
-                            crit = aquarius::abs(real(l[rt])-lock_e[vec]);
+                            crit = std::abs(real(l[rt])-lock_e[vec]);
                         }
                         else if (mode[vec] == GUESS_OVERLAP)
                         {
@@ -191,12 +191,12 @@ class Davidson
                         }
                         else if (mode[vec] == CLOSEST_ENERGY)
                         {
-                            crit = aquarius::abs(real(l[rt])-target[vec]);
+                            crit = std::abs(real(l[rt])-target[vec]);
                         }
 
                         if (crit < mincrit)// && aquarius::abs(imag(l[rt])) < 1e-12)
                         {
-                            if (aquarius::abs(imag(l[rt])) > 1e-12)
+                            if (std::abs(imag(l[rt])) > 1e-12)
                             {
                                 logging::Logger::log(arena()) << "WARNING: Root is imaginary! (2)" << endl;
                             }
@@ -327,7 +327,7 @@ class Davidson
 
             if (normalize)
             {
-                double nrm = sqrt(aquarius::abs((*innerProd)(c, c)));
+                double nrm = sqrt(std::abs((*innerProd)(c, c)));
 
                 for (int idx = 0;idx < nc;idx++)
                 {
@@ -358,7 +358,7 @@ class Davidson
 
             if (normalize)
             {
-                double nrm = sqrt(aquarius::abs((*innerProd)(c, c)));
+                double nrm = sqrt(std::abs((*innerProd)(c, c)));
                 for (int idx = 0;idx < nc;idx++) c[idx] /= nrm;
             }
         }
@@ -515,14 +515,14 @@ class Davidson
                 if (nextrap > 1 &&
                     mode[vec] != CLOSEST_ENERGY &&
                     !lock[vec] &&
-                    aquarius::abs(previous[vec]-real(l[root[vec]])) < 1e-4)
+                    std::abs(previous[vec]-real(l[root[vec]])) < 1e-4)
                 {
                     logging::Logger::log(arena()) << "Locking root " << (vec+1) << endl;
                     lock[vec] = true;
                     lock_e[vec] = real(l[root[vec]]);
                 }
                 else if (lock[vec] &&
-                         aquarius::abs(lock_e[vec]-real(l[root[vec]])) > 1e-4)
+                         std::abs(lock_e[vec]-real(l[root[vec]])) > 1e-4)
                 {
                     logging::Logger::log(arena()) << "Re-locking root " << (vec+1) << endl;
                     lock_e[vec] = real(l[root[vec]]);
