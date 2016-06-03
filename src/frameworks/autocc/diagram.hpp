@@ -1,7 +1,7 @@
-#ifndef _AQUARIUS_AUTOCC_DIAGRAM_HPP_
-#define _AQUARIUS_AUTOCC_DIAGRAM_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_AUTOCC_DIAGRAM_HPP_
+#define _AQUARIUS_FRAMEWORKS_AUTOCC_DIAGRAM_HPP_
 
-#include "../../frameworks/util/global.hpp"
+#include "frameworks/util.hpp"
 
 namespace aquarius
 {

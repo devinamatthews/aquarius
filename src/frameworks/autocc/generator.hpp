@@ -1,8 +1,9 @@
-#ifndef _AQUARIUS_AUTOCC_GENERATOR_HPP_
-#define _AQUARIUS_AUTOCC_GENERATOR_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_AUTOCC_GENERATOR_HPP_
+#define _AQUARIUS_FRAMEWORKS_AUTOCC_GENERATOR_HPP_
 
-#include "../../frameworks/autocc/line.hpp"
-#include "../../frameworks/util/global.hpp"
+#include "frameworks/util.hpp"
+
+#include "line.hpp"
 
 namespace aquarius
 {

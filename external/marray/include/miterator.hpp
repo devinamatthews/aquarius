@@ -260,11 +260,11 @@ class miterator
                                                    detail::are_containers_of<stride_type, Strides...>::value &&
                                                    sizeof...(Strides) == N>::type>
         miterator(const Len& len, const Strides&... strides)
-        : _pos{}, _first(true)
+        : _pos{}, _first(true), _empty(false)
         {
             assert(len.size() == ndim);
+            for (unsigned i = 0;i < ndim;i++) if (len[i] == 0) _empty = true;
             std::copy_n(len.begin(), ndim, _len.begin());
-
             detail::set_strides(_strides, strides...);
         }
 
@@ -282,6 +282,8 @@ class miterator
                   typename=typename std::enable_if<sizeof...(Offsets) == N>::type>
         bool next(Offsets&... off)
         {
+            if (_empty) return false;
+
             if (_first)
             {
                 _first = false;
@@ -311,7 +313,6 @@ class miterator
                 {
                     detail::inc_offsets(i, _strides, off...);
                     _pos[i]++;
-
                     return true;
                 }
             }
@@ -401,6 +402,7 @@ class miterator
         std::array<idx_type,ndim> _len;
         std::array<std::array<stride_type,ndim>,N> _strides;
         bool _first;
+        bool _empty;
 };
 
 template <typename idx_type, typename stride_type, size_t ndim, typename... Strides,

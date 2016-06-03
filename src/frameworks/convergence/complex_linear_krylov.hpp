@@ -1,40 +1,40 @@
-#ifndef _AQUARIUS_COMPLEX_LINEAR_KRYLOV_HPP_
-#define _AQUARIUS_COMPLEX_LINEAR_KRYLOV_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_CONVERGENCE_COMPLEX_LINEAR_KRYLOV_HPP_
+#define _AQUARIUS_FRAMEWORKS_CONVERGENCE_COMPLEX_LINEAR_KRYLOV_HPP_
 
-#include "../../frameworks/cc/complex_denominator.hpp"
-#include "../../frameworks/convergence/davidson.hpp"
-#include "../../frameworks/input/config.hpp"
-#include "../../frameworks/task/task.hpp"
-#include "../../frameworks/util/global.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/task.hpp"
+#include "frameworks/tensor.hpp"
+#include "frameworks/logging.hpp"
 
 namespace aquarius
 {
 namespace convergence
 {
 
-template<typename T>
-class ComplexLinearKrylov : public task::Destructible
+struct ComplexWeight
 {
-    private:
-        ComplexLinearKrylov(const ComplexLinearKrylov& other);
+    virtual ~ComplexWeight() {}
 
-        ComplexLinearKrylov& operator=(const ComplexLinearKrylov& other);
+    virtual void operator()(vector<tensor::Tensor<>>& a, dcomplex omega) const = 0;
+};
 
+class ComplexLinearKrylov
+{
     protected:
-        typedef typename T::dtype U;
-        typedef complex_type_t<U> CU;
-        unique_vector<T> old_c_r;
-        unique_vector<T> old_c_i;
-        unique_vector<T> old_hc_r;
-        unique_vector<T> old_hc_i;
-        unique_ptr<T> rhs;
-        vector<CU> b;
-        marray<CU,2> e;
+        vector<tensor::Tensor<>> old_c_r;
+        vector<tensor::Tensor<>> old_c_i;
+        vector<tensor::Tensor<>> old_hc_r;
+        vector<tensor::Tensor<>> old_hc_i;
+        tensor::ConstTensor<> rhs;
+        vector<dcomplex> b;
+        matrix<dcomplex> e;
         int maxextrap, nextrap;
-        vector<CU> v;
+        vector<dcomplex> v;
         bool continuous;
+        unique_ptr<InnerProd> innerProd;
+        unique_ptr<Weight> weight;
 
-        void parse(const input::Config& config)
+        void parse(const task::Config& config)
         {
             nextrap = 0;
             maxextrap = config.get<int>("order");
@@ -46,16 +46,17 @@ class ComplexLinearKrylov : public task::Destructible
             nextrap = 0;
             b.resize(nextrap);
             e.resize(nextrap, nextrap);
-            v.resize(nextrap, nextrap);
+            v.resize(nextrap);
         }
 
-        void addVectors(const T& c_r, const T& c_i, const T& hc_r, const T& hc_i)
+        void addVectors(tensor::ConstTensor<> c_r, tensor::ConstTensor<> c_i,
+                        tensor::ConstTensor<> hc_r, tensor::ConstTensor<> hc_i)
         {
             nextrap++;
 
             b.resize(nextrap);
             e.resize(nextrap, nextrap);
-            v.resize(nextrap, nextrap);
+            v.resize(nextrap);
 
             if (old_c_r.size() < nextrap)
                 old_c_r.emplace_back(c_r);
@@ -80,25 +81,28 @@ class ComplexLinearKrylov : public task::Destructible
             /*
              * Compute the overlap with the rhs vector
              */
-            b[nextrap-1].real( scalar(c_r*(*rhs)));
-            b[nextrap-1].imag(-scalar(c_i*(*rhs)));
+            b[nextrap-1] = dcomplex((*innerProd)(c_r, rhs), -(*innerProd)(c_i, rhs));
 
             /*
              * Augment the subspace matrix with the new vectors
              */
-            e[nextrap-1][nextrap-1].real(scalar(hc_r*c_r) + scalar(hc_i*c_i));
-            e[nextrap-1][nextrap-1].imag(scalar(hc_i*c_r) - scalar(hc_r*c_i));
+            e[nextrap-1][nextrap-1] =
+                dcomplex((*innerProd)(hc_r, c_r) + (*innerProd)(hc_i, c_i),
+                         (*innerProd)(hc_i, c_r) - (*innerProd)(hc_r, c_i));
 
             for (int extrap = 0;extrap < nextrap-1;extrap++)
             {
-                e[   extrap][nextrap-1].real(scalar(old_hc_r[extrap]*c_r) + scalar(old_hc_i[extrap]*c_i));
-                e[   extrap][nextrap-1].imag(scalar(old_hc_i[extrap]*c_r) - scalar(old_hc_r[extrap]*c_i));
-                e[nextrap-1][   extrap].real(scalar(hc_r*old_c_r[extrap]) + scalar(hc_i*old_c_i[extrap]));
-                e[nextrap-1][   extrap].imag(scalar(hc_i*old_c_r[extrap]) - scalar(hc_r*old_c_i[extrap]));
+                e[   extrap][nextrap-1] =
+                    dcomplex((*innerProd)(old_hc_r[extrap], c_r) + (*innerProd)(old_hc_i[extrap], c_i),
+                             (*innerProd)(old_hc_i[extrap], c_r) - (*innerProd)(old_hc_r[extrap], c_i));
+                e[nextrap-1][   extrap] =
+                    dcomplex((*innerProd)(hc_r, old_c_r[extrap]) + (*innerProd)(hc_i, old_c_i[extrap]),
+                             (*innerProd)(hc_i, old_c_r[extrap]) - (*innerProd)(hc_r, old_c_i[extrap]));
             }
         }
 
-        void getRoot(T& c_r, T& c_i, T& hc_r, T& hc_i)
+        void getRoot(tensor::Tensor<> c_r, tensor::Tensor<> c_i,
+                     tensor::Tensor<> hc_r, tensor::Tensor<> hc_i)
         {
             getRoot(c_r, c_i);
 
@@ -106,34 +110,41 @@ class ComplexLinearKrylov : public task::Destructible
             hc_i = 0;
             for (int extrap = 0;extrap < nextrap;extrap++)
             {
-                hc_r += old_hc_r[extrap]*v[extrap].real();
-                hc_r -= old_hc_i[extrap]*v[extrap].imag();
-                hc_i += old_hc_r[extrap]*v[extrap].imag();
-                hc_i += old_hc_i[extrap]*v[extrap].real();
+                hc_r += old_hc_r[extrap]*real(v[extrap]);
+                hc_r -= old_hc_i[extrap]*imag(v[extrap]);
+                hc_i += old_hc_r[extrap]*imag(v[extrap]);
+                hc_i += old_hc_i[extrap]*real(v[extrap]);
             }
         }
 
-        void getRoot(T& c_r, T& c_i)
+        void getRoot(tensor::Tensor<> c_r, tensor::Tensor<> c_i)
         {
             c_r = 0;
             c_i = 0;
             for (int extrap = 0;extrap < nextrap;extrap++)
             {
-                c_r += old_c_r[extrap]*v[extrap].real();
-                c_r -= old_c_i[extrap]*v[extrap].imag();
-                c_i += old_c_r[extrap]*v[extrap].imag();
-                c_i += old_c_i[extrap]*v[extrap].real();
+                c_r += old_c_r[extrap]*real(v[extrap]);
+                c_r -= old_c_i[extrap]*imag(v[extrap]);
+                c_i += old_c_r[extrap]*imag(v[extrap]);
+                c_i += old_c_i[extrap]*real(v[extrap]);
             }
         }
 
     public:
-        ComplexLinearKrylov(const input::Config& config, const T& g)
+        template <typename... Args>
+        ComplexLinearKrylov(const task::Config& config, Args&&... args)
         {
             parse(config);
-            reset(g);
+            reset(forward<Args>(args)...);
         }
 
-        void extrapolate(T& c_r, T& c_i, T& hc_r, T& hc_i, const cc::ComplexDenominator<U>& D, const CU& omega)
+        ComplexLinearKrylov(const ComplexLinearKrylov& other) = delete;
+
+        ComplexLinearKrylov& operator=(const ComplexLinearKrylov& other) = delete;
+
+        void extrapolate(tensor::Tensor<> c_r, tensor::Tensor<> c_i,
+                         tensor::Tensor<> hc_r, tensor::Tensor<> hc_i,
+                         dcomplex omega)
         {
             using slice::all;
 
@@ -165,7 +176,7 @@ class ComplexLinearKrylov : public task::Destructible
              * Solve the linear problem in the subspace
              */
             vector<integer> ipiv(nextrap);
-            marray<CU,2> tmp(e, construct_copy);
+            matrix<dcomplex> tmp = e;
             v = b;
 
             /*
@@ -211,8 +222,8 @@ class ComplexLinearKrylov : public task::Destructible
                  */
                 for (int extrap = 0;extrap < nextrap-1;extrap++)
                 {
-                    U olap_r = scalar(old_c_r[extrap]*c_r) + scalar(old_c_i[extrap]*c_i);
-                    U olap_i = scalar(old_c_r[extrap]*c_i) - scalar(old_c_i[extrap]*c_r);
+                    Scalar olap_r = (*innerProd)(old_c_r[extrap], c_r) + (*innerProd)(old_c_i[extrap], c_i);
+                    Scalar olap_i = (*innerProd)(old_c_r[extrap], c_i) - (*innerProd)(old_c_i[extrap], c_r);
                     c_r -= olap_r*old_c_r[extrap];
                     c_r += olap_i*old_c_i[extrap];
                     c_i -= olap_r*old_c_i[extrap];
@@ -230,10 +241,10 @@ class ComplexLinearKrylov : public task::Destructible
                  */
                 if (nextrap == maxextrap)
                 {
-                    rotate(old_c_r.pbegin(), old_c_r.pbegin()+1, old_c_r.pend());
-                    rotate(old_c_i.pbegin(), old_c_i.pbegin()+1, old_c_i.pend());
-                    rotate(old_hc_r.pbegin(), old_hc_r.pbegin()+1, old_hc_r.pend());
-                    rotate(old_hc_i.pbegin(), old_hc_i.pbegin()+1, old_hc_i.pend());
+                    rotate(old_c_r.begin(), old_c_r.begin()+1, old_c_r.end());
+                    rotate(old_c_i.begin(), old_c_i.begin()+1, old_c_i.end());
+                    rotate(old_hc_r.begin(), old_hc_r.begin()+1, old_hc_r.end());
+                    rotate(old_hc_i.begin(), old_hc_i.begin()+1, old_hc_i.end());
                     e.rotate(1,1);
                     rotate(b.begin(), b.begin()+1, b.end());
                     nextrap--;
@@ -246,7 +257,7 @@ class ComplexLinearKrylov : public task::Destructible
                  * subspace must be constructed which contains the best approximation
                  * to the solution.
                  */
-                task::Logger::log(c_r.arena) << "Compacting..." << endl;
+                logging::Logger::log(arena()) << "Compacting..." << endl;
                 nextrap = 0;
                 addVectors(c_r, c_i, hc_r, hc_i);
                 v[0] = 1.0;
@@ -255,45 +266,46 @@ class ComplexLinearKrylov : public task::Destructible
             /*
              * Form residual and apply Davidson-like correction
              */
-            hc_r -= *rhs;
+            hc_r -= rhs;
             c_r = hc_r;
             c_i = hc_i;
-            D.weight(c_r, c_i, omega);
+            (*weight)(c_r, c_i, omega);
 
-            //printf("<B|r>: %.15f\n", scalar((*rhs)*c_r));
-            //printf("<B|i>: %.15f\n", scalar((*rhs)*c_i));
+            //printf("<B|r>: %.15f\n", (*innerProd)((*rhs)*c_r));
+            //printf("<B|i>: %.15f\n", (*innerProd)((*rhs)*c_i));
 
-            //printf("<rr|rr>: %.15f\n", scalar(hc_r*hc_r));
-            //printf("<ri|ri>: %.15f\n", scalar(hc_i*hc_i));
+            //printf("<rr|rr>: %.15f\n", (*innerProd)(hc_r*hc_r));
+            //printf("<ri|ri>: %.15f\n", (*innerProd)(hc_i*hc_i));
 
-            //printf("<Rr|Rr>: %.15f\n", scalar(c_r*c_r));
-            //printf("<Ri|Ri>: %.15f\n", scalar(c_i*c_i));
+            //printf("<Rr|Rr>: %.15f\n", (*innerProd)(c_r*c_r));
+            //printf("<Ri|Ri>: %.15f\n", (*innerProd)(c_i*c_i));
 
-            //printf("<B|r>: %.15f\n", scalar((*rhs)*c_r));
-            //printf("<B|i>: %.15f\n", scalar((*rhs)*c_i));
+            //printf("<B|r>: %.15f\n", (*innerProd)((*rhs)*c_r));
+            //printf("<B|i>: %.15f\n", (*innerProd)((*rhs)*c_i));
 
             /*
              * Orthogonalize to previous vectors
              */
             for (int extrap = 0;extrap < nextrap;extrap++)
             {
-                U olap_r = scalar(old_c_r[extrap]*c_r) + scalar(old_c_i[extrap]*c_i);
-                U olap_i = scalar(old_c_r[extrap]*c_i) - scalar(old_c_i[extrap]*c_r);
+                Scalar olap_r = (*innerProd)(old_c_r[extrap], c_r) + (*innerProd)(old_c_i[extrap], c_i);
+                Scalar olap_i = (*innerProd)(old_c_r[extrap], c_i) - (*innerProd)(old_c_i[extrap], c_r);
                 c_r -= olap_r*old_c_r[extrap];
                 c_r += olap_i*old_c_i[extrap];
                 c_i -= olap_r*old_c_i[extrap];
                 c_i -= olap_i*old_c_r[extrap];
             }
 
-            U norm = sqrt(aquarius::abs(scalar(c_r*c_r)) + aquarius::abs(scalar(c_i*c_i)));
+            Scalar norm = sqrt(aquarius::abs((*innerProd)(c_r, c_r)) +
+                               aquarius::abs((*innerProd)(c_i, c_i)));
             c_r /= norm;
             c_i /= norm;
 
-            //printf("<B|r>: %.15f\n", scalar((*rhs)*c_r));
-            //printf("<B|i>: %.15f\n", scalar((*rhs)*c_i));
+            //printf("<B|r>: %.15f\n", (*innerProd)(rhs, c_r));
+            //printf("<B|i>: %.15f\n", (*innerProd)(rhs, c_i));
         }
 
-        void getSolution(T& c_r, T& c_i)
+        void getSolution(tensor::Tensor<> c_r, tensor::Tensor<> c_i)
         {
             if (continuous)
             {
@@ -306,10 +318,13 @@ class ComplexLinearKrylov : public task::Destructible
             }
         }
 
-        void reset(const T& g)
+        void reset(tensor::ConstTensor<> rhs,
+                   unique_ptr<Weight> weight, unique_ptr<InnerProd> innerProd = new InnerProd())
         {
             init();
-            rhs.reset(new T(g));
+            this->rhs = move(rhs);
+            this->weight = move(weight);
+            this->innerProd = move(innerProd);
         }
 };
 

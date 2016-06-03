@@ -1,36 +1,31 @@
-#include "../../frameworks/input/molecule.hpp"
-#include "../../frameworks/molecule/molecule.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/task.hpp"
+#include "frameworks/molecule.hpp"
 
-#include "../../frameworks/input/config.hpp"
-#include "../../frameworks/util/global.hpp"
-using namespace aquarius::input;
-
-#include "../../frameworks/task/task.hpp"
+using namespace aquarius::molecule;
 using namespace aquarius::task;
 
 namespace aquarius
 {
 
-class MoleculeTask : public task::Task
+class MoleculeTask : public Task
 {
     protected:
         Config config;
 
     public:
-        MoleculeTask(const string& name, input::Config& config)
+        MoleculeTask(const string& name, Config& config)
         : Task(name, config), config(config)
         {
             addProduct(Product("molecule", "molecule"));
         }
 
-        bool run(task::TaskDAG& dag, const Arena& arena)
+        bool run(TaskDAG& dag, const Arena& arena)
         {
             put("molecule", new Molecule(config, arena));
             return true;
         }
 };
-
-}
 
 static const char* spec = R"(
 
@@ -79,4 +74,6 @@ basis?
 
 )";
 
-REGISTER_TASK(aquarius::MoleculeTask,"molecule",spec);
+REGISTER_TASK(MoleculeTask,"molecule",spec);
+
+}

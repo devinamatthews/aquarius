@@ -1,9 +1,10 @@
-#ifndef _AQUARIUS_AUTOCC_TERM_HPP_
-#define _AQUARIUS_AUTOCC_TERM_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_AUTOCC_TERM_HPP_
+#define _AQUARIUS_FRAMEWORKS_AUTOCC_TERM_HPP_
 
-#include "../../frameworks/autocc/diagram.hpp"
-#include "../../frameworks/autocc/fraction.hpp"
-#include "../../frameworks/util/global.hpp"
+#include "frameworks/util.hpp"
+
+#include "diagram.hpp"
+#include "fraction.hpp"
 
 namespace aquarius
 {
@@ -15,12 +16,12 @@ class Fragment;
 class Line;
 class Manifold;
 
-ostream& operator<<(ostream& out, const aquarius::autocc::Term& t);
+ostream& operator<<(ostream& out, const Term& t);
 
 class Term
 {
-    friend class Diagram;
-    friend class Fragment;
+    friend Diagram;
+    friend Fragment;
 
     friend ostream& operator<<(ostream& out, const Term& t);
 

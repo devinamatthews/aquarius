@@ -1,8 +1,9 @@
-#ifndef _AQUARIUS_AUTOCC_FRAGMENT_HPP_
-#define _AQUARIUS_AUTOCC_FRAGMENT_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_AUTOCC_FRAGMENT_HPP_
+#define _AQUARIUS_FRAMEWORKS_AUTOCC_FRAGMENT_HPP_
 
-#include "../../frameworks/autocc/diagram.hpp"
-#include "../../frameworks/util/global.hpp"
+#include "frameworks/util.hpp"
+
+#include "diagram.hpp"
 
 namespace aquarius
 {

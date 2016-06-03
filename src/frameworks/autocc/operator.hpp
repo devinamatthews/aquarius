@@ -1,10 +1,11 @@
-#ifndef _AQUARIUS_AUTOCC_OPERATOR_HPP_
-#define _AQUARIUS_AUTOCC_OPERATOR_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_AUTOCC_OPERATOR_HPP_
+#define _AQUARIUS_FRAMEWORKS_AUTOCC_OPERATOR_HPP_
 
-#include "../../frameworks/autocc/diagram.hpp"
-#include "../../frameworks/autocc/fraction.hpp"
-#include "../../frameworks/autocc/generator.hpp"
-#include "../../frameworks/util/global.hpp"
+#include "frameworks/util.hpp"
+
+#include "diagram.hpp"
+#include "fraction.hpp"
+#include "generator.hpp"
 
 namespace aquarius
 {

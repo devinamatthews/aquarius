@@ -1,54 +1,46 @@
-#ifndef _AQUARIUS_DIIS_HPP_
-#define _AQUARIUS_DIIS_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_CONVERGENCE_DIIS_HPP_
+#define _AQUARIUS_FRAMEWORKS_CONVERGENCE_DIIS_HPP_
 
-#include "../../frameworks/task/task.hpp"
-#include "../../frameworks/util/global.hpp"
-#include "../task/config.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/task.hpp"
+#include "frameworks/tensor.hpp"
 
 namespace aquarius
 {
 namespace convergence
 {
 
-namespace detail
+struct InnerProd
 {
+    virtual ~InnerProd() {}
 
-template <typename T>
-struct DefaultInnerProd
-{
-    typedef typename T::dtype dtype;
-
-    template <typename a_container, typename b_container>
-    dtype operator()(const a_container& a, const b_container& b) const
+    virtual double operator()(const vector<tensor::Tensor<>>& a,
+                              const vector<tensor::Tensor<>>& b) const
     {
-        dtype p = 0;
+        double p = 0;
         for (int j = 0;j < a.size();j++)
         {
-            p += scalar(conj(a[j])*b[j]);
+            p += scalar(conj(a[j])*b[j]).to<double>();
         }
         return p;
     }
 };
 
-}
-
-template<typename T, typename U = T, typename InnerProd = detail::DefaultInnerProd<U>>
 class DIIS
 {
     protected:
-        typedef typename T::dtype dtype;
-        vector<unique_vector<T>> old_x;
-        vector<unique_vector<U>> old_dx;
-        marray<dtype,1> c;
-        marray<dtype,2> e;
+        vector<vector<tensor::Tensor<>>> old_x;
+        vector<vector<tensor::Tensor<>>> old_dx;
+        row<double> c;
+        matrix<double> e;
         int nextrap, start;
         double damping;
         int nx, ndx;
-        InnerProd innerProd;
+        unique_ptr<InnerProd> innerProd;
 
     public:
-        DIIS(const input::Config& config, int nx = 1, int ndx = 1, InnerProd innerProd = InnerProd())
-        : nx(nx), ndx(ndx), innerProd(innerProd)
+        DIIS(const task::Config& config, int nx = 1, int ndx = 1, unique_ptr<InnerProd> innerProd = new InnerProd())
+        : nx(nx), ndx(ndx), innerProd(move(innerProd))
         {
             nextrap = config.get<int>("order");
             start = config.get<int>("start");
@@ -61,13 +53,12 @@ class DIIS
             old_dx.resize(nextrap);
         }
 
-        void extrapolate(T& x, U& dx)
+        void extrapolate(tensor::Tensor<> x, tensor::Tensor<> dx)
         {
-            extrapolate(ptr_vector<T>{&x}, ptr_vector<U>{&dx});
+            extrapolate(make_vector(x), make_vector(dx));
         }
 
-        template <typename x_container, typename dx_container>
-        void extrapolate(x_container&& x, dx_container&& dx)
+        void extrapolate(vector<tensor::Tensor<>>&& x, vector<tensor::Tensor<>>&& dx)
         {
             assert(x.size() == nx);
             assert(dx.size() == ndx);
@@ -83,39 +74,16 @@ class DIIS
             e.rotate(-1, -1);
             c.rotate(-1);
 
-            /*
-             * Lazily allocate elements of old_x etc. so that we can
-             * just use the copy ctor and subclasses do not have to
-             * worry about allocation/deallocation
-             */
-            if (old_x[0].empty())
+            for (int i = 0;i < nx;i++)
             {
-                for (int i = 0;i < nx;i++)
-                {
-                    old_x[0].push_back(x[i]);
-                }
-            }
-            else
-            {
-                for (int i = 0;i < nx;i++)
-                {
-                    old_x[0][i] = x[i];
-                }
+                if (i >= old_x[0].size()) old_x[0].push_back(x[i].construct());
+                old_x[0][i] = x[i];
             }
 
-            if (old_dx[0].empty())
+            for (int i = 0;i < ndx;i++)
             {
-                for (int i = 0;i < ndx;i++)
-                {
-                    old_dx[0].push_back(dx[i]);
-                }
-            }
-            else
-            {
-                for (int i = 0;i < ndx;i++)
-                {
-                    old_dx[0][i] = dx[i];
-                }
+                if (i >= old_dx[0].size()) old_dx[0].push_back(dx[i].construct());
+                old_dx[0][i] = dx[i];
             }
 
             e[0][0] = innerProd(dx, dx);
@@ -128,7 +96,7 @@ class DIIS
             int nextrap_real = 1;
             for (int i = 1;i < nextrap && !old_dx[i].empty();i++)
             {
-                e[i][0] = innerProd(dx, old_dx[i]);
+                e[i][0] = (*innerProd)(dx, old_dx[i]);
                 e[0][i] = e[i][0];
                 nextrap_real++;
             }
@@ -164,7 +132,7 @@ class DIIS
 
             {
                 int info;
-                marray<dtype,2> tmp(e);
+                matrix<double> tmp = e;
                 vector<integer> ipiv(nextrap+1);
 
                 info = hesv('U', nextrap_real+1, 1, tmp.data(), nextrap+1, ipiv.data(),
@@ -175,8 +143,8 @@ class DIIS
                  */
                 if (info > 0)
                 {
-                    dtype eps = e[nextrap_real-1][nextrap_real-1]*
-                                numeric_limits<real_type_t<dtype>>::epsilon();
+                    double eps = e[nextrap_real-1][nextrap_real-1]*
+                                 numeric_limits<double>::epsilon();
                     tmp = e;
                     axpy(nextrap_real, 1.0, &eps, 0, tmp.data(), nextrap+1);
                     info = hesv('U', nextrap_real+1, 1, tmp.data(), nextrap+1, ipiv.data(),

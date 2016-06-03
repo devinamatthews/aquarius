@@ -983,6 +983,25 @@ class ConstTensor : public TensorWrapperBase<C^CONST_>
             const_cast<capability_type&>(this->C) = t.C;
         }
 
+        /*
+         * Assume the identity of the other tensor.
+         */
+        ConstTensor(ConstTensor&& t)
+        {
+            this->ptr = move(t.ptr);
+            const_cast<capability_type&>(this->C) = t.C;
+        }
+
+        /*
+         * Assume the identity of the other tensor.
+         */
+        ConstTensor& operator=(ConstTensor&& t)
+        {
+            this->ptr = move(t.ptr);
+            const_cast<capability_type&>(this->C) = t.C;
+            return *this;
+        }
+
         const string& getName()
         {
             return this->impl().name;
@@ -1011,40 +1030,40 @@ class ConstTensor : public TensorWrapperBase<C^CONST_>
             }
         };
 
-        Tensor<C&(~CONST_)> construct()
+        Tensor<C&(~CONST_)> construct() const
         {
             return this->ptr->construct(TensorInitializer<>(this->ptr->name, this->ptr->F, this->ptr->R));
         }
 
         template <capability_type C_>
         enable_if_t<IS_POWER_OF_TWO(C_),Tensor<C&(~CONST_)>>
-        construct(const TensorInitializer<C_>& init)
+        construct(const TensorInitializer<C_>& init) const
         {
             return this->ptr->construct(TensorInitializer<>(this->ptr->name, this->ptr->F, this->ptr->R) << init);
         }
 
         template <capability_type C_>
         enable_if_t<!IS_POWER_OF_TWO(C_),Tensor<C&(~CONST_)>>
-        construct(const TensorInitializerList<C_>& ilist)
+        construct(const TensorInitializerList<C_>& ilist) const
         {
             return this->ptr->construct(TensorInitializer<>(this->ptr->name, this->ptr->F, this->ptr->R) << ilist);
         }
 
-        Tensor<C&(~CONST_)> construct(const string& name)
+        Tensor<C&(~CONST_)> construct(const string& name) const
         {
             return this->ptr->construct(TensorInitializer<>(name, this->ptr->F, this->ptr->R));
         }
 
         template <capability_type C_>
         enable_if_t<IS_POWER_OF_TWO(C_),Tensor<C&(~CONST_)>>
-        construct(const string& name, const TensorInitializer<C_>& init)
+        construct(const string& name, const TensorInitializer<C_>& init) const
         {
             return this->ptr->construct(TensorInitializer<>(name, this->ptr->F, this->ptr->R) << init);
         }
 
         template <capability_type C_>
         enable_if_t<!IS_POWER_OF_TWO(C_),Tensor<C&(~CONST_)>>
-        construct(const string& name, const TensorInitializerList<C_>& ilist)
+        construct(const string& name, const TensorInitializerList<C_>& ilist) const
         {
             return this->ptr->construct(TensorInitializer<>(name, this->ptr->F, this->ptr->R) << ilist);
         }
@@ -1112,6 +1131,20 @@ class Tensor : public ConstTensor<C|CONST_>
         template <capability_type C_>
         Tensor(Tensor<C_>&& t) : ConstTensor<C|CONST_>(t) {}
 
+        /*
+         * Assume the identity of the other tensor.
+         */
+        Tensor(Tensor&& t) : ConstTensor<C|CONST_>(move(t)) {}
+
+        /*
+         * Assume the identity of the other tensor.
+         */
+        Tensor& operator=(Tensor&& t)
+        {
+            ConstTensor<C|CONST_>::operator=(move(t));
+            return *this;
+        }
+
         using typename ConstTensor<C|CONST_>::Factory;
 
         using ConstTensor<C|CONST_>::construct;
@@ -1121,6 +1154,8 @@ class Tensor : public ConstTensor<C|CONST_>
          * Intermediate operations
          *
          *********************************************************************/
+
+        using ConstTensor<C|CONST_>::operator*;
 
         friend ScaledTensor operator*(const Scalar& factor, Tensor& other)
         {

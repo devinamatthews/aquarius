@@ -6,6 +6,7 @@
 #include <cassert>
 #include <algorithm>
 #include <iostream>
+#include <numeric>
 #include <utility>
 
 #include "miterator.hpp"
@@ -21,20 +22,24 @@
 #define MARRAY_STRIDE_ALIGNMENT VECTOR_ALIGNMENT
 #endif
 
+#ifndef MARRAY_BLAS_PROTOTYPED
 extern "C"
 {
 
 void sgemm_(const char* transa, const char* transb,
+            const int* m, const int* n, const int* k,
             const float* alpha, const float* A, const int* lda,
                                 const float* B, const int* ldb,
             const float*  beta,       float* C, const int* ldc);
 
 void dgemm_(const char* transa, const char* transb,
+            const int* m, const int* n, const int* k,
             const double* alpha, const double* A, const int* lda,
                                  const double* B, const int* ldb,
             const double*  beta,       double* C, const int* ldc);
 
 }
+#endif
 
 namespace MArray
 {
@@ -83,7 +88,7 @@ namespace MArray
          * dimension i of length len_i (i.e. it selects all of the data along
          * that dimension).
          */
-        struct all_t {};
+        struct all_t { constexpr all_t() {} };
         constexpr all_t all;
     }
 
@@ -92,10 +97,10 @@ namespace MArray
      * does not default- or value-initialize its elements (useful for avoiding
      * redundant memory operations for scalar types).
      */
-    struct uninitialized_t {};
+    struct uninitialized_t { constexpr uninitialized_t() {} };
     constexpr uninitialized_t uninitialized;
 
-    struct transpose_t {};
+    struct transpose_t { constexpr transpose_t() {} };
     namespace transpose { constexpr transpose_t T; }
 
     /*
@@ -252,14 +257,80 @@ namespace MArray
         template <unsigned N, typename... Args>
         using nth_type_t = middle_types_t<N, N+1, Args...>;
 
-        struct apply_some_args
+        /*
+        struct apply_leading_args_helper
+        {
+            template <typename Types>
+            struct leading;
+        };
+
+        template <typename... Args1>
+        struct apply_leading_args_helper::leading<types<Args1...>>
+        {
+            template <typename Types>
+            struct trailing;
+        };
+
+        template <typename... Args1>
+        template <typename... Args2>
+        struct apply_leading_args_helper::leading<types<Args1...>>::trailing<types<Args2...>>
+        {
+            template <typename Func, size_t Size=sizeof...(Args1)>
+            enable_if_t<Size == 0, typename std::result_of<Func(Args2&&...)>::type>
+            operator()(Func&& func, Args1&&... args1, Args2&&... args2) const
+            {
+                return func();
+            }
+
+            template <typename Func, size_t Size=sizeof...(Args1)>
+            enable_if_t<Size != 0, typename std::result_of<Func(Args2&&...)>::type>
+            operator()(Func&& func, Args1&&... args1, Args2&&... args2) const
+            {
+                return func(std::forward<Args1>(args1)...);
+            }
+        };
+
+        struct apply_trailing_args_helper
+        {
+            template <typename Types1>
+            struct leading;
+        };
+
+        template <typename... Args1>
+        struct apply_trailing_args_helper::leading<types<Args1...>>
+        {
+            template <typename Types>
+            struct trailing;
+        };
+
+        template <typename... Args1>
+        template <typename... Args2>
+        struct apply_trailing_args_helper::leading<types<Args1...>>::trailing<types<Args2...>>
+        {
+            template <typename Func, size_t Size=sizeof...(Args2)>
+            enable_if_t<Size == 0, typename std::result_of<Func(Args2&&...)>::type>
+            operator()(Func&& func, Args1&&... args1, Args2&&... args2) const
+            {
+                return func();
+            }
+
+            template <typename Func, size_t Size=sizeof...(Args2)>
+            enable_if_t<Size != 0, typename std::result_of<Func(Args2&&...)>::type>
+            operator()(Func&& func, Args1&&... args1, Args2&&... args2) const
+            {
+                return func(std::forward<Args2>(args2)...);
+            }
+        };
+        */
+
+        struct apply_middle_args_helper
         {
             template <typename Types1>
             struct leading;
         };
 
         template <typename... Args>
-        struct apply_some_args::leading<types<Args...>>
+        struct apply_middle_args_helper::leading<types<Args...>>
         {
             template <typename Types>
             struct middle;
@@ -267,7 +338,7 @@ namespace MArray
 
         template <typename... Args1>
         template <typename... Args2>
-        struct apply_some_args::leading<types<Args1...>>::middle<types<Args2...>>
+        struct apply_middle_args_helper::leading<types<Args1...>>::middle<types<Args2...>>
         {
             template <typename Types>
             struct trailing;
@@ -276,38 +347,111 @@ namespace MArray
         template <typename... Args1>
         template <typename... Args2>
         template <typename... Args3>
-        struct apply_some_args::leading<types<Args1...>>::middle<types<Args2...>>::trailing<types<Args3...>>
+        struct apply_middle_args_helper::leading<types<Args1...>>::middle<types<Args2...>>::trailing<types<Args3...>>
         {
-            template <typename Func, size_t Size=sizeof...(Args2)>
-            enable_if_t<Size == 0, typename std::result_of<Func(Args2&&...)>::type>
-            operator()(Func&& func, Args1&&... args1, Args2&&... args2, Args3&&... args3) const
+            template <typename Func,
+                      size_t Size1=sizeof...(Args1),
+                      size_t Size2=sizeof...(Args2),
+                      size_t Size3=sizeof...(Args3)>
+            enable_if_t<Size1 == 0 && Size2 == 0 && Size3 == 0,
+                        typename std::result_of<Func()>::type>
+            operator()(Func&& func) const
             {
                 return func();
             }
 
-            template <typename Func, size_t Size=sizeof...(Args2)>
-            enable_if_t<Size != 0, typename std::result_of<Func(Args2&&...)>::type>
+            template <typename Func,
+                      size_t Size1=sizeof...(Args1),
+                      size_t Size2=sizeof...(Args2),
+                      size_t Size3=sizeof...(Args3)>
+            enable_if_t<Size1 != 0 && Size2 == 0 && Size3 == 0,
+                        typename std::result_of<Func()>::type>
+            operator()(Func&& func, Args1&&... args1) const
+            {
+                return func();
+            }
+
+            template <typename Func,
+                      size_t Size1=sizeof...(Args1),
+                      size_t Size2=sizeof...(Args2),
+                      size_t Size3=sizeof...(Args3)>
+            enable_if_t<Size1 == 0 && Size2 != 0 && Size3 == 0,
+                        typename std::result_of<Func(Args2&&...)>::type>
+            operator()(Func&& func, Args2&&... args2) const
+            {
+                return func(std::forward<Args2>(args2)...);
+            }
+
+            template <typename Func,
+                      size_t Size1=sizeof...(Args1),
+                      size_t Size2=sizeof...(Args2),
+                      size_t Size3=sizeof...(Args3)>
+            enable_if_t<Size1 != 0 && Size2 != 0 && Size3 == 0,
+                        typename std::result_of<Func(Args2&&...)>::type>
+            operator()(Func&& func, Args1&&... args1, Args2&&... args2) const
+            {
+                return func(std::forward<Args2>(args2)...);
+            }
+
+            template <typename Func,
+                      size_t Size1=sizeof...(Args1),
+                      size_t Size2=sizeof...(Args2),
+                      size_t Size3=sizeof...(Args3)>
+            enable_if_t<Size1 == 0 && Size2 == 0 && Size3 != 0,
+                        typename std::result_of<Func()>::type>
+            operator()(Func&& func, Args3&&... args3) const
+            {
+                return func();
+            }
+
+            template <typename Func,
+                      size_t Size1=sizeof...(Args1),
+                      size_t Size2=sizeof...(Args2),
+                      size_t Size3=sizeof...(Args3)>
+            enable_if_t<Size1 != 0 && Size2 == 0 && Size3 != 0,
+                        typename std::result_of<Func()>::type>
+            operator()(Func&& func, Args1&&... args1, Args3&&... args3) const
+            {
+                return func();
+            }
+
+            template <typename Func,
+                      size_t Size1=sizeof...(Args1),
+                      size_t Size2=sizeof...(Args2),
+                      size_t Size3=sizeof...(Args3)>
+            enable_if_t<Size1 == 0 && Size2 != 0 && Size3 != 0,
+                        typename std::result_of<Func(Args2&&...)>::type>
+            operator()(Func&& func, Args2&&... args2, Args3&&... args3) const
+            {
+                return func(std::forward<Args2>(args2)...);
+            }
+
+            template <typename Func,
+                      size_t Size1=sizeof...(Args1),
+                      size_t Size2=sizeof...(Args2),
+                      size_t Size3=sizeof...(Args3)>
+            enable_if_t<Size1 != 0 && Size2 != 0 && Size3 != 0,
+                        typename std::result_of<Func(Args2&&...)>::type>
             operator()(Func&& func, Args1&&... args1, Args2&&... args2, Args3&&... args3) const
             {
                 return func(std::forward<Args2>(args2)...);
             }
         };
 
+        /*
         template <unsigned First>
         struct apply_trailing_args
         {
             template <typename Func, typename... Args>
             auto operator()(Func&& func, Args&&... args) ->
-            decltype(typename
-                     apply_some_args::template leading<leading_types_t<First, Args...>>
-                                    ::template middle<trailing_types_t<First, Args...>>
-                                    ::template trailing<types<>>
+            decltype(typename apply_trailing_args_helper
+                         ::template leading<leading_types_t<First, Args...>>
+                         ::template trailing<trailing_types_t<First, Args...>>
                          ()(std::forward<Func>(func), std::forward<Args>(args)...)) const
             {
-                return typename
-                apply_some_args::template leading<leading_types_t<First, Args...>>
-                               ::template middle<trailing_types_t<First, Args...>>
-                               ::template trailing<types<>>
+                return typename apply_trailing_args_helper
+                    ::template leading<leading_types_t<First, Args...>>
+                    ::template trailing<trailing_types_t<First, Args...>>
                     ()(std::forward<Func>(func), std::forward<Args>(args)...);
             }
         };
@@ -317,16 +461,53 @@ namespace MArray
         {
             template <typename Func, typename... Args>
             auto operator()(Func&& func, Args&&... args) ->
-            decltype(typename
-                     apply_some_args::template leading<types<>>
-                                    ::template middle<leading_types_t<Last, Args...>>
-                                    ::template trailing<trailing_types_t<Last, Args...>>
+            decltype(typename apply_leading_args_helper
+                         ::template leading<leading_types_t<Last, Args...>>
+                         ::template trailing<trailing_types_t<Last, Args...>>
                          ()(std::forward<Func>(func), std::forward<Args>(args)...)) const
             {
-                return typename
-                apply_some_args::template leading<types<>>
-                               ::template middle<leading_types_t<Last, Args...>>
-                               ::template trailing<trailing_types_t<Last, Args...>>
+                return typename apply_leading_args_helper
+                    ::template leading<leading_types_t<Last, Args...>>
+                    ::template trailing<trailing_types_t<Last, Args...>>
+                    ()(std::forward<Func>(func), std::forward<Args>(args)...);
+            }
+        };
+        */
+
+        template <unsigned First>
+        struct apply_trailing_args
+        {
+            template <typename Func, typename... Args>
+            auto operator()(Func&& func, Args&&... args) ->
+            decltype(typename apply_middle_args_helper
+                         ::template leading<leading_types_t<First, Args...>>
+                         ::template middle<trailing_types_t<First, Args...>>
+                         ::template trailing<types<>>
+                         ()(std::forward<Func>(func), std::forward<Args>(args)...)) const
+            {
+                return typename apply_middle_args_helper
+                    ::template leading<leading_types_t<First, Args...>>
+                    ::template middle<trailing_types_t<First, Args...>>
+                    ::template trailing<types<>>
+                    ()(std::forward<Func>(func), std::forward<Args>(args)...);
+            }
+        };
+
+        template <unsigned Last>
+        struct apply_leading_args
+        {
+            template <typename Func, typename... Args>
+            auto operator()(Func&& func, Args&&... args) ->
+            decltype(typename apply_middle_args_helper
+                         ::template leading<types<>>
+                         ::template middle<leading_types_t<Last, Args...>>
+                         ::template trailing<trailing_types_t<Last, Args...>>
+                         ()(std::forward<Func>(func), std::forward<Args>(args)...)) const
+            {
+                return typename apply_middle_args_helper
+                    ::template leading<types<>>
+                    ::template middle<leading_types_t<Last, Args...>>
+                    ::template trailing<trailing_types_t<Last, Args...>>
                     ()(std::forward<Func>(func), std::forward<Args>(args)...);
             }
         };
@@ -336,16 +517,16 @@ namespace MArray
         {
             template <typename Func, typename... Args>
             auto operator()(Func&& func, Args&&... args) ->
-            decltype(typename
-                     apply_some_args::template leading<leading_types_t<First, Args...>>
-                                    ::template middle<middle_types_t<First, Last, Args...>>
-                                    ::template trailing<trailing_types_t<Last, Args...>>
+            decltype(typename apply_middle_args_helper
+                         ::template leading<leading_types_t<First, Args...>>
+                         ::template middle<middle_types_t<First, Last, Args...>>
+                         ::template trailing<trailing_types_t<Last, Args...>>
                          ()(std::forward<Func>(func), std::forward<Args>(args)...)) const
             {
-                return typename
-                apply_some_args::template leading<leading_types_t<First, Args...>>
-                               ::template middle<middle_types_t<First, Last, Args...>>
-                               ::template trailing<trailing_types_t<Last, Args...>>
+                return typename apply_middle_args_helper
+                    ::template leading<leading_types_t<First, Args...>>
+                    ::template middle<middle_types_t<First, Last, Args...>>
+                    ::template trailing<trailing_types_t<Last, Args...>>
                     ()(std::forward<Func>(func), std::forward<Args>(args)...);
             }
         };
@@ -377,6 +558,7 @@ namespace MArray
             }
         };
 
+        /*
         template <typename... Parameters>
         struct check_types
         {
@@ -404,9 +586,25 @@ namespace MArray
         template <template <typename...> class Condition, typename... Args>
         struct check_types<Parameters...>::do_check<Condition, types<Args...>>
         : check_types<Parameters...>::template do_check<Condition, Args...> {};
+        */
 
         template <typename T, typename... Args>
-        using are_convertible = typename check_types<T>::template do_check<std::is_convertible, Args...>;
+        struct are_convertible;
+
+        template <typename T>
+        struct are_convertible<T> : std::true_type {};
+
+        template <typename T, typename Arg, typename... Args>
+        struct are_convertible<T, Arg, Args...> :
+            conditional_t<std::is_convertible<Arg, T>::value,
+                          are_convertible<T, Args...>,
+                          std::false_type> {};
+
+        template <typename T, typename... Args>
+        struct are_convertible<T, types<Args...>> : are_convertible<T, Args...> {};
+
+        //template <typename T, typename... Args>
+        //struct are_convertible : check_types<T>::template do_check<std::is_convertible, Args...> {};
 
         template <typename T, typename=void>
         struct is_index_or_slice_helper : std::false_type {};
@@ -421,10 +619,25 @@ namespace MArray
         struct is_index_or_slice_helper<slice::all_t> : std::true_type {};
 
         template <typename T>
-        using is_index_or_slice = is_index_or_slice_helper<typename std::decay<T>::type>;
+        struct is_index_or_slice : is_index_or_slice_helper<typename std::decay<T>::type> {};
 
         template <typename... Args>
-        using are_indices_or_slices = typename check_types<>::template do_check<is_index_or_slice, Args...>;
+        struct are_indices_or_slices;
+
+        template<>
+        struct are_indices_or_slices<> : std::true_type {};
+
+        template <typename Arg, typename... Args>
+        struct are_indices_or_slices<Arg, Args...> :
+            conditional_t<is_index_or_slice<Arg>::value,
+                          are_indices_or_slices<Args...>,
+                          std::false_type> {};
+
+        template <typename... Args>
+        struct are_indices_or_slices<types<Args...>> : are_indices_or_slices<Args...> {};
+
+        //template <typename... Args>
+        //struct are_indices_or_slices : check_types<>::template do_check<is_index_or_slice, Args...> {};
     }
 
     template <typename T, unsigned ndim>
@@ -462,9 +675,9 @@ namespace MArray
         template <typename T, unsigned ndim, unsigned dim>
         class const_marray_ref
         {
-            template <typename T_, unsigned ndim_> friend class const_marray_view;
-            template <typename T_, unsigned ndim_> friend class marray_view;
-            template <typename T_, unsigned ndim_, typename Allocator_> friend class marray;
+            template <typename T_, unsigned ndim_> friend class MArray::const_marray_view;
+            template <typename T_, unsigned ndim_> friend class MArray::marray_view;
+            template <typename T_, unsigned ndim_, typename Allocator_> friend class MArray::marray;
             template <typename T_, unsigned ndim_, unsigned dim_> friend class const_marray_ref;
             template <typename T_, unsigned ndim_, unsigned dim_> friend class marray_ref;
             template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class const_marray_slice;
@@ -572,9 +785,9 @@ namespace MArray
         template <typename T, unsigned ndim, unsigned dim>
         class marray_ref : public const_marray_ref<T, ndim, dim>
         {
-            template <typename T_, unsigned ndim_> friend class const_marray_view;
-            template <typename T_, unsigned ndim_> friend class marray_view;
-            template <typename T_, unsigned ndim_, typename Allocator_> friend class marray;
+            template <typename T_, unsigned ndim_> friend class MArray::const_marray_view;
+            template <typename T_, unsigned ndim_> friend class MArray::marray_view;
+            template <typename T_, unsigned ndim_, typename Allocator_> friend class MArray::marray;
             template <typename T_, unsigned ndim_, unsigned dim_> friend class const_marray_ref;
             template <typename T_, unsigned ndim_, unsigned dim_> friend class marray_ref;
             template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class const_marray_slice;
@@ -742,9 +955,9 @@ namespace MArray
         template <typename T, unsigned ndim, unsigned dim, unsigned newdim>
         class const_marray_slice
         {
-            template <typename T_, unsigned ndim_> friend class const_marray_view;
-            template <typename T_, unsigned ndim_> friend class marray_view;
-            template <typename T_, unsigned ndim_, typename Allocator_> friend class marray;
+            template <typename T_, unsigned ndim_> friend class MArray::const_marray_view;
+            template <typename T_, unsigned ndim_> friend class MArray::marray_view;
+            template <typename T_, unsigned ndim_, typename Allocator_> friend class MArray::marray;
             template <typename T_, unsigned ndim_, unsigned dim_> friend class const_marray_ref;
             template <typename T_, unsigned ndim_, unsigned dim_> friend class marray_ref;
             template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class const_marray_slice;
@@ -889,9 +1102,9 @@ namespace MArray
         template <typename T, unsigned ndim, unsigned dim, unsigned newdim>
         class marray_slice : public const_marray_slice<T, ndim, dim, newdim>
         {
-            template <typename T_, unsigned ndim_> friend class const_marray_view;
-            template <typename T_, unsigned ndim_> friend class marray_view;
-            template <typename T_, unsigned ndim_, typename Allocator_> friend class marray;
+            template <typename T_, unsigned ndim_> friend class MArray::const_marray_view;
+            template <typename T_, unsigned ndim_> friend class MArray::marray_view;
+            template <typename T_, unsigned ndim_, typename Allocator_> friend class MArray::marray;
             template <typename T_, unsigned ndim_, unsigned dim_> friend class const_marray_ref;
             template <typename T_, unsigned ndim_, unsigned dim_> friend class marray_ref;
             template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class const_marray_slice;
@@ -988,7 +1201,7 @@ namespace MArray
                 typename std::enable_if<diff==0, marray_view<T, newdim+1>>::type
                 operator[](const range_t<I>& x)
                 {
-                    return parent::operator[](x);
+                    return {parent::operator[](x)};
                 }
 
                 template <typename I, int diff=ndim-dim>
@@ -1002,7 +1215,7 @@ namespace MArray
                 typename std::enable_if<diff==0, marray_view<T, newdim+1>>::type
                 operator[](slice::all_t x)
                 {
-                    return parent::operator[](x);
+                    return {parent::operator[](x)};
                 }
 
                 template <int diff=ndim-dim>
@@ -1043,7 +1256,7 @@ namespace MArray
 
                 operator marray_view<T, ndim+newdim-dim+1>()
                 {
-                    return parent::operator const_marray_view<T, ndim+newdim-dim+1>();
+                    return {parent::operator const_marray_view<T, ndim+newdim-dim+1>()};
                 }
         };
 
@@ -1074,10 +1287,10 @@ namespace MArray
         template <typename T_, unsigned ndim_> friend class const_marray_view;
         template <typename T_, unsigned ndim_> friend class marray_view;
         template <typename T_, unsigned ndim_, typename Allocator_> friend class marray;
-        template <typename T_, unsigned ndim_, unsigned dim_> friend class const_marray_ref;
-        template <typename T_, unsigned ndim_, unsigned dim_> friend class marray_ref;
-        template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class const_marray_slice;
-        template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class marray_slice;
+        template <typename T_, unsigned ndim_, unsigned dim_> friend class detail::const_marray_ref;
+        template <typename T_, unsigned ndim_, unsigned dim_> friend class detail::marray_ref;
+        template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class detail::const_marray_slice;
+        template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class detail::marray_slice;
 
         public:
             typedef unsigned idx_type;
@@ -1147,6 +1360,39 @@ namespace MArray
             }
 
             template <typename... Args>
+            struct starts_with_len : detail::are_convertible<idx_type,
+                detail::leading_types_t<ndim, Args...>> {};
+
+            template <typename... Args>
+            struct has_const_ptr : detail::are_convertible<const_pointer,
+                detail::nth_type_t<ndim, Args...>> {};
+
+            template <typename... Args>
+            struct has_ptr : detail::are_convertible<pointer,
+                detail::nth_type_t<ndim, Args...>> {};
+
+            template <typename... Args>
+            struct has_value : detail::are_convertible<const_reference,
+                detail::nth_type_t<ndim, Args...>> {};
+
+            template <typename... Args>
+            struct has_uninit : detail::are_convertible<uninitialized_t,
+                detail::nth_type_t<ndim, Args...>> {};
+
+            template <typename... Args>
+            struct has_layout : detail::are_convertible<Layout,
+                detail::nth_type_t<ndim+1, Args...>> {};
+
+            template <typename... Args>
+            struct has_layout_early : detail::are_convertible<Layout,
+                detail::nth_type_t<ndim, Args...>> {};
+
+            template <typename... Args>
+            struct ends_with_stride : detail::are_convertible<stride_type,
+                detail::trailing_types_t<(sizeof...(Args) > ndim ? sizeof...(Args)-ndim : 0), Args...>> {};
+
+            /*
+            template <typename... Args>
             using starts_with_len = detail::are_convertible<idx_type,
                 detail::leading_types_t<ndim, Args...>>;
 
@@ -1176,7 +1422,8 @@ namespace MArray
 
             template <typename... Args>
             using ends_with_stride = detail::are_convertible<stride_type,
-                detail::trailing_types_t<sizeof...(Args)-ndim, Args...>>;
+                detail::trailing_types_t<(sizeof...(Args) > ndim ? sizeof...(Args)-ndim : 0), Args...>>;
+            */
 
             void reset()
             {
@@ -1580,10 +1827,10 @@ namespace MArray
         template <typename T_, unsigned ndim_> friend class const_marray_view;
         template <typename T_, unsigned ndim_> friend class marray_view;
         template <typename T_, unsigned ndim_, typename Allocator_> friend class marray;
-        template <typename T_, unsigned ndim_, unsigned dim_> friend class const_marray_ref;
-        template <typename T_, unsigned ndim_, unsigned dim_> friend class marray_ref;
-        template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class const_marray_slice;
-        template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class marray_slice;
+        template <typename T_, unsigned ndim_, unsigned dim_> friend class detail::const_marray_ref;
+        template <typename T_, unsigned ndim_, unsigned dim_> friend class detail::marray_ref;
+        template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class detail::const_marray_slice;
+        template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class detail::marray_slice;
 
         protected:
             typedef const_marray_view<T, ndim> base;
@@ -1632,12 +1879,6 @@ namespace MArray
             marray_view(marray_view&& other)
             : parent(other) {}
 
-            marray_view& operator=(const marray_view<T, ndim>& other)
-            {
-                copy(other, *this);
-                return *this;
-            }
-
             template <typename U>
             marray_view(const std::array<U, ndim>& len, pointer ptr, Layout layout=DEFAULT)
             {
@@ -1665,6 +1906,25 @@ namespace MArray
             marray_view(Args&&... args)
             {
                 reset(std::forward<Args>(args)...);
+            }
+
+            marray_view& operator=(const const_marray_view<T, ndim>& other)
+            {
+                copy(other, *this);
+                return *this;
+            }
+
+            marray_view& operator=(const marray_view& other)
+            {
+                return operator=(static_cast<const const_marray_view<T, ndim>&>(other));
+            }
+
+            marray_view& operator=(const T& value)
+            {
+                auto it = make_iterator(len_, stride_);
+                auto a_ = data_;
+                while (it.next(a_)) *a_ = value;
+                return *this;
             }
 
             using base::permute;
@@ -1765,8 +2025,7 @@ namespace MArray
 
             template <typename... Args>
             detail::enable_if_t<sizeof...(Args) == ndim &&
-                                detail::are_convertible<stride_type, Args...>::value,
-                                marray_view<T, ndim>>
+                                detail::are_convertible<stride_type, Args...>::value>
             rotate(Args&&... args)
             {
                 rotate(make_array((stride_type)std::forward<Args>(args)...));
@@ -1895,10 +2154,10 @@ namespace MArray
         template <typename T_, unsigned ndim_> friend class const_marray_view;
         template <typename T_, unsigned ndim_> friend class marray_view;
         template <typename T_, unsigned ndim_, typename Allocator_> friend class marray;
-        template <typename T_, unsigned ndim_, unsigned dim_> friend class const_marray_ref;
-        template <typename T_, unsigned ndim_, unsigned dim_> friend class marray_ref;
-        template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class const_marray_slice;
-        template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class marray_slice;
+        template <typename T_, unsigned ndim_, unsigned dim_> friend class detail::const_marray_ref;
+        template <typename T_, unsigned ndim_, unsigned dim_> friend class detail::marray_ref;
+        template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class detail::const_marray_slice;
+        template <typename T_, unsigned ndim_, unsigned dim_, unsigned newdim_> friend class detail::marray_slice;
 
         protected:
             typedef const_marray_view<T, ndim> base;
@@ -1994,15 +2253,11 @@ namespace MArray
                 reset();
             }
 
-            marray& operator=(const marray_view<T, ndim>& other)
-            {
-                copy(other, *this);
-                return *this;
-            }
+            using parent::operator=;
 
             marray& operator=(const marray& other)
             {
-                copy(other, *this);
+                parent::operator=(other);
                 return *this;
             }
 
@@ -2305,29 +2560,37 @@ namespace MArray
         return const_cast<matrix_view<T>&>(m)^transpose::T;
     }
 
-    void gemm(float alpha, const float* a, int lda
+    inline
+    void gemm(int m, int n, int k,
+              float alpha, const float* a, int lda,
                            const float* b, int ldb,
               float  beta,       float* c, int ldc)
     {
-        sgemm_("N", "N", &alpha, a, &lda,
-                                 b, &ldb,
-                          &beta, c, &ldc);
+        sgemm_("N", "N", &m, &n, &k,
+               &alpha, a, &lda,
+                       b, &ldb,
+                &beta, c, &ldc);
     }
 
-    void gemm(double alpha, const double* a, int lda
+    inline
+    void gemm(int m, int n, int k,
+              double alpha, const double* a, int lda,
                             const double* b, int ldb,
               double  beta,       double* c, int ldc)
     {
-        dgemm_("N", "N", &alpha, a, &lda,
-                                 b, &ldb,
-                          &beta, c, &ldc);
+        dgemm_("N", "N", &m, &n, &k,
+               &alpha, a, &lda,
+                       b, &ldb,
+                &beta, c, &ldc);
     }
 
-    template <typename T>
-    void gemm(const T& alpha, const const_matrix_view<T>& a,
-                              const const_matrix_view<T>& b,
-              const T&  beta,             matrix_view<T>& c)
+    template <typename U>
+    void gemm(const U& alpha, const const_matrix_view<U>& a,
+                              const const_matrix_view<U>& b,
+              const U&  beta,             matrix_view<U>& c)
     {
+        using transpose::T;
+
         assert(a.stride(0) == 1 || a.stride(1) == 1);
         assert(b.stride(0) == 1 || b.stride(1) == 1);
         assert(c.stride(0) == 1 || c.stride(1) == 1);
@@ -2336,15 +2599,16 @@ namespace MArray
         bool transa = (a.stride(1) == 1) != transc;
         bool transb = (b.stride(1) == 1) != transc;
 
-        const_matrix_view<T> at = (transa ? a^T : a);
-        const_matrix_view<T> bt = (transb ? b^T : b);
-              matrix_view<T> ct = (transc ? c^T : c);
+        const_matrix_view<U> at = (transa ? a^T : a);
+        const_matrix_view<U> bt = (transb ? b^T : b);
+              matrix_view<U> ct = (transc ? c^T : c);
 
         assert(at.length(0) == ct.length(0));
         assert(bt.length(1) == ct.length(1));
         assert(at.length(1) == bt.length(0));
 
-        gemm(alpha, at.data(), at.stride(1),
+        gemm(ct.length(0), ct.length(1), at.length(1),
+             alpha, at.data(), at.stride(1),
                     bt.data(), bt.stride(1),
               beta, ct.data(), ct.stride(1));
     }

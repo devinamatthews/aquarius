@@ -1,7 +1,7 @@
 #ifndef _AQUARIUS_TENSOR_RING_HPP_
 #define _AQUARIUS_TENSOR_RING_HPP_
 
-#include "../../frameworks/util/global.hpp"
+#include "frameworks/util.hpp"
 
 namespace aquarius
 {
@@ -100,21 +100,54 @@ class Scalar
         }
 
     public:
-        Scalar(Field::field type = Field::DOUBLE) : F(type)
+        explicit Scalar(Field::field type = Field::DOUBLE)
         {
+            reset(type);
+        }
+
+        template <typename T>
+        Scalar(Field::field type, T val)
+        {
+            reset(type, val);
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
+        explicit Scalar(T val)
+        {
+            reset(val);
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        Scalar(T r, T i)
+        {
+            reset(r,i);
+        }
+
+        void reset(Field::field type = Field::DOUBLE)
+        {
+            F = type;
             *this = 0.0;
         }
 
         template <typename T>
-        Scalar(Field::field type, T val) : F(type)
+        void reset(Field::field type, T val)
         {
+            F = type;
             *this = val;
         }
 
         template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
-        Scalar(T val) : F(field_type<T>::val)
+        void reset(T val)
         {
+            F = field_type<T>::val;
             *this = val;
+        }
+
+        template <typename T, typename=enable_if_arithmetic_t<T>>
+        void reset(T r, T i)
+        {
+            F = field_type<std::complex<T>>::val;
+            *this = std::complex<T>(r,i);
         }
 
         friend Scalar abs(const Scalar& s)
@@ -149,6 +182,32 @@ class Scalar
                 case Field::DCOMPLEX: s.dcval = sqrt(s.dcval); break;
             }
             return s;
+        }
+
+        friend Scalar real(const Scalar& s)
+        {
+            Scalar r(s.F.type & Field::DOUBLE);
+            switch (s.F.type)
+            {
+                case Field::SINGLE:   r.fval = real( s.fval); break;
+                case Field::DOUBLE:   r.dval = real( s.dval); break;
+                case Field::SCOMPLEX: r.fval = real(s.fcval); break;
+                case Field::DCOMPLEX: r.dval = real(s.dcval); break;
+            }
+            return r;
+        }
+
+        friend Scalar imag(const Scalar& s)
+        {
+            Scalar i(s.F.type & Field::DOUBLE);
+            switch (s.F.type)
+            {
+                case Field::SINGLE:   i.fval = imag( s.fval); break;
+                case Field::DOUBLE:   i.dval = imag( s.dval); break;
+                case Field::SCOMPLEX: i.fval = imag(s.fcval); break;
+                case Field::DCOMPLEX: i.dval = imag(s.dcval); break;
+            }
+            return i;
         }
 
         friend Scalar min(const Scalar& s1, const Scalar& s2)
@@ -365,7 +424,7 @@ class Scalar
 
         const void* data() const { return (void*)&fval; }
 
-        template <typename T> typename enable_if<is_complex<T>::value,T>::type to() const
+        template <typename T> enable_if_t<is_complex<T>::value,T> to() const
         {
             switch (F.type)
             {
@@ -377,7 +436,7 @@ class Scalar
             return T();
         }
 
-        template <typename T> typename enable_if<!is_complex<T>::value,T>::type to() const
+        template <typename T> enable_if_t<!is_complex<T>::value,T> to() const
         {
             switch (F.type)
             {
@@ -389,10 +448,16 @@ class Scalar
             return T();
         }
 
+        template <typename T, typename=enable_if_t<is_arithmetic<real_type_t<T>>::value>>
+        explicit operator T() const
+        {
+            return to<T>();
+        }
+
         template <typename T>
         Scalar& operator=(T other)
         {
-            static_assert(is_arithmetic<typename real_type<T>::type>::value, "");
+            static_assert(is_arithmetic<real_type_t<T>>::value, "");
 
             switch (F.type)
             {
@@ -421,7 +486,7 @@ class Scalar
         template <typename T>
         Scalar& operator+=(T other)
         {
-            static_assert(is_arithmetic<typename real_type<T>::type>::value, "");
+            static_assert(is_arithmetic<real_type_t<T>>::value, "");
 
             switch (F.type)
             {
@@ -450,7 +515,7 @@ class Scalar
         template <typename T>
         Scalar& operator-=(T other)
         {
-            static_assert(is_arithmetic<typename real_type<T>::type>::value, "");
+            static_assert(is_arithmetic<real_type_t<T>>::value, "");
 
             switch (F.type)
             {
@@ -479,7 +544,7 @@ class Scalar
         template <typename T>
         typename enable_if<is_complex<T>::value,Scalar&>::type operator*=(T other)
         {
-            static_assert(is_arithmetic<typename real_type<T>::type>::value, "");
+            static_assert(is_arithmetic<real_type_t<T>>::value, "");
 
             switch (F.type)
             {
@@ -495,7 +560,7 @@ class Scalar
         template <typename T>
         typename enable_if<!is_complex<T>::value,Scalar&>::type operator*=(T other)
         {
-            static_assert(is_arithmetic<typename real_type<T>::type>::value, "");
+            static_assert(is_arithmetic<real_type_t<T>>::value, "");
 
             switch (F.type)
             {
@@ -524,7 +589,7 @@ class Scalar
         template <typename T>
         typename enable_if<is_complex<T>::value,Scalar&>::type operator/=(T other)
         {
-            static_assert(is_arithmetic<typename real_type<T>::type>::value, "");
+            static_assert(is_arithmetic<real_type_t<T>>::value, "");
 
             switch (F.type)
             {
@@ -540,7 +605,7 @@ class Scalar
         template <typename T>
         typename enable_if<!is_complex<T>::value,Scalar&>::type operator/=(T other)
         {
-            static_assert(is_arithmetic<typename real_type<T>::type>::value, "");
+            static_assert(is_arithmetic<real_type_t<T>>::value, "");
 
             switch (F.type)
             {
@@ -590,7 +655,7 @@ class Scalar
         template <typename T> friend
         Scalar operator+(T other, const Scalar& s)
         {
-            static_assert(is_arithmetic<typename real_type<T>::type>::value, "");
+            static_assert(is_arithmetic<real_type_t<T>>::value, "");
 
             Field::field new_type = s.resultType(other);
 
@@ -621,7 +686,7 @@ class Scalar
         template <typename T>
         Scalar operator-(T other) const
         {
-            static_assert(is_arithmetic<typename real_type<T>::type>::value, "");
+            static_assert(is_arithmetic<real_type_t<T>>::value, "");
 
             Field::field new_type = resultType(other);
 
@@ -639,7 +704,7 @@ class Scalar
         template <typename T> friend
         Scalar operator-(T other, const Scalar& s)
         {
-            static_assert(is_arithmetic<typename real_type<T>::type>::value, "");
+            static_assert(is_arithmetic<real_type_t<T>>::value, "");
 
             Field::field new_type = s.resultType(other);
 
@@ -676,7 +741,7 @@ class Scalar
         template <typename T> friend
         Scalar operator*(T other, const Scalar& s)
         {
-            static_assert(is_arithmetic<typename real_type<T>::type>::value, "");
+            static_assert(is_arithmetic<real_type_t<T>>::value, "");
 
             Field::field new_type = s.resultType(other);
 
@@ -707,7 +772,7 @@ class Scalar
         template <typename T>
         Scalar operator/(T other) const
         {
-            static_assert(is_arithmetic<typename real_type<T>::type>::value, "");
+            static_assert(is_arithmetic<real_type_t<T>>::value, "");
 
             Field::field new_type = resultType(other);
 
@@ -725,7 +790,7 @@ class Scalar
         template <typename T> friend
         Scalar operator/(T other, const Scalar& s)
         {
-            static_assert(is_arithmetic<typename real_type<T>::type>::value, "");
+            static_assert(is_arithmetic<real_type_t<T>>::value, "");
 
             Field::field new_type = s.resultType(other);
 

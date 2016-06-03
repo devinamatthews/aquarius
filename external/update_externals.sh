@@ -1,11 +1,12 @@
 #!/bin/bash
 for ext in `ls`; do
-    if [ -d $ext/.git.bak ]; then
+    if [ -f $ext/.git.bak ]; then
         echo "Updating $ext"
         cd $ext
-        mv .git.bak .git
+        tar zxf .git.bak
         git pull
-        mv .git .git.bak
+        tar zcf .git.bak .git
+        rm -rf .git
         cd ..
     fi
 done

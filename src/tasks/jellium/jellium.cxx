@@ -86,7 +86,7 @@ bool Jellium::run(TaskDAG& dag, const Arena& arena)
         }
     }
 
-    this->put("E", vector<vector<vector<double>>>{E,E});
+    put("E", vector<vector<vector<double>>>{E,E});
 
     double energy = 0;
     for (int i = 0;i < nocc;i++)
@@ -105,11 +105,13 @@ bool Jellium::run(TaskDAG& dag, const Arena& arena)
         }
     }
 
-    auto& Fa = this->put("Fa", new SymmetryBlockedTensor<U>("Fa", arena, PointGroup::C1(), 2, {{norb},{norb}}, {NS,NS}, true));
-    auto& Fb = this->put("Fb", new SymmetryBlockedTensor<U>("Fb", arena, PointGroup::C1(), 2, {{norb},{norb}}, {NS,NS}, true));
-    auto& Da = this->put("Da", new SymmetryBlockedTensor<U>("Da", arena, PointGroup::C1(), 2, {{norb},{norb}}, {NS,NS}, true));
-    auto& Db = this->put("Db", new SymmetryBlockedTensor<U>("Db", arena, PointGroup::C1(), 2, {{norb},{norb}}, {NS,NS}, true));
-    this->put("energy", energy);
+    auto& Fa = put("Fa", Tensor<PGSYMMETRIC|BOUNDED>::construct(
+        TensorInitializer<>("Fa") <<
+        TensorInitializer<PGSYMMETRIC|BOUNDED>(PointGroup::C1(), {{norb},{norb}})));
+    auto& Fb =put("Fb", Fa.construct("Fb"));
+    auto& Da = put("Da", Fa.construct("Da"));
+    auto& Db = put("Db", Fa.construct("Db"));
+    put("energy", energy);
 
     Logger::log(arena) << "SCF energy = " << setprecision(15) << energy << endl;
 
@@ -123,26 +125,18 @@ bool Jellium::run(TaskDAG& dag, const Arena& arena)
         fpairs.push_back(i*norb+i, E[0][i]);
     }
 
-    if (arena.rank == 0)
-    {
-        Da.writeRemoteData({0,0}, dpairs);
-        Fa.writeRemoteData({0,0}, fpairs);
-    }
-    else
-    {
-        Da.writeRemoteData({0,0});
-        Fa.writeRemoteData({0,0});
-    }
+    Da.setDataByIrrep({0,0}, dpairs);
+    Fa.setDataByIrrep({0,0}, fpairs);
+
     Db = Da;
     Fb = Fa;
 
     Space occ(PointGroup::C1(), {nocc}, {nocc});
     Space vrt(PointGroup::C1(), {nvrt}, {nvrt});
 
-    auto& H = put("H", new TwoElectronOperator<U>("H", arena, occ, vrt));
+    auto& H = put("H", new TwoElectronOperator("H", occ, vrt));
 
-    vector<tkv_pair<U>> abpairs;
-    vector<tkv_pair<U>> ijpairs;
+    KeyValueVector abpairs, ijpairs;
     for (int i = 0;i < nocc;i++)
     {
         ijpairs.emplace_back(i*nocc+i, E[0][i]);
@@ -152,18 +146,10 @@ bool Jellium::run(TaskDAG& dag, const Arena& arena)
         abpairs.emplace_back(i*nvrt+i, E[0][i+nocc]);
     }
 
-    if (arena.rank == 0)
-    {
-        H.getAB()({0,0},{0,0}).writeRemoteData({0,0}, abpairs);
-        H.getIJ()({0,0},{0,0}).writeRemoteData({0,0}, ijpairs);
-    }
-    else
-    {
-        H.getAB()({0,0},{0,0}).writeRemoteData({0,0});
-        H.getIJ()({0,0},{0,0}).writeRemoteData({0,0});
-    }
-    H.getAB()({1,0},{1,0}) = H.getAB()({0,0},{0,0});
-    H.getIJ()({0,1},{0,1}) = H.getIJ()({0,0},{0,0});
+    H.getAB().setDataBySpinAndIrrep({1,1}, {0,0}, abpairs);
+    H.getAB().setDataBySpinAndIrrep({0,0}, {0,0}, abpairs);
+    H.getIJ().setDataBySpinAndIrrep({1,1}, {0,0}, ijpairs);
+    H.getIJ().setDataBySpinAndIrrep({0,0}, {0,0}, ijpairs);
 
     /*
      * <ab||ij>

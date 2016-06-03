@@ -1,4 +1,4 @@
-#include "../../frameworks/autocc/autocc.hpp"
+#include "frameworks/autocc.hpp"
 
 namespace aquarius
 {

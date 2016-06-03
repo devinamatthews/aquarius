@@ -1,7 +1,7 @@
-#ifndef _AQUARIUS_AUTOCC_FRACTION_HPP_
-#define _AQUARIUS_AUTOCC_FRACTION_HPP_
+#ifndef _AQUARIUS_FRAMEWORKS_AUTOCC_FRACTION_HPP_
+#define _AQUARIUS_FRAMEWORKS_AUTOCC_FRACTION_HPP_
 
-#include "../../frameworks/util/global.hpp"
+#include "frameworks/util.hpp"
 
 namespace aquarius
 {
