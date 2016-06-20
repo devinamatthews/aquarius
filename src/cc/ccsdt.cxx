@@ -257,6 +257,123 @@ void CCSDT<U>::iterate(const Arena& arena)
     diis.extrapolate(T, Z);
 }
 
+template <typename U>
+void CCSDT<U>::subiterate(const Arena& arena)
+{
+    const auto& H = this->template get<TwoElectronOperator<U>>("H");
+
+    const SpinorbitalTensor<U>&   fAI =   H.getAI();
+    const SpinorbitalTensor<U>&   fME =   H.getIA();
+    const SpinorbitalTensor<U>&   fAE =   H.getAB();
+    const SpinorbitalTensor<U>&   fMI =   H.getIJ();
+    const SpinorbitalTensor<U>& VABIJ = H.getABIJ();
+    const SpinorbitalTensor<U>& VMNEF = H.getIJAB();
+    const SpinorbitalTensor<U>& VAMEF = H.getAIBC();
+    const SpinorbitalTensor<U>& VABEJ = H.getABCI();
+    const SpinorbitalTensor<U>& VABEF = H.getABCD();
+    const SpinorbitalTensor<U>& VMNIJ = H.getIJKL();
+    const SpinorbitalTensor<U>& VMNEJ = H.getIJAK();
+    const SpinorbitalTensor<U>& VAMIJ = H.getAIJK();
+    const SpinorbitalTensor<U>& VAMEI = H.getAIBJ();
+
+    auto& T   = this->template get   <ExcitationOperator<U,3>>(  "T");
+    auto& D   = this->template gettmp<Denominator       <U  >>(  "D");
+    auto& Z   = this->template gettmp<ExcitationOperator<U,3>>(  "Z");
+    auto& Tau = this->template gettmp<SpinorbitalTensor <U  >>("Tau");
+
+    auto&   FME = this->template gettmp<SpinorbitalTensor<U>>(  "FME");
+    auto&   FAE = this->template gettmp<SpinorbitalTensor<U>>(  "FAE");
+    auto&   FMI = this->template gettmp<SpinorbitalTensor<U>>(  "FMI");
+    auto& WMNIJ = this->template gettmp<SpinorbitalTensor<U>>("WMNIJ");
+    auto& WMNEJ = this->template gettmp<SpinorbitalTensor<U>>("WMNEJ");
+    auto& WAMIJ = this->template gettmp<SpinorbitalTensor<U>>("WAMIJ");
+    auto& WAMEI = this->template gettmp<SpinorbitalTensor<U>>("WAMEI");
+    auto& WAMEF = this->template gettmp<SpinorbitalTensor<U>>("WAMEF");
+
+    Tau["abij"]  = T(2)["abij"];
+    Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
+
+    /**************************************************************************
+     *
+     * Intermediates for CCSD
+     */
+      FME[  "me"]  =       fME[  "me"];
+      FME[  "me"] +=     VMNEF["mnef"]*T(1)[  "fn"];
+
+      FMI[  "mi"]  =       fMI[  "mi"];
+      FMI[  "mi"] += 0.5*VMNEF["mnef"]*T(2)["efin"];
+      FMI[  "mi"] +=       FME[  "me"]*T(1)[  "ei"];
+      FMI[  "mi"] +=     VMNEJ["nmfi"]*T(1)[  "fn"];
+
+      FAE[  "ae"]  =       fAE[  "ae"];
+      FAE[  "ae"] -= 0.5*VMNEF["mnef"]*T(2)["afmn"];
+      FAE[  "ae"] -=       FME[  "me"]*T(1)[  "am"];
+      FAE[  "ae"] +=     VAMEF["amef"]*T(1)[  "fm"];
+
+    WMNIJ["mnij"]  =     VMNIJ["mnij"];
+    WMNIJ["mnij"] += 0.5*VMNEF["mnef"]* Tau["efij"];
+    WMNIJ["mnij"] +=     VMNEJ["mnej"]*T(1)[  "ei"];
+
+    WMNEJ["mnej"]  =     VMNEJ["mnej"];
+    WMNEJ["mnej"] +=     VMNEF["mnef"]*T(1)[  "fj"];
+
+    WAMIJ["amij"]  =     VAMIJ["amij"];
+    WAMIJ["amij"] += 0.5*VAMEF["amef"]* Tau["efij"];
+    WAMIJ["amij"] +=     VAMEI["amej"]*T(1)[  "ei"];
+
+    WAMEI["amei"]  =     VAMEI["amei"];
+    WAMEI["amei"] += 0.5*VMNEF["mnef"]*T(2)["afni"];
+    WAMEI["amei"] +=     VAMEF["amef"]*T(1)[  "fi"];
+    WAMEI["amei"] -=     WMNEJ["nmei"]*T(1)[  "an"];
+    /*
+     *************************************************************************/
+
+    /**************************************************************************
+     *
+     * CCSD Iteration
+     */
+    Z(1)[  "ai"]  =       fAI[  "ai"];
+    Z(1)[  "ai"] +=       fAE[  "ae"]*T(1)[  "ei"];
+    Z(1)[  "ai"] -=       FMI[  "mi"]*T(1)[  "am"];
+    Z(1)[  "ai"] -=     VAMEI["amei"]*T(1)[  "em"];
+    Z(1)[  "ai"] +=       FME[  "me"]*T(2)["aeim"];
+    Z(1)[  "ai"] += 0.5*VAMEF["amef"]* Tau["efim"];
+    Z(1)[  "ai"] -= 0.5*WMNEJ["mnei"]*T(2)["eamn"];
+
+    Z(2)["abij"]  =     VABIJ["abij"];
+    Z(2)["abij"] +=     VABEJ["abej"]*T(1)[  "ei"];
+    Z(2)["abij"] -=     WAMIJ["amij"]*T(1)[  "bm"];
+    Z(2)["abij"] +=       FAE[  "af"]*T(2)["fbij"];
+    Z(2)["abij"] -=       FMI[  "ni"]*T(2)["abnj"];
+    Z(2)["abij"] += 0.5*VABEF["abef"]* Tau["efij"];
+    Z(2)["abij"] += 0.5*WMNIJ["mnij"]* Tau["abmn"];
+    Z(2)["abij"] +=     WAMEI["amei"]*T(2)["ebjm"];
+    
+    
+    /************************************************************************
+     T(3) -> T(2) and T(3) -> T(1)  */
+
+    WAMEF["amef"]  =     VAMEF["amef"];
+    WAMEF["amef"] -=     VMNEF["nmef"]*T(1)[    "an"];
+
+    Z(1)[    "ai"] += 0.25*VMNEF["mnef"]*T(3)["aefimn"];
+    
+    Z(2)[  "abij"] +=  0.5*WAMEF["bmef"]*T(3)["aefijm"];
+    Z(2)[  "abij"] -=  0.5*WMNEJ["mnej"]*T(3)["abeinm"];
+    Z(2)[  "abij"] +=        FME[  "me"]*T(3)["abeijm"];
+
+    /*
+     **************************************************************************/
+
+    Z.weight(D);
+    T += Z;
+    
+    Tau["abij"]  = T(2)["abij"];
+    Tau["abij"] += 0.5*T(1)["ai"]*T(1)["bj"];
+    
+    this->energy() = real(scalar(H.getAI()*T(1))) + 0.25*real(scalar(H.getABIJ()*Tau));
+}
+
 /*
 template <typename U>
 double CCSDT<U>::getProjectedS2() const
@@ -280,6 +397,8 @@ convergence?
     double 1e-9,
 max_iterations?
     int 50,
+sub_iterations?
+    int 2,
 conv_type?
     enum { MAXE, RMSE, MAE },
 guess?
