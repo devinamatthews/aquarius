@@ -6,6 +6,8 @@
 #include "integrals/cholesky.hpp"
 #include "integrals/context.hpp"
 #include "integrals/fmgamma.hpp"
+#include "integrals/momints.hpp"
+#include "integrals/nucints.hpp"
 #include "integrals/rys.hpp"
 
 #endif

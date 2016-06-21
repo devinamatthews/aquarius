@@ -1,100 +1,343 @@
-#include "ishida.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/integrals.hpp"
+#include "frameworks/molecule.hpp"
+
+#include "agora/integrals/integrals.hpp"
 
 namespace aquarius
 {
 namespace integrals
 {
 
-void IshidaERI::prim(const vec3& posa, int la, double za,
-                     const vec3& posb, int lb, double zb,
-                     const vec3& posc, int lc, double zc,
-                     const vec3& posd, int ld, double zd,
-                     double* integrals)
+class IshidaERI : public ERI
 {
-    constexpr double PI_52 = 17.493418327624862846262821679872;
-    int nrys = (la+lb+lc+ld)/2 + 1;
-
-    marray<double,6> xtable(3, ld+1, lc+1, lb+1, la+1, nrys);
-
-    double zp = za + zb;
-    double zq = zc + zd;
-
-    vec3 posp = (posa*za + posb*zb)/zp;
-    vec3 posq = (posc*zc + posd*zd)/zq;
-
-    double A0 = 2*PI_52*exp(-za*zb*norm2(posa-posb)/zp
-                            -zc*zd*norm2(posc-posd)/zq)/(sqrt(zp+zq)*zp*zq);
-    double Z = norm2(posp-posq)*zp*zq/(zp+zq);
-
-    Rys rys;
-    row<double> rts(nrys), wts(nrys);
-    rys(Z, nrys, rts.data(), wts.data());
-
-    for (int xyz = 0;xyz < 3;xyz++)
-    {
-        double pfac = zq*(posq[xyz] - posp[xyz])/(zp+zq);
-        double qfac = zp*(posp[xyz] - posq[xyz])/(zp+zq);
-
-        double afac = posp[xyz] - posa[xyz];
-        double bfac = posp[xyz] - posb[xyz];
-        double cfac = posq[xyz] - posc[xyz];
-        double dfac = posq[xyz] - posd[xyz];
-
-        row<double> aafac(nrys);
-        row<double> bbfac(nrys);
-        row<double> ccfac(nrys);
-        row<double> ddfac(nrys);
-
-        row<double> gfac(nrys);
-
-        for (int v = 0;v < nrys;v++)
+    protected:
+        void filltable(double factor,
+                       const row_view<double>& aafac, const row_view<double>& bbfac,
+                       const row_view<double>& ccfac, const row_view<double>& ddfac,
+                       const row_view<double>& s1fac, const row_view<double>& s2fac,
+                       const row_view<double>& gfac, marray_view<double,5>&& xtable)
         {
-            aafac[v] = afac + pfac*rts[v];
-            bbfac[v] = bfac + pfac*rts[v];
-            ccfac[v] = cfac + qfac*rts[v];
-            ddfac[v] = dfac + qfac*rts[v];
-
-            /*
-             * there is a typo in Ishida (JCP v98), the definition of G after Eq. 5 should read G = \xi s_i^2
-             */
-            gfac[v] = rts[v]/(2*(zp+zq));
+            filltable(factor, aafac, bbfac, ccfac, ddfac, s1fac, s2fac, gfac, xtable);
         }
 
-        double s1fac = (0.5 - zq*gfac)/zp;
-        double s2fac = (0.5 - zp*gfac)/zq;
-
-        filltable((xyz == 0 ? A0 : 1.0), aafac, bbfac, ccfac, ddfac, s1fac, s2fac, gfac, xtable[xyz]);
-    }
-
-    for (int dx = 0;dx <= ld;dx++)
-    {
-        for (int dy = 0;dy <= ld-dx;dy++)
+        void filltable(double factor,
+                       const row_view<double>& aafac, const row_view<double>& bbfac,
+                       const row_view<double>& ccfac, const row_view<double>& ddfac,
+                       const row_view<double>& s1fac, const row_view<double>& s2fac,
+                       const row_view<double>& gfac, marray_view<double,5>& xtable)
         {
-            int dz = ld-dx-dy;
-            for (int cx = 0;cx <= lc;cx++)
-            {
-                for (int cy = 0;cy <= lc-cx;cy++)
-                {
-                    int cz = lc-cx-cy;
-                    for (int bx = 0;bx <= lb;bx++)
-                    {
-                        for (int by = 0;by <= lb-bx;by++)
-                        {
-                            int bz = lb-bx-by;
-                            for (int ax = 0;ax <= la;ax++)
-                            {
-                                for (int ay = 0;ay <= la-ax;ay++)
-                                {
-                                    int az = la-ax-ay;
+            int la = xtable.length(3)-1;
+            int lb = xtable.length(2)-1;
+            int lc = xtable.length(1)-1;
+            int ld = xtable.length(0)-1;
+            int nrys = (la+lb+lc+ld)/2 + 1;
 
-                                    *integrals = 0.0;
-                                    for (int v = 0;v < nrys;v++)
+            for (int v = 0;v < nrys;v++)
+            {
+                xtable[0][0][0][0][v] = factor;
+                xtable[0][0][0][1][v] = aafac[v]*factor;
+                xtable[0][0][1][0][v] = bbfac[v]*factor;
+                xtable[0][1][0][0][v] = ccfac[v]*factor;
+                xtable[1][0][0][0][v] = ddfac[v]*factor;
+
+                for (int a = 1;a < la;a++)
+                {
+                    xtable[0][0][0][a+1][v] =   aafac[v]*xtable[0][0][0][  a][v] +
+                                              a*s1fac[v]*xtable[0][0][0][a-1][v];
+                }
+
+                for (int b = 1;b < lb;b++)
+                {
+                    xtable[0][0][b+1][0][v] =   bbfac[v]*xtable[0][0][  b][0][v] +
+                                              b*s1fac[v]*xtable[0][0][b-1][0][v];
+                }
+
+                for (int c = 1;c <= lc;c++)
+                {
+                    xtable[0][c+1][0][0][v] =   ccfac[v]*xtable[0][  c][0][0][v] +
+                                              c*s2fac[v]*xtable[0][c-1][0][0][v];
+                }
+
+                for (int d = 1;d < ld;d++)
+                {
+                    xtable[d+1][0][0][0][v] =   ddfac[v]*xtable[  d][0][0][0][v] +
+                                              d*s2fac[v]*xtable[d-1][0][0][0][v];
+                }
+
+                for (int c = 1;c <= lc;c++)
+                {
+                    xtable[1][c][0][0][v] =   ddfac[v]*xtable[0][  c][0][0][v] +
+                                            c*s2fac[v]*xtable[0][c-1][0][0][v];
+
+                    for (int d = 1;d < ld;d++)
+                    {
+                        xtable[d+1][c][0][0][v] =   ddfac[v]*xtable[  d][  c][0][0][v] +
+                                                  c*s2fac[v]*xtable[  d][c-1][0][0][v] +
+                                                  d*s2fac[v]*xtable[d-1][  c][0][0][v];
+                    }
+                }
+
+                for (int b = 1;b <= lb;b++)
+                {
+                    xtable[0][1][b][0][v] =   ccfac[v]*xtable[0][0][  b][0][v] +
+                                            b* gfac[v]*xtable[0][0][b-1][0][v];
+
+                    for (int c = 1;c < lc;c++)
+                    {
+                        xtable[0][c+1][b][0][v] =   ccfac[v]*xtable[0][  c][  b][0][v] +
+                                                  b* gfac[v]*xtable[0][  c][b-1][0][v] +
+                                                  c*s2fac[v]*xtable[0][c-1][  b][0][v];
+                    }
+                }
+
+                for (int b = 1;b <= lb;b++)
+                {
+                    xtable[1][0][b][0][v] =   ddfac[v]*xtable[0][0][  b][0][v] +
+                                            b* gfac[v]*xtable[0][0][b-1][0][v];
+
+                    for (int d = 1;d < ld;d++)
+                    {
+                        xtable[d+1][0][b][0][v] =   ddfac[v]*xtable[  d][0][  b][0][v] +
+                                                  b* gfac[v]*xtable[  d][0][b-1][0][v] +
+                                                  d*s2fac[v]*xtable[d-1][0][  b][0][v];
+                    }
+                }
+
+                for (int a = 1;a <= la;a++)
+                {
+                    xtable[0][0][1][a][v] =   bbfac[v]*xtable[0][0][0][  a][v] +
+                                            a*s1fac[v]*xtable[0][0][0][a-1][v];
+
+                    for (int b = 1;b < lb;b++)
+                    {
+                        xtable[0][0][b+1][a][v] =   bbfac[v]*xtable[0][0][  b][  a][v] +
+                                                  a*s1fac[v]*xtable[0][0][  b][a-1][v] +
+                                                  b*s1fac[v]*xtable[0][0][b-1][  a][v];
+                    }
+                }
+
+                for (int a = 1;a <= la;a++)
+                {
+                    xtable[0][1][0][a][v] =   ccfac[v]*xtable[0][0][0][  a][v] +
+                                            a* gfac[v]*xtable[0][0][0][a-1][v];
+
+                    for (int c = 1;c < lc;c++)
+                    {
+                        xtable[0][c+1][0][a][v] =   ccfac[v]*xtable[0][  c][0][  a][v] +
+                                                  a* gfac[v]*xtable[0][  c][0][a-1][v] +
+                                                  c*s2fac[v]*xtable[0][c-1][0][  a][v];
+                    }
+                }
+
+                for (int a = 1;a <= la;a++)
+                {
+                    xtable[1][0][0][a][v] =   ddfac[v]*xtable[0][0][0][  a][v] +
+                                            a* gfac[v]*xtable[0][0][0][a-1][v];
+
+                    for (int d = 1;d < ld;d++)
+                    {
+                        xtable[d+1][0][0][a][v] =   ddfac[v]*xtable[  d][0][0][  a][v] +
+                                                  a* gfac[v]*xtable[  d][0][0][a-1][v] +
+                                                  d*s2fac[v]*xtable[d-1][0][0][  a][v];
+                    }
+                }
+
+                for (int b = 1;b <= lb;b++)
+                {
+                    for (int c = 1;c <= lc;c++)
+                    {
+                        xtable[1][c][b][0][v] =   ddfac[v]*xtable[0][  c][  b][0][v] +
+                                                b* gfac[v]*xtable[0][  c][b-1][0][v] +
+                                                c*s2fac[v]*xtable[0][c-1][  b][0][v];
+
+                        for (int d = 1;d < ld;d++)
+                        {
+                            xtable[d+1][c][b][0][v] =   ddfac[v]*xtable[  d][  c][  b][0][v] +
+                                                      b* gfac[v]*xtable[  d][  c][b-1][0][v] +
+                                                      c*s2fac[v]*xtable[  d][c-1][  b][0][v] +
+                                                      d*s2fac[v]*xtable[d-1][  c][  b][0][v];
+                        }
+                    }
+                }
+
+                for (int a = 1;a <= la;a++)
+                {
+                    for (int c = 1;c <= lc;c++)
+                    {
+                        xtable[1][c][0][a][v] =   ddfac[v]*xtable[0][  c][0][  a][v] +
+                                                a* gfac[v]*xtable[0][  c][0][a-1][v] +
+                                                c*s2fac[v]*xtable[0][c-1][0][  a][v];
+
+                        for (int d = 1;d < ld;d++)
+                        {
+                            xtable[d+1][c][0][a][v] =   ddfac[v]*xtable[  d][  c][0][  a][v] +
+                                                      a* gfac[v]*xtable[  d][  c][0][a-1][v] +
+                                                      c*s2fac[v]*xtable[  d][c-1][0][  a][v] +
+                                                      d*s2fac[v]*xtable[d-1][  c][0][  a][v];
+                        }
+                    }
+                }
+
+                for (int a = 1;a <= la;a++)
+                {
+                    for (int b = 1;b <= lb;b++)
+                    {
+                        xtable[0][1][b][a][v] =   ccfac[v]*xtable[0][0][  b][  a][v] +
+                                                a* gfac[v]*xtable[0][0][  b][a-1][v] +
+                                                b* gfac[v]*xtable[0][0][b-1][  a][v];
+
+                        for (int c = 1;c < lc;c++)
+                        {
+                            xtable[0][c+1][b][a][v] =   ccfac[v]*xtable[0][  c][  b][  a][v] +
+                                                      a* gfac[v]*xtable[0][  c][  b][a-1][v] +
+                                                      b* gfac[v]*xtable[0][  c][b-1][  a][v] +
+                                                      c*s2fac[v]*xtable[0][c-1][  b][  a][v];
+                        }
+                    }
+                }
+
+                for (int a = 1;a <= la;a++)
+                {
+                    for (int b = 1;b <= lb;b++)
+                    {
+                        xtable[1][0][b][a][v] =   ddfac[v]*xtable[0][0][  b][  a][v] +
+                                                a* gfac[v]*xtable[0][0][  b][a-1][v] +
+                                                b* gfac[v]*xtable[0][0][b-1][  a][v];
+
+                        for (int d = 1;d < ld;d++)
+                        {
+                            xtable[d+1][0][b][a][v] =   ddfac[v]*xtable[  d][0][  b][  a][v] +
+                                                      a* gfac[v]*xtable[  d][0][  b][a-1][v] +
+                                                      b* gfac[v]*xtable[  d][0][b-1][  a][v] +
+                                                      d*s2fac[v]*xtable[d-1][0][  b][  a][v];
+                        }
+                    }
+                }
+
+                for (int a = 1;a <= la;a++)
+                {
+                    for (int b = 1;b <= lb;b++)
+                    {
+                        for (int c = 1;c <= lc;c++)
+                        {
+                            xtable[1][c][b][a][v] =   ddfac[v]*xtable[0][  c][  b][  a][v] +
+                                                    a* gfac[v]*xtable[0][  c][  b][a-1][v] +
+                                                    b* gfac[v]*xtable[0][  c][b-1][  a][v] +
+                                                    c*s2fac[v]*xtable[0][c-1][  b][  a][v];
+
+                            for (int d = 1;d < ld;d++)
+                            {
+                                xtable[d+1][c][b][a][v] =   ddfac[v]*xtable[  d][  c][  b][  a][v] +
+                                                          a* gfac[v]*xtable[  d][  c][  b][a-1][v] +
+                                                          b* gfac[v]*xtable[  d][  c][b-1][  a][v] +
+                                                          c*s2fac[v]*xtable[  d][c-1][  b][  a][v] +
+                                                          d*s2fac[v]*xtable[d-1][  c][  b][  a][v];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /*
+         * Calculate ERIs with the Rys Polynomial algorithm of Ishida
+         *  Ishida, K. J. Chem. Phys. 95, 5198-205 (1991)
+         *  Ishida, K. J. Chem. Phys. 98, 2176 (1993)
+         */
+        void prim(const vec3& posa, int la, double za,
+                  const vec3& posb, int lb, double zb,
+                  const vec3& posc, int lc, double zc,
+                  const vec3& posd, int ld, double zd,
+                  double* integrals) override
+        {
+            constexpr double PI_52 = 17.493418327624862846262821679872;
+            int nrys = (la+lb+lc+ld)/2 + 1;
+
+            marray<double,6> xtable(3, ld+1, lc+1, lb+1, la+1, nrys);
+
+            double zp = za + zb;
+            double zq = zc + zd;
+
+            vec3 posp = (posa*za + posb*zb)/zp;
+            vec3 posq = (posc*zc + posd*zd)/zq;
+
+            double A0 = 2*PI_52*exp(-za*zb*norm2(posa-posb)/zp
+                                    -zc*zd*norm2(posc-posd)/zq)/(sqrt(zp+zq)*zp*zq);
+            double Z = norm2(posp-posq)*zp*zq/(zp+zq);
+
+            Rys rys;
+            row<double> rts(nrys), wts(nrys);
+            rys(Z, nrys, rts.data(), wts.data());
+
+            for (int xyz = 0;xyz < 3;xyz++)
+            {
+                double pfac = zq*(posq[xyz] - posp[xyz])/(zp+zq);
+                double qfac = zp*(posp[xyz] - posq[xyz])/(zp+zq);
+
+                double afac = posp[xyz] - posa[xyz];
+                double bfac = posp[xyz] - posb[xyz];
+                double cfac = posq[xyz] - posc[xyz];
+                double dfac = posq[xyz] - posd[xyz];
+
+                row<double> aafac(nrys);
+                row<double> bbfac(nrys);
+                row<double> ccfac(nrys);
+                row<double> ddfac(nrys);
+
+                row<double> s1fac(nrys);
+                row<double> s2fac(nrys);
+                row<double> gfac(nrys);
+
+                for (int v = 0;v < nrys;v++)
+                {
+                    aafac[v] = afac + pfac*rts[v];
+                    bbfac[v] = bfac + pfac*rts[v];
+                    ccfac[v] = cfac + qfac*rts[v];
+                    ddfac[v] = dfac + qfac*rts[v];
+
+                    /*
+                     * there is a typo in Ishida (JCP v98), the definition of G after Eq. 5 should read G = \xi s_i^2
+                     */
+                    gfac[v] = rts[v]/(2*(zp+zq));
+                    s1fac[v] = (0.5 - zq*gfac[v])/zp;
+                    s2fac[v] = (0.5 - zp*gfac[v])/zq;
+                }
+
+                filltable((xyz == 0 ? A0 : 1.0), aafac, bbfac, ccfac, ddfac, s1fac, s2fac, gfac, xtable[xyz]);
+            }
+
+            for (int dx = 0;dx <= ld;dx++)
+            {
+                for (int dy = 0;dy <= ld-dx;dy++)
+                {
+                    int dz = ld-dx-dy;
+                    for (int cx = 0;cx <= lc;cx++)
+                    {
+                        for (int cy = 0;cy <= lc-cx;cy++)
+                        {
+                            int cz = lc-cx-cy;
+                            for (int bx = 0;bx <= lb;bx++)
+                            {
+                                for (int by = 0;by <= lb-bx;by++)
+                                {
+                                    int bz = lb-bx-by;
+                                    for (int ax = 0;ax <= la;ax++)
                                     {
-                                        *integrals += xtable[0][dx][cx][bx][ax][v] *
-                                                      xtable[1][dy][cy][by][ay][v] *
-                                                      xtable[2][dz][cz][bz][az][v];
+                                        for (int ay = 0;ay <= la-ax;ay++)
+                                        {
+                                            int az = la-ax-ay;
+
+                                            *integrals = 0.0;
+                                            for (int v = 0;v < nrys;v++)
+                                            {
+                                                *integrals += xtable[0][dx][cx][bx][ax][v] *
+                                                              xtable[1][dy][cy][by][ay][v] *
+                                                              xtable[2][dz][cz][bz][az][v];
+                                            }
+                                            integrals++;
+                                        }
                                     }
-                                    integrals++;
                                 }
                             }
                         }
@@ -102,225 +345,11 @@ void IshidaERI::prim(const vec3& posa, int la, double za,
                 }
             }
         }
-    }
-}
-
-void IshidaERI::filltable(double factor,
-                          row<double>& aafac, row<double>& bbfac, row<double>& ccfac, row<double>& ddfac,
-                          double s1fac, double s2fac, row<double>& gfac, marray<double,5>&& xtable)
-{
-    int la = xtable.length(3)-1;
-    int lb = xtable.length(2)-1;
-    int lc = xtable.length(1)-1;
-    int ld = xtable.length(0)-1;
-    int nrys = (la+lb+lc+ld)/2 + 1;
-
-    for (int v = 0;v < nrys;v++)
-    {
-        xtable[0][0][0][0][v] = factor;
-        xtable[0][0][0][1][v] = aafac[v]*factor;
-        xtable[0][0][1][0][v] = bbfac[v]*factor;
-        xtable[0][1][0][0][v] = ccfac[v]*factor;
-        xtable[1][0][0][0][v] = ddfac[v]*factor;
-
-        for (int a = 1;a < la;a++)
-        {
-            xtable[0][0][0][a+1][v] =   aafac[v]*xtable[0][0][0][  a][v] +
-                                      a*s1fac   *xtable[0][0][0][a-1][v];
-        }
-
-        for (int b = 1;b < lb;b++)
-        {
-            xtable[0][0][b+1][0][v] =   bbfac[v]*xtable[0][0][  b][0][v] +
-                                      b*s1fac   *xtable[0][0][b-1][0][v];
-        }
-
-        for (int c = 1;c <= lc;c++)
-        {
-            xtable[0][c+1][0][0][v] =   ccfac[v]*xtable[0][  c][0][0][v] +
-                                      c*s2fac   *xtable[0][c-1][0][0][v];
-        }
-
-        for (int d = 1;d < ld;d++)
-        {
-            xtable[d+1][0][0][0][v] =   ddfac[v]*xtable[  d][0][0][0][v] +
-                                      d*s2fac   *xtable[d-1][0][0][0][v];
-        }
-
-        for (int c = 1;c <= lc;c++)
-        {
-            xtable[1][c][0][0][v] =   ddfac[v]*xtable[0][  c][0][0][v] +
-                                    c*s2fac   *xtable[0][c-1][0][0][v];
-
-            for (int d = 1;d < ld;d++)
-            {
-                xtable[d+1][c][0][0][v] =   ddfac[v]*xtable[  d][  c][0][0][v] +
-                                          c*s2fac   *xtable[  d][c-1][0][0][v] +
-                                          d*s2fac   *xtable[d-1][  c][0][0][v];
-            }
-        }
-
-        for (int b = 1;b <= lb;b++)
-        {
-            xtable[0][1][b][0][v] =   ccfac[v]*xtable[0][0][  b][0][v] +
-                                    b* gfac[v]*xtable[0][0][b-1][0][v];
-
-            for (int c = 1;c < lc;c++)
-            {
-                xtable[0][c+1][b][0][v] =   ccfac[v]*xtable[0][  c][  b][0][v] +
-                                          b* gfac[v]*xtable[0][  c][b-1][0][v] +
-                                          c*s2fac   *xtable[0][c-1][  b][0][v];
-            }
-        }
-
-        for (int b = 1;b <= lb;b++)
-        {
-            xtable[1][0][b][0][v] =   ddfac[v]*xtable[0][0][  b][0][v] +
-                                    b* gfac[v]*xtable[0][0][b-1][0][v];
-
-            for (int d = 1;d < ld;d++)
-            {
-                xtable[d+1][0][b][0][v] =   ddfac[v]*xtable[  d][0][  b][0][v] +
-                                          b* gfac[v]*xtable[  d][0][b-1][0][v] +
-                                          d*s2fac   *xtable[d-1][0][  b][0][v];
-            }
-        }
-
-        for (int a = 1;a <= la;a++)
-        {
-            xtable[0][0][1][a][v] =   bbfac[v]*xtable[0][0][0][  a][v] +
-                                    a*s1fac   *xtable[0][0][0][a-1][v];
-
-            for (int b = 1;b < lb;b++)
-            {
-                xtable[0][0][b+1][a][v] =   bbfac[v]*xtable[0][0][  b][  a][v] +
-                                          a*s1fac   *xtable[0][0][  b][a-1][v] +
-                                          b*s1fac   *xtable[0][0][b-1][  a][v];
-            }
-        }
-
-        for (int a = 1;a <= la;a++)
-        {
-            xtable[0][1][0][a][v] =   ccfac[v]*xtable[0][0][0][  a][v] +
-                                    a* gfac[v]*xtable[0][0][0][a-1][v];
-
-            for (int c = 1;c < lc;c++)
-            {
-                xtable[0][c+1][0][a][v] =   ccfac[v]*xtable[0][  c][0][  a][v] +
-                                          a* gfac[v]*xtable[0][  c][0][a-1][v] +
-                                          c*s2fac   *xtable[0][c-1][0][  a][v];
-            }
-        }
-
-        for (int a = 1;a <= la;a++)
-        {
-            xtable[1][0][0][a][v] =   ddfac[v]*xtable[0][0][0][  a][v] +
-                                    a* gfac[v]*xtable[0][0][0][a-1][v];
-
-            for (int d = 1;d < ld;d++)
-            {
-                xtable[d+1][0][0][a][v] =   ddfac[v]*xtable[  d][0][0][  a][v] +
-                                          a* gfac[v]*xtable[  d][0][0][a-1][v] +
-                                          d*s2fac   *xtable[d-1][0][0][  a][v];
-            }
-        }
-
-        for (int b = 1;b <= lb;b++)
-        {
-            for (int c = 1;c <= lc;c++)
-            {
-                xtable[1][c][b][0][v] =   ddfac[v]*xtable[0][  c][  b][0][v] +
-                                        b* gfac[v]*xtable[0][  c][b-1][0][v] +
-                                        c*s2fac   *xtable[0][c-1][  b][0][v];
-
-                for (int d = 1;d < ld;d++)
-                {
-                    xtable[d+1][c][b][0][v] =   ddfac[v]*xtable[  d][  c][  b][0][v] +
-                                              b* gfac[v]*xtable[  d][  c][b-1][0][v] +
-                                              c*s2fac   *xtable[  d][c-1][  b][0][v] +
-                                              d*s2fac   *xtable[d-1][  c][  b][0][v];
-                }
-            }
-        }
-
-        for (int a = 1;a <= la;a++)
-        {
-            for (int c = 1;c <= lc;c++)
-            {
-                xtable[1][c][0][a][v] =   ddfac[v]*xtable[0][  c][0][  a][v] +
-                                        a* gfac[v]*xtable[0][  c][0][a-1][v] +
-                                        c*s2fac   *xtable[0][c-1][0][  a][v];
-
-                for (int d = 1;d < ld;d++)
-                {
-                    xtable[d+1][c][0][a][v] =   ddfac[v]*xtable[  d][  c][0][  a][v] +
-                                              a* gfac[v]*xtable[  d][  c][0][a-1][v] +
-                                              c*s2fac   *xtable[  d][c-1][0][  a][v] +
-                                              d*s2fac   *xtable[d-1][  c][0][  a][v];
-                }
-            }
-        }
-
-        for (int a = 1;a <= la;a++)
-        {
-            for (int b = 1;b <= lb;b++)
-            {
-                xtable[0][1][b][a][v] =   ccfac[v]*xtable[0][0][  b][  a][v] +
-                                        a* gfac[v]*xtable[0][0][  b][a-1][v] +
-                                        b* gfac[v]*xtable[0][0][b-1][  a][v];
-
-                for (int c = 1;c < lc;c++)
-                {
-                    xtable[0][c+1][b][a][v] =   ccfac[v]*xtable[0][  c][  b][  a][v] +
-                                              a* gfac[v]*xtable[0][  c][  b][a-1][v] +
-                                              b* gfac[v]*xtable[0][  c][b-1][  a][v] +
-                                              c*s2fac   *xtable[0][c-1][  b][  a][v];
-                }
-            }
-        }
-
-        for (int a = 1;a <= la;a++)
-        {
-            for (int b = 1;b <= lb;b++)
-            {
-                xtable[1][0][b][a][v] =   ddfac[v]*xtable[0][0][  b][  a][v] +
-                                        a* gfac[v]*xtable[0][0][  b][a-1][v] +
-                                        b* gfac[v]*xtable[0][0][b-1][  a][v];
-
-                for (int d = 1;d < ld;d++)
-                {
-                    xtable[d+1][0][b][a][v] =   ddfac[v]*xtable[  d][0][  b][  a][v] +
-                                              a* gfac[v]*xtable[  d][0][  b][a-1][v] +
-                                              b* gfac[v]*xtable[  d][0][b-1][  a][v] +
-                                              d*s2fac   *xtable[d-1][0][  b][  a][v];
-                }
-            }
-        }
-
-        for (int a = 1;a <= la;a++)
-        {
-            for (int b = 1;b <= lb;b++)
-            {
-                for (int c = 1;c <= lc;c++)
-                {
-                    xtable[1][c][b][a][v] =   ddfac[v]*xtable[0][  c][  b][  a][v] +
-                                            a* gfac[v]*xtable[0][  c][  b][a-1][v] +
-                                            b* gfac[v]*xtable[0][  c][b-1][  a][v] +
-                                            c*s2fac   *xtable[0][c-1][  b][  a][v];
-
-                    for (int d = 1;d < ld;d++)
-                    {
-                        xtable[d+1][c][b][a][v] =   ddfac[v]*xtable[  d][  c][  b][  a][v] +
-                                                  a* gfac[v]*xtable[  d][  c][  b][a-1][v] +
-                                                  b* gfac[v]*xtable[  d][  c][b-1][  a][v] +
-                                                  c*s2fac   *xtable[  d][c-1][  b][  a][v] +
-                                                  d*s2fac   *xtable[d-1][  c][  b][  a][v];
-                    }
-                }
-            }
-        }
-    }
-}
+};
 
 }
 }
+
+REGISTER_VENDOR(aquarius::integrals::Integrals,
+                aquarius::integrals::ERI,
+                aquarius::integrals::IshidaERI);

@@ -3,14 +3,6 @@
 using namespace aquarius::molecule;
 
 /**
- * Compute the index of a function in cartesian angular momentum in the order:
- *
- * xxx, xxy, xxz, xyy, xyz, xzz, yyy, yyz, yzz, zzz
- */
-#define FUNC_CART(x,y,z) ((((y)+(z))*((y)+(z)+1))/2 + (z))
-#define XYZ(x,y,z) FUNC_CART(x,y,z)
-
-/**
  * Compute the index of a function in spherical harmonic angular momentum.
  *
  * Regular spherical harmonics are referenced by n=l, l>=m>=-l. Contaminants may also be referenced by

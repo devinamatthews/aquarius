@@ -56,9 +56,9 @@ class CholeskyIntegrals
 
         int getRank() const { return nvec; }
 
-        tensor::ConstTensor<PGSYMMETRIC> getL() const { return L; }
+        const tensor::Tensor<PGSYMMETRIC>& getL() const { return L; }
 
-        tensor::ConstTensor<PGSYMMETRIC> getD() const { return D; }
+        const tensor::Tensor<PGSYMMETRIC>& getD() const { return D; }
 
     protected:
 

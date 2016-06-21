@@ -4,12 +4,12 @@
 #include "frameworks/util.hpp"
 
 #define REGISTER_MARKETPLACE(marketplace,...) \
-template <> bool agora::StaticInitializer<marketplace>::initialized = \
-    agora::Agora::registerMarketplace<marketplace>(__VA_ARGS__)
+template <> bool aquarius::agora::StaticInitializer<marketplace>::initialized = \
+    aquarius::agora::Agora::registerMarketplace<marketplace>(__VA_ARGS__)
 
 #define REGISTER_VENDOR(marketplace,vendor,type,...) \
-template <> bool agora::StaticInitializer<type>::initialized = \
-    agora::Marketplace<marketplace>::registerVendor<vendor,type>(__VA_ARGS__)
+template <> bool aquarius::agora::StaticInitializer<type>::initialized = \
+    aquarius::agora::Marketplace<marketplace>::registerVendor<vendor,type>(__VA_ARGS__)
 
 namespace aquarius
 {

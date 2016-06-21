@@ -98,9 +98,11 @@ void BasisSet::apply(Atom& atom, bool spherical, bool contaminants)
 
     for (it2 = v.begin();it2 != v.end();++it2)
     {
-        atom.getShells().emplace_back(atom.getCenter(), it2->L, it2->nprim,
-                                      it2->ncontr, spherical, contaminants,
-                                      it2->exponents, it2->coefficients);
+        int n = it2->nprim;
+        int m = it2->ncontr;
+        atom.getShells().emplace_back(atom.getCenter(), it2->L, spherical, contaminants,
+                                      row_view<double>(n, it2->exponents.data()),
+                                      matrix_view<double>(n, m, it2->coefficients.data()));
     }
 }
 

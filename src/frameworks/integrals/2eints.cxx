@@ -213,16 +213,16 @@ void TwoElectronIntegrals::prim(const vec3& posa, int la, double za,
     assert(0);
 }
 
-void TwoElectronIntegrals::prims(const vec3& posa, int la, const vector<double>& za,
-                                 const vec3& posb, int lb, const vector<double>& zb,
-                                 const vec3& posc, int lc, const vector<double>& zc,
-                                 const vec3& posd, int ld, const vector<double>& zd,
+void TwoElectronIntegrals::prims(const vec3& posa, int la, const row<double>& za,
+                                 const vec3& posb, int lb, const row<double>& zb,
+                                 const vec3& posc, int lc, const row<double>& zc,
+                                 const vec3& posd, int ld, const row<double>& zd,
                                  double* integrals)
 {
-    int na = za.size();
-    int nb = zb.size();
-    int nc = zc.size();
-    int nd = zd.size();
+    int na = za.length();
+    int nb = zb.length();
+    int nc = zc.length();
+    int nd = zd.length();
     int fca = (la+1)*(la+2)/2;
     int fcb = (lb+1)*(lb+2)/2;
     int fcc = (lc+1)*(lc+2)/2;
@@ -247,16 +247,16 @@ void TwoElectronIntegrals::prims(const vec3& posa, int la, const vector<double>&
     }
 }
 
-void TwoElectronIntegrals::contr(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca,
-                                 const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb,
-                                 const vec3& posc, int lc, const vector<double>& zc, const matrix<double>& cc,
-                                 const vec3& posd, int ld, const vector<double>& zd, const matrix<double>& cd,
+void TwoElectronIntegrals::contr(const vec3& posa, int la, const row<double>& za, const matrix<double>& ca,
+                                 const vec3& posb, int lb, const row<double>& zb, const matrix<double>& cb,
+                                 const vec3& posc, int lc, const row<double>& zc, const matrix<double>& cc,
+                                 const vec3& posd, int ld, const row<double>& zd, const matrix<double>& cd,
                                  double* integrals)
 {
-    int na = za.size();
-    int nb = zb.size();
-    int nc = zc.size();
-    int nd = zd.size();
+    int na = za.length();
+    int nb = zb.length();
+    int nc = zc.length();
+    int nd = zd.length();
     int fca = (la+1)*(la+2)/2;
     int fcb = (lb+1)*(lb+2)/2;
     int fcc = (lc+1)*(lc+2)/2;
@@ -271,10 +271,10 @@ void TwoElectronIntegrals::contr(const vec3& posa, int la, const vector<double>&
     transform(fca*fcb*fcc*fcd, ca, cb, cc, cd, pintegrals.data(), integrals);
 }
 
-void TwoElectronIntegrals::spher(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca, const matrix<double>& sa,
-                                 const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb, const matrix<double>& sb,
-                                 const vec3& posc, int lc, const vector<double>& zc, const matrix<double>& cc, const matrix<double>& sc,
-                                 const vec3& posd, int ld, const vector<double>& zd, const matrix<double>& cd, const matrix<double>& sd,
+void TwoElectronIntegrals::spher(const vec3& posa, int la, const row<double>& za, const matrix<double>& ca, const matrix<double>& sa,
+                                 const vec3& posb, int lb, const row<double>& zb, const matrix<double>& cb, const matrix<double>& sb,
+                                 const vec3& posc, int lc, const row<double>& zc, const matrix<double>& cc, const matrix<double>& sc,
+                                 const vec3& posd, int ld, const row<double>& zd, const matrix<double>& cd, const matrix<double>& sd,
                                  double* integrals)
 {
     int na = ca.length(0);

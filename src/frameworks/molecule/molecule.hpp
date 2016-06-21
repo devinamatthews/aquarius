@@ -5,6 +5,7 @@
 #include "frameworks/task.hpp"
 #include "frameworks/symmetry.hpp"
 
+#include "atom.hpp"
 #include "basis.hpp"
 #include "center.hpp"
 #include "element.hpp"
@@ -54,6 +55,9 @@ class Molecule
             : AtomSpec(symbol, basisSet, truncation, charge_from_input), pos(pos) {}
         };
 
+        friend class task::Config::Extractor<AtomZmatSpec>;
+        friend class task::Config::Extractor<AtomCartSpec>;
+
         template <typename shell_type, typename atom_iterator_type, typename shell_iterator_type>
         class shell_iterator_ : public iterator<forward_iterator_tag, shell_type>
         {
@@ -98,10 +102,10 @@ class Molecule
                     {
                         ++shell_it;
 
-                        while (shell_it == atom_it->getShellsEnd())
+                        while (shell_it == atom_it->getShells().end())
                         {
                             ++atom_it;
-                            if (atom_it != atom_it_end) shell_it = atom_it->getShellsBegin();
+                            if (atom_it != atom_it_end) shell_it = atom_it->getShells().begin();
 														else break;
                         }
                     }

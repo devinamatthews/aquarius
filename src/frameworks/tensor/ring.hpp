@@ -15,15 +15,19 @@ typedef complex<double> dcomplex;
 class Ring
 {
     public:
-        bool operator==(const Ring& other) const { return type == other.type; }
+        int type() const { return type_; }
 
-        bool operator!=(const Ring& other) const { return type != other.type; }
+        int size() const { return size_; }
+
+        bool operator==(const Ring& other) const { return type_ == other.type_; }
+
+        bool operator!=(const Ring& other) const { return type_ != other.type_; }
 
     protected:
-        Ring(int type, size_t size) : type(type), size(size) {}
+        Ring(int type, size_t size) : type_(type), size_(size) {}
 
-        int type;
-        size_t size;
+        int type_;
+        size_t size_;
 };
 
 namespace detail
@@ -49,9 +53,11 @@ class Field : public Ring
         Field(const scomplex& val) : Ring(SCOMPLEX, sizeof(scomplex)) {}
         Field(const dcomplex& val) : Ring(DCOMPLEX, sizeof(dcomplex)) {}
 
+        field type() const { return (field)type_; }
+
         static Datatype MPI_TYPE(const Field& F)
         {
-            return MPI_TYPE((field)F.type);
+            return MPI_TYPE(F.type());
         }
 
         static Datatype MPI_TYPE(field F)
@@ -79,6 +85,9 @@ template <>           struct is_field<  double> :  true_type {};
 template <>           struct is_field<scomplex> :  true_type {};
 template <>           struct is_field<dcomplex> :  true_type {};
 
+template <typename T, typename U=void>
+using enable_if_field_t = enable_if_t<is_field<T>::value,U>;
+
 class Scalar
 {
     protected:
@@ -99,13 +108,13 @@ class Scalar
         template <typename T>
         enable_if_t<is_field<T>::value,Field::field> resultType(T other) const
         {
-            return resultType(F.type, field_type<T>::val);
+            return resultType(F.type(), field_type<T>::val);
         }
 
         template <typename T>
         enable_if_t<!is_field<T>::value,Field::field> resultType(T other) const
         {
-            return Field::field(F.type);
+            return Field::field(F.type());
         }
 
     public:
@@ -161,7 +170,7 @@ class Scalar
 
         friend Scalar abs(const Scalar& s)
         {
-            switch (s.F.type)
+            switch (s.F.type())
             {
                 case Field::SINGLE:   return Scalar(std::abs( s.fval)); break;
                 case Field::DOUBLE:   return Scalar(std::abs( s.dval)); break;
@@ -173,8 +182,10 @@ class Scalar
 
         friend Scalar conj(Scalar s)
         {
-            switch (s.F.type)
+            switch (s.F.type())
             {
+                case Field::SINGLE:                            break;
+                case Field::DOUBLE:                            break;
                 case Field::SCOMPLEX: s.fcval = conj(s.fcval); break;
                 case Field::DCOMPLEX: s.dcval = conj(s.dcval); break;
             }
@@ -183,7 +194,7 @@ class Scalar
 
         friend Scalar sqrt(Scalar s)
         {
-            switch (s.F.type)
+            switch (s.F.type())
             {
                 case Field::SINGLE:    s.fval = sqrt( s.fval); break;
                 case Field::DOUBLE:    s.dval = sqrt( s.dval); break;
@@ -195,8 +206,8 @@ class Scalar
 
         friend Scalar real(const Scalar& s)
         {
-            Scalar r(s.F.type & Field::DOUBLE);
-            switch (s.F.type)
+            Scalar r(s.F.type() & Field::DOUBLE);
+            switch (s.F.type())
             {
                 case Field::SINGLE:   r.fval = real( s.fval); break;
                 case Field::DOUBLE:   r.dval = real( s.dval); break;
@@ -208,8 +219,8 @@ class Scalar
 
         friend Scalar imag(const Scalar& s)
         {
-            Scalar i(s.F.type & Field::DOUBLE);
-            switch (s.F.type)
+            Scalar i(s.F.type() & Field::DOUBLE);
+            switch (s.F.type())
             {
                 case Field::SINGLE:   i.fval = imag( s.fval); break;
                 case Field::DOUBLE:   i.dval = imag( s.dval); break;
@@ -221,10 +232,10 @@ class Scalar
 
         friend Scalar min(const Scalar& s1, const Scalar& s2)
         {
-            switch (s1.F.type)
+            switch (s1.F.type())
             {
                 case Field::SINGLE:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
                         case Field::SINGLE:   return Scalar(min(   float(s1.fval),    float( s2.fval))); break;
                         case Field::DOUBLE:   return Scalar(min(  double(s1.fval),   double( s2.dval))); break;
@@ -233,7 +244,7 @@ class Scalar
                     }
                     break;
                 case Field::DOUBLE:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
                         case Field::SINGLE:   return Scalar(min(  double(s1.dval),   double( s2.fval))); break;
                         case Field::DOUBLE:   return Scalar(min(  double(s1.dval),   double( s2.dval))); break;
@@ -242,7 +253,7 @@ class Scalar
                     }
                     break;
                 case Field::SCOMPLEX:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
                         case Field::SINGLE:   return Scalar(min(scomplex(s1.fcval), scomplex( s2.fval))); break;
                         case Field::DOUBLE:   return Scalar(min(dcomplex(s1.fcval), dcomplex( s2.dval))); break;
@@ -251,7 +262,7 @@ class Scalar
                     }
                     break;
                 case Field::DCOMPLEX:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
                         case Field::SINGLE:   return Scalar(min(dcomplex(s1.dcval), dcomplex( s2.fval))); break;
                         case Field::DOUBLE:   return Scalar(min(dcomplex(s1.dcval), dcomplex( s2.dval))); break;
@@ -266,10 +277,10 @@ class Scalar
 
         friend Scalar max(const Scalar& s1, const Scalar& s2)
         {
-            switch (s1.F.type)
+            switch (s1.F.type())
             {
                 case Field::SINGLE:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
                         case Field::SINGLE:   return Scalar(max(   float(s1.fval),    float( s2.fval))); break;
                         case Field::DOUBLE:   return Scalar(max(  double(s1.fval),   double( s2.dval))); break;
@@ -278,7 +289,7 @@ class Scalar
                     }
                     break;
                 case Field::DOUBLE:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
                         case Field::SINGLE:   return Scalar(max(  double(s1.dval),   double( s2.fval))); break;
                         case Field::DOUBLE:   return Scalar(max(  double(s1.dval),   double( s2.dval))); break;
@@ -287,7 +298,7 @@ class Scalar
                     }
                     break;
                 case Field::SCOMPLEX:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
                         case Field::SINGLE:   return Scalar(max(scomplex(s1.fcval), scomplex( s2.fval))); break;
                         case Field::DOUBLE:   return Scalar(max(dcomplex(s1.fcval), dcomplex( s2.dval))); break;
@@ -296,7 +307,7 @@ class Scalar
                     }
                     break;
                 case Field::DCOMPLEX:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
                         case Field::SINGLE:   return Scalar(max(dcomplex(s1.dcval), dcomplex( s2.fval))); break;
                         case Field::DOUBLE:   return Scalar(max(dcomplex(s1.dcval), dcomplex( s2.dval))); break;
@@ -311,10 +322,10 @@ class Scalar
 
         friend bool operator==(const Scalar& s1, const Scalar& s2)
         {
-            switch (s1.F.type)
+            switch (s1.F.type())
             {
                 case Field::SINGLE:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
                         case Field::SINGLE:   return    float(s1.fval) ==    float( s2.fval); break;
                         case Field::DOUBLE:   return   double(s1.fval) ==   double( s2.dval); break;
@@ -323,7 +334,7 @@ class Scalar
                     }
                     break;
                 case Field::DOUBLE:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
                         case Field::SINGLE:   return   double(s1.dval) ==   double( s2.fval); break;
                         case Field::DOUBLE:   return   double(s1.dval) ==   double( s2.dval); break;
@@ -332,7 +343,7 @@ class Scalar
                     }
                     break;
                 case Field::SCOMPLEX:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
                         case Field::SINGLE:   return scomplex(s1.fcval) == scomplex( s2.fval); break;
                         case Field::DOUBLE:   return dcomplex(s1.fcval) == dcomplex( s2.dval); break;
@@ -341,7 +352,7 @@ class Scalar
                     }
                     break;
                 case Field::DCOMPLEX:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
                         case Field::SINGLE:   return dcomplex(s1.dcval) == dcomplex( s2.fval); break;
                         case Field::DOUBLE:   return dcomplex(s1.dcval) == dcomplex( s2.dval); break;
@@ -361,42 +372,42 @@ class Scalar
 
         friend bool operator<(const Scalar& s1, const Scalar& s2)
         {
-            switch (s1.F.type)
+            switch (s1.F.type())
             {
                 case Field::SINGLE:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
-                        case Field::SINGLE:   return  float(s1.fval) <  float(                        s2.fval); break;
-                        case Field::DOUBLE:   return double(s1.fval) < double(                        s2.dval); break;
-                        case Field::SCOMPLEX: return  float(s1.fval) <  float(s2.fcval.real()+s2.fcval.imag()); break;
-                        case Field::DCOMPLEX: return double(s1.fval) < double(s2.dcval.real()+s2.dcval.imag()); break;
+                        case Field::SINGLE:   return    float(s1.fval) <    float( s2.fval); break;
+                        case Field::DOUBLE:   return   double(s1.fval) <   double( s2.dval); break;
+                        case Field::SCOMPLEX: return scomplex(s1.fval) < scomplex(s2.fcval); break;
+                        case Field::DCOMPLEX: return dcomplex(s1.fval) < dcomplex(s2.dcval); break;
                     }
                     break;
                 case Field::DOUBLE:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
-                        case Field::SINGLE:   return double(s1.dval) < double(                        s2.fval); break;
-                        case Field::DOUBLE:   return double(s1.dval) < double(                        s2.dval); break;
-                        case Field::SCOMPLEX: return double(s1.dval) < double(s2.fcval.real()+s2.fcval.imag()); break;
-                        case Field::DCOMPLEX: return double(s1.dval) < double(s2.dcval.real()+s2.dcval.imag()); break;
+                        case Field::SINGLE:   return   double(s1.dval) <   double( s2.fval); break;
+                        case Field::DOUBLE:   return   double(s1.dval) <   double( s2.dval); break;
+                        case Field::SCOMPLEX: return dcomplex(s1.dval) < dcomplex(s2.fcval); break;
+                        case Field::DCOMPLEX: return dcomplex(s1.dval) < dcomplex(s2.dcval); break;
                     }
                     break;
                 case Field::SCOMPLEX:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
-                        case Field::SINGLE:   return  float(s1.fcval.real()+s1.fcval.imag()) <  float(                        s2.fval); break;
-                        case Field::DOUBLE:   return double(s1.fcval.real()+s1.fcval.imag()) < double(                        s2.dval); break;
-                        case Field::SCOMPLEX: return  float(s1.fcval.real()+s1.fcval.imag()) <  float(s2.fcval.real()+s2.fcval.imag()); break;
-                        case Field::DCOMPLEX: return double(s1.fcval.real()+s1.fcval.imag()) < double(s2.dcval.real()+s2.dcval.imag()); break;
+                        case Field::SINGLE:   return scomplex(s1.fcval) < scomplex( s2.fval); break;
+                        case Field::DOUBLE:   return dcomplex(s1.fcval) < dcomplex( s2.dval); break;
+                        case Field::SCOMPLEX: return scomplex(s1.fcval) < scomplex(s2.fcval); break;
+                        case Field::DCOMPLEX: return dcomplex(s1.fcval) < dcomplex(s2.dcval); break;
                     }
                     break;
                 case Field::DCOMPLEX:
-                    switch (s2.F.type)
+                    switch (s2.F.type())
                     {
-                        case Field::SINGLE:   return double(s1.dcval.real()+s1.dcval.imag()) < double(                        s2.fval); break;
-                        case Field::DOUBLE:   return double(s1.dcval.real()+s1.dcval.imag()) < double(                        s2.dval); break;
-                        case Field::SCOMPLEX: return double(s1.dcval.real()+s1.dcval.imag()) < double(s2.fcval.real()+s2.fcval.imag()); break;
-                        case Field::DCOMPLEX: return double(s1.dcval.real()+s1.dcval.imag()) < double(s2.dcval.real()+s2.dcval.imag()); break;
+                        case Field::SINGLE:   return dcomplex(s1.dcval) < dcomplex( s2.fval); break;
+                        case Field::DOUBLE:   return dcomplex(s1.dcval) < dcomplex( s2.dval); break;
+                        case Field::SCOMPLEX: return dcomplex(s1.dcval) < dcomplex(s2.fcval); break;
+                        case Field::DCOMPLEX: return dcomplex(s1.dcval) < dcomplex(s2.dcval); break;
                     }
                     break;
             }
@@ -421,21 +432,13 @@ class Scalar
 
         Field field() const { return F; }
 
-        /*
-        template <typename T> operator T() const
-        {
-            static_assert(is_field<T>::value, "");
-            return to<T>();
-        }
-        */
-
         void* data() { return (void*)&fval; }
 
         const void* data() const { return (void*)&fval; }
 
         template <typename T> enable_if_t<is_complex<T>::value,T> to() const
         {
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:   return T( fval); break;
                 case Field::DOUBLE:   return T( dval); break;
@@ -447,7 +450,7 @@ class Scalar
 
         template <typename T> enable_if_t<!is_complex<T>::value,T> to() const
         {
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:   return T(      fval ); break;
                 case Field::DOUBLE:   return T(      dval ); break;
@@ -457,18 +460,16 @@ class Scalar
             return T();
         }
 
-        template <typename T, typename=enable_if_t<is_arithmetic<real_type_t<T>>::value>>
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
         explicit operator T() const
         {
             return to<T>();
         }
 
-        template <typename T>
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
         Scalar& operator=(T other)
         {
-            static_assert(is_arithmetic<real_type_t<T>>::value, "");
-
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fval = real(other); break;
                 case Field::DOUBLE:    dval = real(other); break;
@@ -481,7 +482,7 @@ class Scalar
 
         Scalar& operator=(const Scalar& other)
         {
-            switch (other.F.type)
+            switch (other.F.type())
             {
                 case Field::SINGLE:   *this =  other.fval; break;
                 case Field::DOUBLE:   *this =  other.dval; break;
@@ -492,12 +493,10 @@ class Scalar
             return *this;
         }
 
-        template <typename T>
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
         Scalar& operator+=(T other)
         {
-            static_assert(is_arithmetic<real_type_t<T>>::value, "");
-
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fval += real(other); break;
                 case Field::DOUBLE:    dval += real(other); break;
@@ -510,7 +509,7 @@ class Scalar
 
         Scalar& operator+=(const Scalar& other)
         {
-            switch (other.F.type)
+            switch (other.F.type())
             {
                 case Field::SINGLE:   *this +=  other.fval; break;
                 case Field::DOUBLE:   *this +=  other.dval; break;
@@ -521,12 +520,10 @@ class Scalar
             return *this;
         }
 
-        template <typename T>
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
         Scalar& operator-=(T other)
         {
-            static_assert(is_arithmetic<real_type_t<T>>::value, "");
-
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fval -= real(other); break;
                 case Field::DOUBLE:    dval -= real(other); break;
@@ -539,7 +536,7 @@ class Scalar
 
         Scalar& operator-=(const Scalar& other)
         {
-            switch (other.F.type)
+            switch (other.F.type())
             {
                 case Field::SINGLE:   *this -=  other.fval; break;
                 case Field::DOUBLE:   *this -=  other.dval; break;
@@ -550,12 +547,11 @@ class Scalar
             return *this;
         }
 
-        template <typename T>
-        typename enable_if<is_complex<T>::value,Scalar&>::type operator*=(T other)
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
+        enable_if_complex_t<T,Scalar&>
+        operator*=(T other)
         {
-            static_assert(is_arithmetic<real_type_t<T>>::value, "");
-
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fval *= std::abs(other); break;
                 case Field::DOUBLE:    dval *= std::abs(other); break;
@@ -566,12 +562,11 @@ class Scalar
             return *this;
         }
 
-        template <typename T>
-        typename enable_if<!is_complex<T>::value,Scalar&>::type operator*=(T other)
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
+        enable_if_not_complex_t<T,Scalar&>
+        operator*=(T other)
         {
-            static_assert(is_arithmetic<real_type_t<T>>::value, "");
-
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fval *= other; break;
                 case Field::DOUBLE:    dval *= other; break;
@@ -584,7 +579,7 @@ class Scalar
 
         Scalar& operator*=(const Scalar& other)
         {
-            switch (other.F.type)
+            switch (other.F.type())
             {
                 case Field::SINGLE:   *this *=  other.fval; break;
                 case Field::DOUBLE:   *this *=  other.dval; break;
@@ -595,12 +590,11 @@ class Scalar
             return *this;
         }
 
-        template <typename T>
-        typename enable_if<is_complex<T>::value,Scalar&>::type operator/=(T other)
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
+        enable_if_complex_t<T,Scalar&>
+        operator/=(T other)
         {
-            static_assert(is_arithmetic<real_type_t<T>>::value, "");
-
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fval /= std::abs(other); break;
                 case Field::DOUBLE:    dval /= std::abs(other); break;
@@ -611,12 +605,11 @@ class Scalar
             return *this;
         }
 
-        template <typename T>
-        typename enable_if<!is_complex<T>::value,Scalar&>::type operator/=(T other)
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
+        enable_if_not_complex_t<T,Scalar&>
+        operator/=(T other)
         {
-            static_assert(is_arithmetic<real_type_t<T>>::value, "");
-
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fval /= other; break;
                 case Field::DOUBLE:    dval /= other; break;
@@ -629,7 +622,7 @@ class Scalar
 
         Scalar& operator/=(const Scalar& other)
         {
-            switch (other.F.type)
+            switch (other.F.type())
             {
                 case Field::SINGLE:   *this /=  other.fval; break;
                 case Field::DOUBLE:   *this /=  other.dval; break;
@@ -644,7 +637,7 @@ class Scalar
         {
             Scalar n(*this);
 
-            switch (n.F.type)
+            switch (n.F.type())
             {
                 case Field::SINGLE:    n.fval =  -n.fval; break;
                 case Field::DOUBLE:    n.dval =  -n.dval; break;
@@ -655,20 +648,18 @@ class Scalar
             return n;
         }
 
-        template <typename T>
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
         Scalar operator+(T other) const
         {
             return other+(*this);
         }
 
-        template <typename T> friend
-        Scalar operator+(T other, const Scalar& s)
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
+        friend Scalar operator+(T other, const Scalar& s)
         {
-            static_assert(is_arithmetic<real_type_t<T>>::value, "");
-
             Field::field new_type = s.resultType(other);
 
-            switch (s.F.type)
+            switch (s.F.type())
             {
                 case Field::SINGLE:   return Scalar(new_type, other+ s.fval); break;
                 case Field::DOUBLE:   return Scalar(new_type, other+ s.dval); break;
@@ -681,7 +672,7 @@ class Scalar
 
         Scalar operator+(const Scalar& other) const
         {
-            switch (other.F.type)
+            switch (other.F.type())
             {
                 case Field::SINGLE:   return *this +  other.fval; break;
                 case Field::DOUBLE:   return *this +  other.dval; break;
@@ -692,14 +683,12 @@ class Scalar
             return Scalar(0.0);
         }
 
-        template <typename T>
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
         Scalar operator-(T other) const
         {
-            static_assert(is_arithmetic<real_type_t<T>>::value, "");
-
             Field::field new_type = resultType(other);
 
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:   return Scalar(new_type,  fval-other); break;
                 case Field::DOUBLE:   return Scalar(new_type,  dval-other); break;
@@ -710,14 +699,12 @@ class Scalar
             return Scalar(0.0);
         }
 
-        template <typename T> friend
-        Scalar operator-(T other, const Scalar& s)
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
+        friend Scalar operator-(T other, const Scalar& s)
         {
-            static_assert(is_arithmetic<real_type_t<T>>::value, "");
-
             Field::field new_type = s.resultType(other);
 
-            switch (s.F.type)
+            switch (s.F.type())
             {
                 case Field::SINGLE:   return Scalar(new_type, other- s.fval); break;
                 case Field::DOUBLE:   return Scalar(new_type, other- s.dval); break;
@@ -730,7 +717,7 @@ class Scalar
 
         Scalar operator-(const Scalar& other) const
         {
-            switch (other.F.type)
+            switch (other.F.type())
             {
                 case Field::SINGLE:   return *this -  other.fval; break;
                 case Field::DOUBLE:   return *this -  other.dval; break;
@@ -741,20 +728,18 @@ class Scalar
             return Scalar(0.0);
         }
 
-        template <typename T>
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
         Scalar operator*(T other) const
         {
             return other*(*this);
         }
 
-        template <typename T> friend
-        Scalar operator*(T other, const Scalar& s)
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
+        friend Scalar operator*(T other, const Scalar& s)
         {
-            static_assert(is_arithmetic<real_type_t<T>>::value, "");
-
             Field::field new_type = s.resultType(other);
 
-            switch (s.F.type)
+            switch (s.F.type())
             {
                 case Field::SINGLE:   return Scalar(new_type, other* s.fval); break;
                 case Field::DOUBLE:   return Scalar(new_type, other* s.dval); break;
@@ -767,7 +752,7 @@ class Scalar
 
         Scalar operator*(const Scalar& other) const
         {
-            switch (other.F.type)
+            switch (other.F.type())
             {
                 case Field::SINGLE:   return *this *  other.fval; break;
                 case Field::DOUBLE:   return *this *  other.dval; break;
@@ -778,14 +763,12 @@ class Scalar
             return Scalar(0.0);
         }
 
-        template <typename T>
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
         Scalar operator/(T other) const
         {
-            static_assert(is_arithmetic<real_type_t<T>>::value, "");
-
             Field::field new_type = resultType(other);
 
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:   return Scalar(new_type,  fval/other); break;
                 case Field::DOUBLE:   return Scalar(new_type,  dval/other); break;
@@ -796,14 +779,12 @@ class Scalar
             return Scalar(0.0);
         }
 
-        template <typename T> friend
-        Scalar operator/(T other, const Scalar& s)
+        template <typename T, typename=enable_if_arithmetic_t<real_type_t<T>>>
+        friend Scalar operator/(T other, const Scalar& s)
         {
-            static_assert(is_arithmetic<real_type_t<T>>::value, "");
-
             Field::field new_type = s.resultType(other);
 
-            switch (s.F.type)
+            switch (s.F.type())
             {
                 case Field::SINGLE:   return Scalar(new_type, other/ s.fval); break;
                 case Field::DOUBLE:   return Scalar(new_type, other/ s.dval); break;
@@ -816,7 +797,7 @@ class Scalar
 
         Scalar operator/(const Scalar& other) const
         {
-            switch (other.F.type)
+            switch (other.F.type())
             {
                 case Field::SINGLE:   return *this / other.fval; break;
                 case Field::DOUBLE:   return *this / other.dval; break;
@@ -829,7 +810,7 @@ class Scalar
 
         friend ostream& operator<<(ostream& os, const Scalar& s)
         {
-            switch (s.F.type)
+            switch (s.F.type())
             {
                 case Field::SINGLE:   return os << s.fval;
                 case Field::DOUBLE:   return os << s.dval;

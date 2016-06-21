@@ -100,140 +100,129 @@ TENSOR_WRAPPER(DISTRIBUTED)
             return this->template impl<DISTRIBUTED>().getArena();
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED)>>
         KeyVector getLocalKeys() const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             KeyVector keys;
             getLocalKeys(keys);
             return keys;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED)>>
         void getLocalKeys(KeyVector& keys) const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             this->template impl<DISTRIBUTED>().getLocalKeys(keys);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED)>>
         KeyValueVector getLocalData() const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             KeyValueVector kv(this->impl().F);
             getLocalData(kv);
             return kv;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED)>>
         void getLocalData(KeyValueVector& kv) const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             assert(this->impl().F == kv.field());
             this->template impl<DISTRIBUTED>().getLocalData(kv);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
         void setLocalData(const KeyValueVector& kv)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<DISTRIBUTED>().setLocalData(kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        enable_if_field_t<T>
         setLocalData(const KeyVector& keys, const vector<T>& values)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->base().impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<DISTRIBUTED>().setLocalData(keys.size(), keys.data(), static_cast<const void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
         void addLocalData(const Scalar& alpha, const KeyValueVector& kv, const Scalar& beta)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->base().impl().F == kv.field());
             this->template impl<DISTRIBUTED>().addLocalData(kv.size(), alpha, kv.keys().data(), kv.data<void>(), beta);
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        enable_if_field_t<T>
         addLocalData(const Scalar& alpha, const KeyVector& keys,
                      const vector<T>& values, const Scalar& beta)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->base().impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<DISTRIBUTED>().addLocalData(keys.size(), alpha, keys.data(), static_cast<const void*>(values.data()), beta);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED)>>
         void getRemoteData() const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             this->template impl<DISTRIBUTED>().getRemoteData();
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
         void setRemoteData()
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             this->template impl<DISTRIBUTED>().setRemoteData();
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
         void addRemoteData(const Scalar& alpha, const Scalar& beta)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             this->template impl<DISTRIBUTED>().addRemoteData(alpha, beta);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED)>>
         void getRemoteData(KeyValueVector& kv) const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             assert(this->base().impl().F == kv.field());
             this->template impl<DISTRIBUTED>().getRemoteData(kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED)>>
+        enable_if_field_t<T>
         getRemoteData(KeyVector& keys, vector<T>& values) const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             assert(this->base().impl().F == Field(T()));
             values.resize(keys.size());
             this->template impl<DISTRIBUTED>().getRemoteData(keys.size(), keys.data(), static_cast<void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
         void setRemoteData(const KeyValueVector& kv)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->base().impl().F == kv.field());
             this->template impl<DISTRIBUTED>().setRemoteData(kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        enable_if_field_t<T>
         setRemoteData(const KeyVector& keys, const vector<T>& values)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->base().impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<DISTRIBUTED>().setRemoteData(keys.size(), keys.data(), static_cast<const void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
         void addRemoteData(const Scalar& alpha, const KeyValueVector& kv, const Scalar& beta)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->base().impl().F == kv.field());
             this->template impl<DISTRIBUTED>().addRemoteData(kv.size(), alpha, kv.keys().data(), kv.data<void>(), beta);
         }
-
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        enable_if_field_t<T>
         addRemoteData(const Scalar& alpha, const KeyVector& keys,
                       const vector<T>& values, const Scalar& beta)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->base().impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<DISTRIBUTED>().addRemoteData(keys.size(), alpha, keys.data(), static_cast<const void*>(values.data()), beta);

@@ -19,10 +19,7 @@ using namespace MPIWrap;
 class Arena
 {
     protected:
-        //global_ptr<tCTF_World<float>> ctfs;
-        global_ptr<tCTF_World<double>> ctfd;
-        //global_ptr<tCTF_World<complex<float>>> ctfc;
-        //global_ptr<tCTF_World<complex<double>>> ctfz;
+        global_ptr<CTF::World> ctf_;
         shared_ptr<Intracomm> comm_;
 
     public:
@@ -38,13 +35,11 @@ class Arena
 
         const Intracomm& comm() const { return *comm_; }
 
-        template <typename T>
-        tCTF_World<T>& ctf();
+        CTF::World& ctf();
 
-        template <typename T>
-        const tCTF_World<T>& ctf() const
+        const CTF::World& ctf() const
         {
-            return const_cast<Arena&>(*this).ctf<T>();
+            return const_cast<Arena&>(*this).ctf();
         }
 };
 

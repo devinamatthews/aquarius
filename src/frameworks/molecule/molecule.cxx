@@ -6,11 +6,11 @@ using namespace aquarius::task;
 namespace aquarius
 {
 
-namespace molecule
+namespace task
 {
 
 template<>
-class Config::Extractor<Molecule::AtomZmatSpec>
+class Config::Extractor<molecule::Molecule::AtomZmatSpec>
 {
     protected:
         static bool nextSpec(shared_list<Node>::iterator& i, shared_list<Node>::iterator end)
@@ -59,7 +59,7 @@ class Config::Extractor<Molecule::AtomZmatSpec>
 };
 
 template<>
-class Config::Extractor<Molecule::AtomCartSpec>
+class Config::Extractor<molecule::Molecule::AtomCartSpec>
 {
     protected:
         static bool nextSpec(shared_list<Node>::iterator& i, shared_list<Node>::iterator end)
@@ -100,6 +100,11 @@ class Config::Extractor<Molecule::AtomCartSpec>
             return s;
         }
 };
+
+}
+
+namespace molecule
+{
 
 Molecule::Molecule(Config& config, const Arena& arena)
 {

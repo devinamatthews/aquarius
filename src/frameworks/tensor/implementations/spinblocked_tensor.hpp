@@ -49,6 +49,12 @@ namespace detail
 template <capability_type C>
 class SpinBlockedTensor : public BlockedTensor<C&~SPINORBITAL_,TensorImplementation<C>>
 {
+    static_assert(IS_SUPERSET_OF(C,SPINORBITAL),
+                  "The tensor type must be at least SPINORBITAL");
+
+    static_assert(IS_SUPERSET_OF(SPINORBITAL|PGSYMMETRIC|DIVISIBLE|DISTRIBUTED,C),
+                  "The tensor type must be at most SPINORBITAL, PGSYMMETRIC, DIVISIBLE, and/or DISTRIBUTED");
+
     protected:
         typedef BlockedTensor<C&~SPINORBITAL_,TensorImplementation<C>> Base;
         using typename Base::SubTensor;

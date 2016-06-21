@@ -1,4 +1,4 @@
-#include "ctf_tensor.hpp"
+#include "frameworks/tensor.hpp"
 
 namespace CTF_int { int cdealloc(void * ptr); }
 
@@ -14,7 +14,7 @@ static const CTF_int::algstrct& getCTFRing(Field F)
     static CTF::Ring<   scomplex,false>  scr;
     static CTF::Ring<   dcomplex,false>  dcr;
 
-    switch (F.type)
+    switch (F.type())
     {
         case Field::SINGLE:    return   sr;
         case Field::DOUBLE:    return   dr;
@@ -38,13 +38,13 @@ CTFTensor::CTFTensor(const INITIALIZER_TYPE(BOUNDED|IPSYMMETRIC|INDEXABLE|DISTRI
     }
 
     /*
-    auto it = scalars.find(make_pair(F.type, &arena.ctf()));
+    auto it = scalars.find(make_pair(F.type(), &arena.ctf()));
 
     if (it == scalars.end())
     {
         void* scalar;
 
-        switch (F.type)
+        switch (F.type())
         {
             case Field::SINGLE:
                 scalar = new tCTF_Tensor<float>(0, NULL, NULL, arena.ctf<float>(), "scalar");
@@ -70,13 +70,13 @@ CTFTensor::CTFTensor(const INITIALIZER_TYPE(BOUNDED|IPSYMMETRIC|INDEXABLE|DISTRI
 CTFTensor::~CTFTensor()
 {
     /*
-    pair<int,const void*> p(F.type, ctf_world);
+    pair<int,const void*> p(F.type(), ctf_world);
     map<pair<int,const void*>, pair<int,void*> >::iterator it = scalars.find(p);
     assert(it != scalars.end());
 
     if (--it->second.first == 0)
     {
-        switch (F.type)
+        switch (F.type())
         {
             case Field::SINGLE:
                 delete static_cast<tCTF_Tensor<float>*>(it->second.second);
@@ -128,13 +128,13 @@ Scalar CTFTensor::dot(bool conja, const TensorImplementation<>& A_, const string
 
     auto& ring = getCTFRing(F);
     CTF_int::tensor C(&ring, 0, NULL, NULL, &arena.ctf());
-    Scalar alpha((Field::field)F.type, 1);
-    Scalar beta((Field::field)F.type, 0);
+    Scalar alpha(F.type(), 1);
+    Scalar beta(F.type(), 0);
     CTF_int::contraction(const_cast<CTF_int::tensor*>(A.ctf.get()), idxA.data(),
                          const_cast<CTF_int::tensor*>(  ctf.get()), idxB.data(),
                          (const char*)alpha.data(), &C, NULL, (const char*)beta.data()).execute();
 
-    switch (F.type)
+    switch (F.type())
     {
         case Field::SINGLE:
         {
@@ -196,7 +196,7 @@ void CTFTensor::div(const Scalar& alpha, bool conja, const TensorImplementation<
       ctf->read_local(&nC, (char**)&pC);
     assert(nA == nB && nA == nC);
 
-    switch (F.type)
+    switch (F.type())
     {
         case Field::SINGLE:
             div_<float>(nA, (float)alpha, conja, (CTF::Pair<float>*)pA,
@@ -248,7 +248,7 @@ void CTFTensor::invert(const Scalar& alpha, bool conja, const TensorImplementati
       ctf->read_local(&nB, (char**)&pB);
     assert(nA == nB);
 
-    switch (F.type)
+    switch (F.type())
     {
         case Field::SINGLE:
             invert_<float>(nA, (float)alpha, conja, (CTF::Pair<float>*)pA,
@@ -341,7 +341,7 @@ void CTFTensor::getAllData(KeyValueVector& kv) const
     ctf->allread(&n, (char**)&d, false);
     kv.resize(n);
 
-    switch (F.type)
+    switch (F.type())
     {
         case Field::SINGLE:    copy_n((      float*)d, n, kv.data<      float>()); break;
         case Field::DOUBLE:    copy_n((     double*)d, n, kv.data<     double>()); break;
@@ -362,7 +362,7 @@ void CTFTensor::getLocalKeys(KeyVector& keys) const
     ctf->read_local(&n, (char**)&p);
     keys.resize(n);
 
-    switch (F.type)
+    switch (F.type())
     {
         case Field::SINGLE:
             for (key_type i = 0;i < n;i++) keys[i] = ((CTF::Pair<      float>*)p)[i].k;
@@ -390,7 +390,7 @@ void CTFTensor::getLocalData(KeyValueVector& kv) const
 
 void CTFTensor::getRemoteData(key_type n, key_type* keys, void* values) const
 {
-    switch (F.type)
+    switch (F.type())
     {
         case Field::SINGLE:
         {
@@ -434,7 +434,7 @@ void CTFTensor::getRemoteData() const
 
 void CTFTensor::setRemoteData(key_type n, const key_type* keys, const void* values)
 {
-    addRemoteData(n, 1.0, keys, values, 0.0);
+    addRemoteData(n, Scalar(F.type(), 1), keys, values, Scalar(F.type(), 0));
 }
 
 void CTFTensor::setRemoteData()
@@ -445,7 +445,7 @@ void CTFTensor::setRemoteData()
 void CTFTensor::addRemoteData(key_type n, const Scalar& alpha, const key_type* keys,
                               const void* values, const Scalar& beta)
 {
-    switch (F.type)
+    switch (F.type())
     {
         case Field::SINGLE:
         {
@@ -485,12 +485,12 @@ void CTFTensor::addRemoteData(const Scalar& alpha, const Scalar& beta)
 
 Scalar CTFTensor::norm(int p) const
 {
-    Scalar nrm((Field::field)F.type);
+    Scalar nrm(F.type());
 
     switch (p)
     {
         case 00:
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:
                 {

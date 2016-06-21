@@ -385,7 +385,7 @@ class TensorImplementation<> : public TensorInitializer_
 
         template <capability_type C__>
         TensorImplementation(capability_type C_, const TensorInitializerList<C__>& ilist)
-        : TensorInitializer_(static_cast<const TensorInitializer_&>(*ilist.at(0))),
+        : TensorInitializer_(ilist.at(0).template get<TensorInitializer_>()),
           C(C_)
         {
             assert(R == F); //for now
@@ -862,7 +862,7 @@ struct TensorImplRoot : TensorImplementation<C&(~C)>
 };
 
 template <capability_type C, capability_type C_>
-enable_if_t<C_&DONT_NEED_INITIALIZATION,TensorInitializer<C_>>
+enable_if_t<!!(C_&DONT_NEED_INITIALIZATION),TensorInitializer<C_>>
 getInitializer(const INITIALIZER_TYPE(C)& ilist)
 {
     return TensorInitializer<C_>();
@@ -1070,6 +1070,15 @@ class ConstTensor : public TensorWrapperBase<C^CONST_>
         }
 
         /*
+         * Copy tensor wrapper.
+         */
+        ConstTensor(const ConstTensor& t)
+        {
+            this->ptr = t.ptr;
+            const_cast<capability_type&>(this->C) = t.C;
+        }
+
+        /*
          * Assume the identity of the other tensor.
          */
         ConstTensor(ConstTensor&& t)
@@ -1106,6 +1115,12 @@ class ConstTensor : public TensorWrapperBase<C^CONST_>
         bool is(capability_type C_) const
         {
             return IS_SUPERSET_OF(this->C, C_);
+        }
+
+        template <capability_type C_>
+        ConstTensor<C_> as() const
+        {
+            return ConstTensor<C_>(*this);
         }
 
         static Tensor<C&(~CONST_)> construct(const INITIALIZER_TYPE(C)& init)
@@ -1246,6 +1261,11 @@ class Tensor : public ConstTensor<C|CONST_>
         Tensor(Tensor<C_>&& t) : ConstTensor<C|CONST_>(t) {}
 
         /*
+         * Copy tensor wrapper.
+         */
+        Tensor(Tensor& t) : ConstTensor<C|CONST_>(t) {}
+
+        /*
          * Assume the identity of the other tensor.
          */
         Tensor(Tensor&& t) : ConstTensor<C|CONST_>(move(t)) {}
@@ -1257,6 +1277,12 @@ class Tensor : public ConstTensor<C|CONST_>
         {
             ConstTensor<C|CONST_>::operator=(move(t));
             return *this;
+        }
+
+        template <capability_type C_>
+        Tensor<C_> as()
+        {
+            return Tensor<C_>(*this);
         }
 
         using typename ConstTensor<C|CONST_>::Factory;
@@ -1370,19 +1396,19 @@ class Tensor : public ConstTensor<C|CONST_>
 
         Tensor& operator=(const TensorMult& other)
         {
-            this->impl().mult(other.factor, other.conja, other.A, other.conjb, other.B, 0);
+            this->impl().mult(other.factor, other.conja, other.A, other.conjb, other.B, Scalar());
             return *this;
         }
 
         Tensor& operator+=(const TensorMult& other)
         {
-            this->impl().mult(other.factor, other.conja, other.A, other.conjb, other.B, 1);
+            this->impl().mult(other.factor, other.conja, other.A, other.conjb, other.B, Scalar(1));
             return *this;
         }
 
         Tensor& operator-=(const TensorMult& other)
         {
-            this->impl().mult(-other.factor, other.conja, other.A, other.conjb, other.B, 1);
+            this->impl().mult(-other.factor, other.conja, other.A, other.conjb, other.B, Scalar(1));
             return *this;
         }
 
@@ -1394,59 +1420,59 @@ class Tensor : public ConstTensor<C|CONST_>
 
         Tensor& operator=(const Tensor& other)
         {
-            this->impl().sum(1, false, other.impl(), 0);
+            this->impl().sum(Scalar(1), false, other.impl(), Scalar());
             return *this;
         }
 
         template <capability_type C_>
         Tensor& operator=(const ConstTensor<C_>& other)
         {
-            this->impl().sum(1, false, other.impl(), 0);
+            this->impl().sum(Scalar(1), false, other.impl(), Scalar());
             return *this;
         }
 
         template <capability_type C_>
         Tensor& operator+=(const ConstTensor<C_>& other)
         {
-            this->impl().sum(1, false, other.impl(), 1);
+            this->impl().sum(Scalar(1), false, other.impl(), Scalar(1));
             return *this;
         }
 
         template <capability_type C_>
         Tensor& operator-=(const ConstTensor<C_>& other)
         {
-            this->impl().sum(-1, false, other.impl(), 1);
+            this->impl().sum(Scalar(-1), false, other.impl(), Scalar(1));
             return *this;
         }
 
         template <capability_type C_>
         Tensor& operator*=(const ConstTensor<C_>& other)
         {
-            this->impl().mult(1, false, this->impl(), false, other.impl(), 0);
+            this->impl().mult(Scalar(1), false, this->impl(), false, other.impl(), Scalar());
             return *this;
         }
 
         Tensor& operator=(const ConstScaledTensor& other)
         {
-            this->impl().sum(other.factor, other.conj_, other.tensor, 0);
+            this->impl().sum(other.factor, other.conj_, other.tensor, Scalar());
             return *this;
         }
 
         Tensor& operator+=(const ConstScaledTensor& other)
         {
-            this->impl().sum(other.factor, other.conj_, other.tensor, 1);
+            this->impl().sum(other.factor, other.conj_, other.tensor, Scalar(1));
             return *this;
         }
 
         Tensor& operator-=(const ConstScaledTensor& other)
         {
-            this->impl().sum(-other.factor, other.conj_, other.tensor, 1);
+            this->impl().sum(-other.factor, other.conj_, other.tensor, Scalar(1));
             return *this;
         }
 
         Tensor& operator*=(const ConstScaledTensor& other)
         {
-            this->impl().mult(other.factor, false, this->impl(), other.conj_, other.tensor, 0);
+            this->impl().mult(other.factor, false, this->impl(), other.conj_, other.tensor, Scalar());
             return *this;
         }
 };

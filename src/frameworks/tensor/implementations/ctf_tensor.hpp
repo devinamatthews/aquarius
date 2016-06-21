@@ -84,7 +84,7 @@ class CTFTensor : public TensorImplementation<BOUNDED|IPSYMMETRIC|INDEXABLE|DIST
         //template <typename T> CTF::Tensor<T>& scalar() const
         //{
         //    assert(F == Field(T()));
-        //    auto it = scalars.find(make_pair(F.type, &arena.ctf()));
+        //    auto it = scalars.find(make_pair(F.type(), &arena.ctf()));
         //    assert(it != scalars.end());
         //    return *static_cast<CTF::Tensor<T>*>(it->second.second);
         //}

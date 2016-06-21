@@ -504,7 +504,7 @@ namespace detail
 template <capability_type C, class Base>
 class BlockedTensorBase : public Base
 {
-    static_assert(IS_SUPERSET_OF(C,BOUNDED), "");
+    static_assert(IS_SUPERSET_OF(C,BOUNDED), "The sub-tensor type must be at least BOUNDED");
 
     public:
         typedef Tensor<C> SubTensor;
@@ -521,7 +521,7 @@ class BlockedTensorBase : public Base
         void sortIntoBlocks(key_type n, const key_type* keys, const void* values,
                             vector<pair<vector<key_type>,vector<char>>>& kvs) const
         {
-            int sz = R.size;
+            int sz = R.size();
 
             int nb = 1;
             for (int d = 0;d < ndim;d++)
@@ -718,7 +718,7 @@ class BlockedTensorBase : public Base
 
         void getData(key_type n, key_type* keys, void* values) const
         {
-            int sz = R.size;
+            int sz = R.size();
 
             vector<pair<vector<key_type>,vector<char>>> kvs;
             sortIntoBlocks(n, keys, values, kvs);
@@ -815,7 +815,7 @@ class BlockedTensorBase : public Base
 
         void getLocalKeys(KeyVector& keys) const
         {
-            int sz = R.size;
+            int sz = R.size();
 
             vector<int> b(ndim);
             KeyVector subkeys;
@@ -842,7 +842,7 @@ class BlockedTensorBase : public Base
 
         void getLocalData(KeyValueVector& kv) const
         {
-            int sz = R.size;
+            int sz = R.size();
 
             vector<int> b(ndim);
             KeyValueVector subkv(kv.field());
@@ -930,7 +930,7 @@ class BlockedTensorBase : public Base
 
         void getRemoteData(key_type n, key_type* keys, void* values) const
         {
-            int sz = R.size;
+            int sz = R.size();
 
             vector<pair<vector<key_type>,vector<char>>> kvs;
             sortIntoBlocks(n, keys, values, kvs);

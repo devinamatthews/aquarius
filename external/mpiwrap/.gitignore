@@ -11,3 +11,4 @@ autom4te.cache
 config.log
 config.status
 include/mpiwrap.hpp
+.git.bak

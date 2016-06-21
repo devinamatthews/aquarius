@@ -64,16 +64,16 @@ class OneElectronIntegrals
                           const vec3& posb, int lb, double zb,
                           double* integrals);
 
-        virtual void prims(const vec3& posa, int la, const vector<double>& za,
-                           const vec3& posb, int lb, const vector<double>& zb,
+        virtual void prims(const vec3& posa, int la, const row<double>& za,
+                           const vec3& posb, int lb, const row<double>& zb,
                            double* integrals);
 
-        virtual void contr(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca,
-                           const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb,
+        virtual void contr(const vec3& posa, int la, const row<double>& za, const matrix<double>& ca,
+                           const vec3& posb, int lb, const row<double>& zb, const matrix<double>& cb,
                            double* integrals);
 
-        virtual void spher(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca, const matrix<double>& sa,
-                           const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb, const matrix<double>& sb,
+        virtual void spher(const vec3& posa, int la, const row<double>& za, const matrix<double>& ca, const matrix<double>& sa,
+                           const vec3& posb, int lb, const row<double>& zb, const matrix<double>& cb, const matrix<double>& sb,
                            double* integrals);
 
         virtual void so(const molecule::Shell& a, const molecule::Shell& b, double* integrals);

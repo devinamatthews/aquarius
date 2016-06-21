@@ -13,3 +13,4 @@ config.status
 Makefile
 stamp-h1
 .dirstamp
+.git.bak

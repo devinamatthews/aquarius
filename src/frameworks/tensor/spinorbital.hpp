@@ -375,15 +375,15 @@ TENSOR_WRAPPER(SPINORBITAL_)
             return this->template impl<SPINORBITAL_>().getNumAnnihilation();
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC)>>
         const vector<vector<int>>& getNumAlphaPerIrrep() const
         {
-            static_assert(C&PGSYMMETRIC, "The operand must be PGSYMMETRIC.");
             return this->template impl<SPINORBITAL_>().getNumAlphaPerIrrep();
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC)>>
         const vector<vector<int>>& getNumBetaPerIrrep() const
         {
-            static_assert(C&PGSYMMETRIC, "The operand must be PGSYMMETRIC.");
             return this->template impl<SPINORBITAL_>().getNumBetaPerIrrep();
         }
 
@@ -426,39 +426,40 @@ TENSOR_WRAPPER(SPINORBITAL_)
             this->template impl<SPINORBITAL_>().getDataBySpin(spins, keys.size(), keys.data(), static_cast<void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
         void setDataBySpin(const vector<int>& spins, const KeyValueVector& kv)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().setDataBySpin(spins, kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        enable_if_field_t<T>
         setDataBySpin(const vector<int>& spins, const KeyVector& keys, const vector<T>& values)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<SPINORBITAL_>().setDataBySpin(spins, keys.size(), keys.data(), static_cast<const void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
         void addDataBySpin(const vector<int>& spins, const Scalar& alpha, const KeyValueVector& kv, const Scalar& beta)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().addDataBySpin(spins, kv.size(), alpha, kv.keys().data(), kv.data<void>(), beta);
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        enable_if_field_t<T>
         addDataBySpin(const vector<int>& spins, const Scalar& alpha, const KeyVector& keys,
                 const vector<T>& values, const Scalar& beta)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<SPINORBITAL_>().addDataBySpin(spins, keys.size(), alpha, keys.data(), static_cast<const void*>(values.data()), beta);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,DISTRIBUTED)>>
         KeyVector getLocalKeysBySpin(const vector<int>& spins) const
         {
             KeyVector keys;
@@ -466,11 +467,13 @@ TENSOR_WRAPPER(SPINORBITAL_)
             return keys;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,DISTRIBUTED)>>
         void getLocalKeysBySpin(const vector<int>& spins, KeyVector& keys) const
         {
             this->template impl<SPINORBITAL_>().getLocalKeysBySpin(spins, keys);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,DISTRIBUTED)>>
         KeyValueVector getLocalDataBySpin(const vector<int>& spins) const
         {
             KeyValueVector kv(this->impl().F);
@@ -478,69 +481,73 @@ TENSOR_WRAPPER(SPINORBITAL_)
             return kv;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,DISTRIBUTED)>>
         void getLocalDataBySpin(const vector<int>& spins, KeyValueVector& kv) const
         {
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().getLocalDataBySpin(spins, kv);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,DISTRIBUTED)>>
         void setLocalDataBySpin(const vector<int>& spins, const KeyValueVector& kv)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().setLocalDataBySpin(spins, kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,DISTRIBUTED)>>
+        enable_if_field_t<T>
         setLocalDataBySpin(const vector<int>& spins, const KeyVector& keys, const vector<T>& values)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<SPINORBITAL_>().setLocalDataBySpin(spins, keys.size(), keys.data(), static_cast<const void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,DISTRIBUTED)>>
         void addLocalDataBySpin(const vector<int>& spins, const Scalar& alpha, const KeyValueVector& kv, const Scalar& beta)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().addLocalDataBySpin(spins, kv.size(), alpha, kv.keys().data(), kv.data<void>(), beta);
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,DISTRIBUTED)>>
+        enable_if_field_t<T>
         addLocalDataBySpin(const vector<int>& spins, const Scalar& alpha, const KeyVector& keys,
                      const vector<T>& values, const Scalar& beta)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<SPINORBITAL_>().addLocalDataBySpin(spins, keys.size(), alpha, keys.data(), static_cast<const void*>(values.data()), beta);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,DISTRIBUTED)>>
         void getRemoteDataBySpin(const vector<int>& spins) const
         {
             this->template impl<SPINORBITAL_>().getRemoteDataBySpin(spins);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,DISTRIBUTED)>>
         void setRemoteDataBySpin(const vector<int>& spins)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             this->template impl<SPINORBITAL_>().setRemoteDataBySpin(spins);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,DISTRIBUTED)>>
         void addRemoteDataBySpin(const vector<int>& spins, const Scalar& alpha, const Scalar& beta)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             this->template impl<SPINORBITAL_>().addRemoteDataBySpin(spins, alpha, beta);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,DISTRIBUTED)>>
         void getRemoteDataBySpin(const vector<int>& spins, KeyValueVector& kv) const
         {
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().getRemoteDataBySpin(spins, kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,DISTRIBUTED)>>
+        enable_if_field_t<T>
         getRemoteDataBySpin(const vector<int>& spins, KeyVector& keys, vector<T>& values) const
         {
             assert(this->impl().F == Field(T()));
@@ -548,420 +555,400 @@ TENSOR_WRAPPER(SPINORBITAL_)
             this->template impl<SPINORBITAL_>().getRemoteDataBySpin(spins, keys.size(), keys.data(), static_cast<void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,DISTRIBUTED)>>
         void setRemoteDataBySpin(const vector<int>& spins, const KeyValueVector& kv)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().setRemoteDataBySpin(spins, kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,DISTRIBUTED)>>
+        enable_if_field_t<T>
         setRemoteDataBySpin(const vector<int>& spins, const KeyVector& keys, const vector<T>& values)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<SPINORBITAL_>().setRemoteDataBySpin(spins, keys.size(), keys.data(), static_cast<const void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,DISTRIBUTED)>>
         void addRemoteDataBySpin(const vector<int>& spins, const Scalar& alpha, const KeyValueVector& kv, const Scalar& beta)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().addRemoteDataBySpin(spins, kv.size(), alpha, kv.keys().data(), kv.data<void>(), beta);
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,DISTRIBUTED)>>
+        enable_if_field_t<T>
         addRemoteDataBySpin(const vector<int>& spins, const Scalar& alpha, const KeyVector& keys,
                       const vector<T>& values, const Scalar& beta)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<SPINORBITAL_>().addRemoteDataBySpin(spins, keys.size(), alpha, keys.data(), static_cast<const void*>(values.data()), beta);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC)>>
         KeyVector getAllKeysBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps) const
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
             KeyVector keys;
             this->template impl<SPINORBITAL_>().getAllKeysBySpinAndIrrep(spins, irreps, keys);
             return keys;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC)>>
         void getAllKeysBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, KeyVector& keys) const
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
             this->template impl<SPINORBITAL_>().getAllKeysBySpinAndIrrep(spins, irreps, keys);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC)>>
         KeyValueVector getAllDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps) const
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
             KeyValueVector kv(this->impl().F);
             this->template impl<SPINORBITAL_>().getAllDataBySpinAndIrrep(spins, irreps, kv);
             return kv;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC)>>
         void getAllDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, KeyValueVector& kv) const
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().getAllDataBySpinAndIrrep(spins, irreps, kv);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC)>>
         void getDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, KeyValueVector& kv) const
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().getDataBySpinAndIrrep(spins, irreps, kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC)>>
+        enable_if_field_t<T>
         getDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, KeyVector& keys, vector<T>& values) const
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
             assert(this->impl().F == Field(T()));
             values.resize(keys.size());
             this->template impl<SPINORBITAL_>().getDataBySpinAndIrrep(spins, irreps, keys.size(), keys.data(), static_cast<void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,PGSYMMETRIC)>>
         void setDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, const KeyValueVector& kv)
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().setDataBySpinAndIrrep(spins, irreps, kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,PGSYMMETRIC)>>
+        enable_if_field_t<T>
         setDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, const KeyVector& keys, const vector<T>& values)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<SPINORBITAL_>().setDataBySpinAndIrrep(spins, irreps, keys.size(), keys.data(), static_cast<const void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,PGSYMMETRIC)>>
         void addDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, const Scalar& alpha, const KeyValueVector& kv, const Scalar& beta)
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().addDataBySpinAndIrrep(spins, irreps, kv.size(), alpha, kv.keys().data(), kv.data<void>(), beta);
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,PGSYMMETRIC)>>
+        enable_if_field_t<T>
         addDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, const Scalar& alpha, const KeyVector& keys,
                 const vector<T>& values, const Scalar& beta)
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<SPINORBITAL_>().addDataBySpinAndIrrep(spins, irreps, keys.size(), alpha, keys.data(), static_cast<const void*>(values.data()), beta);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
         KeyVector getLocalKeysBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps) const
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
             KeyVector keys;
             getLocalKeysBySpinAndIrrep(spins, irreps, keys);
             return keys;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
         void getLocalKeysBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, KeyVector& keys) const
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
             this->template impl<SPINORBITAL_>().getLocalKeysBySpinAndIrrep(spins, irreps, keys);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
         KeyValueVector getLocalDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps) const
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
             KeyValueVector kv(this->impl().F);
             getLocalDataBySpinAndIrrep(spins, irreps, kv);
             return kv;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
         void getLocalDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, KeyValueVector& kv) const
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().getLocalDataBySpinAndIrrep(spins, irreps, kv);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
         void setLocalDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, const KeyValueVector& kv)
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().setLocalDataBySpinAndIrrep(spins, irreps, kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
+        enable_if_field_t<T>
         setLocalDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, const KeyVector& keys, const vector<T>& values)
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<SPINORBITAL_>().setLocalDataBySpinAndIrrep(spins, irreps, keys.size(), keys.data(), static_cast<const void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
         void addLocalDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, const Scalar& alpha, const KeyValueVector& kv, const Scalar& beta)
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().addLocalDataBySpinAndIrrep(spins, irreps, kv.size(), alpha, kv.keys().data(), kv.data<void>(), beta);
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
+        enable_if_field_t<T>
         addLocalDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, const Scalar& alpha, const KeyVector& keys,
                      const vector<T>& values, const Scalar& beta)
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<SPINORBITAL_>().addLocalDataBySpinAndIrrep(spins, irreps, keys.size(), alpha, keys.data(), static_cast<const void*>(values.data()), beta);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
         void getRemoteDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps) const
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
             this->template impl<SPINORBITAL_>().getRemoteDataBySpinAndIrrep(spins, irreps);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
         void setRemoteDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps)
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             this->template impl<SPINORBITAL_>().setRemoteDataBySpinAndIrrep(spins, irreps);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
         void addRemoteDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, const Scalar& alpha, const Scalar& beta)
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             this->template impl<SPINORBITAL_>().addRemoteDataBySpinAndIrrep(spins, irreps, alpha, beta);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
         void getRemoteDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, KeyValueVector& kv) const
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().getRemoteDataBySpinAndIrrep(spins, irreps, kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
+        enable_if_field_t<T>
         getRemoteDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, KeyVector& keys, vector<T>& values) const
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
             assert(this->impl().F == Field(T()));
             values.resize(keys.size());
             this->template impl<SPINORBITAL_>().getRemoteDataBySpinAndIrrep(spins, irreps, keys.size(), keys.data(), static_cast<void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
         void setRemoteDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, const KeyValueVector& kv)
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().setRemoteDataBySpinAndIrrep(spins, irreps, kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
+        enable_if_field_t<T>
         setRemoteDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, const KeyVector& keys, const vector<T>& values)
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<SPINORBITAL_>().setRemoteDataBySpinAndIrrep(spins, irreps, keys.size(), keys.data(), static_cast<const void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
         void addRemoteDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, const Scalar& alpha, const KeyValueVector& kv, const Scalar& beta)
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<SPINORBITAL_>().addRemoteDataBySpinAndIrrep(spins, irreps, kv.size(), alpha, kv.keys().data(), kv.data<void>(), beta);
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,PGSYMMETRIC|DISTRIBUTED)>>
+        enable_if_field_t<T>
         addRemoteDataBySpinAndIrrep(const vector<int>& spins, const vector<int>& irreps, const Scalar& alpha, const KeyVector& keys,
                       const vector<T>& values, const Scalar& beta)
         {
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<SPINORBITAL_>().addRemoteDataBySpinAndIrrep(spins, irreps, keys.size(), alpha, keys.data(), static_cast<const void*>(values.data()), beta);
         }
 
-        template <capability_type C_>
-        void sliceBySpin (const Scalar& alpha, bool conja, const vector<vector<int>>& start_A, const ConstTensor<C_>& A,
-                           const Scalar&  beta,             const vector<vector<int>>& start_B, const vector<vector<int>>& length)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void sliceBySpin(const Scalar& alpha, bool conja, const vector<vector<int>>& start_A, ConstTensor<SPINORBITAL> A,
+                         const Scalar&  beta,             const vector<vector<int>>& start_B, const vector<vector<int>>& length)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
-            static_assert(IS_SUPERSET_OF(C_,SPINORBITAL), "The operands must be SPINORBITAL.");
             this->template impl<SPINORBITAL_>().sliceBySpin(alpha, conja, start_A, A.impl(),
                                                              beta,        start_B, length);
         }
 
-        template <capability_type C_>
-        void sliceBySpin(const Scalar& alpha, const vector<vector<int>>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void sliceBySpin(const Scalar& alpha, const vector<vector<int>>& start_A, ConstTensor<SPINORBITAL> A,
                          const Scalar&  beta, const vector<vector<int>>& start_B, const vector<vector<int>>& length)
         {
             sliceBySpin(alpha, false, start_A, A, beta, start_B, length);
         }
 
-        template <capability_type C_>
-        void sliceBySpin(bool conja, const vector<vector<int>>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void sliceBySpin(bool conja, const vector<vector<int>>& start_A, ConstTensor<SPINORBITAL> A,
                                      const vector<vector<int>>& start_B, const vector<vector<int>>& length)
         {
             sliceBySpin(1, conja, start_A, A, 0, start_B, length);
         }
 
-        template <capability_type C_>
-        void sliceBySpin(const vector<vector<int>>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void sliceBySpin(const vector<vector<int>>& start_A, ConstTensor<SPINORBITAL> A,
                          const vector<vector<int>>& start_B, const vector<vector<int>>& length)
         {
             sliceBySpin(1, false, start_A, A, 0, start_B, length);
         }
 
-        template <capability_type C_>
-        void sliceBySpin(const Scalar& alpha, bool conja, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void sliceBySpin(const Scalar& alpha, bool conja, ConstTensor<SPINORBITAL> A,
                          const Scalar&  beta,             const vector<vector<int>>& start_B)
         {
             sliceBySpin(alpha, conja, vector<vector<int>>(this->getDimension(), vector<int>(2)), A, beta, start_B, A.getLengthsPerSpin());
         }
 
-        template <capability_type C_>
-        void sliceBySpin(const Scalar& alpha, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void sliceBySpin(const Scalar& alpha, ConstTensor<SPINORBITAL> A,
                          const Scalar&  beta, const vector<vector<int>>& start_B)
         {
             sliceBySpin(alpha, false, vector<vector<int>>(this->getDimension(), vector<int>(2)), A, beta, start_B, A.getLengthsPerSpin());
         }
 
-        template <capability_type C_>
-        void sliceBySpin(bool conja, const ConstTensor<C_>& A, const vector<vector<int>>& start_B)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void sliceBySpin(bool conja, ConstTensor<SPINORBITAL> A, const vector<vector<int>>& start_B)
         {
             sliceBySpin(1, conja, vector<vector<int>>(this->getDimension(), vector<int>(2)), A, 0, start_B, A.getLengthsPerSpin());
         }
 
-        template <capability_type C_>
-        void sliceBySpin(const ConstTensor<C_>& A, const vector<vector<int>>& start_B)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void sliceBySpin(ConstTensor<SPINORBITAL> A, const vector<vector<int>>& start_B)
         {
             sliceBySpin(1, false, vector<vector<int>>(this->getDimension(), vector<int>(2)), A, 0, start_B, A.getLengthsPerSpin());
         }
 
-        template <capability_type C_>
-        void sliceBySpin(const Scalar& alpha, bool conja, const vector<vector<int>>& start_A, const ConstTensor<C_>& A, const Scalar&  beta)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void sliceBySpin(const Scalar& alpha, bool conja, const vector<vector<int>>& start_A, ConstTensor<SPINORBITAL> A, const Scalar&  beta)
         {
             sliceBySpin(alpha, conja, start_A, A, beta, vector<vector<int>>(this->getDimension(), vector<int>(2)), this->getLengthsPerSpin());
         }
 
-        template <capability_type C_>
-        void sliceBySpin(const Scalar& alpha, const vector<vector<int>>& start_A, const ConstTensor<C_>& A, const Scalar&  beta)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void sliceBySpin(const Scalar& alpha, const vector<vector<int>>& start_A, ConstTensor<SPINORBITAL> A, const Scalar&  beta)
         {
             sliceBySpin(alpha, false, start_A, A, beta, vector<vector<int>>(this->getDimension(), vector<int>(2)), this->getLengthsPerSpin());
         }
 
-        template <capability_type C_>
-        void sliceBySpin(bool conja, const vector<vector<int>>& start_A, const ConstTensor<C_>& A)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void sliceBySpin(bool conja, const vector<vector<int>>& start_A, ConstTensor<SPINORBITAL> A)
         {
             sliceBySpin(1, conja, start_A, A, 0, vector<vector<int>>(this->getDimension(), vector<int>(2)), this->getLengthsPerSpin());
         }
 
-        template <capability_type C_>
-        void sliceBySpin(const vector<vector<int>>& start_A, const ConstTensor<C_>& A)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void sliceBySpin(const vector<vector<int>>& start_A, ConstTensor<SPINORBITAL> A)
         {
             sliceBySpin(1, false, start_A, A, 0, vector<vector<int>>(this->getDimension(), vector<int>(2)), this->getLengthsPerSpin());
         }
 
-        template <capability_type C_>
-        void sliceBySpinAndIrrep (const Scalar& alpha, bool conja, const vector<vector<vector<int>>>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C,PGSYMMETRIC)>>
+        void sliceBySpinAndIrrep (const Scalar& alpha, bool conja, const vector<vector<vector<int>>>& start_A, ConstTensor<SPINORBITAL|PGSYMMETRIC> A,
                                   const Scalar&  beta,             const vector<vector<vector<int>>>& start_B, const vector<vector<vector<int>>>& length)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
-            static_assert(C&PGSYMMETRIC_, "The operand must be PGSYMMETRIC.");
-            static_assert(IS_SUPERSET_OF(C_,SPINORBITAL|PGSYMMETRIC), "The operands must be SPINORBITAL and PGSYMMETRIC.");
             this->template impl<SPINORBITAL_>().sliceBySpinAndIrrep(alpha, conja, start_A, A.impl(),
                                                                      beta,        start_B, length);
         }
 
-        template <capability_type C_>
-        void sliceBySpinAndIrrep(const Scalar& alpha, const vector<vector<vector<int>>>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C,PGSYMMETRIC)>>
+        void sliceBySpinAndIrrep(const Scalar& alpha, const vector<vector<vector<int>>>& start_A, ConstTensor<SPINORBITAL|PGSYMMETRIC> A,
                                  const Scalar&  beta, const vector<vector<vector<int>>>& start_B, const vector<vector<vector<int>>>& length)
         {
             sliceBySpinAndIrrep(alpha, false, start_A, A, beta, start_B, length);
         }
 
-        template <capability_type C_>
-        void sliceBySpinAndIrrep(bool conja, const vector<vector<vector<int>>>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C,PGSYMMETRIC)>>
+        void sliceBySpinAndIrrep(bool conja, const vector<vector<vector<int>>>& start_A, ConstTensor<SPINORBITAL|PGSYMMETRIC> A,
                                              const vector<vector<vector<int>>>& start_B, const vector<vector<vector<int>>>& length)
         {
             sliceBySpinAndIrrep(1, conja, start_A, A, 0, start_B, length);
         }
 
-        template <capability_type C_>
-        void sliceBySpinAndIrrep(const vector<vector<vector<int>>>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C,PGSYMMETRIC)>>
+        void sliceBySpinAndIrrep(const vector<vector<vector<int>>>& start_A, ConstTensor<SPINORBITAL|PGSYMMETRIC> A,
                                  const vector<vector<vector<int>>>& start_B, const vector<vector<vector<int>>>& length)
         {
             sliceBySpinAndIrrep(1, false, start_A, A, 0, start_B, length);
         }
 
-        template <capability_type C_>
-        void sliceBySpinAndIrrep(const Scalar& alpha, bool conja, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C,PGSYMMETRIC)>>
+        void sliceBySpinAndIrrep(const Scalar& alpha, bool conja, ConstTensor<SPINORBITAL|PGSYMMETRIC> A,
                                  const Scalar&  beta,             const vector<vector<vector<int>>>& start_B)
         {
             sliceBySpinAndIrrep(alpha, conja, vector<vector<vector<int>>>(this->getDimension(), vector<vector<int>>(2, vector<int>(this->getPointGroup().getNumIrreps()))), A, beta, start_B, A.getLengthsPerSpinAndIrrep());
         }
 
-        template <capability_type C_>
-        void sliceBySpinAndIrrep(const Scalar& alpha, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C,PGSYMMETRIC)>>
+        void sliceBySpinAndIrrep(const Scalar& alpha, ConstTensor<SPINORBITAL|PGSYMMETRIC> A,
                                  const Scalar&  beta, const vector<vector<vector<int>>>& start_B)
         {
             sliceBySpinAndIrrep(alpha, false, vector<vector<vector<int>>>(this->getDimension(), vector<vector<int>>(2, vector<int>(this->getPointGroup().getNumIrreps()))), A, beta, start_B, A.getLengthsPerSpinAndIrrep());
         }
 
-        template <capability_type C_>
-        void sliceBySpinAndIrrep(bool conja, const ConstTensor<C_>& A, const vector<vector<vector<int>>>& start_B)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C,PGSYMMETRIC)>>
+        void sliceBySpinAndIrrep(bool conja, ConstTensor<SPINORBITAL|PGSYMMETRIC> A, const vector<vector<vector<int>>>& start_B)
         {
             sliceBySpinAndIrrep(1, conja, vector<vector<vector<int>>>(this->getDimension(), vector<vector<int>>(2, vector<int>(this->getPointGroup().getNumIrreps()))), A, 0, start_B, A.getLengthsPerSpinAndIrrep());
         }
 
-        template <capability_type C_>
-        void sliceBySpinAndIrrep(const ConstTensor<C_>& A, const vector<vector<vector<int>>>& start_B)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C,PGSYMMETRIC)>>
+        void sliceBySpinAndIrrep(ConstTensor<SPINORBITAL|PGSYMMETRIC> A, const vector<vector<vector<int>>>& start_B)
         {
             sliceBySpinAndIrrep(1, false, vector<vector<vector<int>>>(this->getDimension(), vector<vector<int>>(2, vector<int>(this->getPointGroup().getNumIrreps()))), A, 0, start_B, A.getLengthsPerSpinAndIrrep());
         }
 
-        template <capability_type C_>
-        void sliceBySpinAndIrrep(const Scalar& alpha, bool conja, const vector<vector<vector<int>>>& start_A, const ConstTensor<C_>& A, const Scalar&  beta)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C,PGSYMMETRIC)>>
+        void sliceBySpinAndIrrep(const Scalar& alpha, bool conja, const vector<vector<vector<int>>>& start_A, ConstTensor<SPINORBITAL|PGSYMMETRIC> A, const Scalar&  beta)
         {
             sliceBySpinAndIrrep(alpha, conja, start_A, A, beta, vector<vector<vector<int>>>(this->getDimension(), vector<vector<int>>(2, vector<int>(this->getPointGroup().getNumIrreps()))), this->getLengthsPerSpinAndIrrep());
         }
 
-        template <capability_type C_>
-        void sliceBySpinAndIrrep(const Scalar& alpha, const vector<vector<vector<int>>>& start_A, const ConstTensor<C_>& A, const Scalar&  beta)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C,PGSYMMETRIC)>>
+        void sliceBySpinAndIrrep(const Scalar& alpha, const vector<vector<vector<int>>>& start_A, ConstTensor<SPINORBITAL|PGSYMMETRIC> A, const Scalar&  beta)
         {
             sliceBySpinAndIrrep(alpha, false, start_A, A, beta, vector<vector<vector<int>>>(this->getDimension(), vector<vector<int>>(2, vector<int>(this->getPointGroup().getNumIrreps()))), this->getLengthsPerSpinAndIrrep());
         }
 
-        template <capability_type C_>
-        void sliceBySpinAndIrrep(bool conja, const vector<vector<vector<int>>>& start_A, const ConstTensor<C_>& A)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C,PGSYMMETRIC)>>
+        void sliceBySpinAndIrrep(bool conja, const vector<vector<vector<int>>>& start_A, ConstTensor<SPINORBITAL|PGSYMMETRIC> A)
         {
             sliceBySpinAndIrrep(1, conja, start_A, A, 0, vector<vector<vector<int>>>(this->getDimension(), vector<vector<int>>(2, vector<int>(this->getPointGroup().getNumIrreps()))), this->getLengthsPerSpinAndIrrep());
         }
 
-        template <capability_type C_>
-        void sliceBySpinAndIrrep(const vector<vector<vector<int>>>& start_A, const ConstTensor<C_>& A)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C,PGSYMMETRIC)>>
+        void sliceBySpinAndIrrep(const vector<vector<vector<int>>>& start_A, ConstTensor<SPINORBITAL|PGSYMMETRIC> A)
         {
             sliceBySpinAndIrrep(1, false, start_A, A, 0, vector<vector<vector<int>>>(this->getDimension(), vector<vector<int>>(2, vector<int>(this->getPointGroup().getNumIrreps()))), this->getLengthsPerSpinAndIrrep());
         }

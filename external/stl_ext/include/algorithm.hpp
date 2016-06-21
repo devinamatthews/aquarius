@@ -162,6 +162,15 @@ typename T::value_type sum(const T& v)
 }
 
 template <typename T>
+typename T::value_type prod(const T& v)
+{
+    typedef typename T::value_type U;
+    U s = U(1);
+    for (auto& i : v) s *= i;
+    return s;
+}
+
+template <typename T>
 bool contains(const T& v, const typename T::value_type& e)
 {
     return find(v.begin(), v.end(), e) != v.end();
@@ -207,6 +216,20 @@ template <typename T>
 T uniqued(T v)
 {
     unique(v);
+    return v;
+}
+
+template <typename T>
+T& rotate(T& v, typename T::iterator::diff_type n)
+{
+    if (n > 0)
+    {
+        std::rotate(v.begin(), std::advance(v.begin(),n), v.end());
+    }
+    else if (n < 0)
+    {
+        std::rotate(v.begin(), std::advance(v.end(),n), v.end());
+    }
     return v;
 }
 

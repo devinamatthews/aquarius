@@ -144,12 +144,12 @@ void OneElectronIntegrals::prim(const vec3& posa, int la, double za,
     assert(0);
 }
 
-void OneElectronIntegrals::prims(const vec3& posa, int la, const vector<double>& za,
-                                 const vec3& posb, int lb, const vector<double>& zb,
+void OneElectronIntegrals::prims(const vec3& posa, int la, const row<double>& za,
+                                 const vec3& posb, int lb, const row<double>& zb,
                                  double* integrals)
 {
-    int na = za.size();
-    int nb = zb.size();
+    int na = za.length();
+    int nb = zb.length();
     int fca = (la+1)*(la+2)/2;
     int fcb = (lb+1)*(lb+2)/2;
 
@@ -164,12 +164,12 @@ void OneElectronIntegrals::prims(const vec3& posa, int la, const vector<double>&
     }
 }
 
-void OneElectronIntegrals::contr(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca,
-                                 const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb,
+void OneElectronIntegrals::contr(const vec3& posa, int la, const row<double>& za, const matrix<double>& ca,
+                                 const vec3& posb, int lb, const row<double>& zb, const matrix<double>& cb,
                                  double* integrals)
 {
-    int na = za.size();
-    int nb = zb.size();
+    int na = za.length();
+    int nb = zb.length();
     int fca = (la+1)*(la+2)/2;
     int fcb = (lb+1)*(lb+2)/2;
 
@@ -180,8 +180,8 @@ void OneElectronIntegrals::contr(const vec3& posa, int la, const vector<double>&
     transform(fca*fcb, ca, cb, pintegrals.data(), integrals);
 }
 
-void OneElectronIntegrals::spher(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca, const matrix<double>& sa,
-                                 const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb, const matrix<double>& sb,
+void OneElectronIntegrals::spher(const vec3& posa, int la, const row<double>& za, const matrix<double>& ca, const matrix<double>& sa,
+                                 const vec3& posb, int lb, const row<double>& zb, const matrix<double>& cb, const matrix<double>& sb,
                                  double* integrals)
 {
     int na = ca.length(0);

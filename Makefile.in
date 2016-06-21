@@ -137,7 +137,6 @@ am____top_builddir__bin_aquarius_SOURCES_DIST =  \
 	src/frameworks/autocc/term.cxx \
 	src/frameworks/integrals/1eints.cxx \
 	src/frameworks/integrals/2eints.cxx \
-	src/frameworks/integrals/cholesky.cxx \
 	src/frameworks/integrals/context.cxx \
 	src/frameworks/integrals/fmgamma.cxx \
 	src/frameworks/integrals/momints.cxx \
@@ -180,7 +179,6 @@ am___top_builddir__bin_aquarius_OBJECTS =  \
 	src/frameworks/autocc/term.$(OBJEXT) \
 	src/frameworks/integrals/1eints.$(OBJEXT) \
 	src/frameworks/integrals/2eints.$(OBJEXT) \
-	src/frameworks/integrals/cholesky.$(OBJEXT) \
 	src/frameworks/integrals/context.$(OBJEXT) \
 	src/frameworks/integrals/fmgamma.$(OBJEXT) \
 	src/frameworks/integrals/momints.$(OBJEXT) \
@@ -418,7 +416,6 @@ __top_builddir__bin_aquarius_SOURCES =  \
 	src/frameworks/autocc/term.cxx \
 	src/frameworks/integrals/1eints.cxx \
 	src/frameworks/integrals/2eints.cxx \
-	src/frameworks/integrals/cholesky.cxx \
 	src/frameworks/integrals/context.cxx \
 	src/frameworks/integrals/fmgamma.cxx \
 	src/frameworks/integrals/momints.cxx \
@@ -616,9 +613,6 @@ src/frameworks/integrals/1eints.$(OBJEXT):  \
 src/frameworks/integrals/2eints.$(OBJEXT):  \
 	src/frameworks/integrals/$(am__dirstamp) \
 	src/frameworks/integrals/$(DEPDIR)/$(am__dirstamp)
-src/frameworks/integrals/cholesky.$(OBJEXT):  \
-	src/frameworks/integrals/$(am__dirstamp) \
-	src/frameworks/integrals/$(DEPDIR)/$(am__dirstamp)
 src/frameworks/integrals/context.$(OBJEXT):  \
 	src/frameworks/integrals/$(am__dirstamp) \
 	src/frameworks/integrals/$(DEPDIR)/$(am__dirstamp)
@@ -804,7 +798,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/frameworks/autocc/$(DEPDIR)/term.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/frameworks/integrals/$(DEPDIR)/1eints.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/frameworks/integrals/$(DEPDIR)/2eints.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@src/frameworks/integrals/$(DEPDIR)/cholesky.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/frameworks/integrals/$(DEPDIR)/context.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/frameworks/integrals/$(DEPDIR)/fmgamma.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/frameworks/integrals/$(DEPDIR)/momints.Po@am__quote@

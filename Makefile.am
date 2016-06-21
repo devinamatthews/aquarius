@@ -18,7 +18,6 @@ __top_builddir__bin_aquarius_SOURCES = \
 	\
 	src/frameworks/integrals/1eints.cxx \
 	src/frameworks/integrals/2eints.cxx \
-	src/frameworks/integrals/cholesky.cxx \
 	src/frameworks/integrals/context.cxx \
 	src/frameworks/integrals/fmgamma.cxx \
 	src/frameworks/integrals/momints.cxx \

@@ -85,22 +85,22 @@ class TwoElectronIntegrals
                           const vec3& posd, int ld, double zd,
                           double* integrals);
 
-        virtual void prims(const vec3& posa, int la, const vector<double>& za,
-                           const vec3& posb, int lb, const vector<double>& zb,
-                           const vec3& posc, int lc, const vector<double>& zc,
-                           const vec3& posd, int ld, const vector<double>& zd,
+        virtual void prims(const vec3& posa, int la, const row<double>& za,
+                           const vec3& posb, int lb, const row<double>& zb,
+                           const vec3& posc, int lc, const row<double>& zc,
+                           const vec3& posd, int ld, const row<double>& zd,
                            double* integrals);
 
-        virtual void contr(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca,
-                           const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb,
-                           const vec3& posc, int lc, const vector<double>& zc, const matrix<double>& cc,
-                           const vec3& posd, int ld, const vector<double>& zd, const matrix<double>& cd,
+        virtual void contr(const vec3& posa, int la, const row<double>& za, const matrix<double>& ca,
+                           const vec3& posb, int lb, const row<double>& zb, const matrix<double>& cb,
+                           const vec3& posc, int lc, const row<double>& zc, const matrix<double>& cc,
+                           const vec3& posd, int ld, const row<double>& zd, const matrix<double>& cd,
                            double* integrals);
 
-        virtual void spher(const vec3& posa, int la, const vector<double>& za, const matrix<double>& ca, const matrix<double>& sa,
-                           const vec3& posb, int lb, const vector<double>& zb, const matrix<double>& cb, const matrix<double>& sb,
-                           const vec3& posc, int lc, const vector<double>& zc, const matrix<double>& cc, const matrix<double>& sc,
-                           const vec3& posd, int ld, const vector<double>& zd, const matrix<double>& cd, const matrix<double>& sd,
+        virtual void spher(const vec3& posa, int la, const row<double>& za, const matrix<double>& ca, const matrix<double>& sa,
+                           const vec3& posb, int lb, const row<double>& zb, const matrix<double>& cb, const matrix<double>& sb,
+                           const vec3& posc, int lc, const row<double>& zc, const matrix<double>& cc, const matrix<double>& sc,
+                           const vec3& posd, int ld, const row<double>& zd, const matrix<double>& cd, const matrix<double>& sd,
                            double* integrals);
 
         virtual void so(const molecule::Shell& a, const molecule::Shell& b,

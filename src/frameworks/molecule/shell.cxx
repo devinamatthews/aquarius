@@ -8,7 +8,7 @@ namespace molecule
 {
 
 Shell::Shell(const Center& pos, int L, bool spherical, bool keep_contaminants,
-             const vector<double>& exponents, const matrix<double>& coeffs)
+             const row_view<double>& exponents, const matrix_view<double>& coeffs)
 : center(pos), L(L), spherical(spherical), keep_contaminants(keep_contaminants),
   exponents(exponents), coefficients(coeffs)
 {
@@ -82,7 +82,7 @@ Shell::Shell(const Center& pos, int L, bool spherical, bool keep_contaminants,
              */
             for (int op = 0;op < order;op++)
             {
-                proj[pos.getCenterAfterOp(op)] += (group.character(irrep, op)*parity[func][op] < 0 ? -1 : 1);
+                proj[pos.getIdxAfterOp(op)] += (group.character(irrep, op)*parity[func][op] < 0 ? -1 : 1);
             }
 
             for (int j = 0;j < ndegen;j++)

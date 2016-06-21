@@ -44,7 +44,8 @@ namespace detail
 
         std::unique_ptr<any_container_base> clone() const
         {
-            return new any_container(data);
+            return std::unique_ptr<any_container_base>(
+                new any_container(data));
         }
     };
 
@@ -59,7 +60,8 @@ namespace detail
 
         std::unique_ptr<any_container_base> clone() const
         {
-            return new any_container(*this);
+            return std::unique_ptr<any_container_base>(
+                new any_container(static_cast<const T&>(*this)));
         }
     };
 }

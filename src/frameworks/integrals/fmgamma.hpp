@@ -23,9 +23,9 @@ class FmGamma
 
         static double direct(double T, int m);
 
-        static double taylor(double T, int n);
-
         static double asymptotic(double T, int m);
+
+        double taylor(double T, int n);
 
         TaylorTable& table();
 

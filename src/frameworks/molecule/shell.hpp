@@ -19,14 +19,14 @@ class Shell
         matrix<int> func_irrep;
         matrix<int> irrep_pos;
         vector<vector<int>> irreps;
-        vector<double> exponents;
+        row<double> exponents;
         matrix<double> coefficients;
         matrix<int> parity;
         matrix<double> cart2spher;
 
     public:
         Shell(const Center& pos, int L, bool spherical, bool keep_contaminants,
-              const vector<double>& exponents, const matrix<double>& coefficients);
+              const row_view<double>& exponents, const matrix_view<double>& coefficients);
 
         const Center& getCenter() const { return center; }
 
@@ -54,7 +54,7 @@ class Shell
 
         const vector<int>& getIrrepsOfFunc(int func) const { return irreps[func]; }
 
-        const vector<double>& getExponents() const { return exponents; }
+        const row<double>& getExponents() const { return exponents; }
 
         const matrix<double>& getCoefficients() const { return coefficients; }
 

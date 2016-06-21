@@ -20,7 +20,7 @@ class KeyValueVector
         KeyValueVector(const KeyValueVector& other)
         : F(other.F), keys_(other.keys_)
         {
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:   new (& fvalues_) vector<   float>( other.fvalues_); break;
                 case Field::DOUBLE:   new (& dvalues_) vector<  double>( other.dvalues_); break;
@@ -38,7 +38,7 @@ class KeyValueVector
         explicit KeyValueVector(Field F, size_type size = 0)
         : F(F), keys_(size)
         {
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:   new (& fvalues_) vector<   float>(size); break;
                 case Field::DOUBLE:   new (& dvalues_) vector<  double>(size); break;
@@ -49,7 +49,7 @@ class KeyValueVector
 
         ~KeyValueVector()
         {
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fvalues_.~vector(); break;
                 case Field::DOUBLE:    dvalues_.~vector(); break;
@@ -70,7 +70,7 @@ class KeyValueVector
             return const_cast<T&>(const_cast<const KeyValueVector&>(*this).value<T>(i));
         }
 
-        template <typename T> typename enable_if<is_field<T>::value,const T&>::type
+        template <typename T> enable_if_field_t<T,const T&>
         value(size_type i) const
         {
             assert(F == field_type<T>::value);
@@ -79,7 +79,7 @@ class KeyValueVector
 
         Scalar value(size_type i) const
         {
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:   return Scalar( fvalues_[i]); break;
                 case Field::DOUBLE:   return Scalar( dvalues_[i]); break;
@@ -90,11 +90,21 @@ class KeyValueVector
             return Scalar();
         }
 
+        template <typename T> enable_if_field_t<T>
+        value(size_type i, T s)
+        {
+            switch (F.type())
+            {
+                case Field::SINGLE:    fvalues_[i] = (   float)s; break;
+                case Field::DOUBLE:    dvalues_[i] = (  double)s; break;
+                case Field::SCOMPLEX: fcvalues_[i] = (scomplex)s; break;
+                case Field::DCOMPLEX: dcvalues_[i] = (dcomplex)s; break;
+            }
+        }
+
         void value(size_type i, const Scalar& s)
         {
-            assert(s.field() == F);
-
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fvalues_[i] = (   float)s; break;
                 case Field::DOUBLE:    dvalues_[i] = (  double)s; break;
@@ -117,7 +127,7 @@ class KeyValueVector
         {
             keys_.resize(i);
 
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fvalues_.resize(i); break;
                 case Field::DOUBLE:    dvalues_.resize(i); break;
@@ -130,7 +140,7 @@ class KeyValueVector
         {
             keys_.reserve(i);
 
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fvalues_.reserve(i); break;
                 case Field::DOUBLE:    dvalues_.reserve(i); break;
@@ -143,10 +153,10 @@ class KeyValueVector
 
         const vector<key_type>& keys() const { return keys_; }
 
-        template <typename T> typename enable_if<is_same<T,void>::value,const void*>::type
+        template <typename T> enable_if_same_t<T,void,const void*>
         data() const
         {
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fvalues_.data(); break;
                 case Field::DOUBLE:    dvalues_.data(); break;
@@ -157,33 +167,32 @@ class KeyValueVector
             return NULL;
         }
 
-        template <typename T> typename enable_if<is_same<T,void>::value,void*>::type
+        template <typename T> enable_if_same_t<T,void,void*>
         data()
         {
             return const_cast<void*>(const_cast<const KeyValueVector&>(*this).data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value,const T*>::type
+        template <typename T> enable_if_field_t<T,const T*>
         data() const
         {
-            assert(F == Field(T()));
-            return static_cast<const vector<T>*>(&fvalues_)->data();
+            return values<T>().data();
         }
 
-        template <typename T> typename enable_if<is_field<T>::value,T*>::type
+        template <typename T> enable_if_field_t<T,T*>
         data()
         {
             return const_cast<T*>(const_cast<const KeyValueVector&>(*this).data<T>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value,const vector<T>&>::type
+        template <typename T> enable_if_field_t<T,const vector<T>&>
         values() const
         {
             assert(F == Field(T()));
-            return *static_cast<const vector<T>*>(&fvalues_);
+            return *reinterpret_cast<const vector<T>*>(&fvalues_);
         }
 
-        template <typename T> typename enable_if<is_field<T>::value,vector<T>&>::type
+        template <typename T> enable_if_field_t<T,vector<T>&>
         values()
         {
             return const_cast<vector<T>&>(const_cast<const KeyValueVector&>(*this).values<T>());
@@ -193,7 +202,7 @@ class KeyValueVector
         {
             keys_.push_back(k);
 
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fvalues_.push_back(0.0f); break;
                 case Field::DOUBLE:    dvalues_.push_back(0.0 ); break;
@@ -202,20 +211,25 @@ class KeyValueVector
             }
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T> enable_if_field_t<T>
         push_back(key_type k, T v)
         {
-            assert(F == Field(v));
             keys_.push_back(k);
-            static_cast<vector<T>*>(&fvalues_)->push_back(v);
+
+            switch (F.type())
+            {
+                case Field::SINGLE:    fvalues_.push_back(v); break;
+                case Field::DOUBLE:    dvalues_.push_back(v); break;
+                case Field::SCOMPLEX: fcvalues_.push_back(v); break;
+                case Field::DCOMPLEX: dcvalues_.push_back(v); break;
+            }
         }
 
         void push_back(key_type k, const Scalar& v)
         {
-            assert(F == v.field());
             keys_.push_back(k);
 
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fvalues_.push_back((   float)v); break;
                 case Field::DOUBLE:    dvalues_.push_back((  double)v); break;
@@ -228,7 +242,7 @@ class KeyValueVector
         {
             keys_.pop_back();
 
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fvalues_.pop_back(); break;
                 case Field::DOUBLE:    dvalues_.pop_back(); break;
@@ -242,7 +256,7 @@ class KeyValueVector
             assert(F == kv.field());
             keys_.insert(keys_.end(), kv.keys_.begin(), kv.keys_.end());
 
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fvalues_.insert( fvalues_.end(), kv. fvalues_.begin(), kv. fvalues_.end()); break;
                 case Field::DOUBLE:    dvalues_.insert( dvalues_.end(), kv. dvalues_.begin(), kv. dvalues_.end()); break;
@@ -263,7 +277,7 @@ class KeyValueVector
         {
             assert(F == other.F);
             keys_.swap(other.keys_);
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fvalues_.swap( other.fvalues_); break;
                 case Field::DOUBLE:    dvalues_.swap( other.dvalues_); break;
@@ -286,7 +300,7 @@ class KeyValueVector
         {
             keys_.clear();
 
-            switch (F.type)
+            switch (F.type())
             {
                 case Field::SINGLE:    fvalues_.clear(); break;
                 case Field::DOUBLE:    dvalues_.clear(); break;
@@ -496,7 +510,7 @@ TENSOR_WRAPPER(BOUNDED_)
             this->template impl<BOUNDED_>().getData(kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T> enable_if_field_t<T>
         getData(KeyVector& keys, vector<T>& values) const
         {
             assert(this->impl().F == Field(T()));
@@ -509,120 +523,118 @@ TENSOR_WRAPPER(BOUNDED_)
             return this->template impl<BOUNDED_>().norm(p);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
         void setData(const KeyValueVector& kv)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<BOUNDED_>().setData(kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        enable_if_field_t<T>
         setData(const KeyVector& keys, const vector<T>& values)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<BOUNDED_>().setData(keys.size(), keys.data(), static_cast<const void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
         void addData(const Scalar& alpha, const KeyValueVector& kv, const Scalar& beta)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<BOUNDED_>().addData(kv.size(), alpha, kv.keys().data(), kv.data<void>(), beta);
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        enable_if_field_t<T>
         addData(const Scalar& alpha, const KeyVector& keys,
                 const vector<T>& values, const Scalar& beta)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<BOUNDED_>().addData(keys.size(), alpha, keys.data(), static_cast<const void*>(values.data()), beta);
         }
 
-        template <capability_type C_>
-        void slice(const Scalar& alpha, bool conja, const vector<int>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void slice(const Scalar& alpha, bool conja, const vector<int>& start_A, ConstTensor<BOUNDED> A,
                    const Scalar&  beta,             const vector<int>& start_B, const vector<int>& length)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
-            static_assert(C_&BOUNDED_, "The operands must be BOUNDED.");
             this->template impl<BOUNDED_>().slice(alpha, conja, start_A, A.impl(),
                                                    beta,        start_B, length);
         }
 
-        template <capability_type C_>
-        void slice(const Scalar& alpha, const vector<int>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void slice(const Scalar& alpha, const vector<int>& start_A, ConstTensor<BOUNDED> A,
                    const Scalar&  beta, const vector<int>& start_B, const vector<int>& length)
         {
             slice(alpha, false, A, start_A, beta, start_B, length);
         }
 
-        template <capability_type C_>
-        void slice(bool conja, const vector<int>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void slice(bool conja, const vector<int>& start_A, ConstTensor<BOUNDED> A,
                                const vector<int>& start_B, const vector<int>& length)
         {
-            slice(1, conja, A, start_A, 0, start_B, length);
+            slice(Scalar(1), conja, A, start_A, Scalar(0), start_B, length);
         }
 
-        template <capability_type C_>
-        void slice(const vector<int>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void slice(const vector<int>& start_A, ConstTensor<BOUNDED> A,
                    const vector<int>& start_B, const vector<int>& length)
         {
-            slice(1, false, A, start_A, 0, start_B, length);
+            slice(Scalar(1), false, A, start_A, Scalar(0), start_B, length);
         }
 
-        template <capability_type C_>
-        void slice(const Scalar& alpha, bool conja, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void slice(const Scalar& alpha, bool conja, ConstTensor<BOUNDED> A,
                    const Scalar&  beta, const vector<int>& start_B)
         {
             slice(alpha, conja, A, vector<int>(A.getDimension()), beta, start_B, A.getLengths());
         }
 
-        template <capability_type C_>
-        void slice(const Scalar& alpha, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void slice(const Scalar& alpha, ConstTensor<BOUNDED> A,
                    const Scalar&  beta, const vector<int>& start_B)
         {
             slice(alpha, false, A, vector<int>(A.getDimension()), beta, start_B, A.getLengths());
         }
 
-        template <capability_type C_>
-        void slice(bool conja, const ConstTensor<C_>& A, const vector<int>& start_B)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void slice(bool conja, ConstTensor<BOUNDED> A, const vector<int>& start_B)
         {
-            slice(1, conja, A, vector<int>(A.getDimension()), 0, start_B, A.getLengths());
+            slice(Scalar(1), conja, A, vector<int>(A.getDimension()), Scalar(0), start_B, A.getLengths());
         }
 
-        template <capability_type C_>
-        void slice(const ConstTensor<C_>& A, const vector<int>& start_B)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void slice(ConstTensor<BOUNDED> A, const vector<int>& start_B)
         {
-            slice(1, false, A, vector<int>(A.getDimension()), 0, start_B, A.getLengths());
+            slice(Scalar(1), false, A, vector<int>(A.getDimension()), Scalar(0), start_B, A.getLengths());
         }
 
-        template <capability_type C_>
-        void slice(const Scalar& alpha, bool conja, const vector<int>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void slice(const Scalar& alpha, bool conja, const vector<int>& start_A, ConstTensor<BOUNDED> A,
                    const Scalar&  beta)
         {
             slice(alpha, conja, A, start_A, beta, vector<int>(this->getDimension()), this->getLengths());
         }
 
-        template <capability_type C_>
-        void slice(const Scalar& alpha, const vector<int>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void slice(const Scalar& alpha, const vector<int>& start_A, ConstTensor<BOUNDED> A,
                    const Scalar&  beta)
         {
             slice(alpha, false, A, start_A, beta, vector<int>(this->getDimension()), this->getLengths());
         }
 
-        template <capability_type C_>
-        void slice(bool conja, const vector<int>& start_A, const ConstTensor<C_>& A)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void slice(bool conja, const vector<int>& start_A, ConstTensor<BOUNDED> A)
         {
-            slice(1, conja, A, start_A, 0, vector<int>(this->getDimension()), this->getLengths());
+            slice(Scalar(1), conja, A, start_A, Scalar(0), vector<int>(this->getDimension()), this->getLengths());
         }
 
-        template <capability_type C_>
-        void slice(const vector<int>& start_A, const ConstTensor<C_>& A)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
+        void slice(const vector<int>& start_A, ConstTensor<BOUNDED> A)
         {
-            slice(1, false, A, start_A, 0, vector<int>(this->getDimension()), this->getLengths());
+            slice(Scalar(1), false, A, start_A, Scalar(0), vector<int>(this->getDimension()), this->getLengths());
         }
 };
 

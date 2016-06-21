@@ -13,14 +13,17 @@ namespace tensor
 {
 
 /*
- * SpinBlockedTensor can wrap tensor types which are at least BOUNDED and IPSYMMETRIC
- * and optionally DIVISIBLE and/or DISTRIBUTED.
+ * SymmetryBlockedTensor can wrap tensor types which are at least BOUNDED
+ * and optionally DIVISIBLE, IPSYMMETRIC, and/or DISTRIBUTED.
  */
 template <capability_type C>
 class SymmetryBlockedTensor : public BlockedTensor<C&~PGSYMMETRIC,TensorImplementation<C>>
 {
-    static_assert(IS_SUPERSET_OF(C,IPSYMMETRIC|BOUNDED|PGSYMMETRIC)&&
-                  IS_SUPERSET_OF(PGSYMMETRIC|BOUNDED|IPSYMMETRIC|DIVISIBLE|DISTRIBUTED,C), "");
+    static_assert(IS_SUPERSET_OF(C,BOUNDED|PGSYMMETRIC),
+                  "The tensor type must be at least PGSYMMETRIC and BOUNDED");
+
+    static_assert(IS_SUPERSET_OF(PGSYMMETRIC|BOUNDED|IPSYMMETRIC|DIVISIBLE|DISTRIBUTED,C),
+                  "The tensor type must be at most PGSYMMETRIC, BOUNDED, IPSYMMETRIC, DIVISIBLE, and/or DISTRIBUTED");
 
     protected:
         typedef BlockedTensor<C&~PGSYMMETRIC,TensorImplementation<C>> Base;

@@ -103,10 +103,10 @@ class HGP
         int lc = c.getL();
         int ld = d.getL();
 
-        const vector<double>& za = a.getExponents();
-        const vector<double>& zb = b.getExponents();
-        const vector<double>& zc = c.getExponents();
-        const vector<double>& zd = d.getExponents();
+        const row<double>& za = a.getExponents();
+        const row<double>& zb = b.getExponents();
+        const row<double>& zc = c.getExponents();
+        const row<double>& zd = d.getExponents();
 
         int le0 = la;
         int le1 = la+lb;

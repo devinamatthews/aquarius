@@ -171,12 +171,13 @@ TENSOR_WRAPPER(PGSYMMETRIC_)
             return this->template impl<PGSYMMETRIC>().getRepresentation();
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED)>>
         const vector<vector<int>>& getLengthsPerIrrep() const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             return this->template impl<PGSYMMETRIC>().getLengthsPerIrrep();
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED)>>
         KeyVector getAllKeysByIrrep(const vector<int>& irreps) const
         {
             KeyVector keys;
@@ -184,11 +185,13 @@ TENSOR_WRAPPER(PGSYMMETRIC_)
             return keys;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED)>>
         void getAllKeysByIrrep(const vector<int>& irreps, KeyVector& keys) const
         {
             this->template impl<PGSYMMETRIC>().getAllKeysByIrrep(irreps, keys);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED)>>
         KeyValueVector getAllDataByIrrep(const vector<int>& irreps) const
         {
             KeyValueVector kv(this->impl().F);
@@ -196,19 +199,22 @@ TENSOR_WRAPPER(PGSYMMETRIC_)
             return kv;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED)>>
         void getAllDataByIrrep(const vector<int>& irreps, KeyValueVector& kv) const
         {
             assert(this->impl().F == kv.field());
             this->template impl<PGSYMMETRIC>().getAllDataByIrrep(irreps, kv);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED)>>
         void getDataByIrrep(const vector<int>& irreps, KeyValueVector& kv) const
         {
             assert(this->impl().F == kv.field());
             this->template impl<PGSYMMETRIC>().getDataByIrrep(irreps, kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED)>>
+        enable_if_field_t<T>
         getDataByIrrep(const vector<int>& irreps, KeyVector& keys, vector<T>& values) const
         {
             assert(this->impl().F == Field(T()));
@@ -216,256 +222,243 @@ TENSOR_WRAPPER(PGSYMMETRIC_)
             this->template impl<PGSYMMETRIC>().getDataByIrrep(irreps, keys.size(), keys.data(), static_cast<void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
         void setDataByIrrep(const vector<int>& irreps, const KeyValueVector& kv)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<PGSYMMETRIC>().setDataByIrrep(irreps, kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        enable_if_field_t<T>
         setDataByIrrep(const vector<int>& irreps, const KeyVector& keys, const vector<T>& values)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<PGSYMMETRIC>().setDataByIrrep(irreps, keys.size(), keys.data(), static_cast<const void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
         void addDataByIrrep(const vector<int>& irreps, const Scalar& alpha, const KeyValueVector& kv, const Scalar& beta)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<PGSYMMETRIC>().addDataByIrrep(irreps, kv.size(), alpha, kv.keys().data(), kv.data<void>(), beta);
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        enable_if_field_t<T>
         addDataByIrrep(const vector<int>& irreps, const Scalar& alpha, const KeyVector& keys,
                 const vector<T>& values, const Scalar& beta)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<PGSYMMETRIC>().addDataByIrrep(irreps, keys.size(), alpha, keys.data(), static_cast<const void*>(values.data()), beta);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
         KeyVector getLocalKeysByIrrep(const vector<int>& irreps) const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             KeyVector keys;
             getLocalKeysByIrrep(irreps, keys);
             return keys;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
         void getLocalKeysByIrrep(const vector<int>& irreps, KeyVector& keys) const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             this->template impl<PGSYMMETRIC>().getLocalKeysByIrrep(irreps, keys);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
         KeyValueVector getLocalDataByIrrep(const vector<int>& irreps) const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             KeyValueVector kv(this->impl().F);
             getLocalDataByIrrep(irreps, kv);
             return kv;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
         void getLocalDataByIrrep(const vector<int>& irreps, KeyValueVector& kv) const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             assert(this->impl().F == kv.field());
             this->template impl<PGSYMMETRIC>().getLocalDataByIrrep(irreps, kv);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
         void setLocalDataByIrrep(const vector<int>& irreps, const KeyValueVector& kv)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<PGSYMMETRIC>().setLocalDataByIrrep(irreps, kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
+        enable_if_field_t<T>
         setLocalDataByIrrep(const vector<int>& irreps, const KeyVector& keys, const vector<T>& values)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<PGSYMMETRIC>().setLocalDataByIrrep(irreps, keys.size(), keys.data(), static_cast<const void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
         void addLocalDataByIrrep(const vector<int>& irreps, const Scalar& alpha, const KeyValueVector& kv, const Scalar& beta)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<PGSYMMETRIC>().addLocalDataByIrrep(irreps, kv.size(), alpha, kv.keys().data(), kv.data<void>(), beta);
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
+        enable_if_field_t<T>
         addLocalDataByIrrep(const vector<int>& irreps, const Scalar& alpha, const KeyVector& keys,
                      const vector<T>& values, const Scalar& beta)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<PGSYMMETRIC>().addLocalDataByIrrep(irreps, keys.size(), alpha, keys.data(), static_cast<const void*>(values.data()), beta);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
         void getRemoteDataByIrrep(const vector<int>& irreps) const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             this->template impl<DISTRIBUTED>().getRemoteDataByIrrep(irreps);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
         void setRemoteDataByIrrep(const vector<int>& irreps)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             this->template impl<DISTRIBUTED>().setRemoteDataByIrrep(irreps);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
         void addRemoteDataByIrrep(const vector<int>& irreps, const Scalar& alpha, const Scalar& beta)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             this->template impl<PGSYMMETRIC>().addRemoteDataByIrrep(irreps, alpha, beta);
         }
 
+        template <capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
         void getRemoteDataByIrrep(const vector<int>& irreps, KeyValueVector& kv) const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             assert(this->impl().F == kv.field());
             this->template impl<PGSYMMETRIC>().getRemoteDataByIrrep(irreps, kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
+        enable_if_field_t<T>
         getRemoteDataByIrrep(const vector<int>& irreps, KeyVector& keys, vector<T>& values) const
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
             assert(this->impl().F == Field(T()));
             values.resize(keys.size());
             this->template impl<PGSYMMETRIC>().getRemoteDataByIrrep(irreps, keys.size(), keys.data(), static_cast<void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
         void setRemoteDataByIrrep(const vector<int>& irreps, const KeyValueVector& kv)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<PGSYMMETRIC>().setRemoteDataByIrrep(irreps, kv.size(), kv.keys().data(), kv.data<void>());
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
+        enable_if_field_t<T>
         setRemoteDataByIrrep(const vector<int>& irreps, const KeyVector& keys, const vector<T>& values)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<PGSYMMETRIC>().setRemoteDataByIrrep(irreps, keys.size(), keys.data(), static_cast<const void*>(values.data()));
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
         void addRemoteDataByIrrep(const vector<int>& irreps, const Scalar& alpha, const KeyValueVector& kv, const Scalar& beta)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == kv.field());
             this->template impl<PGSYMMETRIC>().addRemoteDataByIrrep(irreps, kv.size(), alpha, kv.keys().data(), kv.data<void>(), beta);
         }
 
-        template <typename T> typename enable_if<is_field<T>::value>::type
+        template <typename T, capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED|DISTRIBUTED)>>
+        enable_if_field_t<T>
         addRemoteDataByIrrep(const vector<int>& irreps, const Scalar& alpha, const KeyVector& keys,
                       const vector<T>& values, const Scalar& beta)
         {
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(!(C&CONST_), "The operand must not be const.");
             assert(this->impl().F == Field(T()));
             assert(keys.size() == values.size());
             this->template impl<PGSYMMETRIC>().addRemoteDataByIrrep(irreps, keys.size(), alpha, keys.data(), static_cast<const void*>(values.data()), beta);
         }
 
-        template <capability_type C_>
-        void sliceByIrrep (const Scalar& alpha, bool conja, const vector<vector<int>>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        void sliceByIrrep (const Scalar& alpha, bool conja, const vector<vector<int>>& start_A, ConstTensor<BOUNDED|PGSYMMETRIC> A,
                            const Scalar&  beta,             const vector<vector<int>>& start_B, const vector<vector<int>>& length)
         {
-            static_assert(!(C&CONST_), "The operand must not be const.");
-            static_assert(C&BOUNDED_, "The operand must be BOUNDED.");
-            static_assert(IS_SUPERSET_OF(C_,BOUNDED|PGSYMMETRIC), "The operands must be BOUNDED and PGSYMMETRIC.");
             this->template impl<PGSYMMETRIC>().sliceByIrrep(alpha, conja, start_A, A.impl(),
                                                              beta,        start_B, length);
         }
 
-        template <capability_type C_>
-        void sliceByIrrep(const Scalar& alpha, const vector<vector<int>>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        void sliceByIrrep(const Scalar& alpha, const vector<vector<int>>& start_A, ConstTensor<BOUNDED|PGSYMMETRIC> A,
                           const Scalar&  beta, const vector<vector<int>>& start_B, const vector<vector<int>>& length)
         {
             sliceByIrrep(alpha, false, start_A, A, beta, start_B, length);
         }
 
-        template <capability_type C_>
-        void sliceByIrrep(bool conja, const vector<vector<int>>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        void sliceByIrrep(bool conja, const vector<vector<int>>& start_A, ConstTensor<BOUNDED|PGSYMMETRIC> A,
                                       const vector<vector<int>>& start_B, const vector<vector<int>>& length)
         {
             sliceByIrrep(1, conja, start_A, A, 0, start_B, length);
         }
 
-        template <capability_type C_>
-        void sliceByIrrep(const vector<vector<int>>& start_A, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        void sliceByIrrep(const vector<vector<int>>& start_A, ConstTensor<BOUNDED|PGSYMMETRIC> A,
                           const vector<vector<int>>& start_B, const vector<vector<int>>& length)
         {
             sliceByIrrep(1, false, start_A, A, 0, start_B, length);
         }
 
-        template <capability_type C_>
-        void sliceByIrrep(const Scalar& alpha, bool conja, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        void sliceByIrrep(const Scalar& alpha, bool conja, ConstTensor<BOUNDED|PGSYMMETRIC> A,
                           const Scalar&  beta,             const vector<vector<int>>& start_B)
         {
             sliceByIrrep(alpha, conja, vector<vector<int>>(this->getDimension(), vector<int>(this->getPointGroup().getNumIrreps())), A, beta, start_B, A.getLengthsPerIrrep());
         }
 
-        template <capability_type C_>
-        void sliceByIrrep(const Scalar& alpha, const ConstTensor<C_>& A,
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        void sliceByIrrep(const Scalar& alpha, ConstTensor<BOUNDED|PGSYMMETRIC> A,
                           const Scalar&  beta, const vector<vector<int>>& start_B)
         {
             sliceByIrrep(alpha, false, vector<vector<int>>(this->getDimension(), vector<int>(this->getPointGroup().getNumIrreps())), A, beta, start_B, A.getLengthsPerIrrep());
         }
 
-        template <capability_type C_>
-        void sliceByIrrep(bool conja, const ConstTensor<C_>& A, const vector<vector<int>>& start_B)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        void sliceByIrrep(bool conja, ConstTensor<BOUNDED|PGSYMMETRIC> A, const vector<vector<int>>& start_B)
         {
             sliceByIrrep(1, conja, vector<vector<int>>(this->getDimension(), vector<int>(this->getPointGroup().getNumIrreps())), A, 0, start_B, A.getLengthsPerIrrep());
         }
 
-        template <capability_type C_>
-        void sliceByIrrep(const ConstTensor<C_>& A, const vector<vector<int>>& start_B)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        void sliceByIrrep(ConstTensor<BOUNDED|PGSYMMETRIC> A, const vector<vector<int>>& start_B)
         {
             sliceByIrrep(1, false, vector<vector<int>>(this->getDimension(), vector<int>(this->getPointGroup().getNumIrreps())), A, 0, start_B, A.getLengthsPerIrrep());
         }
 
-        template <capability_type C_>
-        void sliceByIrrep(const Scalar& alpha, bool conja, const vector<vector<int>>& start_A, const ConstTensor<C_>& A, const Scalar&  beta)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        void sliceByIrrep(const Scalar& alpha, bool conja, const vector<vector<int>>& start_A, ConstTensor<BOUNDED|PGSYMMETRIC> A, const Scalar&  beta)
         {
             sliceByIrrep(alpha, conja, start_A, A, beta, vector<vector<int>>(this->getDimension(), vector<int>(this->getPointGroup().getNumIrreps())), this->getLengthsPerIrrep());
         }
 
-        template <capability_type C_>
-        void sliceByIrrep(const Scalar& alpha, const vector<vector<int>>& start_A, const ConstTensor<C_>& A, const Scalar&  beta)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        void sliceByIrrep(const Scalar& alpha, const vector<vector<int>>& start_A, ConstTensor<BOUNDED|PGSYMMETRIC> A, const Scalar&  beta)
         {
             sliceByIrrep(alpha, false, start_A, A, beta, vector<vector<int>>(this->getDimension(), vector<int>(this->getPointGroup().getNumIrreps())), this->getLengthsPerIrrep());
         }
 
-        template <capability_type C_>
-        void sliceByIrrep(bool conja, const vector<vector<int>>& start_A, const ConstTensor<C_>& A)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        void sliceByIrrep(bool conja, const vector<vector<int>>& start_A, ConstTensor<BOUNDED|PGSYMMETRIC> A)
         {
             sliceByIrrep(1, conja, start_A, A, 0, vector<vector<int>>(this->getDimension(), vector<int>(this->getPointGroup().getNumIrreps())), this->getLengthsPerIrrep());
         }
 
-        template <capability_type C_>
-        void sliceByIrrep(const vector<vector<int>>& start_A, const ConstTensor<C_>& A)
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)&&IS_SUPERSET_OF(C_,BOUNDED)>>
+        void sliceByIrrep(const vector<vector<int>>& start_A, ConstTensor<BOUNDED|PGSYMMETRIC> A)
         {
             sliceByIrrep(1, false, start_A, A, 0, vector<vector<int>>(this->getDimension(), vector<int>(this->getPointGroup().getNumIrreps())), this->getLengthsPerIrrep());
         }

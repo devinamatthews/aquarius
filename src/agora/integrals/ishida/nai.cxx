@@ -1,4 +1,8 @@
-#include "nai.hpp"
+#include "frameworks/util.hpp"
+#include "frameworks/integrals.hpp"
+#include "frameworks/molecule.hpp"
+
+#include "agora/integrals/integrals.hpp"
 
 namespace aquarius
 {
@@ -10,133 +14,146 @@ namespace integrals
  *  K. Ishida, J. Chem. Phys. 95, 5198-205 (1991)
  *  Ishida, K., J. Chem. Phys., 98, 2176 (1993)
  */
-void IshidaNAI::prim(const vec3& posa, int la, double za,
-                     const vec3& posb, int lb, double zb,
-                     const vec3& posc, double charge, double* integrals)
+class IshidaNAI : public NAI
 {
-    FmGamma fm;
-
-    int vmax = la+lb;
-
-    double zp = za + zb;
-    vec3 posp = (posa*za+posb*zb)/zp;
-
-    marray<double,3> gtable(lb+1, la+1, vmax+1);
-    matrix<double> integral((lb+1)*(lb+2)/2, (la+1)*(la+2)/2, integrals);
-
-    vec3 afac = posp-posa;
-    vec3 bfac = posp-posb;
-    vec3 cfac = posp-posc;
-    double sfac = 0.5/zp;
-
-    double A0 = -charge*2*M_PI*exp(-za*zb*norm2(posa-posb)/zp)/zp;
-    double Z = norm2(posp-posc)*zp;
-
-    fm(Z, vmax, gtable[0][0].data());
-    for (int i = 0;i <= vmax;i++) gtable[0][0][i] *= A0;
-
-    // fill table with x
-    filltable(afac[0], bfac[0], cfac[0], sfac, gtable);
-
-    // loop over all possible distributions of x momenta
-    for (int bx = lb;bx >= 0;bx--)
-    {
-        for (int ax = la;ax >= 0;ax--)
+    protected:
+        void filltable(double afac, double bfac, double cfac, double sfac, marray_view<double,3>&& gtable)
         {
-            // and fill remainder with y from that point
-            filltable(afac[1], bfac[1], cfac[1], sfac, gtable[range(bx,lb+1)][range(ax,la+1)]);
+            filltable(afac, bfac, cfac, sfac, gtable);
+        }
 
-            // loop over all possible distributions of y momenta given x
-            for (int by = lb-bx;by >= 0;by--)
+        void filltable(double afac, double bfac, double cfac, double sfac, marray_view<double,3>& gtable)
+        {
+            int lb = gtable.length(0)-1;
+            int la = gtable.length(1)-1;
+            int vmax = la + lb;
+
+            if (lb > 0)
             {
-                for (int ay = la-ax;ay >= 0;ay--)
+                for (int v = 0;v < vmax;v++)
                 {
-                    int az = la-ax-ay;
-                    int bz = lb-bx-by;
+                    gtable[1][0][v] = bfac*gtable[0][0][  v] -
+                                      cfac*gtable[0][0][v+1];
+                }
+            }
 
-                    // and fill remainder with z from that point
-                    filltable(afac[2], bfac[2], cfac[2], sfac, gtable[range(bx+by,lb+1)][range(ax+ay,la+1)]);
+            if (la > 0)
+            {
+                for (int v = 0;v < vmax;v++)
+                {
+                    gtable[0][1][v] = afac*gtable[0][0][  v] -
+                                      cfac*gtable[0][0][v+1];
+                }
+            }
 
-                    integral[XYZ(bx,by,bz)][XYZ(ax,ay,az)] += gtable[lb][la][0];
+            for (int b = 1;b < lb;b++)
+            {
+                for (int v = 0;v < vmax-b;v++)
+                {
+                    gtable[b+1][0][v] =   bfac*gtable[  b][0][  v] -
+                                          cfac*gtable[  b][0][v+1] +
+                                        b*sfac*gtable[b-1][0][  v] -
+                                        b*sfac*gtable[b-1][0][v+1];
+                }
+            }
+
+            for (int a = 1;a < la;a++)
+            {
+                for (int v = 0;v < vmax-a;v++)
+                {
+                    gtable[0][a+1][v] =   afac*gtable[0][  a][  v] -
+                                          cfac*gtable[0][  a][v+1] +
+                                        a*sfac*gtable[0][a-1][  v] -
+                                        a*sfac*gtable[0][a-1][v+1];
+                }
+            }
+
+            for (int b = 1;b <= lb;b++)
+            {
+                if (la > 0)
+                {
+                    for (int v = 0;v < vmax-b;v++)
+                    {
+                        gtable[b][1][v] =   afac*gtable[  b][0][  v] -
+                                            cfac*gtable[  b][0][v+1] +
+                                          b*sfac*gtable[b-1][0][  v] -
+                                          b*sfac*gtable[b-1][0][v+1];
+                    }
+                }
+
+                for (int a = 1;a < la;a++)
+                {
+                    for (int v = 0;v < vmax-a-b;v++)
+                    {
+                        gtable[b][a+1][v] =   afac*gtable[  b][  a][  v] -
+                                              cfac*gtable[  b][  a][v+1] +
+                                            a*sfac*gtable[  b][a-1][  v] -
+                                            a*sfac*gtable[  b][a-1][v+1] +
+                                            b*sfac*gtable[b-1][  a][  v] -
+                                            b*sfac*gtable[b-1][  a][v+1];
+                    }
                 }
             }
         }
-    }
-}
 
-void IshidaNAI::filltable(double afac, double bfac, double cfac, double sfac, marray<double,3>& gtable)
-{
-    int lb = gtable.length(0)-1;
-    int la = gtable.length(1)-1;
-    int vmax = la + lb;
-
-    if (lb > 0)
-    {
-        for (int v = 0;v < vmax;v++)
+        void prim(const vec3& posa, int la, double za,
+                  const vec3& posb, int lb, double zb,
+                  const vec3& posc, double charge, double* integrals) override
         {
-            gtable[1][0][v] = bfac*gtable[0][0][  v] -
-                              cfac*gtable[0][0][v+1];
-        }
-    }
+            FmGamma fm;
 
-    if (la > 0)
-    {
-        for (int v = 0;v < vmax;v++)
-        {
-            gtable[0][1][v] = afac*gtable[0][0][  v] -
-                              cfac*gtable[0][0][v+1];
-        }
-    }
+            int vmax = la+lb;
 
-    for (int b = 1;b < lb;b++)
-    {
-        for (int v = 0;v < vmax-b;v++)
-        {
-            gtable[b+1][0][v] =   bfac*gtable[  b][0][  v] -
-                                  cfac*gtable[  b][0][v+1] +
-                                b*sfac*gtable[b-1][0][  v] -
-                                b*sfac*gtable[b-1][0][v+1];
-        }
-    }
+            double zp = za + zb;
+            vec3 posp = (posa*za+posb*zb)/zp;
 
-    for (int a = 1;a < la;a++)
-    {
-        for (int v = 0;v < vmax-a;v++)
-        {
-            gtable[0][a+1][v] =   afac*gtable[0][  a][  v] -
-                                  cfac*gtable[0][  a][v+1] +
-                                a*sfac*gtable[0][a-1][  v] -
-                                a*sfac*gtable[0][a-1][v+1];
-        }
-    }
+            marray<double,3> gtable(lb+1, la+1, vmax+1);
+            matrix_view<double> integral((lb+1)*(lb+2)/2, (la+1)*(la+2)/2, integrals);
 
-    for (int b = 1;b <= lb;b++)
-    {
-        if (la > 0)
-        {
-            for (int v = 0;v < vmax-b;v++)
+            vec3 afac = posp-posa;
+            vec3 bfac = posp-posb;
+            vec3 cfac = posp-posc;
+            double sfac = 0.5/zp;
+
+            double A0 = -charge*2*M_PI*exp(-za*zb*norm2(posa-posb)/zp)/zp;
+            double Z = norm2(posp-posc)*zp;
+
+            fm(Z, vmax, gtable[0][0].data());
+            for (int i = 0;i <= vmax;i++) gtable[0][0][i] *= A0;
+
+            // fill table with x
+            filltable(afac[0], bfac[0], cfac[0], sfac, gtable);
+
+            // loop over all possible distributions of x momenta
+            for (int bx = lb;bx >= 0;bx--)
             {
-                gtable[b][1][v] =   afac*gtable[  b][0][  v] -
-                                    cfac*gtable[  b][0][v+1] +
-                                  b*sfac*gtable[b-1][0][  v] -
-                                  b*sfac*gtable[b-1][0][v+1];
+                for (int ax = la;ax >= 0;ax--)
+                {
+                    // and fill remainder with y from that point
+                    filltable(afac[1], bfac[1], cfac[1], sfac, gtable[range(bx,lb+1)][range(ax,la+1)]);
+
+                    // loop over all possible distributions of y momenta given x
+                    for (int by = lb-bx;by >= 0;by--)
+                    {
+                        for (int ay = la-ax;ay >= 0;ay--)
+                        {
+                            int az = la-ax-ay;
+                            int bz = lb-bx-by;
+
+                            // and fill remainder with z from that point
+                            filltable(afac[2], bfac[2], cfac[2], sfac, gtable[range(bx+by,lb+1)][range(ax+ay,la+1)]);
+
+                            integral[XYZ(bx,by,bz)][XYZ(ax,ay,az)] += gtable[lb][la][0];
+                        }
+                    }
+                }
             }
         }
-
-        for (int a = 1;a < la;a++)
-        {
-            for (int v = 0;v < vmax-a-b;v++)
-            {
-                gtable[b][a+1][v] =   afac*gtable[  b][  a][  v] -
-                                      cfac*gtable[  b][  a][v+1] +
-                                    a*sfac*gtable[  b][a-1][  v] -
-                                    a*sfac*gtable[  b][a-1][v+1] +
-                                    b*sfac*gtable[b-1][  a][  v] -
-                                    b*sfac*gtable[b-1][  a][v+1];
-            }
-        }
-    }
-}
+};
 
 }
 }
+
+REGISTER_VENDOR(aquarius::integrals::Integrals,
+                aquarius::integrals::NAI,
+                aquarius::integrals::IshidaNAI);

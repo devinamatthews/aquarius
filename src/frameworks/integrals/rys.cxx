@@ -8,7 +8,7 @@ namespace integrals
 
 void Rys::operator()(double T, int n, double* restrict rt, double* restrict wt)
 {
-    Fm fm;
+    FmGamma fm;
     row<double> ssssm(2*n+1);
     fm(T, 2*n, ssssm.data());
 

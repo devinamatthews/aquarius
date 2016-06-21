@@ -9,13 +9,10 @@ Arena& arena()
     return world;
 }
 
-template <>
-tCTF_World<double>& Arena::ctf<double>()
+CTF::World& Arena::ctf()
 {
-    if (!ctfd) ctfd.set(new tCTF_World<double>(*comm_));
-    return *ctfd;
+    if (!ctf_) ctf_.set(new CTF::World(*comm_));
+    return *ctf_;
 }
 
 }
-
-#endif

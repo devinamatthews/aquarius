@@ -1,3 +1,6 @@
+#ifndef _AQUARIUS_TASKS_JELLIUM_HPP_
+#define _AQUARIUS_TASKS_JELLIUM_HPP_
+
 #include "frameworks/util.hpp"
 #include "frameworks/task.hpp"
 #include "frameworks/tensor.hpp"
@@ -28,53 +31,65 @@ class Jellium : public task::Task
         double PotVm;
 
         void writeIntegrals(bool pvirt, bool qvirt, bool rvirt, bool svirt,
-                            Tensor<PGSYMMETRIC> tensor)
+                            Tensor<SPINORBITAL> tensor)
         {
-            KeyValueVector pairs;
-            tensor.getLocalData({0,0,0,0}, pairs);
+            vector<vector<int>> all_spins;
+            if (pvirt == qvirt && rvirt == svirt)
+                all_spins = {{1,1,1,1}, {1,0,1,0}, {0,0,0,0}};
+            else if (pvirt == qvirt)
+                all_spins = {{1,1,1,1}, {1,0,1,0}, {1,0,0,1}, {0,0,0,0}};
+            else if (rvirt == svirt)
+                all_spins = {{1,1,1,1}, {1,0,1,0}, {0,1,1,0}, {0,0,0,0}};
+            else
+                all_spins = {{1,1,1,1}, {1,0,1,0}, {1,0,0,1}, {0,1,1,0}, {0,1,0,1}, {0,0,0,0}};
 
-            int np = (pvirt ? norb-nocc : nocc);
-            int nq = (qvirt ? norb-nocc : nocc);
-            int nr = (rvirt ? norb-nocc : nocc);
-            int ns = (svirt ? norb-nocc : nocc);
-
-            for (auto& pair : pairs)
+            for (auto& spins : all_spins)
             {
-                auto k = pair.k;
-                int p = k%np;
-                k /= np;
-                int q = k%nq;
-                k /= nq;
-                int r = k%nr;
-                k /= nr;
-                int s = k;
+                KeyValueVector pairs;
+                tensor.getLocalDataBySpin(spins, pairs);
 
-                if (pvirt) p += nocc;
-                if (qvirt) q += nocc;
-                if (rvirt) r += nocc;
-                if (svirt) s += nocc;
+                int np = (pvirt ? norb-nocc : nocc);
+                int nq = (qvirt ? norb-nocc : nocc);
+                int nr = (rvirt ? norb-nocc : nocc);
+                int ns = (svirt ? norb-nocc : nocc);
 
-                vec3 pr = gvecs[p]-gvecs[r];
-                vec3 sq = gvecs[s]-gvecs[q];
-
-                if (norm2(pr-sq) < 1e-12)
+                for (size_t i = 0;i < pairs.size();i++)
                 {
-                    if (p == r)
+                    auto k = pairs.key(i);
+                    int p = k%np;
+                    k /= np;
+                    int q = k%nq;
+                    k /= nq;
+                    int r = k%nr;
+                    k /= nr;
+                    int s = k;
+
+                    if (pvirt) p += nocc;
+                    if (qvirt) q += nocc;
+                    if (rvirt) r += nocc;
+                    if (svirt) s += nocc;
+
+                    vec3 pr = gvecs[p]-gvecs[r];
+                    vec3 ps = gvecs[p]-gvecs[s];
+                    vec3 qr = gvecs[q]-gvecs[r];
+                    vec3 qs = gvecs[q]-gvecs[s];
+
+                    double val = 0;
+
+                    if (spins[0] == spins[2] && norm2(pr+qs) < 1e-12)
                     {
-                        pair.d = PotVm;
+                        val += (p == r ? PotVm : 1/(M_PI*L*norm2(pr)));
                     }
-                    else
+                    if (spins[0] == spins[3] && norm2(ps+qr) < 1e-12)
                     {
-                        pair.d = 1/(M_PI*L*norm2(pr));
+                        val -= (p == s ? PotVm : 1/(M_PI*L*norm2(ps)));
                     }
+
+                    pairs.value(i, val);
                 }
-                else
-                {
-                    pair.d = 0;
-                }
+
+                tensor.setLocalDataBySpin(spins, pairs);
             }
-
-            tensor.writeRemoteData({0,0,0,0}, pairs);
         }
 
     public:
@@ -171,10 +186,9 @@ class Jellium : public task::Task
                 }
             }
 
-            Tensor<SPINORBITAL|PGSYMMETRIC> F = put<Tensor<SPINORBITAL>>("F",
-                Tensor<SPINORBITAL|PGSYMMETRIC>::construct("F",
-                SOPGInit(PointGroup::C1(), {{norb}}, {{norb}}, {1}, {1})));
-            Tensor<SPINORBITAL|PGSYMMETRIC> D = put<Tensor<SPINORBITAL>>("D", F.construct("D"));
+            Tensor<SPINORBITAL> F = put<Tensor<>>("F",
+                Tensor<SPINORBITAL>::construct("F", SOInit({norb}, {norb}, {1}, {1})));
+            Tensor<SPINORBITAL> D = put<Tensor<>>("D", F.construct("D"));
             put("energy", energy);
 
             Logger::log(arena) << "SCF energy = " << setprecision(15) << energy << endl;
@@ -182,29 +196,28 @@ class Jellium : public task::Task
             KeyValueVector dpairs, fpairs;
             for (int i = 0;i < nocc;i++)
             {
-                dpairs.push_back(i*norb+i, 1);
+                dpairs.push_back(i*norb+i, 1.0);
             }
             for (int i = 0;i < norb;i++)
             {
                 fpairs.push_back(i*norb+i, E[0][i]);
             }
 
-            D.setDataBySpinAndIrrep({1,1}, {0,0}, dpairs);
-            D.setDataBySpinAndIrrep({0,0}, {0,0}, dpairs);
-            F.setDataBySpinAndIrrep({1,1}, {0,0}, fpairs);
-            F.setDataBySpinAndIrrep({0,0}, {0,0}, fpairs);
+            D.setDataBySpin({1,1}, dpairs);
+            D.setDataBySpin({0,0}, dpairs);
+            F.setDataBySpin({1,1}, fpairs);
+            F.setDataBySpin({0,0}, fpairs);
 
-            auto& H = put("H", new TwoElectronOperator(TensorInitializer<>("H") <<
-                TensorInitializer<SPINORBITAL|PGSYMMETRIC>(PointGroup::C1(), {{nvrt},{nocc}}, {{nvrt},{nocc}})));
+            auto& H = put("H", new TwoElectronOperator("H", SOInit({nvrt,nocc}, {nvrt,nocc})));
 
             KeyValueVector abpairs, ijpairs;
             for (int i = 0;i < nocc;i++)
             {
-                ijpairs.emplace_back(i*nocc+i, E[0][i]);
+                ijpairs.push_back(i*nocc+i, E[0][i]);
             }
             for (int i = 0;i < nvrt;i++)
             {
-                abpairs.emplace_back(i*nvrt+i, E[0][i+nocc]);
+                abpairs.push_back(i*nvrt+i, E[0][i+nocc]);
             }
 
             H.getAB().setDataBySpinAndIrrep({1,1}, {0,0}, abpairs);
@@ -212,78 +225,22 @@ class Jellium : public task::Task
             H.getIJ().setDataBySpinAndIrrep({1,1}, {0,0}, ijpairs);
             H.getIJ().setDataBySpinAndIrrep({0,0}, {0,0}, ijpairs);
 
-            /*
-             * <ab||ij>
-             */
-            writeIntegrals(true, true, false, false, H.getABIJ()({1,0},{0,1}));
-            H.getABIJ()({0,0},{0,0})["abij"] = 0.5*H.getABIJ()({1,0},{0,1})["abij"];
-            H.getABIJ()({2,0},{0,2})["ABIJ"] = 0.5*H.getABIJ()({1,0},{0,1})["ABIJ"];
-
-            /*
-             * <ab||ci>
-             */
-            writeIntegrals(true, true, true, false, H.getABCI()({1,0},{1,0}));
-            H.getABCI()({0,0},{0,0})["abci"] =  H.getABCI()({1,0},{1,0})["abci"];
-            H.getABCI()({1,0},{0,1})["BacI"] = -H.getABCI()({1,0},{1,0})["aBcI"];
-            H.getABCI()({2,0},{1,1})["ABCI"] =  H.getABCI()({1,0},{1,0})["ABCI"];
-
-            /*
-             * <ai||jk>
-             */
-            writeIntegrals(true, false, false, false, H.getAIJK()({1,0},{0,1}));
-            SymmetryBlockedTensor<U> tmp(H.getAIJK()({1,0},{0,1}));
-            H.getAIJK()({0,0},{0,0})["aijk"] =  H.getAIJK()({1,0},{0,1})["aijk"];
-            H.getAIJK()({0,1},{0,1})["aIKj"] = -H.getAIJK()({1,0},{0,1})["aIjK"];
-            H.getAIJK()({1,1},{0,2})["AIJK"] =  H.getAIJK()({1,0},{0,1})["AIJK"];
-
-            /*
-             * <ij||kl>
-             */
-            writeIntegrals(false, false, false, false, H.getIJKL()({0,1},{0,1}));
-            H.getIJKL()({0,0},{0,0})["ijkl"] = 0.5*H.getIJKL()({0,1},{0,1})["ijkl"];
-            H.getIJKL()({0,2},{0,2})["IJKL"] = 0.5*H.getIJKL()({0,1},{0,1})["IJKL"];
-
-            /*
-             * <ab||cd>
-             */
-            writeIntegrals(true, true, true, true, H.getABCD()({1,0},{1,0}));
-            H.getABCD()({0,0},{0,0})["abcd"] = 0.5*H.getABCD()({1,0},{1,0})["abcd"];
-            H.getABCD()({2,0},{2,0})["ABCD"] = 0.5*H.getABCD()({1,0},{1,0})["ABCD"];
-
-            /*
-             * <ai||bj>
-             */
-            SymmetryBlockedTensor<U> aijb("aijb", arena, PointGroup::C1(), 4, {{nvrt},{nocc},{nocc},{nvrt}}, {NS,NS,NS,NS}, false);
-            writeIntegrals(true, false, true, false, H.getAIBJ()({0,1},{0,1}));
-            H.getAIBJ()({1,0},{1,0})["AiBj"] = H.getAIBJ()({0,1},{0,1})["AiBj"];
-            writeIntegrals(true, false, false, true, aijb);
-            H.getAIBJ()({1,0},{0,1})["AibJ"] = -aijb["AiJb"];
-            H.getAIBJ()({0,1},{1,0})["aIBj"] = -aijb["aIjB"];
-            H.getAIBJ()({0,0},{0,0})["aibj"] = H.getAIBJ()({1,0},{1,0})["aibj"];
-            H.getAIBJ()({1,1},{1,1})["AIBJ"] = H.getAIBJ()({1,0},{1,0})["AIBJ"];
-            H.getAIBJ()({0,0},{0,0})["aibj"] -= aijb["aijb"];
-            H.getAIBJ()({1,1},{1,1})["AIBJ"] -= aijb["AIJB"];
-
-            /*
-             * Fill in pieces which are equal by Hermicity
-             */
-            H.getIJAK()({0,2},{1,1})["JKAI"] = H.getAIJK()({1,1},{0,2})["AIJK"];
-            H.getIJAK()({0,1},{1,0})["JkAi"] = H.getAIJK()({1,0},{0,1})["AiJk"];
-            H.getIJAK()({0,1},{0,1})["JkaI"] = H.getAIJK()({0,1},{0,1})["aIJk"];
-            H.getIJAK()({0,0},{0,0})["jkai"] = H.getAIJK()({0,0},{0,0})["aijk"];
-
-            H.getAIBC()({1,1},{2,0})["AIBC"] = H.getABCI()({2,0},{1,1})["BCAI"];
-            H.getAIBC()({1,0},{1,0})["AiBc"] = H.getABCI()({1,0},{1,0})["BcAi"];
-            H.getAIBC()({0,1},{1,0})["aIBc"] = H.getABCI()({1,0},{0,1})["BcaI"];
-            H.getAIBC()({0,0},{0,0})["aibc"] = H.getABCI()({0,0},{0,0})["bcai"];
-
-            H.getIJAB()({0,2},{2,0})["IJAB"] = H.getABIJ()({2,0},{0,2})["ABIJ"];
-            H.getIJAB()({0,1},{1,0})["IjAb"] = H.getABIJ()({1,0},{0,1})["AbIj"];
-            H.getIJAB()({0,0},{0,0})["ijab"] = H.getABIJ()({0,0},{0,0})["abij"];
+            writeIntegrals( true,  true,  true,  true, H.getABCD());
+            writeIntegrals( true,  true,  true, false, H.getABCI());
+            writeIntegrals( true,  true, false, false, H.getABIJ());
+            writeIntegrals( true, false,  true,  true, H.getAIBC());
+            writeIntegrals( true, false,  true, false, H.getAIBJ());
+            writeIntegrals( true, false, false, false, H.getAIJK());
+            writeIntegrals(false, false,  true,  true, H.getIJAB());
+            writeIntegrals(false, false,  true, false, H.getIJAK());
+            writeIntegrals(false, false, false, false, H.getIJKL());
 
             return true;
         }
 };
+
+}
+}
 
 static const char* spec = R"!(
 
@@ -294,7 +251,4 @@ dimension? int 3
 
 )!";
 
-REGISTER_TASK(Jellium,"jellium",spec);
-
-}
-}
+REGISTER_TASK(aquarius::jellium::Jellium,"jellium",spec);

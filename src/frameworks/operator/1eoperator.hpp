@@ -29,14 +29,25 @@ class OneElectronOperator
         };
 
         template <capability_type C, typename=enable_if_t<IS_SUPERSET_OF(C,SPINORBITAL)>>
-        OneElectronOperator(const tensor::TensorInitializerList<C>& ilist)
-        : ab(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as<>().name+"(AB)") <<
+        OneElectronOperator(const string& name, const tensor::TensorInitializerList<C>& ilist)
+        : ab(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(name+"(AB)") <<
                                           tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {1,0}, {1,0}))),
-          ij(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as<>().name+"(AB)") <<
+          ij(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(name+"(AB)") <<
                                           tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {0,1}, {0,1}))),
-          ai(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as<>().name+"(AB)") <<
+          ai(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(name+"(AB)") <<
                                           tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {1,0}, {0,1}))),
-          ia(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as<>().name+"(AB)") <<
+          ia(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(name+"(AB)") <<
+                                          tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {0,1}, {1,0}))) {}
+
+        template <capability_type C, typename=enable_if_t<IS_SUPERSET_OF(C,SPINORBITAL)>>
+        OneElectronOperator(const tensor::TensorInitializerList<C>& ilist)
+        : ab(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as().name+"(AB)") <<
+                                          tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {1,0}, {1,0}))),
+          ij(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as().name+"(AB)") <<
+                                          tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {0,1}, {0,1}))),
+          ai(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as().name+"(AB)") <<
+                                          tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {1,0}, {0,1}))),
+          ia(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as().name+"(AB)") <<
                                           tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {0,1}, {1,0}))) {}
 
         OneElectronOperator(OneElectronOperator& other, int copy)
@@ -87,15 +98,15 @@ class OneElectronOperator
             getIA() = other.getIA();
         }
 
-        tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getAB() { return ab; }
-        tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getIJ() { return ij; }
-        tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getAI() { return ai; }
-        tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getIA() { return ia; }
+        tensor::Tensor<SPINORBITAL>& getAB() { return ab; }
+        tensor::Tensor<SPINORBITAL>& getIJ() { return ij; }
+        tensor::Tensor<SPINORBITAL>& getAI() { return ai; }
+        tensor::Tensor<SPINORBITAL>& getIA() { return ia; }
 
-        const tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getAB() const { return ab; }
-        const tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getIJ() const { return ij; }
-        const tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getAI() const { return ai; }
-        const tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getIA() const { return ia; }
+        const tensor::Tensor<SPINORBITAL>& getAB() const { return ab; }
+        const tensor::Tensor<SPINORBITAL>& getIJ() const { return ij; }
+        const tensor::Tensor<SPINORBITAL>& getAI() const { return ai; }
+        const tensor::Tensor<SPINORBITAL>& getIA() const { return ia; }
 };
 
 }

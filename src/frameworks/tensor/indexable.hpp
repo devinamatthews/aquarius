@@ -253,14 +253,12 @@ class ConstIndexedTensor
                                      factor*other.factor);
         }
 
-        template <capability_type C>
-        IndexedTensorMult operator*(const ConstTensor<C>& other) const
+        IndexedTensorMult operator*(ConstTensor<INDEXABLE> other) const
         {
-            static_assert(C&INDEXABLE, "The operand must be INDEXABLE.");
             return IndexedTensorMult(tensor,
                                      other.impl(),
                                      idx,
-                                     detail::implicit(other.impl().template as<INDEXABLE>().getDimension()),
+                                     detail::implicit(other.getDimension()),
                                      conj_,
                                      false,
                                      factor);
@@ -278,14 +276,12 @@ class ConstIndexedTensor
                                      factor*other.factor);
         }
 
-        template <capability_type C>
-        friend IndexedTensorMult operator*(const ConstTensor<C>& t1,
+        friend IndexedTensorMult operator*(ConstTensor<INDEXABLE> t1,
                                            const ConstIndexedTensor& t2)
         {
-            static_assert(C&INDEXABLE, "The operand must be INDEXABLE.");
             return IndexedTensorMult(t1.impl(),
                                     t2.tensor,
-                                    detail::implicit(t1.impl().template as<INDEXABLE>().getDimension()),
+                                    detail::implicit(t1.getDimension()),
                                     t2.idx,
                                     false,
                                     t2.conj_,
@@ -591,23 +587,23 @@ TENSOR_WRAPPER(INDEXABLE)
          *
          *********************************************************************/
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
         Tensor<C>& operator=(const IndexedTensorMult& other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
             (*this)[detail::implicit(this->getDimension())] = other;
             return *this;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
         Tensor<C>& operator+=(const IndexedTensorMult& other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
             (*this)[detail::implicit(this->getDimension())] += other;
             return *this;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
         Tensor<C>& operator-=(const IndexedTensorMult& other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
             (*this)[detail::implicit(this->getDimension())] -= other;
             return *this;
         }
@@ -618,23 +614,23 @@ TENSOR_WRAPPER(INDEXABLE)
          *
          *********************************************************************/
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
         Tensor<C>& operator=(const ConstIndexedTensor& other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
             (*this)[detail::implicit(this->getDimension())] = other;
             return *this;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
         Tensor<C>& operator+=(const ConstIndexedTensor& other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
             (*this)[detail::implicit(this->getDimension())] += other;
             return *this;
         }
 
+        template <capability_type C_=C, typename=enable_if_t<!(C_&CONST_)>>
         Tensor<C>& operator-=(const ConstIndexedTensor& other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
             (*this)[detail::implicit(this->getDimension())] -= other;
             return *this;
         }

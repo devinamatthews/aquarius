@@ -44,8 +44,6 @@ class Integrals : public agora::Marketplace<Integrals>
         }
 };
 
-REGISTER_MARKETPLACE(Integrals, "integrals");
-
 }
 }
 

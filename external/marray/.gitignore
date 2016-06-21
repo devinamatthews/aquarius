@@ -22,3 +22,4 @@ config.status
 .ptp-sync
 .ptp-sync-folder
 .settings
+.git.bak

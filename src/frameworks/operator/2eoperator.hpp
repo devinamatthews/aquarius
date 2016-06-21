@@ -39,24 +39,45 @@ class TwoElectronOperator : public OneElectronOperator
         };
 
         template <capability_type C, typename=enable_if_t<IS_SUPERSET_OF(C,SPINORBITAL)>>
-        TwoElectronOperator(const tensor::TensorInitializerList<C>& ilist)
-        : abcd(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as<>().name+"(ABCD)") <<
+        TwoElectronOperator(const string& name, const tensor::TensorInitializerList<C>& ilist)
+        : abcd(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(name+"(ABCD)") <<
                                             tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {2,0}, {2,0}))),
-          abci(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as<>().name+"(ABCI)") <<
+          abci(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(name+"(ABCI)") <<
                                             tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {2,0}, {1,1}))),
-          aibc(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as<>().name+"(AIBC)") <<
+          aibc(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(name+"(AIBC)") <<
                                             tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {1,1}, {2,0}))),
-          abij(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as<>().name+"(ABIJ)") <<
+          abij(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(name+"(ABIJ)") <<
                                             tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {2,0}, {0,2}))),
-          ijab(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as<>().name+"(IJAB)") <<
+          ijab(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(name+"(IJAB)") <<
                                             tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {0,2}, {2,0}))),
-          aibj(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as<>().name+"(AIBJ)") <<
+          aibj(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(name+"(AIBJ)") <<
                                             tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {1,1}, {1,1}))),
-          aijk(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as<>().name+"(AIJK)") <<
+          aijk(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(name+"(AIJK)") <<
                                             tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {1,1}, {0,2}))),
-          ijak(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as<>().name+"(IJAK)") <<
+          ijak(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(name+"(IJAK)") <<
                                             tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {0,2}, {1,1}))),
-          ijkl(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as<>().name+"(IJKL)") <<
+          ijkl(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(name+"(IJKL)") <<
+                                            tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {0,2}, {0,2}))) {}
+
+        template <capability_type C, typename=enable_if_t<IS_SUPERSET_OF(C,SPINORBITAL)>>
+        TwoElectronOperator(const tensor::TensorInitializerList<C>& ilist)
+        : abcd(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as().name+"(ABCD)") <<
+                                            tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {2,0}, {2,0}))),
+          abci(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as().name+"(ABCI)") <<
+                                            tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {2,0}, {1,1}))),
+          aibc(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as().name+"(AIBC)") <<
+                                            tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {1,1}, {2,0}))),
+          abij(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as().name+"(ABIJ)") <<
+                                            tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {2,0}, {0,2}))),
+          ijab(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as().name+"(IJAB)") <<
+                                            tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {0,2}, {2,0}))),
+          aibj(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as().name+"(AIBJ)") <<
+                                            tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {1,1}, {1,1}))),
+          aijk(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as().name+"(AIJK)") <<
+                                            tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {1,1}, {0,2}))),
+          ijak(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as().name+"(IJAK)") <<
+                                            tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {0,2}, {1,1}))),
+          ijkl(tensor::Tensor<C>::construct(ilist << tensor::TensorInitializer<>(ilist.as().name+"(IJKL)") <<
                                             tensor::TensorInitializer<C&(SPINORBITAL|PGSYMMETRIC)>(ilist, {0,2}, {0,2}))) {}
 
         TwoElectronOperator(TwoElectronOperator& other, int copy)
@@ -151,25 +172,25 @@ class TwoElectronOperator : public OneElectronOperator
             getIJKL() = other.getIJKL();
         }
 
-        tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getABCD() { return abcd; }
-        tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getABCI() { return abci; }
-        tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getAIBC() { return aibc; }
-        tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getABIJ() { return abij; }
-        tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getIJAB() { return ijab; }
-        tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getAIBJ() { return aibj; }
-        tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getAIJK() { return aijk; }
-        tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getIJAK() { return ijak; }
-        tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getIJKL() { return ijkl; }
+        tensor::Tensor<SPINORBITAL>& getABCD() { return abcd; }
+        tensor::Tensor<SPINORBITAL>& getABCI() { return abci; }
+        tensor::Tensor<SPINORBITAL>& getAIBC() { return aibc; }
+        tensor::Tensor<SPINORBITAL>& getABIJ() { return abij; }
+        tensor::Tensor<SPINORBITAL>& getIJAB() { return ijab; }
+        tensor::Tensor<SPINORBITAL>& getAIBJ() { return aibj; }
+        tensor::Tensor<SPINORBITAL>& getAIJK() { return aijk; }
+        tensor::Tensor<SPINORBITAL>& getIJAK() { return ijak; }
+        tensor::Tensor<SPINORBITAL>& getIJKL() { return ijkl; }
 
-        const tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getABCD() const { return abcd; }
-        const tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getABCI() const { return abci; }
-        const tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getAIBC() const { return aibc; }
-        const tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getABIJ() const { return abij; }
-        const tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getIJAB() const { return ijab; }
-        const tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getAIBJ() const { return aibj; }
-        const tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getAIJK() const { return aijk; }
-        const tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getIJAK() const { return ijak; }
-        const tensor::Tensor<SPINORBITAL|PGSYMMETRIC>& getIJKL() const { return ijkl; }
+        const tensor::Tensor<SPINORBITAL>& getABCD() const { return abcd; }
+        const tensor::Tensor<SPINORBITAL>& getABCI() const { return abci; }
+        const tensor::Tensor<SPINORBITAL>& getAIBC() const { return aibc; }
+        const tensor::Tensor<SPINORBITAL>& getABIJ() const { return abij; }
+        const tensor::Tensor<SPINORBITAL>& getIJAB() const { return ijab; }
+        const tensor::Tensor<SPINORBITAL>& getAIBJ() const { return aibj; }
+        const tensor::Tensor<SPINORBITAL>& getAIJK() const { return aijk; }
+        const tensor::Tensor<SPINORBITAL>& getIJAK() const { return ijak; }
+        const tensor::Tensor<SPINORBITAL>& getIJKL() const { return ijkl; }
 };
 
 }

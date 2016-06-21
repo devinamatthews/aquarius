@@ -102,6 +102,13 @@ class Config
         template<typename T>
         void emit(ostream& os, vector<T>& x) const;
 
+        bool matchesWithGlobs(const char* str, const char* pat) const;
+
+        template<typename T>
+        void find(Node& node, const string& name, const string& pattern, vector<pair<string,T>>& v) const;
+
+    public:
+
         template<typename T>
         class Parser
         {
@@ -116,13 +123,6 @@ class Config
             public:
                 static T extract(Node& node, int which = 0);
         };
-
-        bool matchesWithGlobs(const char* str, const char* pat) const;
-
-        template<typename T>
-        void find(Node& node, const string& name, const string& pattern, vector<pair<string,T>>& v) const;
-
-    public:
 
         Config() : root(new Node()) {}
 

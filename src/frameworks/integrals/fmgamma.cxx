@@ -38,7 +38,7 @@ double FmGamma::direct(double T, int m)
 {
     constexpr double epsilon = numeric_limits<double>::epsilon();
 
-    const double ap = m + 0.5;
+    double ap = m + 0.5;
 
     assert(T >= 0.0);
     if (T < 1e-13)

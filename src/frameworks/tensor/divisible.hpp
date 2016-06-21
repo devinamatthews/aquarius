@@ -164,11 +164,9 @@ TENSOR_INTERFACE(DIVISIBLE)
                             const Scalar& beta) = 0;
 };
 
-template <capability_type C_>
-InvertedTensor operator/(const Scalar& factor, const ConstTensor<C_>& other)
+InvertedTensor operator/(const Scalar& factor, ConstTensor<DIVISIBLE> other)
 {
-    static_assert(!ARE_DISTINCT(C_,DIVISIBLE), "The operand must be DIVISIBLE.");
-    return InvertedTensor(other, factor);
+    return InvertedTensor(other.impl(), factor);
 }
 
 TENSOR_WRAPPER(DIVISIBLE)
@@ -181,9 +179,8 @@ TENSOR_WRAPPER(DIVISIBLE)
          *********************************************************************/
 
         template <capability_type C_>
-        TensorDiv operator/(const ConstTensor<C_>& other) const
+        TensorDiv operator/(ConstTensor<DIVISIBLE> other) const
         {
-            static_assert(!ARE_DISTINCT(C_,DIVISIBLE), "The operands must be DIVISIBLE.");
             return TensorDiv(this->impl(), other.impl(), 1);
         }
 
@@ -193,25 +190,25 @@ TENSOR_WRAPPER(DIVISIBLE)
          *
          *********************************************************************/
 
+        template <capability_type C_=C, enable_if_t<!(C_&CONST_)>>
         Tensor<C>& operator=(const TensorDiv& other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
             this->template impl<DIVISIBLE>().div(other.factor, other.conja, other.A,
                                                                other.conjb, other.B, 0);
             return *this;
         }
 
+        template <capability_type C_=C, enable_if_t<!(C_&CONST_)>>
         Tensor<C>& operator+=(const TensorDiv& other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
             this->template impl<DIVISIBLE>().div(other.factor, other.conja, other.A,
                                                                other.conjb, other.B, 1);
             return *this;
         }
 
+        template <capability_type C_=C, enable_if_t<!(C_&CONST_)>>
         Tensor<C>& operator-=(const TensorDiv& other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
             this->template impl<DIVISIBLE>().div(-other.factor, other.conja, other.A,
                                                                 other.conjb, other.B, 1);
             return *this;
@@ -223,48 +220,46 @@ TENSOR_WRAPPER(DIVISIBLE)
          *
          *********************************************************************/
 
-        template <capability_type C_>
-        Tensor<C>& operator/=(const ConstTensor<C_>& other)
+        template <capability_type C_=C, enable_if_t<!(C_&CONST_)>>
+        Tensor<C>& operator/=(ConstTensor<DIVISIBLE> other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
-            static_assert(!ARE_DISTINCT(C_,DIVISIBLE), "The operands must be DIVISIBLE.");
             this->template impl<DIVISIBLE>().div(1, false, this->impl(),
                                                     false, other.impl(), 0);
             return *this;
         }
 
+        template <capability_type C_=C, enable_if_t<!(C_&CONST_)>>
         Tensor<C>& operator=(const InvertedTensor& other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
             this->template impl<DIVISIBLE>().invert(other.factor, other.conj_, other.tensor, 0);
             return *this;
         }
 
+        template <capability_type C_=C, enable_if_t<!(C_&CONST_)>>
         Tensor<C>& operator+=(const InvertedTensor& other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
             this->template impl<DIVISIBLE>().invert(other.factor, other.conj_, other.tensor, 1);
             return *this;
         }
 
+        template <capability_type C_=C, enable_if_t<!(C_&CONST_)>>
         Tensor<C>& operator-=(const InvertedTensor& other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
             this->template impl<DIVISIBLE>().invert(-other.factor, other.conj_, other.tensor, 0);
             return *this;
         }
 
+        template <capability_type C_=C, enable_if_t<!(C_&CONST_)>>
         Tensor<C>& operator*=(const InvertedTensor& other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
             this->template impl<DIVISIBLE>().div(other.factor,       false, this->impl(),
                                                                other.conj_, other.tensor, 0);
             return *this;
         }
 
+        template <capability_type C_=C, enable_if_t<!(C_&CONST_)>>
         Tensor<C>& operator/=(const InvertedTensor& other)
         {
-            static_assert(!(C&CONST_), "The LHS must not be const.");
             this->template impl<DIVISIBLE>().mult(1/other.factor,      false, this->impl(),
                                                         other.conj_, other.tensor, 0);
             return *this;
