@@ -1,0 +1,21 @@
+#ifndef _MPIWRAP_HPP_
+#define _MPIWRAP_HPP_
+
+#define MPIWRAP_CXX11 @HAVE_CXX11@
+#define MPIWRAP_HAVE_MPI_COUNT @HAVE_MPI_COUNT@
+#define MPIWRAP_HAVE_MPI_WIN @HAVE_MPI_WIN@
+#define MPIWRAP_HAVE_MPI_ICOLLECTIVES @HAVE_MPI_ICOLLECTIVES@
+#define MPIWRAP_HAVE_MPI_MESSAGE @HAVE_MPI_MESSAGE@
+#define MPIWRAP_HAVE_MPI_TYPE_CREATE_HINDEXED_BLOCK @HAVE_MPI_TYPE_CREATE_HINDEXED_BLOCK@
+
+#include "internal/mpiwrap_common.hpp"
+#include "internal/mpiwrap_datatype.hpp"
+#include "internal/mpiwrap_status.hpp"
+#include "internal/mpiwrap_request.hpp"
+#include "internal/mpiwrap_comm.hpp"
+#include "internal/mpiwrap_intracomm.hpp"
+#include "internal/mpiwrap_intercomm.hpp"
+#include "internal/mpiwrap_window.hpp"
+#include "internal/mpiwrap_message.hpp"
+
+#endif

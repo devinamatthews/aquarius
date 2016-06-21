@@ -5,42 +5,20 @@
 #define _CONFIG_H_
 
 
-/* Define to dummy `main' function (if any) required to link to the Fortran
-   libraries. */
-#undef F77_DUMMY_MAIN
-
-/* Type of FORTRAN name-mangling. */
-#undef F77_NAME
-
-/* Define if F77 and FC dummy `main' functions are identical. */
-#undef FC_DUMMY_MAIN_EQ_F77
-
-/* Define if you have a BLAS library. */
-#undef HAVE_BLAS
-
-/* Define if CTF is to be used. */
-#undef HAVE_CTF
-
 /* define if the compiler supports basic C++11 syntax */
 #undef HAVE_CXX11
 
-/* Define if Elemental is to be used. */
-#undef HAVE_ELEMENTAL
+/* Define if GTest is to be used. */
+#undef HAVE_GTEST
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define if you have LAPACK library. */
-#undef HAVE_LAPACK
-
-/* Define if libint2 is to be used. */
-#undef HAVE_LIBINT2
+/* Define to 1 if you have the `' library (-l). */
+#undef HAVE_LIB
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
-
-/* Define if you have the MPI library. */
-#undef HAVE_MPI
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -62,12 +40,6 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
-
-/* FORTRAN name-mangling scheme. */
-#undef LOWER_NO_UNDERSCORE
-
-/* FORTRAN name-mangling scheme. */
-#undef LOWER_UNDERSCORE
 
 /* Name of package */
 #undef PACKAGE
@@ -93,31 +65,8 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
-/* The top source directory. */
-#undef TOPDIR
-
-/* FORTRAN name-mangling scheme. */
-#undef UPPER_NO_UNDERSCORE
-
-/* FORTRAN name-mangling scheme. */
-#undef UPPER_UNDERSCORE
-
 /* Version number of package */
 #undef VERSION
-
-/* Define to the equivalent of the C99 'restrict' keyword, or to
-   nothing if this is not supported.  Do not define if restrict is
-   supported directly.  */
-#undef restrict
-/* Work around a bug in Sun C++: it does not support _Restrict or
-   __restrict__, even though the corresponding Sun C compiler ends up with
-   "#define restrict _Restrict" or "#define restrict __restrict__" in the
-   previous line.  Perhaps some future version of Sun C++ will work with
-   restrict; if so, hopefully it defines __RESTRICT like Sun C does.  */
-#if defined __SUNPRO_CC && !defined __RESTRICT
-# define _Restrict
-# define __restrict__
-#endif
 
 
 #ifndef DEBUG

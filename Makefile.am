@@ -112,7 +112,12 @@ __top_builddir__bin_aquarius_SOURCES = \
 
 VPATH += $(srcdir)
 
-AM_CPPFLAGS = -I$(srcdir)/src @ctf_INCLUDES@ @marray_INCLUDES@ @mpiwrap_INCLUDES@ @lawrap_INCLUDES@ @stlext_INCLUDES@
+marray_INCLUDES = -I$(srcdir)/external/marray/include
+mpiwrap_INCLUDES = -Iexternal/mpiwrap/include
+lawrap_INCLUDES = -I$(srcdir)/external/lawrap
+stlext_INCLUDES = -I$(srcdir)/external/stl_ext/include
+
+AM_CPPFLAGS = -I$(srcdir)/src @ctf_INCLUDES@ $(marray_INCLUDES) $(mpiwrap_INCLUDES) $(lawrap_INCLUDES) $(stlext_INCLUDES)
 __top_builddir__bin_aquarius_LDADD = @ctf_LIBS@
 	
 if HAVE_ELEMENTAL

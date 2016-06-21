@@ -6,7 +6,6 @@
 *~
 *.so
 .deps
-external
 bin
 a.out.dSYM
 Makefile

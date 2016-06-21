@@ -410,8 +410,6 @@ htmldir = @htmldir@
 includedir = @includedir@
 infodir = @infodir@
 install_sh = @install_sh@
-lawrap_INCLUDES = @lawrap_INCLUDES@
-lawrap_LIBS = @lawrap_LIBS@
 libdir = @libdir@
 libexecdir = @libexecdir@
 libint2_INCLUDES = @libint2_INCLUDES@
@@ -419,11 +417,7 @@ libint2_LIBS = @libint2_LIBS@
 localedir = @localedir@
 localstatedir = @localstatedir@
 mandir = @mandir@
-marray_INCLUDES = @marray_INCLUDES@
-marray_LIBS = @marray_LIBS@
 mkdir_p = @mkdir_p@
-mpiwrap_INCLUDES = @mpiwrap_INCLUDES@
-mpiwrap_LIBS = @mpiwrap_LIBS@
 oldincludedir = @oldincludedir@
 pdfdir = @pdfdir@
 prefix = @prefix@
@@ -432,8 +426,7 @@ psdir = @psdir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
-stlext_INCLUDES = @stlext_INCLUDES@
-stlext_LIBS = @stlext_LIBS@
+subdirs = @subdirs@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
@@ -484,8 +477,12 @@ __top_builddir__bin_aquarius_SOURCES = src/autocc/autocc.cxx \
 	src/tensor/ctf_tensor.cxx src/tensor/spinorbital_tensor.cxx \
 	src/tensor/symblocked_tensor.cxx src/time/time.cxx \
 	src/util/distributed.cxx $(am__append_3) $(am__append_6)
-AM_CPPFLAGS = -I$(srcdir)/src @ctf_INCLUDES@ @marray_INCLUDES@ \
-	@mpiwrap_INCLUDES@ @lawrap_INCLUDES@ @stlext_INCLUDES@ \
+marray_INCLUDES = -I$(srcdir)/external/marray/include
+mpiwrap_INCLUDES = -Iexternal/mpiwrap/include
+lawrap_INCLUDES = -I$(srcdir)/external/lawrap
+stlext_INCLUDES = -I$(srcdir)/external/stl_ext/include
+AM_CPPFLAGS = -I$(srcdir)/src @ctf_INCLUDES@ $(marray_INCLUDES) \
+	$(mpiwrap_INCLUDES) $(lawrap_INCLUDES) $(stlext_INCLUDES) \
 	$(am__append_1) $(am__append_4)
 __top_builddir__bin_aquarius_LDADD = @ctf_LIBS@ $(am__append_2) \
 	$(am__append_5) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)

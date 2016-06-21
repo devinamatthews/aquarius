@@ -277,7 +277,7 @@ Task& TaskDAG::addTask(const Arena& arena, const string& type, const string& con
     {
         string u = config.get<string>("using");
         Config c = config.get("using");
-        usings.emplace_back(tasks.back().getName(), u, c);
+        usings.emplace_back(name, u, c);
         config.remove("using");
     }
 
@@ -287,7 +287,7 @@ Task& TaskDAG::addTask(const Arena& arena, const string& type, const string& con
             Logger::error(arena) << "More than one task with name " << name << endl;
     }
 
-    cout << "Adding task " << name << endl;
+    //cout << "Adding task " << name << endl;
 
     auto task = Task::createTask(type, name, config);
     Task& t1 = *task;
