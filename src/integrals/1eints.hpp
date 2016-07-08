@@ -169,12 +169,15 @@ class OneElectronIntegralsTask : public task::Task
             int block = 0;
             int chunk_size = ((((shells.size()+1)*shells.size()/2)+arena.size-1)/arena.size);
             CTF_Timer tmr_run("tmr_runint");
+            CTF_Timer tmr_prc("tmr_prcint");
+            double max_shell_time = 0.0;
             for (int a = 0;a < shells.size();++a)
             {
                 for (int b = 0;b <= a;++b)
                 {
                     if (block/chunk_size == arena.rank || block/chunk_size > arena.rank && arena.rank == arena.size-1)
                     {
+                        double st_time = MPI_Wtime();
                         OVIType s(shells[a], shells[b]);
                         KEIType t(shells[a], shells[b]);
                         NAIType g(shells[a], shells[b], centers);
@@ -185,6 +188,7 @@ class OneElectronIntegralsTask : public task::Task
                         g.run();
                         tmr_run.stop();
 
+                        tmr_prc.start();
                         size_t nint = s.getIntegrals().size();
                         vector<double> ints(nint);
                         vector<idx2_t> idxs(nint);
@@ -228,12 +232,21 @@ class OneElectronIntegralsTask : public task::Task
                                         nai_pairs[irr].push_back(tkv_pair<double>(i*N[irr]+j, ints[k]));
                             if (i != j) nai_pairs[irr].push_back(tkv_pair<double>(j*N[irr]+i, ints[k]));
                         }
+                        tmr_prc.stop();
+                        max_shell_time = std::max(max_shell_time,MPI_Wtime()-st_time);
                     }
 
                     block++;
                 }
             }
+            CTF_Timer tallr("allrint");
+            tallr.start();
+            MPI_Allreduce(MPI_IN_PLACE, &max_shell_time, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+            if (arena.rank == 0) printf("max shell time = %lf num shell pairs is %d\n",max_shell_time,((shells.size()+1)*shells.size()/2));
+            tallr.stop();
 
+            CTF_Timer tend("endint");
+            tend.start();
             OVI *ovi = new OVI(arena, molecule.getGroup(), N);
             KEI *kei = new KEI(arena, molecule.getGroup(), N);
             NAI *nai = new NAI(arena, molecule.getGroup(), N);
@@ -254,6 +267,7 @@ class OneElectronIntegralsTask : public task::Task
             put("G", nai);
             put("H", oeh);
 
+            tend.stop();
             ep.end();
             return true;
         }
