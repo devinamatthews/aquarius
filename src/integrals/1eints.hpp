@@ -141,6 +141,8 @@ class OneElectronIntegralsTask : public task::Task
 
         bool run(task::TaskDAG& dag, const Arena& arena)
         {
+            CTF_Timer_epoch ep("OneElectronIntegrals");
+            ep.begin();
             const input::Molecule& molecule = get<input::Molecule>("molecule");
 
             Context ctx(Context::ISCF);
@@ -165,19 +167,23 @@ class OneElectronIntegralsTask : public task::Task
             }
 
             int block = 0;
+            int chunk_size = ((((shells.size()+1)*shells.size()/2)+arena.size-1)/arena.size);
+            CTF_Timer tmr_run("tmr_runint");
             for (int a = 0;a < shells.size();++a)
             {
                 for (int b = 0;b <= a;++b)
                 {
-                    if (block%arena.size == arena.rank)
+                    if (block/chunk_size == arena.rank || block/chunk_size > arena.rank && arena.rank == arena.size-1)
                     {
                         OVIType s(shells[a], shells[b]);
                         KEIType t(shells[a], shells[b]);
                         NAIType g(shells[a], shells[b], centers);
 
+                        tmr_run.start();
                         s.run();
                         t.run();
                         g.run();
+                        tmr_run.stop();
 
                         size_t nint = s.getIntegrals().size();
                         vector<double> ints(nint);
@@ -248,6 +254,7 @@ class OneElectronIntegralsTask : public task::Task
             put("G", nai);
             put("H", oeh);
 
+            ep.end();
             return true;
         }
 };

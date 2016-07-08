@@ -130,6 +130,8 @@ class TwoElectronIntegralsTask : public task::Task
 
         bool run(task::TaskDAG& dag, const Arena& arena)
         {
+            CTF_Timer_epoch ep("TwoElectronIntegrals");
+            ep.begin();
             const auto& molecule = get<input::Molecule>("molecule");
 
             ERI* eri = new ERI(arena, molecule.getGroup());
@@ -145,6 +147,8 @@ class TwoElectronIntegralsTask : public task::Task
             vector<vector<int>> idx = Shell::setupIndices(Context(), molecule);
             vector<Shell> shells(molecule.getShellsBegin(), molecule.getShellsEnd());
 
+            CTF_Timer tmr("twoei_main_loop");
+            tmr.start();
             int abcd = 0;
             for (int a = 0;a < shells.size();++a)
             {
@@ -174,6 +178,7 @@ class TwoElectronIntegralsTask : public task::Task
                     }
                 }
             }
+            tmr.stop();
 
             //TODO: load balance
 
@@ -191,6 +196,7 @@ class TwoElectronIntegralsTask : public task::Task
             }
 
             put("I", eri);
+            ep.end();
 
             return true;
         }
