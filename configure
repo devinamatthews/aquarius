@@ -3580,7 +3580,7 @@ ac_compiler_gnu=$ac_cv_f77_compiler_gnu
     # We do not use AC_SEARCH_LIBS here, as it caches its outcome and
     # thus disallows corresponding calls in the other AX_PROG_*_MPI
     # macros.
-    for lib in NONE fmpi fmpich; do
+    for lib in NONE mpifort fmpi fmpich; do
       save_LIBS=$LIBS
       if test x"$lib" = xNONE; then
         { $as_echo "$as_me:${as_lineno-$LINENO}: checking for function MPI_INIT" >&5
