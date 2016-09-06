@@ -457,6 +457,7 @@ void CFOURGradient::writeZMAT()
     ofs << "SCF_EXPORDER=" << config.get<int>("scf.diis.order") << endl;
     ofs << "SCF_MAXCYC=" << config.get<int>("scf.max_iterations") << endl;
     ofs << "FROZEN_CORE=" << (config.get<bool>("scf.frozen_core") ? "ON" : "OFF") << endl;
+    ofs << "PRINT=10" << endl;
     ofs << "SYM=OFF" << endl;
     ofs << "REF=UHF" << endl;
     ofs << "DERIV_LEV=1" << endl;
@@ -856,25 +857,37 @@ void CFOURGradient::writeDensity()
 
     if (arena.rank == 0) ofs.open("CCDENSITIES");
 
-    if (arena.rank == 0) ofs << " G(IJ,KL)" << endl;
-    writeDensity(ofs, D.getIJKL()({0,2},{0,2})({0,0,0,0}), 0, 0, 0, 0, false, false);
+    {
+        CTFTensor<double> G(D.getIJKL()({0,2},{0,2})({0,0,0,0}));
+        0.5*G["pqrs"] += 0.5*D.getIJKL()({0,2},{0,2})({0,0,0,0})["rspq"];
+        if (arena.rank == 0) ofs << " G(IJ,KL)" << endl;
+        writeDensity(ofs, G, 0, 0, 0, 0, false, false);
+    }
 
-    if (arena.rank == 0) ofs << " G(ij,kl)" << endl;
-    writeDensity(ofs, D.getIJKL()({0,0},{0,0})({0,0,0,0}), 0, 0, 0, 0, false, false);
+    {
+        CTFTensor<double> G(D.getIJKL()({0,0},{0,0})({0,0,0,0}));
+        0.5*G["pqrs"] += 0.5*D.getIJKL()({0,0},{0,0})({0,0,0,0})["rspq"];
+        if (arena.rank == 0) ofs << " G(ij,kl)" << endl;
+        writeDensity(ofs, G, 0, 0, 0, 0, false, false);
+    }
 
-    if (arena.rank == 0) ofs << " G(Ij,Kl)" << endl;
-    writeDensity(ofs, D.getIJKL()({0,1},{0,1})({0,0,0,0}), 0, 0, 0, 0, false, false);
+    {
+        CTFTensor<double> G(D.getIJKL()({0,1},{0,1})({0,0,0,0}));
+        0.5*G["pqrs"] += 0.5*D.getIJKL()({0,1},{0,1})({0,0,0,0})["rspq"];
+        if (arena.rank == 0) ofs << " G(Ij,Kl)" << endl;
+        writeDensity(ofs, G, 0, 0, 0, 0, false, false);
+    }
 
     {
         CTFTensor<double> G(D.getIJAK()({0,2},{1,1})({0,0,0,0}));
-        0.5*G["pqrs"] += 0.5*D.getAIJK()({1,1},{0,2})({0,0,0,0})["rspq"];
+        -0.5*G["pqrs"] += -0.5*D.getAIJK()({1,1},{0,2})({0,0,0,0})["rspq"];
         if (arena.rank == 0) ofs << " G(IJ,KA)" << endl;
         writeDensity(ofs, G, 0, 0, na, 0, true, true);
     }
 
     {
         CTFTensor<double> G(D.getIJAK()({0,0},{0,0})({0,0,0,0}));
-        0.5*G["pqrs"] += 0.5*D.getAIJK()({0,0},{0,0})({0,0,0,0})["rspq"];
+        -0.5*G["pqrs"] += -0.5*D.getAIJK()({0,0},{0,0})({0,0,0,0})["rspq"];
         if (arena.rank == 0) ofs << " G(ij,ka)" << endl;
         writeDensity(ofs, G, 0, 0, nb, 0, true, true);
     }
@@ -914,23 +927,47 @@ void CFOURGradient::writeDensity()
         writeDensity(ofs, G, na, nb, 0, 0, false, false);
     }
 
-    if (arena.rank == 0) ofs << " G(AI,BJ)" << endl;
-    writeDensity(ofs, D.getAIBJ()({1,1},{1,1})({0,0,0,0}), na, 0, na, 0, false, false);
+    {
+        CTFTensor<double> G(D.getAIBJ()({1,1},{1,1})({0,0,0,0}));
+        0.5*G["pqrs"] += 0.5*D.getAIBJ()({1,1},{1,1})({0,0,0,0})["rspq"];
+        if (arena.rank == 0) ofs << " G(AI,BJ)" << endl;
+        writeDensity(ofs, G, na, 0, na, 0, false, false);
+    }
 
-    if (arena.rank == 0) ofs << " G(ai,bj)" << endl;
-    writeDensity(ofs, D.getAIBJ()({0,0},{0,0})({0,0,0,0}), nb, 0, nb, 0, false, false);
+    {
+        CTFTensor<double> G(D.getAIBJ()({0,0},{0,0})({0,0,0,0}));
+        0.5*G["pqrs"] += 0.5*D.getAIBJ()({0,0},{0,0})({0,0,0,0})["rspq"];
+        if (arena.rank == 0) ofs << " G(ai,bj)" << endl;
+        writeDensity(ofs, G, nb, 0, nb, 0, false, false);
+    }
 
-    if (arena.rank == 0) ofs << " G(Ai,Bj)" << endl;
-    writeDensity(ofs, D.getAIBJ()({1,0},{1,0})({0,0,0,0}), na, 0, na, 0, false, false);
+    {
+        CTFTensor<double> G(D.getAIBJ()({1,0},{1,0})({0,0,0,0}));
+        0.5*G["pqrs"] += 0.5*D.getAIBJ()({1,0},{1,0})({0,0,0,0})["rspq"];
+        if (arena.rank == 0) ofs << " G(Ai,Bj)" << endl;
+        writeDensity(ofs, G, na, 0, na, 0, false, false);
+    }
 
-    if (arena.rank == 0) ofs << " G(aI,bJ)" << endl;
-    writeDensity(ofs, D.getAIBJ()({0,1},{0,1})({0,0,0,0}), nb, 0, nb, 0, false, false);
+    {
+        CTFTensor<double> G(D.getAIBJ()({0,1},{0,1})({0,0,0,0}));
+        0.5*G["pqrs"] += 0.5*D.getAIBJ()({0,1},{0,1})({0,0,0,0})["rspq"];
+        if (arena.rank == 0) ofs << " G(aI,bJ)" << endl;
+        writeDensity(ofs, G, nb, 0, nb, 0, false, false);
+    }
 
-    if (arena.rank == 0) ofs << " G(Aj,Ib)" << endl;
-    writeDensity(ofs, D.getAIBJ()({1,0},{0,1})({0,0,0,0}), na, 0, nb, 0, false, true);
+    {
+        CTFTensor<double> G(D.getAIBJ()({1,0},{0,1})({0,0,0,0}));
+        0.5*G["pqrs"] += 0.5*D.getAIBJ()({0,1},{1,0})({0,0,0,0})["rspq"];
+        if (arena.rank == 0) ofs << " G(Aj,Ib)" << endl;
+        writeDensity(ofs, G, na, 0, nb, 0, false, true);
+    }
 
-    if (arena.rank == 0) ofs << " G(aJ,iB)" << endl;
-    writeDensity(ofs, D.getAIBJ()({0,1},{1,0})({0,0,0,0}), nb, 0, na, 0, false, true);
+    {
+        CTFTensor<double> G(D.getAIBJ()({0,1},{1,0})({0,0,0,0}));
+        0.5*G["pqrs"] += 0.5*D.getAIBJ()({1,0},{0,1})({0,0,0,0})["rspq"];
+        if (arena.rank == 0) ofs << " G(aJ,iB)" << endl;
+        writeDensity(ofs, G, nb, 0, na, 0, false, true);
+    }
 
     {
         CTFTensor<double> G(D.getABCI()({2,0},{1,1})({0,0,0,0}));
@@ -960,20 +997,40 @@ void CFOURGradient::writeDensity()
         writeDensity(ofs, G, na, nb, na, 0, false, false);
     }
 
-    if (arena.rank == 0) ofs << " G(AB,CD)" << endl;
-    writeDensity(ofs, D.getABCD()({2,0},{2,0})({0,0,0,0}), na, na, na, na, false, false);
+    {
+        CTFTensor<double> G(D.getABCD()({2,0},{2,0})({0,0,0,0}));
+        0.5*G["pqrs"] += 0.5*D.getABCD()({2,0},{2,0})({0,0,0,0})["rspq"];
+        if (arena.rank == 0) ofs << " G(AB,CD)" << endl;
+        writeDensity(ofs, G, na, na, na, na, false, false);
+    }
 
-    if (arena.rank == 0) ofs << " G(ab,cd)" << endl;
-    writeDensity(ofs, D.getABCD()({0,0},{0,0})({0,0,0,0}), nb, nb, nb, nb, false, false);
+    {
+        CTFTensor<double> G(D.getABCD()({0,0},{0,0})({0,0,0,0}));
+        0.5*G["pqrs"] += 0.5*D.getABCD()({0,0},{0,0})({0,0,0,0})["rspq"];
+        if (arena.rank == 0) ofs << " G(ab,cd)" << endl;
+        writeDensity(ofs, G, nb, nb, nb, nb, false, false);
+    }
 
-    if (arena.rank == 0) ofs << " G(Ab,Cd)" << endl;
-    writeDensity(ofs, D.getABCD()({1,0},{1,0})({0,0,0,0}), na, nb, na, nb, false, false);
+    {
+        CTFTensor<double> G(D.getABCD()({1,0},{1,0})({0,0,0,0}));
+        0.5*G["pqrs"] += 0.5*D.getABCD()({1,0},{1,0})({0,0,0,0})["rspq"];
+        if (arena.rank == 0) ofs << " G(Ab,Cd)" << endl;
+        writeDensity(ofs, G, na, nb, na, nb, false, false);
+    }
 
-    if (arena.rank == 0) ofs << " D(I,J)  " << endl;
-    writeDensity(ofs, D.getIJ()({0,1},{0,1})({0,0}), 0, 0);
+    {
+        CTFTensor<double> G(D.getIJ()({0,1},{0,1})({0,0}));
+        0.5*G["pq"] += 0.5*D.getIJ()({0,1},{0,1})({0,0})["qp"];
+        if (arena.rank == 0) ofs << " D(I,J)  " << endl;
+        writeDensity(ofs, G, 0, 0);
+    }
 
-    if (arena.rank == 0) ofs << " D(A,B)  " << endl;
-    writeDensity(ofs, D.getAB()({1,0},{1,0})({0,0}), na, na);
+    {
+        CTFTensor<double> G(D.getAB()({1,0},{1,0})({0,0}));
+        0.5*G["pq"] += 0.5*D.getAB()({1,0},{1,0})({0,0})["qp"];
+        if (arena.rank == 0) ofs << " D(A,B)  " << endl;
+        writeDensity(ofs, G, na, na);
+    }
 
     {
         CTFTensor<double> G(D.getAI()({1,0},{0,1})({0,0}));
@@ -982,11 +1039,19 @@ void CFOURGradient::writeDensity()
         writeDensity(ofs, G, na, 0);
     }
 
-    if (arena.rank == 0) ofs << " D(i,j)  " << endl;
-    writeDensity(ofs, D.getIJ()({0,0},{0,0})({0,0}), 0, 0);
+    {
+        CTFTensor<double> G(D.getIJ()({0,0},{0,0})({0,0}));
+        0.5*G["pq"] += 0.5*D.getIJ()({0,0},{0,0})({0,0})["qp"];
+        if (arena.rank == 0) ofs << " D(i,j)  " << endl;
+        writeDensity(ofs, G, 0, 0);
+    }
 
-    if (arena.rank == 0) ofs << " D(a,b)  " << endl;
-    writeDensity(ofs, D.getAB()({0,0},{0,0})({0,0}), nb, nb);
+    {
+        CTFTensor<double> G(D.getAB()({0,0},{0,0})({0,0}));
+        0.5*G["pq"] += 0.5*D.getAB()({0,0},{0,0})({0,0})["qp"];
+        if (arena.rank == 0) ofs << " D(a,b)  " << endl;
+        writeDensity(ofs, G, nb, nb);
+    }
 
     {
         CTFTensor<double> G(D.getAI()({0,0},{0,0})({0,0}));
