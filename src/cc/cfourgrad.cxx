@@ -450,6 +450,7 @@ void CFOURGradient::writeZMAT()
     ofs << endl;
     ofs << "*CFOUR(BASIS=SPECIAL" << endl;
     ofs << "CALC=CCSD" << endl;
+    ofs << "FCGRADNEW=NEW" << endl;
     ofs << "CC_PROG=MRCC" << endl;
     ofs << "SCF_CONV=" << lround(-log10(config.get<double>("scf.convergence"))) << endl;
     ofs << "SCF_DAMPING=" << lround(config.get<double>("scf.diis.damping")*1000) << endl;

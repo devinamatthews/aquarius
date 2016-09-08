@@ -26,9 +26,6 @@ AC_LANG([C++])
 AC_C_RESTRICT
 AC_OPENMP
 
-CPPFLAGS="$CPPFLAGS $OPENMP_CXXFLAGS"
-LDFLAGS="$LDFLAGS $OPENMP_CXXFLAGS"
-
 AX_BLAS([], [AC_MSG_FAILURE([Could not find BLAS library.])])
 AX_LAPACK([], [AC_MSG_FAILURE([Could not find LAPACK library.])])
 
@@ -45,6 +42,9 @@ AS_IF([test $sgemm = sgemm], [AC_DEFINE([F77_NAME], [LOWER_NO_UNDERSCORE], [Type
 AS_IF([test $sgemm = sgemm_], [AC_DEFINE([F77_NAME], [LOWER_UNDERSCORE], [Type of FORTRAN name-mangling.])])
 AS_IF([test $sgemm = SGEMM], [AC_DEFINE([F77_NAME], [UPPER_NO_UNDERSCORE], [Type of FORTRAN name-mangling.])])
 AS_IF([test $sgemm = SGEMM_], [AC_DEFINE([F77_NAME], [UPPER_UNDERSCORE], [Type of FORTRAN name-mangling.])])
+
+CPPFLAGS="$CPPFLAGS $OPENMP_CXXFLAGS"
+LDFLAGS="$LDFLAGS $OPENMP_CXXFLAGS"
 
 #
 # Configure CTF

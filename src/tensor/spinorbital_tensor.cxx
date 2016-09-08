@@ -132,8 +132,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const SpinorbitalTen
 : IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T >(name, 0, 0),
   Distributed(t.arena), group(t.group), spin(0)
 {
-    cases.push_back(SpinCase());
-    cases.back().construct(*this, group.totallySymmetricIrrep(), vector<int>(), vector<int>());
+    cases.emplace_back(*this, group.totallySymmetricIrrep(), vector<int>{}, vector<int>{});
     *cases.back().tensor = val;
     register_scalar();
 }
@@ -148,6 +147,31 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& other)
     for (int i = 0;i < tensors.size();i++)
     {
         cases[i].tensor = tensors[i].tensor;
+    }
+    register_scalar();
+}
+
+template<class T>
+SpinorbitalTensor<T>::SpinorbitalTensor(transpose_t t, const SpinorbitalTensor<T>& other)
+: IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T >(other.name, other.ndim, 0),
+  Distributed(other.arena), group(other.group), spaces(other.spaces),
+  nout(other.nin), nin(other.nout), spin(-other.spin), cases()
+{
+    for (int i = 0;i < other.tensors.size();i++)
+    {
+        if (other.tensors[i].ref != -1)
+        {
+            this->addTensor(other.tensors[i].ref);
+        }
+        else
+        {
+            this->addTensor(other.tensors[i].tensor, false);
+        }
+
+        cases.emplace_back(this->tensors[i].tensor,
+                           other.cases[i].alpha_in,
+                           other.cases[i].alpha_out,
+                           true);
     }
     register_scalar();
 }
@@ -227,8 +251,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const Arena& arena,
 
                 if (ok)
                 {
-                    cases.push_back(SpinCase());
-                    cases.back().construct(*this, group.totallySymmetricIrrep(), alpha_out, alpha_in);
+                    cases.emplace_back(*this, group.totallySymmetricIrrep(), alpha_out, alpha_in);
                 }
 
                 for (int i = 0;i < alphain;i++)
@@ -333,8 +356,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const Arena& arena,
 
                 if (ok)
                 {
-                    cases.push_back(SpinCase());
-                    cases.back().construct(*this, rep, alpha_out, alpha_in);
+                    cases.emplace_back(*this, rep, alpha_out, alpha_in);
                 }
 
                 for (int i = 0;i < alphain;i++)
@@ -384,16 +406,14 @@ SpinorbitalTensor<T>::~SpinorbitalTensor()
 }
 
 template<class T>
-void SpinorbitalTensor<T>::SpinCase::construct(SpinorbitalTensor<T>& t,
-                                               const Representation& rep,
-                                               const vector<int>& alpha_out,
-                                               const vector<int>& alpha_in)
+SpinorbitalTensor<T>::SpinCase::SpinCase(SpinorbitalTensor<T>& t,
+                                         const Representation& rep,
+                                         const vector<int>& alpha_out,
+                                         const vector<int>& alpha_in)
+: alpha_out(alpha_out), alpha_in(alpha_in), transposed(false)
 {
     vector<vector<int>> len(t.ndim);
     vector<int> sym(t.ndim, AS);
-
-    this->alpha_out = alpha_out;
-    this->alpha_in = alpha_in;
 
     int i = 0;
 
@@ -432,6 +452,13 @@ void SpinorbitalTensor<T>::SpinCase::construct(SpinorbitalTensor<T>& t,
 }
 
 template<class T>
+SpinorbitalTensor<T>::SpinCase::SpinCase(SymmetryBlockedTensor<T>* tensor,
+                                         const vector<int>& alpha_out,
+                                         const vector<int>& alpha_in,
+                                         bool transposed)
+: tensor(tensor), alpha_out(alpha_out), alpha_in(alpha_in), transposed(transposed) {}
+
+template<class T>
 SymmetryBlockedTensor<T>& SpinorbitalTensor<T>::operator()(const vector<int>& alpha_out,
                                                            const vector<int>& alpha_in)
 {
@@ -466,9 +493,9 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
 
     vector<T> beta(cases.size(), beta_);
 
-    for (int sc = 0;sc < cases.size();sc++)
+    for (int scc = 0;scc < cases.size();scc++)
     {
-        SpinCase& scC = cases[sc];
+        SpinCase& scC = cases[scc];
 
         int nouttot_C = aquarius::sum(nout);
 
@@ -729,38 +756,6 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
             for (vector<Line>::iterator i =  in_B.begin();i !=  in_B.end();++i)
                 if (i->isAlpha()) alpha_in_B[i->getType()]++;
 
-            vector<int> idx_A_(A.ndim);
-            {
-                int i = 0;
-                for (int j = 0;j < out_A.size();j++,i++)
-                    idx_A_[i] = out_A[j].asInt();
-                for (int j = 0;j < in_A.size();j++,i++)
-                    idx_A_[i] = in_A[j].asInt();
-            }
-
-            vector<int> idx_B_(B.ndim);
-            {
-                int i = 0;
-                for (int j = 0;j < out_B.size();j++,i++)
-                    idx_B_[i] = out_B[j].asInt();
-                for (int j = 0;j < in_B.size();j++,i++)
-                    idx_B_[i] = in_B[j].asInt();
-            }
-
-            vector<int> idx_C_(this->ndim);
-            {
-                int i = 0;
-                for (int j = 0;j < out_C.size();j++,i++)
-                    idx_C_[i] = out_C[j].asInt();
-                for (int j = 0;j < in_C.size();j++,i++)
-                    idx_C_[i] = in_C[j].asInt();
-            }
-
-            string idx_A__, idx_B__, idx_C__;
-            conv_idx(idx_A_, idx_A__,
-                     idx_B_, idx_B__,
-                     idx_C_, idx_C__);
-
             int spin_A = (2*aquarius::sum(alpha_out_A)-out_A.size()) -
                          (2*aquarius::sum( alpha_in_A)- in_A.size());
             int spin_B = (2*aquarius::sum(alpha_out_B)-out_B.size()) -
@@ -768,12 +763,92 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
 
             if (spin_A != A.spin || spin_B != B.spin) continue;
 
-            const SymmetryBlockedTensor<T>& tensor_A = A(alpha_out_A, alpha_in_A);
-            const SymmetryBlockedTensor<T>& tensor_B = B(alpha_out_B, alpha_in_B);
+            auto sca = A.cases.begin();
+            for (;sca != A.cases.end();++sca)
+            {
+                if (sca->alpha_out == alpha_out_A &&
+                    sca->alpha_in  == alpha_in_A) break;
+            }
+            if (sca == A.cases.end()) throw logic_error("spin case not found");
+
+            auto scb = B.cases.begin();
+            for (;scb != B.cases.end();++scb)
+            {
+                if (scb->alpha_out == alpha_out_B &&
+                    scb->alpha_in  == alpha_in_B) break;
+            }
+            if (scb == B.cases.end()) throw logic_error("spin case not found");
+
+            const SpinCase& scA = *sca;
+            const SpinCase& scB = *scb;
+            const SymmetryBlockedTensor<T>& tensor_A = *scA.tensor;
+            const SymmetryBlockedTensor<T>& tensor_B = *scB.tensor;
+
+            vector<int> idx_A_(A.ndim);
+            {
+                int i = 0;
+                if (scA.transposed)
+                {
+                    for (int j = 0;j < in_A.size();j++,i++)
+                        idx_A_[i] = in_A[j].asInt();
+                    for (int j = 0;j < out_A.size();j++,i++)
+                        idx_A_[i] = out_A[j].asInt();
+                }
+                else
+                {
+                    for (int j = 0;j < out_A.size();j++,i++)
+                        idx_A_[i] = out_A[j].asInt();
+                    for (int j = 0;j < in_A.size();j++,i++)
+                        idx_A_[i] = in_A[j].asInt();
+                }
+            }
+
+            vector<int> idx_B_(B.ndim);
+            {
+                int i = 0;
+                if (scB.transposed)
+                {
+                    for (int j = 0;j < in_B.size();j++,i++)
+                        idx_B_[i] = in_B[j].asInt();
+                    for (int j = 0;j < out_B.size();j++,i++)
+                        idx_B_[i] = out_B[j].asInt();
+                }
+                else
+                {
+                    for (int j = 0;j < out_B.size();j++,i++)
+                        idx_B_[i] = out_B[j].asInt();
+                    for (int j = 0;j < in_B.size();j++,i++)
+                        idx_B_[i] = in_B[j].asInt();
+                }
+            }
+
+            vector<int> idx_C_(this->ndim);
+            {
+                int i = 0;
+                if (scC.transposed)
+                {
+                    for (int j = 0;j < in_C.size();j++,i++)
+                        idx_C_[i] = in_C[j].asInt();
+                    for (int j = 0;j < out_C.size();j++,i++)
+                        idx_C_[i] = out_C[j].asInt();
+                }
+                else
+                {
+                    for (int j = 0;j < out_C.size();j++,i++)
+                        idx_C_[i] = out_C[j].asInt();
+                    for (int j = 0;j < in_C.size();j++,i++)
+                        idx_C_[i] = in_C[j].asInt();
+                }
+            }
+
+            string idx_A__, idx_B__, idx_C__;
+            conv_idx(idx_A_, idx_A__,
+                     idx_B_, idx_B__,
+                     idx_C_, idx_C__);
 
             if (0)
             {
-                cout << alpha << " " << beta[sc] << " " << *t << endl;
+                cout << alpha << " " << beta[scc] << " " << *t << endl;
                 cout <<    tensor_A.getSymmetry() << " " <<   alpha_out_A << " " <<   alpha_in_A << endl;
                 cout <<    tensor_B.getSymmetry() << " " <<   alpha_out_B << " " <<   alpha_in_B << endl;
                 cout << scC.tensor->getSymmetry() << " " << scC.alpha_out << " " << scC.alpha_in << endl;
@@ -782,9 +857,9 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
 
             scC.tensor->mult(alpha*diagFactor, conja, tensor_A, idx_A__,
                                                conjb, tensor_B, idx_B__,
-                                     beta[sc],                  idx_C__);
+                                     beta[scc],                  idx_C__);
 
-            beta[sc] = 1.0;
+            beta[scc] = 1.0;
         }
     }
 }
@@ -983,22 +1058,53 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
             for (vector<Line>::iterator i =  in_A.begin();i !=  in_A.end();++i)
                 if (i->isAlpha()) alpha_in_A[i->getType()]++;
 
+            auto sca = A.cases.begin();
+            for (;sca != A.cases.end();++sca)
+            {
+                if (sca->alpha_out == alpha_out_A &&
+                    sca->alpha_in  == alpha_in_A) break;
+            }
+            if (sca == A.cases.end()) throw logic_error("spin case not found");
+
+            const SpinCase& scA = *sca;
+            const SymmetryBlockedTensor<T>& tensor_A = *scA.tensor;
+
             vector<int> idx_A_(A.ndim);
             {
                 int i = 0;
-                for (int j = 0;j < out_A.size();j++,i++)
-                    idx_A_[i] = out_A[j].asInt();
-                for (int j = 0;j < in_A.size();j++,i++)
-                    idx_A_[i] = in_A[j].asInt();
+                if (scA.transposed)
+                {
+                    for (int j = 0;j < in_A.size();j++,i++)
+                        idx_A_[i] = in_A[j].asInt();
+                    for (int j = 0;j < out_A.size();j++,i++)
+                        idx_A_[i] = out_A[j].asInt();
+                }
+                else
+                {
+                    for (int j = 0;j < out_A.size();j++,i++)
+                        idx_A_[i] = out_A[j].asInt();
+                    for (int j = 0;j < in_A.size();j++,i++)
+                        idx_A_[i] = in_A[j].asInt();
+                }
             }
 
             vector<int> idx_B_(this->ndim);
             {
                 int i = 0;
-                for (int j = 0;j < out_B.size();j++,i++)
-                    idx_B_[i] = out_B[j].asInt();
-                for (int j = 0;j < in_B.size();j++,i++)
-                    idx_B_[i] = in_B[j].asInt();
+                if (scB.transposed)
+                {
+                    for (int j = 0;j < in_B.size();j++,i++)
+                        idx_B_[i] = in_B[j].asInt();
+                    for (int j = 0;j < out_B.size();j++,i++)
+                        idx_B_[i] = out_B[j].asInt();
+                }
+                else
+                {
+                    for (int j = 0;j < out_B.size();j++,i++)
+                        idx_B_[i] = out_B[j].asInt();
+                    for (int j = 0;j < in_B.size();j++,i++)
+                        idx_B_[i] = in_B[j].asInt();
+                }
             }
 
             string idx_A__, idx_B__;
@@ -1006,8 +1112,6 @@ void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTenso
                      idx_B_, idx_B__);
 
             //cout << alpha << " " << beta[sc] << " " << *t << endl;
-
-            const SymmetryBlockedTensor<T>& tensor_A = A(alpha_out_A, alpha_in_A);
 
             scB.tensor->sum(alpha*diagFactor, conja, tensor_A, idx_A__,
                                     beta[sc],                  idx_B__);
@@ -1044,15 +1148,31 @@ void SpinorbitalTensor<T>::weight(const vector<const vector<vector<T>>*>& da,
     for (typename vector<SpinCase>::iterator sc = cases.begin();sc != cases.end();++sc)
     {
         int i = 0;
-        for (int s = 0;s < spaces.size();s++)
+        if (sc->transposed)
         {
-            for (int a = 0;a <         sc->alpha_out[s];a++,i++) d[i] = da[s];
-            for (int b = 0;b < nout[s]-sc->alpha_out[s];b++,i++) d[i] = db[s];
+            for (int s = 0;s < spaces.size();s++)
+            {
+                for (int a = 0;a <        sc->alpha_in[s];a++,i++) d[i] = da[s];
+                for (int b = 0;b < nin[s]-sc->alpha_in[s];b++,i++) d[i] = db[s];
+            }
+            for (int s = 0;s < spaces.size();s++)
+            {
+                for (int a = 0;a <         sc->alpha_out[s];a++,i++) d[i] = da[s];
+                for (int b = 0;b < nout[s]-sc->alpha_out[s];b++,i++) d[i] = db[s];
+            }
         }
-        for (int s = 0;s < spaces.size();s++)
+        else
         {
-            for (int a = 0;a <        sc->alpha_in[s];a++,i++) d[i] = da[s];
-            for (int b = 0;b < nin[s]-sc->alpha_in[s];b++,i++) d[i] = db[s];
+            for (int s = 0;s < spaces.size();s++)
+            {
+                for (int a = 0;a <         sc->alpha_out[s];a++,i++) d[i] = da[s];
+                for (int b = 0;b < nout[s]-sc->alpha_out[s];b++,i++) d[i] = db[s];
+            }
+            for (int s = 0;s < spaces.size();s++)
+            {
+                for (int a = 0;a <        sc->alpha_in[s];a++,i++) d[i] = da[s];
+                for (int b = 0;b < nin[s]-sc->alpha_in[s];b++,i++) d[i] = db[s];
+            }
         }
 
         sc->tensor->weight(d, shift);

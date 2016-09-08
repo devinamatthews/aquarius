@@ -20,9 +20,10 @@ LambdaCCSDT_Q<U>::LambdaCCSDT_Q(const string& name, Config& config)
     reqs.push_back(Requirement("moints", "H"));
     reqs.push_back(Requirement("ccsdt.Hbar", "Hbar"));
     reqs.push_back(Requirement("ccsdt.T", "T"));
+    reqs.push_back(Requirement("ccsdt(q).S", "S"));
     this->addProduct(Product("double", "energy", reqs));
     this->addProduct(Product("double", "convergence", reqs));
-    this->addProduct(Product("ccsdt.L", "L", reqs));
+    this->addProduct(Product("ccsdt(q).L", "L", reqs));
 }
 
 template <typename U>
@@ -49,52 +50,8 @@ bool LambdaCCSDT_Q<U>::run(TaskDAG& dag, const Arena& arena)
     this->puttmp("GIJAK", new SpinorbitalTensor   <U  >("G(ij,ak)", H.getIJAK()));
 
     auto& T = this->template get   <ExcitationOperator  <U,3>>("T");
-    auto& Q = this->template gettmp<ExcitationOperator  <U,3>>("Q");
     auto& L = this->template get   <DeexcitationOperator<U,3>>("L");
     auto& Z = this->template gettmp<DeexcitationOperator<U,3>>("Z");
-    auto& D = this->template gettmp<Denominator         <U  >>("D");
-
-    const SpinorbitalTensor<U>& VABIJ = H.getABIJ();
-    const SpinorbitalTensor<U>& VAMEF = H.getAIBC();
-    const SpinorbitalTensor<U>& VABEJ = H.getABCI();
-    const SpinorbitalTensor<U>& VABEF = H.getABCD();
-    const SpinorbitalTensor<U>& VMNIJ = H.getIJKL();
-    const SpinorbitalTensor<U>& VMNEJ = H.getIJAK();
-    const SpinorbitalTensor<U>& VAMIJ = H.getAIJK();
-    const SpinorbitalTensor<U>& VAMEI = H.getAIBJ();
-
-    SpinorbitalTensor<U> WABCEJK("W(abc,ejk)", arena, group, {vrt,occ}, {3,0}, {1,2});
-    SpinorbitalTensor<U> WABMIJK("W(abm,ijk)", arena, group, {vrt,occ}, {2,1}, {0,3});
-
-    SpinorbitalTensor<U> T4("T4", arena, group, {vrt,occ}, {4,0}, {0,4});
-    SpinorbitalTensor<U> Z4("L4", arena, group, {vrt,occ}, {4,0}, {0,4});
-
-    WABCEJK[  "abcejk"]  = 0.5*VABEF[  "abef"]*T(2)[  "fcjk"];
-
-    WABMIJK[  "abmijk"]  =     VAMEI[  "amek"]*T(2)[  "ebij"];
-    WABMIJK[  "abmijk"] -= 0.5*VMNIJ[  "nmjk"]*T(2)[  "abin"];
-
-         T4["abcdijkl"]  =     VABEJ[  "abej"]*T(3)["ecdikl"];
-         T4["abcdijkl"] -=     VAMIJ[  "amij"]*T(3)["bcdmkl"];
-
-         Z4 = T4;
-
-         //T4["abcdijkl"] +=   WABCEJK["abcejk"]*T(2)[  "edil"];
-         //T4["abcdijkl"] -=   WABMIJK["abmijk"]*T(2)[  "cdml"];
-
-         //Z4["abcdijkl"] +=     VABIJ[  "abij"]*T(2)[  "cdkl"];
-
-    T4.weight({&D.getDA(), &D.getDI()}, {&D.getDa(), &D.getDi()});
-
-    U E = (1.0/576.0)*scalar(Z4*T4);
-
-    this->log(arena) << printos("energy: %18.15f\n", E) << endl;
-
-    Q(1) = 0;
-    Q(2) = 0;
-
-    Q(3)["abcijk"]  = T4["abefijkm"]*VAMEF["cmef"];
-    Q(3)["abcijk"] -= T4["abceijmn"]*VMNEJ["nmek"];
 
     Z(0) = 0;
     L(0) = 1;
@@ -132,6 +89,7 @@ void LambdaCCSDT_Q<U>::iterate(const Arena& arena)
     auto& L = this->template get   <DeexcitationOperator<U,3>>("L");
     auto& D = this->template gettmp<Denominator         <U  >>("D");
     auto& Z = this->template gettmp<DeexcitationOperator<U,3>>("Z");
+    auto& S = this->template get   <DeexcitationOperator<U,3>>("S");
 
     auto&   DIJ = this->template gettmp<SpinorbitalTensor<U>>(  "DIJ");
     auto&   DAB = this->template gettmp<SpinorbitalTensor<U>>(  "DAB");
@@ -241,10 +199,7 @@ void LambdaCCSDT_Q<U>::iterate(const Arena& arena)
     /*
      **************************************************************************/
 
-    Z(1)[    "ia"] += Q(1)[    "ai"];
-    Z(2)[  "ijab"] += Q(2)[  "abij"];
-    Z(3)["ijkabc"] += Q(3)["abcijk"];
-
+    Z += S;
     Z.weight(D);
     L += Z;
 

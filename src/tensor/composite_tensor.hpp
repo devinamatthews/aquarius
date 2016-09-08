@@ -86,20 +86,20 @@ class CompositeTensor : public Tensor<Derived,T>
 
         Base& addTensor(Base* new_tensor, bool isAlloced=true)
         {
-            tensors.push_back(TensorRef(new_tensor, isAlloced));
+            tensors.emplace_back(new_tensor, isAlloced);
             return *new_tensor;
         }
 
         Base& addTensor(Base& new_tensor, bool isAlloced=false)
         {
-            tensors.push_back(TensorRef(&new_tensor, isAlloced));
+            tensors.emplace_back(&new_tensor, isAlloced);
             return new_tensor;
         }
 
         Base& addTensor(int ref)
         {
-            assert(ref >= -1 && ref < tensors.size());
-            tensors.push_back(TensorRef(tensors[ref].tensor, false, ref));
+            assert(ref >= 0 && ref < tensors.size());
+            tensors.emplace_back(tensors[ref].tensor, false, ref);
             return *tensors[ref].tensor;
         }
 

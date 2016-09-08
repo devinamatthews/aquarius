@@ -5606,9 +5606,6 @@ $as_echo "$ac_cv_prog_cxx_openmp" >&6; }
 
 
 
-CPPFLAGS="$CPPFLAGS $OPENMP_CXXFLAGS"
-LDFLAGS="$LDFLAGS $OPENMP_CXXFLAGS"
-
 # Make sure we can run config.sub.
 $SHELL "$ac_aux_dir/config.sub" sun4 >/dev/null 2>&1 ||
   as_fn_error $? "cannot run $SHELL $ac_aux_dir/config.sub" "$LINENO" 5
@@ -7855,6 +7852,9 @@ if test $sgemm = SGEMM_; then :
 $as_echo "#define F77_NAME UPPER_UNDERSCORE" >>confdefs.h
 
 fi
+
+CPPFLAGS="$CPPFLAGS $OPENMP_CXXFLAGS"
+LDFLAGS="$LDFLAGS $OPENMP_CXXFLAGS"
 
 #
 # Configure CTF

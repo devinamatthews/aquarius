@@ -21,10 +21,17 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,S
 {
     INHERIT_FROM_INDEXABLE_COMPOSITE_TENSOR(SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T)
 
+    protected:
+        struct transpose_t {};
+
     public:
+        static constexpr transpose_t transpose{};
+
         SpinorbitalTensor(const string& name, const SpinorbitalTensor<T>& t, const T val);
 
         SpinorbitalTensor(const SpinorbitalTensor<T>& other);
+
+        SpinorbitalTensor(transpose_t t, const SpinorbitalTensor<T>& other);
 
         SpinorbitalTensor(const string& name, const SpinorbitalTensor<T>& other);
 
@@ -78,13 +85,19 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,S
     protected:
         struct SpinCase
         {
-            SymmetryBlockedTensor<T> *tensor;
+            SymmetryBlockedTensor<T>* tensor;
             vector<int> alpha_out, alpha_in;
+            bool transposed;
 
-            void construct(SpinorbitalTensor<T>& t,
-                           const symmetry::Representation& rep,
-                           const vector<int>& alpha_out,
-                           const vector<int>& alpha_in);
+            SpinCase(SpinorbitalTensor<T>& t,
+                     const symmetry::Representation& rep,
+                     const vector<int>& alpha_out,
+                     const vector<int>& alpha_in);
+
+            SpinCase(SymmetryBlockedTensor<T>* tensor,
+                     const vector<int>& alpha_out,
+                     const vector<int>& alpha_in,
+                     bool transposed=false);
         };
 
         const symmetry::PointGroup& group;

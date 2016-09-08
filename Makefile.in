@@ -127,23 +127,23 @@ am____top_builddir__bin_aquarius_SOURCES_DIST = src/autocc/autocc.cxx \
 	src/autocc/line.cxx src/autocc/operator.cxx \
 	src/autocc/term.cxx src/cc/1edensity.cxx src/cc/2edensity.cxx \
 	src/cc/ccd.cxx src/cc/ccsd_density.cxx \
-	src/cc/ccsdt_density.cxx src/cc/ccsdtq_density.cxx \
-	src/cc/ccsdtq_1a_density.cxx src/cc/ccsdtq_1b_density.cxx \
-	src/cc/ccsdtq_3_density.cxx src/cc/cc4_density.cxx \
-	src/cc/ccsd_t.cxx src/cc/ccsd_t_l.cxx src/cc/ccsd_t_n_opt.cxx \
-	src/cc/ccsd_t_n.cxx src/cc/e_ccsd_t_n.cxx \
-	src/cc/ccsd_tq_n_opt.cxx src/cc/ccsd_tq_n.cxx src/cc/ccsd.cxx \
-	src/cc/ccsdipgf.cxx src/cc/ccsdtipgf.cxx src/cc/ccsdt_q.cxx \
-	src/cc/ccsdt_q_l.cxx src/cc/ccsdt_q_n_opt.cxx \
-	src/cc/ccsdt_q_n.cxx src/cc/ccsdt.cxx src/cc/ccsdtq.cxx \
-	src/cc/ccsdtq_1a.cxx src/cc/ccsdtq_1b.cxx src/cc/ccsdtq_3.cxx \
-	src/cc/cc4.cxx src/cc/cfourgrad.cxx src/cc/eomeeccsd.cxx \
-	src/cc/eomeeccsdt.cxx src/cc/lambdaccsd.cxx \
-	src/cc/lambdaccsdt.cxx src/cc/lambdaccsdt_q.cxx \
-	src/cc/lambdaccsdtq.cxx src/cc/lambdaccsdtq_1a.cxx \
-	src/cc/lambdaccsdtq_1b.cxx src/cc/lambdaccsdtq_3.cxx \
-	src/cc/lambdacc4.cxx src/cc/lccd.cxx src/cc/mp3.cxx \
-	src/cc/mp4dq.cxx src/cc/perturbedccsd.cxx \
+	src/cc/ccsdt_density.cxx src/cc/ccsdt_q_density.cxx \
+	src/cc/ccsdtq_density.cxx src/cc/ccsdtq_1a_density.cxx \
+	src/cc/ccsdtq_1b_density.cxx src/cc/ccsdtq_3_density.cxx \
+	src/cc/cc4_density.cxx src/cc/ccsd_t.cxx src/cc/ccsd_t_l.cxx \
+	src/cc/ccsd_t_n_opt.cxx src/cc/ccsd_t_n.cxx \
+	src/cc/e_ccsd_t_n.cxx src/cc/ccsd_tq_n_opt.cxx \
+	src/cc/ccsd_tq_n.cxx src/cc/ccsd.cxx src/cc/ccsdipgf.cxx \
+	src/cc/ccsdtipgf.cxx src/cc/ccsdt_q.cxx src/cc/ccsdt_q_l.cxx \
+	src/cc/ccsdt_q_n_opt.cxx src/cc/ccsdt_q_n.cxx src/cc/ccsdt.cxx \
+	src/cc/ccsdtq.cxx src/cc/ccsdtq_1a.cxx src/cc/ccsdtq_1b.cxx \
+	src/cc/ccsdtq_3.cxx src/cc/cc4.cxx src/cc/cfourgrad.cxx \
+	src/cc/eomeeccsd.cxx src/cc/eomeeccsdt.cxx \
+	src/cc/lambdaccsd.cxx src/cc/lambdaccsdt.cxx \
+	src/cc/lambdaccsdt_q.cxx src/cc/lambdaccsdtq.cxx \
+	src/cc/lambdaccsdtq_1a.cxx src/cc/lambdaccsdtq_1b.cxx \
+	src/cc/lambdaccsdtq_3.cxx src/cc/lambdacc4.cxx src/cc/lccd.cxx \
+	src/cc/mp3.cxx src/cc/mp4dq.cxx src/cc/perturbedccsd.cxx \
 	src/cc/perturbedlambdaccsd.cxx src/cc/piccsd.cxx \
 	src/cc/rhfccsd.cxx src/cc/tda_local.cxx \
 	src/cc/rhftda_local.cxx src/cc/rhfeomeeccsd.cxx \
@@ -181,6 +181,7 @@ am___top_builddir__bin_aquarius_OBJECTS = src/autocc/autocc.$(OBJEXT) \
 	src/autocc/term.$(OBJEXT) src/cc/1edensity.$(OBJEXT) \
 	src/cc/2edensity.$(OBJEXT) src/cc/ccd.$(OBJEXT) \
 	src/cc/ccsd_density.$(OBJEXT) src/cc/ccsdt_density.$(OBJEXT) \
+	src/cc/ccsdt_q_density.$(OBJEXT) \
 	src/cc/ccsdtq_density.$(OBJEXT) \
 	src/cc/ccsdtq_1a_density.$(OBJEXT) \
 	src/cc/ccsdtq_1b_density.$(OBJEXT) \
@@ -440,23 +441,23 @@ __top_builddir__bin_aquarius_SOURCES = src/autocc/autocc.cxx \
 	src/autocc/line.cxx src/autocc/operator.cxx \
 	src/autocc/term.cxx src/cc/1edensity.cxx src/cc/2edensity.cxx \
 	src/cc/ccd.cxx src/cc/ccsd_density.cxx \
-	src/cc/ccsdt_density.cxx src/cc/ccsdtq_density.cxx \
-	src/cc/ccsdtq_1a_density.cxx src/cc/ccsdtq_1b_density.cxx \
-	src/cc/ccsdtq_3_density.cxx src/cc/cc4_density.cxx \
-	src/cc/ccsd_t.cxx src/cc/ccsd_t_l.cxx src/cc/ccsd_t_n_opt.cxx \
-	src/cc/ccsd_t_n.cxx src/cc/e_ccsd_t_n.cxx \
-	src/cc/ccsd_tq_n_opt.cxx src/cc/ccsd_tq_n.cxx src/cc/ccsd.cxx \
-	src/cc/ccsdipgf.cxx src/cc/ccsdtipgf.cxx src/cc/ccsdt_q.cxx \
-	src/cc/ccsdt_q_l.cxx src/cc/ccsdt_q_n_opt.cxx \
-	src/cc/ccsdt_q_n.cxx src/cc/ccsdt.cxx src/cc/ccsdtq.cxx \
-	src/cc/ccsdtq_1a.cxx src/cc/ccsdtq_1b.cxx src/cc/ccsdtq_3.cxx \
-	src/cc/cc4.cxx src/cc/cfourgrad.cxx src/cc/eomeeccsd.cxx \
-	src/cc/eomeeccsdt.cxx src/cc/lambdaccsd.cxx \
-	src/cc/lambdaccsdt.cxx src/cc/lambdaccsdt_q.cxx \
-	src/cc/lambdaccsdtq.cxx src/cc/lambdaccsdtq_1a.cxx \
-	src/cc/lambdaccsdtq_1b.cxx src/cc/lambdaccsdtq_3.cxx \
-	src/cc/lambdacc4.cxx src/cc/lccd.cxx src/cc/mp3.cxx \
-	src/cc/mp4dq.cxx src/cc/perturbedccsd.cxx \
+	src/cc/ccsdt_density.cxx src/cc/ccsdt_q_density.cxx \
+	src/cc/ccsdtq_density.cxx src/cc/ccsdtq_1a_density.cxx \
+	src/cc/ccsdtq_1b_density.cxx src/cc/ccsdtq_3_density.cxx \
+	src/cc/cc4_density.cxx src/cc/ccsd_t.cxx src/cc/ccsd_t_l.cxx \
+	src/cc/ccsd_t_n_opt.cxx src/cc/ccsd_t_n.cxx \
+	src/cc/e_ccsd_t_n.cxx src/cc/ccsd_tq_n_opt.cxx \
+	src/cc/ccsd_tq_n.cxx src/cc/ccsd.cxx src/cc/ccsdipgf.cxx \
+	src/cc/ccsdtipgf.cxx src/cc/ccsdt_q.cxx src/cc/ccsdt_q_l.cxx \
+	src/cc/ccsdt_q_n_opt.cxx src/cc/ccsdt_q_n.cxx src/cc/ccsdt.cxx \
+	src/cc/ccsdtq.cxx src/cc/ccsdtq_1a.cxx src/cc/ccsdtq_1b.cxx \
+	src/cc/ccsdtq_3.cxx src/cc/cc4.cxx src/cc/cfourgrad.cxx \
+	src/cc/eomeeccsd.cxx src/cc/eomeeccsdt.cxx \
+	src/cc/lambdaccsd.cxx src/cc/lambdaccsdt.cxx \
+	src/cc/lambdaccsdt_q.cxx src/cc/lambdaccsdtq.cxx \
+	src/cc/lambdaccsdtq_1a.cxx src/cc/lambdaccsdtq_1b.cxx \
+	src/cc/lambdaccsdtq_3.cxx src/cc/lambdacc4.cxx src/cc/lccd.cxx \
+	src/cc/mp3.cxx src/cc/mp4dq.cxx src/cc/perturbedccsd.cxx \
 	src/cc/perturbedlambdaccsd.cxx src/cc/piccsd.cxx \
 	src/cc/rhfccsd.cxx src/cc/tda_local.cxx \
 	src/cc/rhftda_local.cxx src/cc/rhfeomeeccsd.cxx \
@@ -620,6 +621,8 @@ src/cc/ccd.$(OBJEXT): src/cc/$(am__dirstamp) \
 src/cc/ccsd_density.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/ccsdt_density.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/ccsdt_q_density.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/ccsdtq_density.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
@@ -916,6 +919,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdt_density.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdt_q.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdt_q_density.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdt_q_l.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdt_q_n.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccsdt_q_n_opt.Po@am__quote@

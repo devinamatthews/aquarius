@@ -14,6 +14,7 @@ __top_builddir__bin_aquarius_SOURCES = \
 	src/cc/ccd.cxx \
 	src/cc/ccsd_density.cxx \
 	src/cc/ccsdt_density.cxx \
+	src/cc/ccsdt_q_density.cxx \
 	src/cc/ccsdtq_density.cxx \
 	src/cc/ccsdtq_1a_density.cxx \
 	src/cc/ccsdtq_1b_density.cxx \
