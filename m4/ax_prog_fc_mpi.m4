@@ -93,7 +93,7 @@ AS_IF([test x"$_ax_prog_fc_mpi_mpi_wanted" = xno],
     # We do not use AC_SEARCH_LIBS here, as it caches its outcome and
     # thus disallows corresponding calls in the other AX_PROG_*_MPI
     # macros.
-    for lib in NONE mpichf90 fmpi fmpich; do
+    for lib in NONE mpifort mpichf90 fmpi fmpich; do
       save_LIBS=$LIBS
       if test x"$lib" = xNONE; then
         AC_MSG_CHECKING([for function MPI_INIT])
