@@ -1,0 +1,30 @@
+section "(s,r)-1,2-dibromo-1,2-dichloroethane"
+{
+    section full
+    {
+        molecule
+        {
+            include chclbrchclbr.aq,
+            subgroup full
+        },
+        checksym { group Ci }
+    },
+    section Ci
+    {
+        molecule
+        {
+            include chclbrchclbr.aq,
+            subgroup Ci
+        },
+        checksym { group Ci }
+    },
+    section C1
+    {
+        molecule
+        {
+            include chclbrchclbr.aq,
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}

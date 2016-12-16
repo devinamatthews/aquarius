@@ -1,0 +1,12 @@
+#section ???
+#{
+#    section full
+#    {
+#        molecule
+#        {
+#            include ???.aq
+#            subgroup full
+#        },
+#        checksym { group ??? }
+#    }
+#}

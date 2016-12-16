@@ -271,14 +271,16 @@ void Molecule::initGeometry(Config& config, vector<AtomCartSpec>& cartpos)
 
 bool Molecule::isSymmetric(const vector<AtomCartSpec>& cartpos, const mat3x3& op)
 {
-    for (vector<AtomCartSpec>::const_iterator i1 = cartpos.begin();i1 != cartpos.end();++i1)
+    for (auto& a : cartpos)
     {
-        vec3 newpos = op*i1->pos;
+        vec3 newpos = op*a.pos;
 
         bool found = false;
-        for (vector<AtomCartSpec>::const_iterator i2 = cartpos.begin();i2 != cartpos.end();++i2)
+        for (auto& b : cartpos)
         {
-            if (norm(newpos-i2->pos) < 1e-8) found = true;
+            if (a.symbol == b.symbol &&
+                a.charge_from_input == b.charge_from_input &&
+                norm(newpos-b.pos) < 1e-8) found = true;
         }
         if (!found) return false;
     }
@@ -286,35 +288,37 @@ bool Molecule::isSymmetric(const vector<AtomCartSpec>& cartpos, const mat3x3& op
     return true;
 }
 
-void Molecule::initSymmetry(Config& config, vector<AtomCartSpec>& cartpos)
+void Molecule::rotate(vector<AtomCartSpec>& cartpos, const mat3x3& R)
+{
+    for (auto& a : cartpos)
+    {
+        a.pos = R*a.pos;
+    }
+}
+
+mat3x3 Molecule::inertia(const vector<AtomCartSpec>& cartpos)
 {
     mat3x3 I;
 
-    for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
+    for (auto& a : cartpos)
     {
-        vec3& r = it->pos;
-        Element e = Element::getElement(it->symbol.c_str());
-        double m = e.getMass();
+        auto& r = a.pos;
+        double m = Element::getElement(a.symbol).getMass();
         I += m*(r*r-(r|r));
     }
 
+    return I;
+}
+
+void Molecule::initSymmetry(Config& config, vector<AtomCartSpec>& cartpos)
+{
     vec3 A;
     mat3x3 R;
+    mat3x3 I = inertia(cartpos);
+
     I.diagonalize(A, R);
-
-    for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
-    {
-        it->pos = R*it->pos;
-    }
-
-    I = 0;
-    for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
-    {
-        vec3& r = it->pos;
-        Element e = Element::getElement(it->symbol.c_str());
-        double m = e.getMass();
-        I += m*(r*r-(r|r));
-    }
+    rotate(cartpos, R);
+    I = inertia(cartpos);
 
     for (int i = 0;i < 3;i++)
     {
@@ -399,7 +403,331 @@ void Molecule::initSymmetry(Config& config, vector<AtomCartSpec>& cartpos)
         /*
          * Spherical rotors: Td, Oh, Ih
          */
-        assert(0);
+
+        /*
+         * Search for a pair of C4 axes (Oh)
+         */
+        bool c4 = false;
+        vec3 axis1, axis2;
+        for (auto& a : cartpos)
+        {
+            if (norm(a.pos) < 1e-8) continue;
+
+            axis1 = unit(a.pos);
+            if (isSymmetric(cartpos, C<4>(axis1)))
+            {
+                c4 = true;
+                /*
+                 * This C4 axis lies along an atom, search for a non-colinear
+                 * atom which has another C4 axis.
+                 */
+                for (auto& b : cartpos)
+                {
+                    if (a.symbol != b.symbol ||
+                        a.charge_from_input != b.charge_from_input ||
+                        norm(b.pos) < 1e-8 ||
+                        norm(unit(a.pos) + unit(b.pos)) < 1e-8 ||
+                        norm(unit(a.pos) - unit(b.pos)) < 1e-8) continue;
+
+                    axis2 = unit(b.pos);
+                    if (isSymmetric(cartpos, C<4>(axis2))) break;
+                }
+                break;
+            }
+
+            for (auto& b : cartpos)
+            {
+                if (a.symbol != b.symbol ||
+                    a.charge_from_input != b.charge_from_input ||
+                    norm(b.pos) < 1e-8 ||
+                    norm(unit(a.pos) + unit(b.pos)) < 1e-8 ||
+                    norm(unit(a.pos) - unit(b.pos)) < 1e-8) continue;
+
+                axis1 = unit(a.pos + b.pos);
+                if (isSymmetric(cartpos, C<4>(axis1)))
+                {
+                    c4 = true;
+                    /*
+                     * This C4 axis lies between two atoms. Another C4 axis is
+                     * either 90 deg. in the direction of one of these atoms
+                     * or 90 deg. but 45 deg. askew (i.e. between two of the
+                     * C4-degenerate atoms).
+                     */
+                    axis2 = unit(b.pos%axis1);
+                    if (isSymmetric(cartpos, C<4>(axis2))) break;
+
+                    axis2 = C<8>(axis1)*unit(b.pos%axis1);
+                    if (isSymmetric(cartpos, C<4>(axis2))) break;
+
+                    assert(0);
+                }
+            }
+
+            if (c4) break;
+        }
+
+        /*
+         * Otherwise, search for a pair of S4 axes (Td)
+         */
+        bool s4 = false;
+        if (!c4)
+        {
+            for (auto& a : cartpos)
+            {
+                if (norm(a.pos) < 1e-8) continue;
+
+                axis1 = unit(a.pos);
+                if (isSymmetric(cartpos, S<4>(axis1)))
+                {
+                    s4 = true;
+                    /*
+                     * This S4 axis lies along an atom, search for a non-colinear
+                     * atom which has another S4 axis.
+                     */
+                    for (auto& b : cartpos)
+                    {
+                        if (a.symbol != b.symbol ||
+                            a.charge_from_input != b.charge_from_input ||
+                            norm(b.pos) < 1e-8 ||
+                            norm(unit(a.pos) + unit(b.pos)) < 1e-8 ||
+                            norm(unit(a.pos) - unit(b.pos)) < 1e-8) continue;
+
+                        axis2 = unit(b.pos);
+                        if (isSymmetric(cartpos, S<4>(axis2))) break;
+                    }
+                    break;
+                }
+
+                for (auto& b : cartpos)
+                {
+                    if (a.symbol != b.symbol ||
+                        a.charge_from_input != b.charge_from_input ||
+                        norm(b.pos) < 1e-8 ||
+                        norm(unit(a.pos) + unit(b.pos)) < 1e-8 ||
+                        norm(unit(a.pos) - unit(b.pos)) < 1e-8) continue;
+
+                    axis1 = unit(a.pos + b.pos);
+                    if (isSymmetric(cartpos, S<4>(axis1)))
+                    {
+                        s4 = true;
+                        /*
+                         * This S4 axis lies between two atoms. Another S4 axis is
+                         * either 90 deg. in the direction of one of these atoms
+                         * or 90 deg. but 45 deg. askew.
+                         */
+                        axis2 = unit(b.pos%axis1);
+                        if (isSymmetric(cartpos, S<4>(axis2))) break;
+
+                        axis2 = C<8>(axis1)*unit(b.pos%axis1);
+                        if (isSymmetric(cartpos, S<4>(axis2))) break;
+
+                        assert(0);
+                    }
+                }
+
+                if (s4) break;
+            }
+        }
+
+        /*
+         * Otherwise it's Ih
+         */
+
+        if (c4)
+        {
+            rotate(cartpos, Rotation(axis1,z));
+            axis2 = Rotation(axis1,z)*axis2;
+            rotate(cartpos, Rotation(axis2,y));
+
+            group = &PointGroup::Oh();
+
+            if (subgrp == "full" || subgrp == "Oh") {}
+            else if (subgrp == "Td") group = &PointGroup::Td();
+            else if (subgrp == "S6")
+            {
+                group = &PointGroup::S6();
+                O = Rotation(vec3(1,1,1), z);
+            }
+            else if (subgrp == "S4") group = &PointGroup::S4();
+            else if (subgrp == "D4h") group = &PointGroup::D4h();
+            else if (subgrp == "D4") group = &PointGroup::D4();
+            else if (subgrp == "C4h") group = &PointGroup::C4h();
+            else if (subgrp == "C4v") group = &PointGroup::C4v();
+            else if (subgrp == "C4") group = &PointGroup::C4();
+            else if (subgrp == "D3d")
+            {
+                group = &PointGroup::D3d();
+                O = C<24>(-z)*Rotation(vec3(1,1,1), z);
+            }
+            else if (subgrp == "D3")
+            {
+                group = &PointGroup::D3();
+                O = C<24>(-z)*Rotation(vec3(1,1,1), z);
+            }
+            else if (subgrp == "C3v")
+            {
+                group = &PointGroup::C3v();
+                O = C<8>(-z)*Rotation(vec3(1,1,1), z);
+            }
+            else if (subgrp == "C3")
+            {
+                group = &PointGroup::C3();
+                O = Rotation(vec3(1,1,1), z);
+            }
+            else if (subgrp == "D2h") group = &PointGroup::D2h();
+            else if (subgrp == "D2d") group = &PointGroup::D2d();
+            else if (subgrp == "D2") group = &PointGroup::D2();
+            else if (subgrp == "C2v") group = &PointGroup::C2v();
+            else if (subgrp == "C2h") group = &PointGroup::C2h();
+            else if (subgrp == "C2") group = &PointGroup::C2();
+            else if (subgrp == "Ci") group = &PointGroup::Ci();
+            else if (subgrp == "Cs") group = &PointGroup::Cs();
+            else if (subgrp == "C1") group = &PointGroup::C1();
+            else throw runtime_error(subgrp + "is not a valid subgroup of Oh");
+        }
+        else if (s4)
+        {
+            group = &PointGroup::Td();
+
+            rotate(cartpos, Rotation(axis1,z));
+            axis2 = Rotation(axis1,z)*axis2;
+            rotate(cartpos, Rotation(axis2,y));
+
+            if (subgrp == "full" || subgrp == "Td") {}
+            else if (subgrp == "S4") group = &PointGroup::S4();
+            else if (subgrp == "C3v")
+            {
+                group = &PointGroup::C3v();
+                O = C<8>(-z)*Rotation(vec3(1,1,1), z); // or maybe C4?
+            }
+            else if (subgrp == "C3")
+            {
+                group = &PointGroup::C3();
+                O = Rotation(vec3(1,1,1), z);
+            }
+            else if (subgrp == "D2d") group = &PointGroup::D2d();
+            else if (subgrp == "D2") group = &PointGroup::D2();
+            else if (subgrp == "C2v")
+            {
+                group = &PointGroup::C2v();
+                O = C<8>(z);
+            }
+            else if (subgrp == "C2") group = &PointGroup::C2();
+            else if (subgrp == "Cs")
+            {
+                group = &PointGroup::Cs();
+                O = C<4>(x)*C<8>(z);
+            }
+            else if (subgrp == "C1") group = &PointGroup::C1();
+            else throw runtime_error(subgrp + "is not a valid subgroup of Td");
+        }
+        else
+        {
+            /*
+             * Look for a C2 axis first
+             */
+            bool c2 = false;
+            vec3 axis1, axis2;
+            for (auto& a : cartpos)
+            {
+                if (norm(a.pos) < 1e-8) continue;
+
+                for (auto& b : cartpos)
+                {
+                    if (a.symbol != b.symbol ||
+                        a.charge_from_input != b.charge_from_input ||
+                        norm(b.pos) < 1e-8 ||
+                        norm(unit(a.pos) + unit(b.pos)) < 1e-8 ||
+                        norm(unit(a.pos) - unit(b.pos)) < 1e-8) continue;
+
+                    axis1 = unit(a.pos+b.pos);
+                    axis2 = unit(a.pos);
+                    if (isSymmetric(cartpos, C<2>(axis1)))
+                    {
+                        c2 = true;
+                        break;
+                    }
+                }
+                if (c2) break;
+            }
+            assert(c2);
+
+            /*
+             * Put the C2 axis along z and the C5 axes in the xy, xz, and yz planes
+             */
+            rotate(cartpos, Rotation(axis1,z));
+            axis2 = Rotation(axis1,z)*(axis2%axis1);
+            rotate(cartpos, Rotation(axis2,y));
+
+            /*
+             * Put the closest C5 axis to +z in the xz plane
+             */
+            axis1 = Rotation(x,20.9051574478892990329289550)*z;
+            if (isSymmetric(cartpos, C<5>(axis1))) rotate(cartpos, C<4>(z));
+
+            group = &PointGroup::Ih();
+
+            if (subgrp == "full" || subgrp == "Ih") {}
+            else if (subgrp == "S10")
+            {
+                group = &PointGroup::S10();
+                O = Rotation(y,20.9051574478892990329289550);
+            }
+            else if (subgrp == "D5d")
+            {
+                group = &PointGroup::D5d();
+                O = Rotation(y,20.9051574478892990329289550);
+            }
+            else if (subgrp == "D5")
+            {
+                group = &PointGroup::D5();
+                O = Rotation(y,20.9051574478892990329289550);
+            }
+            else if (subgrp == "C5v")
+            {
+                group = &PointGroup::C5v();
+                O = Rotation(y,20.9051574478892990329289550);
+            }
+            else if (subgrp == "C5")
+            {
+                group = &PointGroup::C5();
+                O = Rotation(y,20.9051574478892990329289550);
+            }
+            else if (subgrp == "S6")
+            {
+                group = &PointGroup::S6();
+                O = Rotation(vec3(1,1,1), z);
+            }
+            else if (subgrp == "D3d")
+            {
+                group = &PointGroup::D3d();
+                O = Rotation(vec3(1,1,1), z);
+            }
+            else if (subgrp == "D3")
+            {
+                group = &PointGroup::D3();
+                O = Rotation(vec3(1,1,1), z);
+            }
+            else if (subgrp == "C3v")
+            {
+                group = &PointGroup::C3v();
+                O = Rotation(vec3(1,1,1), z);
+            }
+            else if (subgrp == "C3")
+            {
+                group = &PointGroup::C3();
+                O = Rotation(vec3(1,1,1), z);
+            }
+            else if (subgrp == "D2h") group = &PointGroup::D2h();
+            else if (subgrp == "D2") group = &PointGroup::D2();
+            else if (subgrp == "C2h") group = &PointGroup::C2h();
+            else if (subgrp == "C2v") group = &PointGroup::C2v();
+            else if (subgrp == "C2") group = &PointGroup::C2();
+            else if (subgrp == "Cs") group = &PointGroup::Cs();
+            else if (subgrp == "Ci") group = &PointGroup::Ci();
+            else if (subgrp == "C1") group = &PointGroup::C1();
+            else throw runtime_error(subgrp + "is not a valid subgroup of Ih");
+        }
     }
     else if (2*aquarius::abs(A[0]-A[1])/(A[0]+A[1]) < 1e-8 ||
              2*aquarius::abs(A[1]-A[2])/(A[1]+A[2]) < 1e-8)
@@ -1172,24 +1500,19 @@ void Molecule::initSymmetry(Config& config, vector<AtomCartSpec>& cartpos)
         }
     }
 
-    for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
-    {
-        it->pos = O*it->pos;
-    }
+    rotate(cartpos, O);
 
     for (int i = 0;i < group->getOrder();i++)
     {
-        assert(isSymmetric(cartpos, group->getOp(i)));
+        if (!isSymmetric(cartpos, group->getOp(i)))
+        {
+            for (auto& a : cartpos) cout << a.symbol << " " << a.pos << endl;
+            cout << group->getOp(i) << endl;
+            throw runtime_error("molecule is not symmetric");
+        }
     }
 
-    I = 0;
-    for (vector<AtomCartSpec>::iterator it = cartpos.begin();it != cartpos.end();++it)
-    {
-        vec3& r = it->pos;
-        Element e = Element::getElement(it->symbol.c_str());
-        double m = e.getMass();
-        I += m*(r*r-(r|r));
-    }
+    I = inertia(cartpos);
 
     for (int i = 0;i < 3;i++)
     {
@@ -1327,6 +1650,43 @@ Molecule::const_shell_iterator Molecule::getShellsEnd() const
     return const_shell_iterator(const_cast<Molecule&>(*this).getShellsEnd());
 }
 
+class CheckSymmetryTask : public task::Task
+{
+    protected:
+        string group;
+
+    public:
+        CheckSymmetryTask(const string& name, input::Config& config)
+        : Task(name, config)
+        {
+            group = config.get<string>("group");
+
+            vector<Requirement> reqs;
+            reqs.push_back(Requirement("molecule", "molecule"));
+            addProduct(Product("bool", "match", reqs));
+        }
+
+        bool run(TaskDAG& dag, const Arena& arena)
+        {
+            const Molecule& mol = get<Molecule>("molecule");
+
+            bool match = mol.getGroup().getName() == group;
+
+            if (match)
+            {
+                log(arena) << "passed" << endl;
+            }
+            else
+            {
+                error(arena) << "failed: " << mol.getGroup().getName() << " vs " << group << endl;
+            }
+
+            put("match", new bool(match));
+
+            return true;
+        }
+};
+
 }
 }
 
@@ -1349,7 +1709,8 @@ subgroup?
         Cs, Ci, C2, C2v, C2h, D2, D2h,
         C3, C4, C5, C6, C3v, C4v, C5v, C6v,
         C3h, C4h, C5h, C6h, D3, D4, D5, D6,
-        D3h, D4h, D5h, D6h, S4, S6, Td, Oh, Ih
+        D3h, D4h, D5h, D6h, D2d, D3d, D4d, D5d,
+        S4, S6, S8, S10, Td, Oh, Ih
     },
 atom+
 {
@@ -1377,4 +1738,6 @@ basis?
 
 )";
 
-REGISTER_TASK(aquarius::input::MoleculeTask,"molecule",spec);
+REGISTER_TASK(aquarius::input::MoleculeTask, "molecule", spec);
+
+REGISTER_TASK(aquarius::input::CheckSymmetryTask, "checksym", "group string");

@@ -127,6 +127,10 @@ class Molecule
 
         static bool isSymmetric(const vector<AtomCartSpec>& cartpos, const mat3x3& op);
 
+        static void rotate(vector<AtomCartSpec>& cartpos, const mat3x3& R);
+
+        static mat3x3 inertia(const vector<AtomCartSpec>& cartpos);
+
         void initGeometry(input::Config& config, vector<AtomCartSpec>& cartpos);
 
         void initSymmetry(input::Config& config, vector<AtomCartSpec>& cartpos);

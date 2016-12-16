@@ -40,17 +40,16 @@ class SchemaValidationError : public runtime_error
 class FormatError : public runtime_error
 {
     private:
-        static string buildString(const string& what_arg, const int lineno)
+        static string buildString(const string& what_arg, const string& fname, int lineno)
         {
-            string s;
-            ostringstream os(s);
-            os << what_arg << ": line " << lineno;
-            return s;
+            ostringstream os;
+            os << what_arg << ": " << fname << " line " << lineno;
+            return os.str();
         }
 
     public:
-        FormatError(const string& what_arg, const int lineno)
-        : runtime_error(buildString(what_arg, lineno)) {}
+        FormatError(const string& what_arg, const string& fname, int lineno)
+        : runtime_error(buildString(what_arg, fname, lineno)) {}
 };
 
 class Config
@@ -161,7 +160,7 @@ class Config
         template<typename T>
         vector<pair<string,T>> find(const string& pattern) const;
 
-        void read(const string& cwd, istream& is);
+        void read(const string& cwd, istream& is, const string& fname = "<null>");
 
         void read(const string& file);
 
