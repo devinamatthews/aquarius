@@ -118,13 +118,11 @@ PointGroup::PointGroup(int order, int nirrep, int ngenerators, const char *name,
 
             for (int k = 0;k < order;k++)
             {
-                printf("%s*%s =? %s: %g\n", op_names[i], op_names[j], op_names[k], norm(ij-ops[k]));
-                //cout << ops[k] << endl;
-                if (norm(ij-ops[k]) < 1e-10) op_product[i*order+j] = k;
-            }
-            if (op_product[i*order+j] == -1)
-            {
-                cout << ij << endl;
+                if (norm(ij-ops[k]) < 1e-10)
+                {
+                    op_product[i*order+j] = k;
+                    break;
+                }
             }
             assert(op_product[i*order+j] != -1);
 
@@ -814,7 +812,7 @@ const PointGroup& PointGroup::Oh()
 
 static const char *ih_name = "Ih";
 static const char *ih_irrep_names[] = {"Ag","T1g","T2g","Gg","Hg","Au","T1u","T2u","Gu","Hu"};
-static const int ih_generators[] = {2,25,56,60};
+static const int ih_generators[] = {1,31,60,45};
 static const double ih_generator_reps[] = {// C5
                                             1,                       // Ag
                                             c21,-c52,   0,           // T1g
@@ -881,39 +879,6 @@ static const double ih_generator_reps[] = {// C5
                                             c39, c57,-c5 , 0  ,-c60,
                                             c26,-c44, 0  ,-c5 , c55,
                                             c33, c4 , c60,-c55, c62,
-                                           // C2z
-                                            1,             // Ag
-                                           -1, 0, 0,       // T1g
-                                            0, 1, 0,
-                                            0, 0,-1,
-                                           -1, 0, 0,       // T2g
-                                            0, 1, 0,
-                                            0, 0,-1,
-                                           -1, 0, 0, 0,    // Gg
-                                            0, 1, 0, 0,
-                                            0, 0,-1, 0,
-                                            0, 0, 0, 1,
-                                            1, 0, 0, 0, 0, // Hg
-                                            0, 1, 0, 0, 0,
-                                            0, 0,-1, 0, 0,
-                                            0, 0, 0,-1, 0,
-                                            0, 0, 0, 0, 1,
-                                            1,             // Au
-                                           -1, 0, 0,       // T1u
-                                            0, 1, 0,
-                                            0, 0,-1,
-                                           -1, 0, 0,       // T2u
-                                            0, 1, 0,
-                                            0, 0,-1,
-                                           -1, 0, 0, 0,    // Gu
-                                            0, 1, 0, 0,
-                                            0, 0,-1, 0,
-                                            0, 0, 0, 1,
-                                            1, 0, 0, 0, 0, // Hu
-                                            0, 1, 0, 0, 0,
-                                            0, 0,-1, 0, 0,
-                                            0, 0, 0,-1, 0,
-                                            0, 0, 0, 0, 1,
                                            // i
                                             1,             // Ag
                                             1, 0, 0,       // T1g
@@ -946,10 +911,44 @@ static const double ih_generator_reps[] = {// C5
                                             0,-1, 0, 0, 0,
                                             0, 0,-1, 0, 0,
                                             0, 0, 0,-1, 0,
-                                            0, 0, 0, 0,-1};
+                                            0, 0, 0, 0,-1,
+                                           // C2z
+                                            1,             // Ag
+                                           -1, 0, 0,       // T1g
+                                            0, 1, 0,
+                                            0, 0,-1,
+                                           -1, 0, 0,       // T2g
+                                            0, 1, 0,
+                                            0, 0,-1,
+                                           -1, 0, 0, 0,    // Gg
+                                            0, 1, 0, 0,
+                                            0, 0,-1, 0,
+                                            0, 0, 0, 1,
+                                            1, 0, 0, 0, 0, // Hg
+                                            0, 1, 0, 0, 0,
+                                            0, 0,-1, 0, 0,
+                                            0, 0, 0,-1, 0,
+                                            0, 0, 0, 0, 1,
+                                            1,             // Au
+                                           -1, 0, 0,       // T1u
+                                            0, 1, 0,
+                                            0, 0,-1,
+                                           -1, 0, 0,       // T2u
+                                            0, 1, 0,
+                                            0, 0,-1,
+                                           -1, 0, 0, 0,    // Gu
+                                            0, 1, 0, 0,
+                                            0, 0,-1, 0,
+                                            0, 0, 0, 1,
+                                            1, 0, 0, 0, 0, // Hu
+                                            0, 1, 0, 0, 0,
+                                            0, 0,-1, 0, 0,
+                                            0, 0, 0,-1, 0,
+                                            0, 0, 0, 0, 1};
 static const int ih_irrep_degen[] = {1,3,3,4,5,1,3,3,4,5};
-static const mat3x3 ih_ops[] = {Identity(),
-                                C<5>(vec3( 0, c, d)),
+static const mat3x3 ih_ops[] = {Identity(),                     //  0
+
+                                C<5>(vec3( 0, c, d)),           //  1
                                 C<5>(vec3( 0, c,-d)),
                                 C<5>(vec3( 0,-c, d)),
                                 C<5>(vec3( 0,-c,-d)),
@@ -974,7 +973,7 @@ static const mat3x3 ih_ops[] = {Identity(),
                                 C<5>(vec3(-c, d, 0))^2,
                                 C<5>(vec3(-c,-d, 0))^2,
 
-                                C<3>(vec3( 1, 1, 1)),
+                                C<3>(vec3( 1, 1, 1)),           // 25
                                 C<3>(vec3(-1, 1, 1)),
                                 C<3>(vec3( 1,-1, 1)),
                                 C<3>(vec3( 1, 1,-1)),
@@ -995,7 +994,7 @@ static const mat3x3 ih_ops[] = {Identity(),
                                 C<3>(vec3( rho,0,-rhom1)),
                                 C<3>(vec3(-rho,0,-rhom1)),
 
-                                C<2>(vec3( 0, 0, 1)),
+                                C<2>(vec3( 0, 0, 1)),           // 45
                                 C<2>(vec3( 0, 1, 0)),
                                 C<2>(vec3( 1, 0, 0)),
                                 C<2>(vec3( a, b, 0.5)),
@@ -1011,9 +1010,9 @@ static const mat3x3 ih_ops[] = {Identity(),
                                 C<2>(vec3( b, 0.5,-a)),
                                 C<2>(vec3( b,-0.5,-a)),
 
-                                Inversion(),
+                                Inversion(),                    // 60
 
-                                S<10>(vec3( 0, c, d)),
+                                S<10>(vec3( 0, c, d)),          // 61
                                 S<10>(vec3( 0, c,-d)),
                                 S<10>(vec3( 0,-c, d)),
                                 S<10>(vec3( 0,-c,-d)),
@@ -1038,7 +1037,7 @@ static const mat3x3 ih_ops[] = {Identity(),
                                 S<10>(vec3(-c, d, 0))^3,
                                 S<10>(vec3(-c,-d, 0))^3,
 
-                                S<6>(vec3( 1, 1, 1)),
+                                S<6>(vec3( 1, 1, 1)),           // 85
                                 S<6>(vec3(-1, 1, 1)),
                                 S<6>(vec3( 1,-1, 1)),
                                 S<6>(vec3( 1, 1,-1)),
@@ -1059,7 +1058,7 @@ static const mat3x3 ih_ops[] = {Identity(),
                                 S<6>(vec3( rho,0,-rhom1)),
                                 S<6>(vec3(-rho,0,-rhom1)),
 
-                                Reflection(vec3( 0, 0, 1)),
+                                Reflection(vec3( 0, 0, 1)),     //105
                                 Reflection(vec3( 0, 1, 0)),
                                 Reflection(vec3( 1, 0, 0)),
                                 Reflection(vec3( a, b, 0.5)),
@@ -1087,7 +1086,7 @@ static const char *ih_op_names[] = {"E",
 
 const PointGroup& PointGroup::Ih()
 {
-    static PointGroup Ih_(120, 10, 4, ih_name, ih_irrep_names,
+    static PointGroup Ih_(120, 10, 3, ih_name, ih_irrep_names,
                           ih_generators, ih_generator_reps, ih_irrep_degen,
                           ih_ops, ih_op_names);
     return Ih_;
@@ -2384,27 +2383,27 @@ const PointGroup& PointGroup::S8()
 static const char *s10_name = "S10";
 static const char *s10_irrep_names[] = {"Ag","E1g+","E1g-","E2g+","E2g-","Au","E1u+","E1u-","E2u+","E2u-"};
 static const int s10_generators[] = {0,1,2,3,4,5,6,7,8,9};
-static const double s10_generator_reps[] = {1,sqrt(2),    0,sqrt(2),    0, 1,sqrt(2),    0,sqrt(2),    0,  // E
-                                            1,   epe2,-eme2,    epe,  eme, 1,  -epe2, eme2,   -epe, -eme,  // S10
-                                            1,    epe,  eme,   epe2, eme2, 1,    epe,  eme,   epe2, eme2,  // C5
-                                            1,    epe, -eme,   epe2,-eme2, 1,   -epe,  eme,  -epe2, eme2,  // S10^3
-                                            1,   epe2, eme2,    epe, -eme, 1,   epe2, eme2,    epe, -eme,  // C5^2
-                                            1,sqrt(2),    0,sqrt(2),    0,-1,sqrt(2),    0,sqrt(2),    0,  // i
-                                            1,   epe2,-eme2,    epe,  eme,-1,   epe2,-eme2,    epe,  eme,  // C5^3
-                                            1,    epe,  eme,   epe2, eme2,-1,   -epe, -eme,  -epe2,-eme2,  // S10^7
-                                            1,    epe, -eme,   epe2,-eme2,-1,    epe, -eme,   epe2,-eme2,  // C5^4
-                                            1,   epe2, eme2,    epe, -eme,-1,  -epe2,-eme2,   -epe,  eme}; // S10^9
+static const double s10_generator_reps[] = {1,sqrt(2),    0,sqrt(2),    0, 1, sqrt(2),    0, sqrt(2),    0,  // E
+                                            1,   epe2,-eme2,    epe,  eme,-1,   -epe2, eme2,    -epe, -eme,  // S10
+                                            1,    epe,  eme,   epe2, eme2, 1,     epe,  eme,    epe2, eme2,  // C5
+                                            1,    epe, -eme,   epe2,-eme2,-1,    -epe,  eme,   -epe2, eme2,  // S10^3
+                                            1,   epe2, eme2,    epe, -eme, 1,    epe2, eme2,     epe, -eme,  // C5^2
+                                            1,sqrt(2),    0,sqrt(2),    0,-1,-sqrt(2),    0,-sqrt(2),    0,  // i
+                                            1,   epe2,-eme2,    epe,  eme, 1,    epe2,-eme2,     epe,  eme,  // C5^3
+                                            1,    epe,  eme,   epe2, eme2,-1,    -epe, -eme,   -epe2,-eme2,  // S10^7
+                                            1,    epe, -eme,   epe2,-eme2, 1,     epe, -eme,    epe2,-eme2,  // C5^4
+                                            1,   epe2, eme2,    epe, -eme,-1,   -epe2,-eme2,    -epe,  eme}; // S10^9
 static const int s10_irrep_degen[] = {1,1,1,1,1,1,1,1,1,1};
 static const mat3x3 s10_ops[] = {Identity(),
-                                S<10>(vec3( 0, 0, 1)),
-                                C< 5>(vec3( 0, 0, 1)),
-                                S<10>(vec3( 0, 0, 1))^3,
-                                C< 5>(vec3( 0, 0, 1))^2,
-                                Inversion(),
-                                C< 5>(vec3( 0, 0, 1))^3,
-                                S<10>(vec3( 0, 0, 1))^7,
-                                C< 5>(vec3( 0, 0, 1))^4,
-                                S<10>(vec3( 0, 0, 1))^9};
+                                 S<10>(vec3( 0, 0, 1)),
+                                 C< 5>(vec3( 0, 0, 1)),
+                                 S<10>(vec3( 0, 0, 1))^3,
+                                 C< 5>(vec3( 0, 0, 1))^2,
+                                 Inversion(),
+                                 C< 5>(vec3( 0, 0, 1))^3,
+                                 S<10>(vec3( 0, 0, 1))^7,
+                                 C< 5>(vec3( 0, 0, 1))^4,
+                                 S<10>(vec3( 0, 0, 1))^9};
 static const char *s10_op_names[] = {"E", "S10z", "C5z", "S10z^3", "C5z^2", "i", "C5z^3", "S10z^7", "C5z^4", "S10z^9"};
 
 const PointGroup& PointGroup::S10()

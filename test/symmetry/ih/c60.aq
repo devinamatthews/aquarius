@@ -1,3 +1,4 @@
+tolerance geometry 1e-6,
 coords cartesian,
 units angstrom,
 atom { C,     0.00000000,     6.57765970,     1.31474480 },

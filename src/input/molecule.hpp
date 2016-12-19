@@ -125,7 +125,7 @@ class Molecule
                 }
         };
 
-        static bool isSymmetric(const vector<AtomCartSpec>& cartpos, const mat3x3& op);
+        static bool isSymmetric(const vector<AtomCartSpec>& cartpos, const mat3x3& op, double tol);
 
         static void rotate(vector<AtomCartSpec>& cartpos, const mat3x3& R);
 
