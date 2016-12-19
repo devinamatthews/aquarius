@@ -247,19 +247,6 @@ class Datatype
             return structure(&counts[0], &bdispls[0], &types[0], counts.size());
         }
 
-        static Datatype structure(const MPI_Aint* bdispls,
-                                  const Datatype* types, MPI_Int nelem)
-        {
-            std::vector<MPI_Int> counts(nelem, 1);
-            return structure(&counts[0], bdispls, types, nelem);
-        }
-
-        static Datatype structure(const std::vector<MPI_Aint>& bdispls,
-                                  const std::vector<Datatype>& types)
-        {
-            return structure(std::vector<MPI_Int>(types.size(), 1), bdispls, types);
-        }
-
         static Datatype structure(const MPI_Int* counts, const Datatype* types, MPI_Int nelem)
         {
             std::vector<MPI_Aint> bdispls = displacements(counts, types, nelem);
