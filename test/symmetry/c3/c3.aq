@@ -1,0 +1,31 @@
+section triphenylphosphine
+{
+    section full
+    {
+        molecule
+        {
+            include triphenylphosphine.aq
+            subgroup full
+        },
+        #checksym { group C3 }
+        checksym { group C1 }
+    },
+    #section C3
+    #{
+    #    molecule
+    #    {
+    #        include triphenylphosphine.aq
+    #        subgroup C3
+    #    },
+    #    checksym { group C3 }
+    #},
+    section C1
+    {
+        molecule
+        {
+            include triphenylphosphine.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}

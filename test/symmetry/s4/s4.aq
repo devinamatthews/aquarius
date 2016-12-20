@@ -1,0 +1,40 @@
+section fake
+{
+    section full
+    {
+        molecule
+        {
+            include fake.aq
+            subgroup full
+        },
+        #checksym { group S4 }
+        checksym { group C2 }
+    },
+    #section S4
+    #{
+    #    molecule
+    #    {
+    #        include fake.aq
+    #        subgroup S4
+    #    },
+    #    checksym { group S4 }
+    #},
+    section C2
+    {
+        molecule
+        {
+            include fake.aq
+            subgroup C2
+        },
+        checksym { group C2 }
+    },
+    section C1
+    {
+        molecule
+        {
+            include fake.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}

@@ -1,0 +1,238 @@
+section SF6
+{
+    section full
+    {
+        molecule { include sf6.aq, subgroup full },
+        #checksym { group Oh }
+        checksym { group D2h }
+    },
+    #section Oh
+    #{
+    #    molecule { include sf6.aq, subgroup Oh },
+    #    checksym { group Oh }
+    #},
+    #section Td
+    #{
+    #    molecule { include sf6.aq, subgroup Td },
+    #    checksym { group Td }
+    #},
+    #section S6
+    #{
+    #    molecule { include sf6.aq, subgroup S6 },
+    #    checksym { group S6 }
+    #},
+    #section S4
+    #{
+    #    molecule { include sf6.aq, subgroup S4 },
+    #    checksym { group S4 }
+    #},
+    #section D4h
+    #{
+    #    molecule { include sf6.aq, subgroup D4h },
+    #    checksym { group D4h }
+    #},
+    #section D4
+    #{
+    #    molecule { include sf6.aq, subgroup D4 },
+    #    checksym { group D4 }
+    #},
+    #section C4h
+    #{
+    #    molecule { include sf6.aq, subgroup C4h },
+    #    checksym { group C4h }
+    #},
+    #section C4v
+    #{
+    #    molecule { include sf6.aq, subgroup C4v },
+    #    checksym { group C4v }
+    #},
+    #section C4
+    #{
+    #    molecule { include sf6.aq, subgroup C4 },
+    #    checksym { group C4 }
+    #},
+    #section D3d
+    #{
+    #    molecule { include sf6.aq, subgroup D3d },
+    #    checksym { group D3d }
+    #},
+    #section D3
+    #{
+    #    molecule { include sf6.aq, subgroup D3 },
+    #    checksym { group D3 }
+    #},
+    #section C3v
+    #{
+    #    molecule { include sf6.aq, subgroup C3v },
+    #    checksym { group C3v }
+    #},
+    #section C3
+    #{
+    #    molecule { include sf6.aq, subgroup C3 },
+    #    checksym { group C3 }
+    #},
+    section D2h
+    {
+        molecule { include sf6.aq, subgroup D2h },
+        checksym { group D2h }
+    },
+    #section D2d
+    #{
+    #    molecule { include sf6.aq, subgroup D2d },
+    #    checksym { group D2d }
+    #},
+    section D2
+    {
+        molecule { include sf6.aq, subgroup D2 },
+        checksym { group D2 }
+    },
+    section C2v
+    {
+        molecule { include sf6.aq, subgroup C2v },
+        checksym { group C2v }
+    },
+    section C2h
+    {
+        molecule { include sf6.aq, subgroup C2h },
+        checksym { group C2h }
+    },
+    section C2
+    {
+        molecule { include sf6.aq, subgroup C2 },
+        checksym { group C2 }
+    },
+    section Ci
+    {
+        molecule { include sf6.aq, subgroup Ci },
+        checksym { group Ci }
+    },
+    section Cs
+    {
+        molecule { include sf6.aq, subgroup Cs },
+        checksym { group Cs }
+    },
+    section C1
+    {
+        molecule { include sf6.aq, subgroup C1 },
+        checksym { group C1 }
+    },
+},
+section cubane
+{
+    section full
+    {
+        molecule { include cubane.aq, subgroup full },
+        #checksym { group Oh }
+        checksym { group D2h }
+    },
+    #section Oh
+    #{
+    #    molecule { include cubane.aq, subgroup Oh },
+    #    checksym { group Oh }
+    #},
+    #section Td
+    #{
+    #    molecule { include cubane.aq, subgroup Td },
+    #    checksym { group Td }
+    #},
+    #section S6
+    #{
+    #    molecule { include cubane.aq, subgroup S6 },
+    #    checksym { group S6 }
+    #},
+    #section S4
+    #{
+    #    molecule { include cubane.aq, subgroup S4 },
+    #    checksym { group S4 }
+    #},
+    #section D4h
+    #{
+    #    molecule { include cubane.aq, subgroup D4h },
+    #    checksym { group D4h }
+    #},
+    #section D4
+    #{
+    #    molecule { include cubane.aq, subgroup D4 },
+    #    checksym { group D4 }
+    #},
+    #section C4h
+    #{
+    #    molecule { include cubane.aq, subgroup C4h },
+    #    checksym { group C4h }
+    #},
+    #section C4v
+    #{
+    #    molecule { include cubane.aq, subgroup C4v },
+    #    checksym { group C4v }
+    #},
+    #section C4
+    #{
+    #    molecule { include cubane.aq, subgroup C4 },
+    #    checksym { group C4 }
+    #},
+    #section D3d
+    #{
+    #    molecule { include cubane.aq, subgroup D3d },
+    #    checksym { group D3d }
+    #},
+    #section D3
+    #{
+    #    molecule { include cubane.aq, subgroup D3 },
+    #    checksym { group D3 }
+    #},
+    #section C3v
+    #{
+    #    molecule { include cubane.aq, subgroup C3v },
+    #    checksym { group C3v }
+    #},
+    #section C3
+    #{
+    #    molecule { include cubane.aq, subgroup C3 },
+    #    checksym { group C3 }
+    #},
+    section D2h
+    {
+        molecule { include cubane.aq, subgroup D2h },
+        checksym { group D2h }
+    },
+    #section D2d
+    #{
+    #    molecule { include cubane.aq, subgroup D2d },
+    #    checksym { group D2d }
+    #},
+    section D2
+    {
+        molecule { include cubane.aq, subgroup D2 },
+        checksym { group D2 }
+    },
+    section C2v
+    {
+        molecule { include cubane.aq, subgroup C2v },
+        checksym { group C2v }
+    },
+    section C2h
+    {
+        molecule { include cubane.aq, subgroup C2h },
+        checksym { group C2h }
+    },
+    section C2
+    {
+        molecule { include cubane.aq, subgroup C2 },
+        checksym { group C2 }
+    },
+    section Ci
+    {
+        molecule { include cubane.aq, subgroup Ci },
+        checksym { group Ci }
+    },
+    section Cs
+    {
+        molecule { include cubane.aq, subgroup Cs },
+        checksym { group Cs }
+    },
+    section C1
+    {
+        molecule { include cubane.aq, subgroup C1 },
+        checksym { group C1 }
+    },
+}

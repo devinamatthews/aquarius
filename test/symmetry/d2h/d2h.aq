@@ -1,0 +1,84 @@
+section ethylene
+{
+    section full
+    {
+        molecule
+        {
+            include ethylene.aq
+            subgroup full
+        },
+        checksym { group D2h }
+    },
+    section D2h
+    {
+        molecule
+        {
+            include ethylene.aq
+            subgroup D2h
+        },
+        checksym { group D2h }
+    },
+    section C2h
+    {
+        molecule
+        {
+            include ethylene.aq
+            subgroup C2h
+        },
+        checksym { group C2h }
+    },
+    section C2v
+    {
+        molecule
+        {
+            include ethylene.aq
+            subgroup C2v
+        },
+        checksym { group C2v }
+    },
+    section D2
+    {
+        molecule
+        {
+            include ethylene.aq
+            subgroup D2
+        },
+        checksym { group D2 }
+    },
+    section C2
+    {
+        molecule
+        {
+            include ethylene.aq
+            subgroup C2
+        },
+        checksym { group C2 }
+    },
+    section Cs
+    {
+        molecule
+        {
+            include ethylene.aq
+            subgroup Cs
+        },
+        checksym { group Cs }
+    },
+    section Ci
+    {
+        molecule
+        {
+            include ethylene.aq
+            subgroup Ci
+        },
+        checksym { group Ci }
+    },
+    section C1
+    {
+        molecule
+        {
+            include ethylene.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}

@@ -1,0 +1,193 @@
+section benzene
+{
+    section full
+    {
+        molecule
+        {
+            include benzene.aq
+            subgroup full
+        },
+        #checksym { group D6h }
+        checksym { group D2h }
+    },
+    #section D6h
+    #{
+    #    molecule
+    #    {
+    #        include benzene.aq
+    #        subgroup D6h
+    #    },
+    #    checksym { group D6h }
+    #},
+    #section S6
+    #{
+    #    molecule
+    #    {
+    #        include benzene.aq
+    #        subgroup S6
+    #    },
+    #    checksym { group S6 }
+    #},
+    #section D3d
+    #{
+    #    molecule
+    #    {
+    #        include benzene.aq
+    #        subgroup D3d
+    #    },
+    #    checksym { group D3d }
+    #},
+    #section D3h
+    #{
+    #    molecule
+    #    {
+    #        include benzene.aq
+    #        subgroup D3h
+    #    },
+    #    checksym { group D3h }
+    #},
+    section D2h
+    {
+        molecule
+        {
+            include benzene.aq
+            subgroup D2h
+        },
+        checksym { group D2h }
+    },
+    #section C6h
+    #{
+    #    molecule
+    #    {
+    #        include benzene.aq
+    #        subgroup C6h
+    #    },
+    #    checksym { group C6h }
+    #},
+    #section C3h
+    #{
+    #    molecule
+    #    {
+    #        include benzene.aq
+    #        subgroup C3h
+    #    },
+    #    checksym { group C3h }
+    #},
+    section C2h
+    {
+        molecule
+        {
+            include benzene.aq
+            subgroup C2h
+        },
+        checksym { group C2h }
+    },
+    #section C6v
+    #{
+    #    molecule
+    #    {
+    #        include benzene.aq
+    #        subgroup C6v
+    #    },
+    #    checksym { group C6v }
+    #},
+    #section C3v
+    #{
+    #    molecule
+    #    {
+    #        include benzene.aq
+    #        subgroup C3v
+    #    },
+    #    checksym { group C3v }
+    #},
+    section C2v
+    {
+        molecule
+        {
+            include benzene.aq
+            subgroup C2v
+        },
+        checksym { group C2v }
+    },
+    #section D6
+    #{
+    #    molecule
+    #    {
+    #        include benzene.aq
+    #        subgroup D6
+    #    },
+    #    checksym { group D6 }
+    #},
+    #section D3
+    #{
+    #    molecule
+    #    {
+    #        include benzene.aq
+    #        subgroup D3
+    #    },
+    #    checksym { group D3 }
+    #},
+    section D2
+    {
+        molecule
+        {
+            include benzene.aq
+            subgroup D2
+        },
+        checksym { group D2 }
+    },
+    #section C6
+    #{
+    #    molecule
+    #    {
+    #        include benzene.aq
+    #        subgroup C6
+    #    },
+    #    checksym { group C6 }
+    #},
+    #section C3
+    #{
+    #    molecule
+    #    {
+    #        include benzene.aq
+    #        subgroup C3
+    #    },
+    #    checksym { group C3 }
+    #},
+    section C2
+    {
+        molecule
+        {
+            include benzene.aq
+            subgroup C2
+        },
+        checksym { group C2 }
+    },
+    section Cs
+    {
+        molecule
+        {
+            include benzene.aq
+            subgroup Cs
+        },
+        checksym { group Cs }
+    },
+    section Ci
+    {
+        molecule
+        {
+            include benzene.aq
+            subgroup Ci
+        },
+        checksym { group Ci }
+    },
+    section C1
+    {
+        molecule
+        {
+            include benzene.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}

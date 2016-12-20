@@ -1,0 +1,21 @@
+section 1-chloro-2-fluoroethane
+{
+    section full
+    {
+        molecule
+        {
+            include chclchf.aq,
+            subgroup full
+        },
+        checksym { group C1 }
+    },
+    section C1
+    {
+        molecule
+        {
+            include chclchf.aq,
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}

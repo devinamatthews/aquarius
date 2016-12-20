@@ -1,0 +1,48 @@
+section water
+{
+    section full
+    {
+        molecule
+        {
+            include water.aq
+            subgroup full
+        },
+        checksym { group C2v }
+    },
+    section C2v
+    {
+        molecule
+        {
+            include water.aq
+            subgroup C2v
+        },
+        checksym { group C2v }
+    },
+    section Cs
+    {
+        molecule
+        {
+            include water.aq
+            subgroup Cs
+        },
+        checksym { group Cs }
+    },
+    section C2
+    {
+        molecule
+        {
+            include water.aq
+            subgroup C2
+        },
+        checksym { group C2 }
+    },
+    section C1
+    {
+        molecule
+        {
+            include water.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}

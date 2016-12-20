@@ -10,6 +10,7 @@ class Tokenizer
     protected:
         int lineno;
         istream& is;
+        const string& fname;
         string line;
         istringstream iss;
 
@@ -19,7 +20,7 @@ class Tokenizer
             {
                 if (!is) return false;
                 lineno++;
-                getline(is, line);
+                if (!getline(is, line)) return false;
                 iss.clear();
                 iss.str(line);
                 char c;
@@ -43,8 +44,8 @@ class Tokenizer
         }
 
     public:
-        Tokenizer(istream& is)
-        : lineno(0), is(is) {}
+        Tokenizer(istream& is, const string& fname)
+        : lineno(0), is(is), fname(fname) {}
 
         int getLine() const { return lineno; }
 
@@ -62,14 +63,17 @@ class Tokenizer
 
             if (token[0] == '"')
             {
-                oss << token.substr(1);
-                char c;
-                while (!(!iss.get(c)))
+                oss << token;
+                if (token.back() != '"')
                 {
-                    if (c == '"') break;
-                    oss << c;
+                    char c;
+                    while (iss.get(c))
+                    {
+                        if (c == '"') break;
+                        oss << c;
+                    }
+                    if (c != '"') throw FormatError("End of line reached while looking for closing \" character", fname, lineno);
                 }
-                if (!iss) throw FormatError("End of line reached while looking for closing \" character", lineno);
             }
             else
             {
@@ -227,20 +231,29 @@ void Config::read(const string& file)
     }
 
     ifstream ifs(file.c_str());
-    read(cwd, ifs);
+    if (!ifs)
+    {
+        throw runtime_error("could not open file " + file);
+    }
+    read(cwd, ifs, file);
 }
 
-void Config::read(const string& cwd, istream& is)
+void Config::read(const string& cwd, istream& is, const string& fname)
 {
     root.reset(new Node());
 
     ptr_vector<Node> current = {root.get(), root.get()};
 
-    Tokenizer t(is);
+    Tokenizer t(is, fname);
     string token;
 
     while (t.next(token))
     {
+        if (token.front() == '"' && token.back() == '"')
+        {
+            current.pback() = &*current.back().addChild(token.substr(1,token.size()-2));
+            continue;
+        }
         for (string::size_type i = 0;i < token.size();)
         {
             if (token[i] == '{')
@@ -250,7 +263,7 @@ void Config::read(const string& cwd, istream& is)
             }
             else if (token[i] == '}')
             {
-                if (current.size() < 2) throw FormatError("Too many }'s", t.getLine());
+                if (current.size() <= 2) throw FormatError("Too many }'s", fname, t.getLine());
                 current.pop_back();
                 i++;
             }
@@ -271,7 +284,7 @@ void Config::read(const string& cwd, istream& is)
                 {
                     if (i+len != token.size())
                     {
-                        throw FormatError("\"include\" must be immediately followed by a filename", t.getLine());
+                        throw FormatError("\"include\" must be immediately followed by a filename", fname, t.getLine());
                     }
 
                     t.next(token);
@@ -280,10 +293,16 @@ void Config::read(const string& cwd, istream& is)
 
                     if (pos == 0)
                     {
-                        throw FormatError("\"include\" must be immediately followed by a filename", t.getLine());
+                        throw FormatError("\"include\" must be immediately followed by a filename", fname, t.getLine());
                     }
 
                     string fname = token.substr(0, len);
+
+                    if (token.front() == '"' && token.back() == '"')
+                    {
+                        fname = token;
+                    }
+
                     if (fname[0] != '/') fname = cwd+'/'+fname;
 
                     Config leaf; leaf.read(fname);
@@ -303,7 +322,7 @@ void Config::read(const string& cwd, istream& is)
         }
     }
 
-    if (current.size() != 2) throw FormatError("Too few }'s", t.getLine());
+    if (current.size() != 2) throw FormatError("Too few }'s", fname, t.getLine());
 }
 
 void Config::write(const string& file) const

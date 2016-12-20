@@ -1,0 +1,30 @@
+section h2o2
+{
+    section full
+    {
+        molecule
+        {
+            include h2o2.aq
+            subgroup full
+        },
+        checksym { group C2 }
+    },
+    section C2
+    {
+        molecule
+        {
+            include h2o2.aq
+            subgroup C2
+        },
+        checksym { group C2 }
+    },
+    section C1
+    {
+        molecule
+        {
+            include h2o2.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}

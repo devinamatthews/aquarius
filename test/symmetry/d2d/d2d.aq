@@ -1,0 +1,76 @@
+section allene
+{
+    section full
+    {
+        molecule
+        {
+            include allene.aq
+            subgroup full
+        },
+        #checksym { group D2d }
+        checksym { group C2v }
+    },
+    #section D2d
+    #{
+    #    molecule
+    #    {
+    #        include allene.aq
+    #        subgroup D2d
+    #    },
+    #    checksym { group D2d }
+    #},
+    #section S4
+    #{
+    #    molecule
+    #    {
+    #        include allene.aq
+    #        subgroup S4
+    #    },
+    #    checksym { group S4 }
+    #},
+    section C2v
+    {
+        molecule
+        {
+            include allene.aq
+            subgroup C2v
+        },
+        checksym { group C2v }
+    },
+    section D2
+    {
+        molecule
+        {
+            include allene.aq
+            subgroup D2
+        },
+        checksym { group D2 }
+    },
+    section C2
+    {
+        molecule
+        {
+            include allene.aq
+            subgroup C2
+        },
+        checksym { group C2 }
+    },
+    section Cs
+    {
+        molecule
+        {
+            include allene.aq
+            subgroup Cs
+        },
+        checksym { group Cs }
+    },
+    section C1
+    {
+        molecule
+        {
+            include allene.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}

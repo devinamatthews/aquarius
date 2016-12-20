@@ -93,8 +93,12 @@ class PointGroup
         static const PointGroup& D6h();
         static const PointGroup& D2d();
         static const PointGroup& D3d();
+        static const PointGroup& D4d();
+        static const PointGroup& D5d();
         static const PointGroup& S4();
         static const PointGroup& S6();
+        static const PointGroup& S8();
+        static const PointGroup& S10();
 
     protected:
         const int order;

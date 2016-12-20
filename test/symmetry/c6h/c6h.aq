@@ -1,0 +1,94 @@
+section fake
+{
+    section full
+    {
+        molecule
+        {
+            include fake.aq
+            subgroup full
+        },
+        #checksym { group C6h }
+        checksym { group C2h }
+    },
+    #section C6h
+    #{
+    #    molecule
+    #    {
+    #        include fake.aq
+    #        subgroup C6h
+    #    },
+    #    checksym { group C6h }
+    #},
+    #section C3h
+    #{
+    #    molecule
+    #    {
+    #        include fake.aq
+    #        subgroup C3h
+    #    },
+    #    checksym { group C3h }
+    #},
+    section C2h
+    {
+        molecule
+        {
+            include fake.aq
+            subgroup C2h
+        },
+        checksym { group C2h }
+    },
+    #section C6
+    #{
+    #    molecule
+    #    {
+    #        include fake.aq
+    #        subgroup C6
+    #    },
+    #    checksym { group C6 }
+    #},
+    #section C3
+    #{
+    #    molecule
+    #    {
+    #        include fake.aq
+    #        subgroup C3
+    #    },
+    #    checksym { group C3 }
+    #},
+    section C2
+    {
+        molecule
+        {
+            include fake.aq
+            subgroup C2
+        },
+        checksym { group C2 }
+    },
+    section Cs
+    {
+        molecule
+        {
+            include fake.aq
+            subgroup Cs
+        },
+        checksym { group Cs }
+    },
+    section Ci
+    {
+        molecule
+        {
+            include fake.aq
+            subgroup Ci
+        },
+        checksym { group Ci }
+    },
+    section C1
+    {
+        molecule
+        {
+            include fake.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}
