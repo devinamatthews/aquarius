@@ -5,7 +5,7 @@ section symmetry
     section Ci { include ci/ci.aq },
     section Td { include td/td.aq },
     section Oh { include oh/oh.aq },
-    #section Ih { include ih/ih.aq },
+    section Ih { include ih/ih.aq },
     section C2 { include c2/c2.aq },
     section C3 { include c3/c3.aq },
     section C4 { include c4/c4.aq },

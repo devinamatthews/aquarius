@@ -1,12 +1,48 @@
-#section ???
-#{
-#    section full
-#    {
-#        molecule
-#        {
-#            include ???.aq
-#            subgroup full
-#        },
-#        checksym { group ??? }
-#    }
-#}
+section "B(OH)3"
+{
+    section full
+    {
+        molecule
+        {
+            include boh3.aq
+            subgroup full
+        },
+        checksym { group C3h }
+    },
+    section C3h
+    {
+        molecule
+        {
+            include boh3.aq
+            subgroup C3h
+        },
+        checksym { group C3h }
+    },
+    section C3
+    {
+        molecule
+        {
+            include boh3.aq
+            subgroup C3
+        },
+        checksym { group C3 }
+    },
+    section Cs
+    {
+        molecule
+        {
+            include boh3.aq
+            subgroup Cs
+        },
+        checksym { group Cs }
+    },
+    section C1
+    {
+        molecule
+        {
+            include boh3.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}

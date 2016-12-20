@@ -1,12 +1,57 @@
-#section ???
-#{
-#    section full
-#    {
-#        molecule
-#        {
-#            include ???.aq
-#            subgroup full
-#        },
-#        checksym { group ??? }
-#    }
-#}
+section "1,2-difluorodiazene"
+{
+    section full
+    {
+        molecule
+        {
+            include n2f2.aq
+            subgroup full
+        },
+        checksym { group C2h }
+    },
+    section C2h
+    {
+        molecule
+        {
+            include n2f2.aq
+            subgroup C2h
+        },
+        checksym { group C2h }
+    },
+    section C2
+    {
+        molecule
+        {
+            include n2f2.aq
+            subgroup C2
+        },
+        checksym { group C2 }
+    },
+    section Cs
+    {
+        molecule
+        {
+            include n2f2.aq
+            subgroup Cs
+        },
+        checksym { group Cs }
+    },
+    section Ci
+    {
+        molecule
+        {
+            include n2f2.aq
+            subgroup Ci
+        },
+        checksym { group Ci }
+    },
+    section C1
+    {
+        molecule
+        {
+            include n2f2.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    },
+}

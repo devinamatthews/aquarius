@@ -1,12 +1,93 @@
-#section ???
-#{
-#    section full
-#    {
-#        molecule
-#        {
-#            include ???.aq
-#            subgroup full
-#        },
-#        checksym { group ??? }
-#    }
-#}
+section ferrocene
+{
+    section full
+    {
+        molecule
+        {
+            include ferrocene.aq
+            subgroup full
+        },
+        checksym { group D5d }
+    },
+    section D5d
+    {
+        molecule
+        {
+            include ferrocene.aq
+            subgroup D5d
+        },
+        checksym { group D5d }
+    },
+    section S10
+    {
+        molecule
+        {
+            include ferrocene.aq
+            subgroup S10
+        },
+        checksym { group S10 }
+    },
+    section C5v
+    {
+        molecule
+        {
+            include ferrocene.aq
+            subgroup C5v
+        },
+        checksym { group C5v }
+    },
+    section D5
+    {
+        molecule
+        {
+            include ferrocene.aq
+            subgroup D5
+        },
+        checksym { group D5 }
+    },
+    section C5
+    {
+        molecule
+        {
+            include ferrocene.aq
+            subgroup C5
+        },
+        checksym { group C5 }
+    },
+    section C2
+    {
+        molecule
+        {
+            include ferrocene.aq
+            subgroup C2
+        },
+        checksym { group C2 }
+    },
+    section Cs
+    {
+        molecule
+        {
+            include ferrocene.aq
+            subgroup Cs
+        },
+        checksym { group Cs }
+    },
+    section Ci
+    {
+        molecule
+        {
+            include ferrocene.aq
+            subgroup Ci
+        },
+        checksym { group Ci }
+    },
+    section C1
+    {
+        molecule
+        {
+            include ferrocene.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}

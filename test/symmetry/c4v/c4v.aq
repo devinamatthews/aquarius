@@ -1,12 +1,66 @@
-#section ???
-#{
-#    section full
-#    {
-#        molecule
-#        {
-#            include ???.aq
-#            subgroup full
-#        },
-#        checksym { group ??? }
-#    }
-#}
+section BrF5
+{
+    section full
+    {
+        molecule
+        {
+            include brf5.aq
+            subgroup full
+        },
+        checksym { group C4v }
+    },
+    section C4v
+    {
+        molecule
+        {
+            include brf5.aq
+            subgroup C4v
+        },
+        checksym { group C4v }
+    },
+    section C2v
+    {
+        molecule
+        {
+            include brf5.aq
+            subgroup C2v
+        },
+        checksym { group C2v }
+    },
+    section C4
+    {
+        molecule
+        {
+            include brf5.aq
+            subgroup C4
+        },
+        checksym { group C4 }
+    },
+    section C2
+    {
+        molecule
+        {
+            include brf5.aq
+            subgroup C2
+        },
+        checksym { group C2 }
+    },
+    section Cs
+    {
+        molecule
+        {
+            include brf5.aq
+            subgroup Cs
+        },
+        checksym { group Cs }
+    },
+    section C1
+    {
+        molecule
+        {
+            include brf5.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}

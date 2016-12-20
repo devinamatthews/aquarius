@@ -1,12 +1,93 @@
-#section ???
-#{
-#    section full
-#    {
-#        molecule
-#        {
-#            include ???.aq
-#            subgroup full
-#        },
-#        checksym { group ??? }
-#    }
-#}
+section cyclopropane
+{
+    section full
+    {
+        molecule
+        {
+            include cyclopropane.aq
+            subgroup full
+        },
+        checksym { group D3h }
+    },
+    section D3h
+    {
+        molecule
+        {
+            include cyclopropane.aq
+            subgroup D3h
+        },
+        checksym { group D3h }
+    },
+    section C3h
+    {
+        molecule
+        {
+            include cyclopropane.aq
+            subgroup C3h
+        },
+        checksym { group C3h }
+    },
+    section C3v
+    {
+        molecule
+        {
+            include cyclopropane.aq
+            subgroup C3v
+        },
+        checksym { group C3v }
+    },
+    section C2v
+    {
+        molecule
+        {
+            include cyclopropane.aq
+            subgroup C2v
+        },
+        checksym { group C2v }
+    },
+    section D3
+    {
+        molecule
+        {
+            include cyclopropane.aq
+            subgroup D3
+        },
+        checksym { group D3 }
+    },
+    section C3
+    {
+        molecule
+        {
+            include cyclopropane.aq
+            subgroup C3
+        },
+        checksym { group C3 }
+    },
+    section C2
+    {
+        molecule
+        {
+            include cyclopropane.aq
+            subgroup C2
+        },
+        checksym { group C2 }
+    },
+    section Cs
+    {
+        molecule
+        {
+            include cyclopropane.aq
+            subgroup Cs
+        },
+        checksym { group Cs }
+    },
+    section C1
+    {
+        molecule
+        {
+            include cyclopropane.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}

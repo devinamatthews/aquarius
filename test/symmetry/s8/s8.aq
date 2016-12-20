@@ -1,12 +1,48 @@
-#section ???
-#{
-#    section full
-#    {
-#        molecule
-#        {
-#            include ???.aq
-#            subgroup full
-#        },
-#        checksym { group ??? }
-#    }
-#}
+section fake
+{
+    section full
+    {
+        molecule
+        {
+            include fake.aq
+            subgroup full
+        },
+        checksym { group S8 }
+    },
+    section S8
+    {
+        molecule
+        {
+            include fake.aq
+            subgroup S8
+        },
+        checksym { group S8 }
+    },
+    section C4
+    {
+        molecule
+        {
+            include fake.aq
+            subgroup C4
+        },
+        checksym { group C4 }
+    },
+    section C2
+    {
+        molecule
+        {
+            include fake.aq
+            subgroup C2
+        },
+        checksym { group C2 }
+    },
+    section C1
+    {
+        molecule
+        {
+            include fake.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}

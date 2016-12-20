@@ -2202,13 +2202,13 @@ static const mat3x3 d4d_ops[] = {Identity(),
                                  S<8>(vec3(0,0,-1))^3,
                                  C<2>(vec3(0,0, 1)),
                                  C<2>(vec3(1,0,0)),
-                                 C<2>(vec3(1,0,0)*C<4>(vec3(0,0,1))),
+                                 C<2>(vec3(1,0,0)*C<8>(vec3(0,0,1))),
                                  C<2>(vec3(0,1,0)),
-                                 C<2>(vec3(0,1,0)*C<4>(vec3(0,0,1))),
-                                 Reflection(vec3(1,0,0)*C<8>(vec3(0,0, 1))),
-                                 Reflection(vec3(1,0,0)*C<8>(vec3(0,0,-1))),
-                                 Reflection(vec3(0,1,0)*C<8>(vec3(0,0, 1))),
-                                 Reflection(vec3(0,1,0)*C<8>(vec3(0,0,-1)))};
+                                 C<2>(vec3(0,1,0)*C<8>(vec3(0,0,1))),
+                                 Reflection(vec3(1,0,0)*C<16>(vec3(0,0, 1))),
+                                 Reflection(vec3(1,0,0)*C<16>(vec3(0,0,-1))),
+                                 Reflection(vec3(0,1,0)*C<16>(vec3(0,0, 1))),
+                                 Reflection(vec3(0,1,0)*C<16>(vec3(0,0,-1)))};
 static const char *d4d_op_names[] = {"E", "S8z", "S8z^7", "C4z", "C4z^3", "S8z^3", "S8z^5", "C2z", "C2x", "C2x+y", "C2y", "C2x-y", "s1", "s2", "s3", "s4"};
 
 const PointGroup& PointGroup::D4d()

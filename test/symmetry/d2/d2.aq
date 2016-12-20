@@ -1,12 +1,39 @@
-#section ???
-#{
-#    section full
-#    {
-#        molecule
-#        {
-#            include ???.aq
-#            subgroup full
-#        },
-#        checksym { group ??? }
-#    }
-#}
+section twistane
+{
+    section full
+    {
+        molecule
+        {
+            include twistane.aq
+            subgroup full
+        },
+        checksym { group D2 }
+    },
+    section D2
+    {
+        molecule
+        {
+            include twistane.aq
+            subgroup D2
+        },
+        checksym { group D2 }
+    },
+    section C2
+    {
+        molecule
+        {
+            include twistane.aq
+            subgroup C2
+        },
+        checksym { group C2 }
+    },
+    section C1
+    {
+        molecule
+        {
+            include twistane.aq
+            subgroup C1
+        },
+        checksym { group C1 }
+    }
+}
