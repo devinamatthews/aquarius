@@ -344,6 +344,10 @@ void Molecule::initSymmetry(Config& config, vector<AtomCartSpec>& cartpos)
 
     string subgrp = config.get<string>("subgroup");
 
+    /*
+     * Determine the molecular point group and rotate to a canonical
+     * orientation
+     */
     if (A[1] < momtol)
     {
         /*
@@ -996,8 +1000,10 @@ void Molecule::initSymmetry(Config& config, vector<AtomCartSpec>& cartpos)
         }
     }
 
-    //TODO: D2h subgroup
-
+    /*
+     * If a subgroup is requested, lower the symmetry and perform any
+     * necessary reorientation.
+     */
     if (group->getName() == "Oh")
     {
         if (subgrp == "full" || subgrp == "Oh") {}
@@ -1685,6 +1691,88 @@ void Molecule::initSymmetry(Config& config, vector<AtomCartSpec>& cartpos)
         else throw runtime_error(subgrp + " is not a valid subgroup of C1");
     }
 
+    /*
+     * Pick out a subgroup which is also a subgroup of D2h
+     */
+    if (group->getName() == "Oh" ||
+        group->getName() == "Ih" ||
+        group->getName() == "D4h" ||
+        group->getName() == "D6h")
+    {
+        group = &PointGroup::D2h();
+    }
+    else if (group->getName() == "Td" ||
+             group->getName() == "D2d")
+    {
+        rotate(cartpos, C<8>(z));
+        group = &PointGroup::C2v();
+    }
+    else if (group->getName() == "D4d")
+    {
+        rotate(cartpos, C<16>(z));
+        group = &PointGroup::C2v();
+    }
+    else if (group->getName() == "D3h" ||
+             group->getName() == "D5h")
+    {
+        rotate(cartpos, C<4>(y));
+        group = &PointGroup::C2v();
+    }
+    else if (group->getName() == "C4v" ||
+             group->getName() == "C6v")
+    {
+        group = &PointGroup::C2v();
+    }
+    else if (group->getName() == "C4h" ||
+             group->getName() == "C6h")
+    {
+        group = &PointGroup::C2h();
+    }
+    else if (group->getName() == "D4" ||
+             group->getName() == "D6")
+    {
+        group = &PointGroup::D2();
+    }
+    else if (group->getName() == "D3d" ||
+             group->getName() == "D5d" ||
+             group->getName() == "D3" ||
+             group->getName() == "D5")
+    {
+        rotate(cartpos, C<4>(y));
+        group = &PointGroup::C2();
+    }
+    else if (group->getName() == "S4" ||
+             group->getName() == "S8" ||
+             group->getName() == "C4" ||
+             group->getName() == "C6")
+    {
+        group = &PointGroup::C2();
+    }
+    else if (group->getName() == "S6" ||
+             group->getName() == "S10")
+    {
+        group = &PointGroup::Ci();
+    }
+    else if (group->getName() == "C3h" ||
+             group->getName() == "C5h")
+    {
+        group = &PointGroup::Cs();
+    }
+    else if (group->getName() == "C3v" ||
+             group->getName() == "C5v")
+    {
+        rotate(cartpos, C<4>(x));
+        group = &PointGroup::Cs();
+    }
+    else if (group->getName() == "C3" ||
+             group->getName() == "C5")
+    {
+        group = &PointGroup::C1();
+    }
+
+    /*
+     * Check the determined symmetry just to be sure
+     */
     for (int i = 0;i < group->getOrder();i++)
     {
         if (!isSymmetric(cartpos, group->getOp(i), geomtol))

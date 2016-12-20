@@ -7,26 +7,27 @@ section fake
             include fake.aq
             subgroup full
         },
-        checksym { group S6 }
+        #checksym { group S6 }
+        checksym { group Ci }
     },
-    section S6
-    {
-        molecule
-        {
-            include fake.aq
-            subgroup S6
-        },
-        checksym { group S6 }
-    },
-    section C3
-    {
-        molecule
-        {
-            include fake.aq
-            subgroup C3
-        },
-        checksym { group C3 }
-    },
+    #section S6
+    #{
+    #    molecule
+    #    {
+    #        include fake.aq
+    #        subgroup S6
+    #    },
+    #    checksym { group S6 }
+    #},
+    #section C3
+    #{
+    #    molecule
+    #    {
+    #        include fake.aq
+    #        subgroup C3
+    #    },
+    #    checksym { group C3 }
+    #},
     section Ci
     {
         molecule

@@ -7,35 +7,36 @@ section S8
             include s8.aq
             subgroup full
         },
-        checksym { group D4d }
+        #checksym { group D4d }
+        checksym { group C2v }
     },
-    section D4d
-    {
-        molecule
-        {
-            include s8.aq
-            subgroup D4d
-        },
-        checksym { group D4d }
-    },
-    section S8
-    {
-        molecule
-        {
-            include s8.aq
-            subgroup S8
-        },
-        checksym { group S8 }
-    },
-    section C4v
-    {
-        molecule
-        {
-            include s8.aq
-            subgroup C4v
-        },
-        checksym { group C4v }
-    },
+    #section D4d
+    #{
+    #    molecule
+    #    {
+    #        include s8.aq
+    #        subgroup D4d
+    #    },
+    #    checksym { group D4d }
+    #},
+    #section S8
+    #{
+    #    molecule
+    #    {
+    #        include s8.aq
+    #        subgroup S8
+    #    },
+    #    checksym { group S8 }
+    #},
+    #section C4v
+    #{
+    #    molecule
+    #    {
+    #        include s8.aq
+    #        subgroup C4v
+    #    },
+    #    checksym { group C4v }
+    #},
     section C2v
     {
         molecule
@@ -45,15 +46,15 @@ section S8
         },
         checksym { group C2v }
     },
-    section D4
-    {
-        molecule
-        {
-            include s8.aq
-            subgroup D4
-        },
-        checksym { group D4 }
-    },
+    #section D4
+    #{
+    #    molecule
+    #    {
+    #        include s8.aq
+    #        subgroup D4
+    #    },
+    #    checksym { group D4 }
+    #},
     section D2
     {
         molecule
@@ -63,15 +64,15 @@ section S8
         },
         checksym { group D2 }
     },
-    section C4
-    {
-        molecule
-        {
-            include s8.aq
-            subgroup C4
-        },
-        checksym { group C4 }
-    },
+    #section C4
+    #{
+    #    molecule
+    #    {
+    #        include s8.aq
+    #        subgroup C4
+    #    },
+    #    checksym { group C4 }
+    #},
     section C2
     {
         molecule

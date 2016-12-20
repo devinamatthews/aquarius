@@ -7,35 +7,36 @@ section cyclopropane
             include cyclopropane.aq
             subgroup full
         },
-        checksym { group D3h }
+        #checksym { group D3h }
+        checksym { group C2v }
     },
-    section D3h
-    {
-        molecule
-        {
-            include cyclopropane.aq
-            subgroup D3h
-        },
-        checksym { group D3h }
-    },
-    section C3h
-    {
-        molecule
-        {
-            include cyclopropane.aq
-            subgroup C3h
-        },
-        checksym { group C3h }
-    },
-    section C3v
-    {
-        molecule
-        {
-            include cyclopropane.aq
-            subgroup C3v
-        },
-        checksym { group C3v }
-    },
+    #section D3h
+    #{
+    #    molecule
+    #    {
+    #        include cyclopropane.aq
+    #        subgroup D3h
+    #    },
+    #    checksym { group D3h }
+    #},
+    #section C3h
+    #{
+    #    molecule
+    #    {
+    #        include cyclopropane.aq
+    #        subgroup C3h
+    #    },
+    #    checksym { group C3h }
+    #},
+    #section C3v
+    #{
+    #    molecule
+    #    {
+    #        include cyclopropane.aq
+    #        subgroup C3v
+    #    },
+    #    checksym { group C3v }
+    #},
     section C2v
     {
         molecule
@@ -45,24 +46,24 @@ section cyclopropane
         },
         checksym { group C2v }
     },
-    section D3
-    {
-        molecule
-        {
-            include cyclopropane.aq
-            subgroup D3
-        },
-        checksym { group D3 }
-    },
-    section C3
-    {
-        molecule
-        {
-            include cyclopropane.aq
-            subgroup C3
-        },
-        checksym { group C3 }
-    },
+    #section D3
+    #{
+    #    molecule
+    #    {
+    #        include cyclopropane.aq
+    #        subgroup D3
+    #    },
+    #    checksym { group D3 }
+    #},
+    #section C3
+    #{
+    #    molecule
+    #    {
+    #        include cyclopropane.aq
+    #        subgroup C3
+    #    },
+    #    checksym { group C3 }
+    #},
     section C2
     {
         molecule

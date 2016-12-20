@@ -7,26 +7,27 @@ section undecaborate
             include undecaborate.aq
             subgroup full
         },
-        checksym { group C5v }
+        #checksym { group C5v }
+        checksym { group Cs }
     },
-    section C5v
-    {
-        molecule
-        {
-            include undecaborate.aq
-            subgroup C5v
-        },
-        checksym { group C5v }
-    },
-    section C5
-    {
-        molecule
-        {
-            include undecaborate.aq
-            subgroup C5
-        },
-        checksym { group C5 }
-    },
+    #section C5v
+    #{
+    #    molecule
+    #    {
+    #        include undecaborate.aq
+    #        subgroup C5v
+    #    },
+    #    checksym { group C5v }
+    #},
+    #section C5
+    #{
+    #    molecule
+    #    {
+    #        include undecaborate.aq
+    #        subgroup C5
+    #    },
+    #    checksym { group C5 }
+    #},
     section Cs
     {
         molecule

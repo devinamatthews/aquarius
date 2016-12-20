@@ -7,53 +7,54 @@ section methane
             include methane.aq,
             subgroup full
         },
-        checksym { group Td }
+        #checksym { group Td }
+        checksym { group C2v }
     },
-    section Td
-    {
-        molecule
-        {
-            include methane.aq,
-            subgroup Td
-        },
-        checksym { group Td }
-    },
-    section S4
-    {
-        molecule
-        {
-            include methane.aq,
-            subgroup S4
-        },
-        checksym { group S4 }
-    },
-    section C3v
-    {
-        molecule
-        {
-            include methane.aq,
-            subgroup C3v
-        },
-        checksym { group C3v }
-    },
-    section C3
-    {
-        molecule
-        {
-            include methane.aq,
-            subgroup C3
-        },
-        checksym { group C3 }
-    },
-    section D2d
-    {
-        molecule
-        {
-            include methane.aq,
-            subgroup D2d
-        },
-        checksym { group D2d }
-    },
+    #section Td
+    #{
+    #    molecule
+    #    {
+    #        include methane.aq,
+    #        subgroup Td
+    #    },
+    #    checksym { group Td }
+    #},
+    #section S4
+    #{
+    #    molecule
+    #    {
+    #        include methane.aq,
+    #        subgroup S4
+    #    },
+    #    checksym { group S4 }
+    #},
+    #section C3v
+    #{
+    #    molecule
+    #    {
+    #        include methane.aq,
+    #        subgroup C3v
+    #    },
+    #    checksym { group C3v }
+    #},
+    #section C3
+    #{
+    #    molecule
+    #    {
+    #        include methane.aq,
+    #        subgroup C3
+    #    },
+    #    checksym { group C3 }
+    #},
+    #section D2d
+    #{
+    #    molecule
+    #    {
+    #        include methane.aq,
+    #        subgroup D2d
+    #    },
+    #    checksym { group D2d }
+    #},
     section D2
     {
         molecule

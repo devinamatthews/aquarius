@@ -7,26 +7,27 @@ section allene
             include allene.aq
             subgroup full
         },
-        checksym { group D2d }
+        #checksym { group D2d }
+        checksym { group C2v }
     },
-    section D2d
-    {
-        molecule
-        {
-            include allene.aq
-            subgroup D2d
-        },
-        checksym { group D2d }
-    },
-    section S4
-    {
-        molecule
-        {
-            include allene.aq
-            subgroup S4
-        },
-        checksym { group S4 }
-    },
+    #section D2d
+    #{
+    #    molecule
+    #    {
+    #        include allene.aq
+    #        subgroup D2d
+    #    },
+    #    checksym { group D2d }
+    #},
+    #section S4
+    #{
+    #    molecule
+    #    {
+    #        include allene.aq
+    #        subgroup S4
+    #    },
+    #    checksym { group S4 }
+    #},
     section C2v
     {
         molecule

@@ -7,17 +7,18 @@ section cyclobutane
             include cyclobutane.aq
             subgroup full
         },
-        checksym { group D4h }
+        #checksym { group D4h }
+        checksym { group D2h }
     },
-    section D4h
-    {
-        molecule
-        {
-            include cyclobutane.aq
-            subgroup D4h
-        },
-        checksym { group D4h }
-    },
+    #section D4h
+    #{
+    #    molecule
+    #    {
+    #        include cyclobutane.aq
+    #        subgroup D4h
+    #    },
+    #    checksym { group D4h }
+    #},
     section D2h
     {
         molecule
@@ -27,33 +28,33 @@ section cyclobutane
         },
         checksym { group D2h }
     },
-    section S4
-    {
-        molecule
-        {
-            include cyclobutane.aq
-            subgroup S4
-        },
-        checksym { group S4 }
-    },
-    section D2d
-    {
-        molecule
-        {
-            include cyclobutane.aq
-            subgroup D2d
-        },
-        checksym { group D2d }
-    },
-    section C4h
-    {
-        molecule
-        {
-            include cyclobutane.aq
-            subgroup C4h
-        },
-        checksym { group C4h }
-    },
+    #section S4
+    #{
+    #    molecule
+    #    {
+    #        include cyclobutane.aq
+    #        subgroup S4
+    #    },
+    #    checksym { group S4 }
+    #},
+    #section D2d
+    #{
+    #    molecule
+    #    {
+    #        include cyclobutane.aq
+    #        subgroup D2d
+    #    },
+    #    checksym { group D2d }
+    #},
+    #section C4h
+    #{
+    #    molecule
+    #    {
+    #        include cyclobutane.aq
+    #        subgroup C4h
+    #    },
+    #    checksym { group C4h }
+    #},
     section C2h
     {
         molecule
@@ -63,15 +64,15 @@ section cyclobutane
         },
         checksym { group C2h }
     },
-    section C4v
-    {
-        molecule
-        {
-            include cyclobutane.aq
-            subgroup C4v
-        },
-        checksym { group C4v }
-    },
+    #section C4v
+    #{
+    #    molecule
+    #    {
+    #        include cyclobutane.aq
+    #        subgroup C4v
+    #    },
+    #    checksym { group C4v }
+    #},
     section C2v
     {
         molecule
@@ -81,15 +82,15 @@ section cyclobutane
         },
         checksym { group C2v }
     },
-    section D4
-    {
-        molecule
-        {
-            include cyclobutane.aq
-            subgroup D4
-        },
-        checksym { group D4 }
-    },
+    #section D4
+    #{
+    #    molecule
+    #    {
+    #        include cyclobutane.aq
+    #        subgroup D4
+    #    },
+    #    checksym { group D4 }
+    #},
     section D2
     {
         molecule
@@ -108,15 +109,15 @@ section cyclobutane
         },
         checksym { group Cs }
     },
-    section C4
-    {
-        molecule
-        {
-            include cyclobutane.aq
-            subgroup C4
-        },
-        checksym { group C4 }
-    },
+    #section C4
+    #{
+    #    molecule
+    #    {
+    #        include cyclobutane.aq
+    #        subgroup C4
+    #    },
+    #    checksym { group C4 }
+    #},
     section C2
     {
         molecule
