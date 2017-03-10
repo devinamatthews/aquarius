@@ -80,6 +80,7 @@ class CompositeTensor : public Tensor<Derived,T>
             : tensor(tensor_), isAlloced(isAlloced), ref(ref) {}
             bool operator==(const Base* other) const { return tensor == other; }
             bool operator!=(const Base* other) const { return tensor != other; }
+            explicit operator bool() const { return tensor; }
         };
 
         vector<TensorRef> tensors;
@@ -109,7 +110,7 @@ class CompositeTensor : public Tensor<Derived,T>
         {
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL && tensors[i].ref == -1)
+                if (tensors[i] && tensors[i].ref == -1)
                 {
                     tensors[i].tensor = new Base(*tensors[i].tensor);
                 }
@@ -128,7 +129,7 @@ class CompositeTensor : public Tensor<Derived,T>
         {
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL && tensors[i].ref == -1)
+                if (tensors[i] && tensors[i].ref == -1)
                 {
                     tensors[i].tensor = new Base(name, *tensors[i].tensor);
                 }
@@ -160,7 +161,7 @@ class CompositeTensor : public Tensor<Derived,T>
 
         bool exists(int idx) const
         {
-            return tensors[idx] != NULL;
+            return idx < tensors.size() && tensors[idx];
         }
 
         /**********************************************************************
@@ -170,14 +171,14 @@ class CompositeTensor : public Tensor<Derived,T>
          *********************************************************************/
         Base& operator()(int idx)
         {
-            if (tensors[idx] == NULL)
+            if (!exists(idx))
                 throw logic_error("tensor component does not exist");
             return *tensors[idx].tensor;
         }
 
         const Base& operator()(int idx) const
         {
-            if (tensors[idx] == NULL)
+            if (!exists(idx))
                 throw logic_error("tensor component does not exist");
             return *tensors[idx].tensor;
         }
@@ -191,7 +192,7 @@ class CompositeTensor : public Tensor<Derived,T>
         {
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL && tensors[i].ref == -1)
+                if (tensors[i] && tensors[i].ref == -1)
                 {
                     *tensors[i].tensor *= alpha;
                 }
@@ -201,14 +202,9 @@ class CompositeTensor : public Tensor<Derived,T>
         void mult(const T alpha, bool conja, const Derived& A,
                                  bool conjb, const Derived& B, const T beta)
         {
-            #ifdef VALIDATE_INPUTS
-            if (tensors.size() != A.tensors.size() ||
-                tensors.size() != B.tensors.size()) throw LengthMismatchError();
-            #endif //VALIDATE_INPUTS
-
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL && tensors[i].ref == -1 && A.exists(i) && B.exists(i))
+                if (tensors[i] && tensors[i].ref == -1 && A.exists(i) && B.exists(i))
                 {
                     beta*(*tensors[i].tensor) += alpha*A(i)*B(i);
                 }
@@ -218,14 +214,9 @@ class CompositeTensor : public Tensor<Derived,T>
         void div(const T alpha, bool conja, const Derived& A,
                                 bool conjb, const Derived& B, const T beta)
         {
-            #ifdef VALIDATE_INPUTS
-            if (tensors.size() != A.tensors.size() ||
-                tensors.size() != B.tensors.size()) throw LengthMismatchError();
-            #endif //VALIDATE_INPUTS
-
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL && tensors[i].ref == -1 && A.exists(i) && B.exists(i))
+                if (tensors[i] && tensors[i].ref == -1 && A.exists(i) && B.exists(i))
                 {
                     beta*(*tensors[i].tensor) += alpha*A(i)/B(i);
                 }
@@ -236,7 +227,7 @@ class CompositeTensor : public Tensor<Derived,T>
         {
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL && tensors[i].ref == -1)
+                if (tensors[i] && tensors[i].ref == -1)
                 {
                     beta*(*tensors[i].tensor) += alpha;
                 }
@@ -245,13 +236,9 @@ class CompositeTensor : public Tensor<Derived,T>
 
         void sum(const T alpha, bool conja, const Derived& A, const T beta)
         {
-            #ifdef VALIDATE_INPUTS
-            if (tensors.size() != A.tensors.size()) throw LengthMismatchError();
-            #endif //VALIDATE_INPUTS
-
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL && tensors[i].ref == -1 && A.exists(i))
+                if (tensors[i] && tensors[i].ref == -1 && A.exists(i))
                 {
                     beta*(*tensors[i].tensor) += alpha*A(i);
                 }
@@ -260,13 +247,9 @@ class CompositeTensor : public Tensor<Derived,T>
 
         void invert(const T alpha, bool conja, const Derived& A, const T beta)
         {
-            #ifdef VALIDATE_INPUTS
-            if (tensors.size() != A.tensors.size()) throw LengthMismatchError();
-            #endif //VALIDATE_INPUTS
-
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL && tensors[i].ref == -1 && A.exists(i))
+                if (tensors[i] && tensors[i].ref == -1 && A.exists(i))
                 {
                     beta*(*tensors[i].tensor) += alpha/A(i);
                 }
@@ -275,15 +258,11 @@ class CompositeTensor : public Tensor<Derived,T>
 
         T dot(bool conja, const Derived& A, bool conjb) const
         {
-            #ifdef VALIDATE_INPUTS
-            if (tensors.size() != A.tensors.size()) throw LengthMismatchError();
-            #endif //VALIDATE_INPUTS
-
             T s = (T)0;
 
             for (int i = 0;i < tensors.size();i++)
             {
-                if (tensors[i] != NULL && tensors[i].ref == -1 && A.exists(i))
+                if (tensors[i] && tensors[i].ref == -1 && A.exists(i))
                 {
                     s += tensors[i].tensor->dot(conja, A(i), conjb);
                 }

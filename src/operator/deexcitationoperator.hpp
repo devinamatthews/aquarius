@@ -27,6 +27,23 @@ class DeexcitationOperator
         const int spin;
 
     public:
+        DeexcitationOperator(const DeexcitationOperator& other)
+        : MOOperator(other.arena, other.occ, other.vrt),
+          tensor::CompositeTensor< DeexcitationOperator<T,np,nh>,
+           tensor::SpinorbitalTensor<T>, T >(other.name, max(np,nh)+1),
+          spin(other.spin)
+        {
+            for (int ex = 0;ex <= min(np,nh);ex++)
+            {
+                int nv = ex+(np > nh ? np-nh : 0);
+                int no = ex+(nh > np ? nh-np : 0);
+
+                tensors[ex+abs(np-nh)].isAlloced = true;
+                tensors[ex+abs(np-nh)].tensor =
+                    new tensor::SpinorbitalTensor<T>(*other.tensors[ex+abs(np-nh)].tensor);
+            }
+        }
+
         DeexcitationOperator(const string& name, const Arena& arena, const Space& occ, const Space& vrt, int spin=0)
         : MOOperator(arena, occ, vrt),
           tensor::CompositeTensor< DeexcitationOperator<T,np,nh>,
@@ -99,6 +116,18 @@ class DeexcitationOperator
             }
 
             return nrm;
+        }
+
+        template <int np_, int nh_, typename=enable_if<(np_ < np) && (np-np_ == nh-nh_)>>
+        operator DeexcitationOperator<T,np_,nh_>&()
+        {
+            return reinterpret_cast<DeexcitationOperator<T,np_,nh_>&>(*this);
+        }
+
+        template <int np_, int nh_, typename=enable_if<(np_ < np) && (np-np_ == nh-nh_)>>
+        operator const DeexcitationOperator<T,np_,nh_>&() const
+        {
+            return reinterpret_cast<const DeexcitationOperator<T,np_,nh_>&>(*this);
         }
 };
 

@@ -27,6 +27,23 @@ class ExcitationOperator
         const int spin;
 
     public:
+        ExcitationOperator(const ExcitationOperator& other)
+        : MOOperator(other.arena, other.occ, other.vrt),
+          tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
+           tensor::SpinorbitalTensor<T>, T >(other.name, max(np,nh)+1),
+          spin(other.spin)
+        {
+            for (int ex = 0;ex <= min(np,nh);ex++)
+            {
+                int nv = ex+(np > nh ? np-nh : 0);
+                int no = ex+(nh > np ? nh-np : 0);
+
+                tensors[ex+abs(np-nh)].isAlloced = true;
+                tensors[ex+abs(np-nh)].tensor =
+                    new tensor::SpinorbitalTensor<T>(*other.tensors[ex+abs(np-nh)].tensor);
+            }
+        }
+
         ExcitationOperator(const string& name, const Arena& arena, const Space& occ, const Space& vrt, int spin=0)
         : MOOperator(arena, occ, vrt),
           tensor::CompositeTensor< ExcitationOperator<T,np,nh>,
@@ -99,6 +116,18 @@ class ExcitationOperator
             }
 
             return nrm;
+        }
+
+        template <int np_, int nh_, typename=enable_if<(np_ < np) && (np-np_ == nh-nh_)>>
+        operator ExcitationOperator<T,np_,nh_>&()
+        {
+            return reinterpret_cast<ExcitationOperator<T,np_,nh_>&>(*this);
+        }
+
+        template <int np_, int nh_, typename=enable_if<(np_ < np) && (np-np_ == nh-nh_)>>
+        operator const ExcitationOperator<T,np_,nh_>&() const
+        {
+            return reinterpret_cast<const ExcitationOperator<T,np_,nh_>&>(*this);
         }
 };
 
