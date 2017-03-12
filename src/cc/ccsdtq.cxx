@@ -357,6 +357,8 @@ convergence?
     double 1e-9,
 max_iterations?
     int 50,
+sub_iterations?
+    int 0,
 conv_type?
     enum { MAXE, RMSE, MAE },
 guess?

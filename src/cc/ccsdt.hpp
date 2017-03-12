@@ -30,6 +30,7 @@ class CCSDT : public Iterative<U>
         bool run(task::TaskDAG& dag, const Arena& arena);
 
         void iterate(const Arena& arena);
+        void subiterate(const Arena& arena);
 
         /*
         double getProjectedS2() const;
