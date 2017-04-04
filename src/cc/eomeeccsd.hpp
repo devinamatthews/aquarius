@@ -26,11 +26,28 @@ class EOMEECCSD : public Iterative<U>
         int ntriplet;
         int nsinglet;
         bool multiroot;
-        bool triplet;
+        bool triplet = false;
         vector<U> previous;
 
     public:
         EOMEECCSD(const string& name, input::Config& config);
+
+        bool run(task::TaskDAG& dag, const Arena& arena);
+
+        void iterate(const Arena& arena);
+};
+
+template <typename U>
+class LeftEOMEECCSD : public Iterative<U>
+{
+    protected:
+        input::Config davidson_config;
+        bool multiroot;
+        bool triplet = false;
+        vector<U> previous;
+
+    public:
+        LeftEOMEECCSD(const string& name, input::Config& config);
 
         bool run(task::TaskDAG& dag, const Arena& arena);
 

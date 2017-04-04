@@ -473,7 +473,7 @@ void CFOURGradient::writeZMAT()
 
         for (auto& pos : center.getCenters())
         {
-            ofs << printos("%s:%p", sym, &atom) << endl;
+            ofs << printos("%s:%08x", sym, (size_t)&atom) << endl;
         }
     }
     ofs << endl;
@@ -495,7 +495,7 @@ void CFOURGradient::writeGENBAS()
     {
         auto& center = atom.getCenter();
         string sym = toupper(center.getElement().getSymbol());
-        string name = str("%s:%p", sym, &atom);
+        string name = str("%s:%08x", sym, (size_t)&atom);
         vector<Shell> shells(atom.getShellsBegin(), atom.getShellsEnd());
 
         ofs << name << endl;
