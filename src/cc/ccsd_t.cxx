@@ -1,4 +1,9 @@
-#include "ccsd_t.hpp"
+#include "util/global.hpp"
+
+#include "task/task.hpp"
+#include "time/time.hpp"
+#include "operator/2eoperator.hpp"
+#include "operator/excitationoperator.hpp"
 
 using namespace aquarius::op;
 using namespace aquarius::input;
@@ -13,49 +18,52 @@ namespace cc
 {
 
 template <typename U>
-CCSD_T<U>::CCSD_T(const string& name, Config& config)
-: Task(name, config)
+class CCSD_T : public Task
 {
-    vector<Requirement> reqs;
-    reqs.push_back(Requirement("moints", "H"));
-    reqs.push_back(Requirement("ccsd.T", "T"));
-    this->addProduct(Product("double", "energy", reqs));
-}
+    public:
+        CCSD_T(const string& name, Config& config)
+        : Task(name, config)
+        {
+            vector<Requirement> reqs;
+            reqs.push_back(Requirement("moints", "H"));
+            reqs.push_back(Requirement("ccsd.T", "T"));
+            this->addProduct(Product("double", "energy", reqs));
+        }
 
-template <typename U>
-bool CCSD_T<U>::run(task::TaskDAG& dag, const Arena& arena)
-{
-    const TwoElectronOperator<U>& H = this->template get<TwoElectronOperator<U>>("H");
+        bool run(TaskDAG& dag, const Arena& arena)
+        {
+            const TwoElectronOperator<U>& H = this->template get<TwoElectronOperator<U>>("H");
 
-    const Space& occ = H.occ;
-    const Space& vrt = H.vrt;
-    const PointGroup& group = occ.group;
+            const Space& occ = H.occ;
+            const Space& vrt = H.vrt;
+            const PointGroup& group = occ.group;
 
-    Denominator<U> D(H);
-    const ExcitationOperator<U,2>& T = this->template get<ExcitationOperator<U,2>>("T");
+            Denominator<U> D(H);
+            const ExcitationOperator<U,2>& T = this->template get<ExcitationOperator<U,2>>("T");
 
-    const SpinorbitalTensor<U>& VABIJ = H.getABIJ();
-    const SpinorbitalTensor<U>& VABCI = H.getABCI();
-    const SpinorbitalTensor<U>& VAIJK = H.getAIJK();
+            const SpinorbitalTensor<U>& VABIJ = H.getABIJ();
+            const SpinorbitalTensor<U>& VABCI = H.getABCI();
+            const SpinorbitalTensor<U>& VAIJK = H.getAIJK();
 
-    SpinorbitalTensor<U> T3("T3", arena, group, {vrt,occ}, {3,0}, {0,3});
-    SpinorbitalTensor<U> Z3("Z3", arena, group, {vrt,occ}, {3,0}, {0,3});
+            SpinorbitalTensor<U> T3("T3", arena, group, {vrt,occ}, {3,0}, {0,3});
+            SpinorbitalTensor<U> Z3("Z3", arena, group, {vrt,occ}, {3,0}, {0,3});
 
-    Z3["abcijk"]  = VABCI["bcek"]*T(2)["aeij"];
-    Z3["abcijk"] -= VAIJK["amij"]*T(2)["bcmk"];
+            Z3["abcijk"]  = VABCI["bcek"]*T(2)["aeij"];
+            Z3["abcijk"] -= VAIJK["amij"]*T(2)["bcmk"];
 
-    T3 = Z3;
-    T3.weight({&D.getDA(), &D.getDI()}, {&D.getDa(), &D.getDi()});
+            T3 = Z3;
+            T3.weight({&D.getDA(), &D.getDI()}, {&D.getDa(), &D.getDi()});
 
-    Z3["abcijk"] += VABIJ["abij"]*T(1)[  "ck"];
+            Z3["abcijk"] += VABIJ["abij"]*T(1)[  "ck"];
 
-    U E_T = (1.0/36.0)*scalar(T3["efgmno"]*Z3["efgmno"]);
-    this->log(arena) << printos("energy: %18.15f", E_T) << endl;
+            U E_T = (1.0/36.0)*scalar(T3*Z3);
+            this->log(arena) << printos("energy: %18.15f", E_T) << endl;
 
-    this->put("energy", new U(E_T));
+            this->put("energy", new U(E_T));
 
-    return true;
-}
+            return true;
+        }
+};
 
 }
 }

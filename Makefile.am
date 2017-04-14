@@ -9,8 +9,6 @@ __top_builddir__bin_aquarius_SOURCES = \
 	src/autocc/operator.cxx \
 	src/autocc/term.cxx \
 	\
-	src/cc/1edensity.cxx \
-	src/cc/2edensity.cxx \
 	src/cc/ccd.cxx \
 	src/cc/ccsd_density.cxx \
 	src/cc/ccsdt_density.cxx \
@@ -40,6 +38,8 @@ __top_builddir__bin_aquarius_SOURCES = \
 	src/cc/ccsdtq_3.cxx \
 	src/cc/cc4.cxx \
 	src/cc/cfourgrad.cxx \
+	src/cc/eomeeccsd_density.cxx \
+	src/cc/eomeeccsdt_density.cxx \
 	src/cc/eomeeccsd.cxx \
 	src/cc/eomeeccsdt.cxx \
 	src/cc/lambdaccsd.cxx \
@@ -51,6 +51,8 @@ __top_builddir__bin_aquarius_SOURCES = \
 	src/cc/lambdaccsdtq_3.cxx \
 	src/cc/lambdacc4.cxx \
 	src/cc/lccd.cxx \
+	src/cc/lefteomeeccsd.cxx \
+	src/cc/lefteomeeccsdt.cxx \
 	src/cc/mp3.cxx \
 	src/cc/mp4dq.cxx \
 	src/cc/perturbedccsd.cxx \
@@ -61,6 +63,10 @@ __top_builddir__bin_aquarius_SOURCES = \
 	src/cc/rhftda_local.cxx \
 	src/cc/rhfeomeeccsd.cxx \
 	src/cc/upsilonccsd.cxx \
+	src/cc/xieomeeccsd.cxx \
+	src/cc/xieomeeccsdt.cxx \
+	src/cc/zetaccsd.cxx \
+	src/cc/zetaccsdt.cxx \
 	\
 	src/input/basis.cxx \
 	src/input/config.cxx \

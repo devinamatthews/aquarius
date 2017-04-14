@@ -130,8 +130,9 @@ map<const tCTF_World<T>*,map<const PointGroup*,pair<int,SpinorbitalTensor<T>*>>>
 template<class T>
 SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const SpinorbitalTensor<T>& t, const T val)
 : IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T >(name, 0, 0),
-  Distributed(t.arena), group(t.group), spin(0)
+  Distributed(t.arena), spin(0)
 {
+    auto& group = t.getGroup();
     cases.push_back(SpinCase());
     cases.back().construct(*this, group.totallySymmetricIrrep(), vector<int>(), vector<int>());
     *cases.back().tensor = val;
@@ -141,7 +142,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const SpinorbitalTen
 template<class T>
 SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& other)
 : IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T >(other),
-  Distributed(other.arena), group(other.group), spaces(other.spaces),
+  Distributed(other.arena), spaces(other.spaces),
   nout(other.nout), nin(other.nin), spin(other.spin), cases(other.cases)
 {
     assert(tensors.size() == cases.size());
@@ -155,7 +156,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const SpinorbitalTensor<T>& other)
 template<class T>
 SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const SpinorbitalTensor<T>& other)
 : IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T >(name, other),
-  Distributed(other.arena), group(other.group), spaces(other.spaces),
+  Distributed(other.arena), spaces(other.spaces),
   nout(other.nout), nin(other.nin), spin(other.spin), cases(other.cases)
 {
     assert(tensors.size() == cases.size());
@@ -173,7 +174,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const Arena& arena,
                                         const vector<int>& nout,
                                         const vector<int>& nin, int spin)
 : IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T>(name, aquarius::sum(nout)+aquarius::sum(nin), 0),
-  Distributed(arena), group(group), spaces(spaces), nout(nout), nin(nin), spin(spin)
+  Distributed(arena), spaces(spaces), nout(nout), nin(nin), spin(spin)
 {
     int nspaces = spaces.size();
     int nouttot = aquarius::sum(nout);
@@ -279,7 +280,7 @@ SpinorbitalTensor<T>::SpinorbitalTensor(const string& name, const Arena& arena,
                                         const vector<int>& nout,
                                         const vector<int>& nin, int spin)
 : IndexableCompositeTensor<SpinorbitalTensor<T>,SymmetryBlockedTensor<T>,T>(name, aquarius::sum(nout)+aquarius::sum(nin), 0),
-  Distributed(arena), group(group), spaces(spaces), nout(nout), nin(nin), spin(spin)
+  Distributed(arena), spaces(spaces), nout(nout), nin(nin), spin(spin)
 {
     int nspaces = spaces.size();
     int nouttot = aquarius::sum(nout);
@@ -427,7 +428,7 @@ void SpinorbitalTensor<T>::SpinCase::construct(SpinorbitalTensor<T>& t,
         if (i > 0) sym[i-1] = NS;
     }
 
-    tensor = new SymmetryBlockedTensor<T>(t.name, t.arena, t.group, rep, t.ndim, len, sym, true);
+    tensor = new SymmetryBlockedTensor<T>(t.name, t.arena, rep.getPointGroup(), rep, t.ndim, len, sym, true);
     t.addTensor(tensor);
 }
 
@@ -456,8 +457,8 @@ void SpinorbitalTensor<T>::mult(const T alpha, bool conja, const SpinorbitalTens
                                                bool conjb, const SpinorbitalTensor<T>& B, const string& idx_B,
                                 const T beta_,                                            const string& idx_C)
 {
-    assert(group == A.group);
-    assert(group == B.group);
+    assert(getGroup() == A.getGroup());
+    assert(getGroup() == B.getGroup());
     assert(idx_A.size() == A.ndim);
     assert(idx_B.size() == B.ndim);
     assert(idx_C.size() == this->ndim);
@@ -793,7 +794,7 @@ template<class T>
 void SpinorbitalTensor<T>::sum(const T alpha, bool conja, const SpinorbitalTensor<T>& A, const string& idx_A,
                                const T beta_,                                            const string& idx_B)
 {
-    assert(group == A.group);
+    assert(getGroup() == A.getGroup());
     assert(idx_A.size() == A.ndim);
     assert(idx_B.size() == this->ndim);
     assert(spaces == A.spaces || this->ndim == 0 || A.ndim == 0);
@@ -1112,6 +1113,8 @@ real_type_t<T> SpinorbitalTensor<T>::norm(int p) const
 template <typename T>
 void SpinorbitalTensor<T>::register_scalar()
 {
+    auto& group = getGroup();
+
     if (scalars.find(&arena.ctf<T>()) == scalars.end() ||
         scalars[&arena.ctf<T>()].find(&group) == scalars[&arena.ctf<T>()].end())
     {
@@ -1130,6 +1133,8 @@ void SpinorbitalTensor<T>::register_scalar()
 template <typename T>
 void SpinorbitalTensor<T>::unregister_scalar()
 {
+    auto& group = getGroup();
+
     /*
      * The last tensor (besides the scalar in scalars)
      * will delete the entry, so if it does not exist
@@ -1154,6 +1159,7 @@ void SpinorbitalTensor<T>::unregister_scalar()
 template <typename T>
 SpinorbitalTensor<T>& SpinorbitalTensor<T>::scalar() const
 {
+    auto& group = getGroup();
     return *scalars[&arena.ctf<T>()][&group].second;
 }
 

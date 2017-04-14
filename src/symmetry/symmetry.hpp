@@ -53,6 +53,8 @@ class Representation : public vector<double>
         Representation operator-(const Representation& other) const;
 
         Representation& operator-=(const Representation& other);
+
+        explicit operator bool() const { return isTotallySymmetric(); }
 };
 
 class PointGroup

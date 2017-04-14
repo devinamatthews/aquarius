@@ -71,6 +71,8 @@ class SymmetryBlockedTensor : public IndexableCompositeTensor<SymmetryBlockedTen
 
         const symmetry::PointGroup& getGroup() const { return group; }
 
+        const symmetry::Representation& getRepresentation() const { return rep; }
+
         const vector<vector<int>>& getLengths() const { return len; }
 
         const vector<int>& getSymmetry() const { return sym; }

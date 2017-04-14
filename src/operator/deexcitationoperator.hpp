@@ -79,6 +79,10 @@ class DeexcitationOperator
             }
         }
 
+        const symmetry::PointGroup& getGroup() const { return tensors[abs(np-nh)].tensor->getGroup(); }
+
+        const symmetry::Representation& getRepresentation() const { return tensors[abs(np-nh)].tensor->getGroup(); }
+
         void weight(const Denominator<T>& d, double shift = 0)
         {
             vector<const vector<vector<T>>*> da{&d.getDA(), &d.getDI()};

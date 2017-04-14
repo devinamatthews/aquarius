@@ -1,9 +1,20 @@
-#include "perturbedlambdaccsd.hpp"
+#include "util/global.hpp"
+
+#include "time/time.hpp"
+#include "task/task.hpp"
+#include "util/iterative.hpp"
+#include "operator/2eoperator.hpp"
+#include "operator/excitationoperator.hpp"
+#include "operator/perturbedst2eoperator.hpp"
+#include "operator/st2eoperator.hpp"
+#include "operator/denominator.hpp"
+#include "convergence/diis.hpp"
 
 using namespace aquarius::op;
 using namespace aquarius::input;
 using namespace aquarius::tensor;
 using namespace aquarius::task;
+using namespace aquarius::convergence;
 
 namespace aquarius
 {
@@ -11,79 +22,84 @@ namespace cc
 {
 
 template <typename U>
-PerturbedLambdaCCSD<U>::PerturbedLambdaCCSD(const string& name, Config& config)
-: Iterative<U>(name, config), diis(config.get("diis"))
+class PerturbedLambdaCCSD : public Iterative<U>
 {
-    vector<Requirement> reqs;
-    reqs.push_back(Requirement("ccsd.L", "L"));
-    reqs.push_back(Requirement("ccsd.Hbar", "Hbar"));
-    reqs.push_back(Requirement("1epert", "A"));
-    reqs.push_back(Requirement("double", "omega"));
-    this->addProduct(Product("double", "convergence", reqs));
-    this->addProduct(Product("ccsd.LA", "LA", reqs));
-}
+    protected:
+        DIIS<DeexcitationOperator<U,2>> diis;
 
-template <typename U>
-bool PerturbedLambdaCCSD<U>::run(TaskDAG& dag, const Arena& arena)
-{
-    const auto& A = this->template get<PerturbedSTTwoElectronOperator<U>>("A");
-    const auto& H = this->template get<STTwoElectronOperator         <U>>("Hbar");
+    public:
+        PerturbedLambdaCCSD(const string& name, Config& config)
+        : Iterative<U>(name, config), diis(config.get("diis"))
+        {
+            vector<Requirement> reqs;
+            reqs.push_back(Requirement("ccsd.L", "L"));
+            reqs.push_back(Requirement("ccsd.Hbar", "Hbar"));
+            reqs.push_back(Requirement("1epert", "A"));
+            reqs.push_back(Requirement("double", "omega"));
+            this->addProduct(Product("double", "convergence", reqs));
+            this->addProduct(Product("ccsd.LA", "LA", reqs));
+        }
 
-    const Space& occ = H.occ;
-    const Space& vrt = H.vrt;
+        bool run(TaskDAG& dag, const Arena& arena)
+        {
+            const auto& A = this->template get<PerturbedSTTwoElectronOperator<U>>("A");
+            const auto& H = this->template get<STTwoElectronOperator         <U>>("Hbar");
 
-    auto& LA = this->put   ("LA", new DeexcitationOperator<U,2>("L^A", arena, occ, vrt));
-    auto& D  = this->puttmp( "D", new DeexcitationOperator<U,2>(  "D", arena, occ, vrt));
-    auto& N  = this->puttmp( "N", new DeexcitationOperator<U,2>(  "N", arena, occ, vrt));
-    auto& Z  = this->puttmp( "Z", new DeexcitationOperator<U,2>(  "Z", arena, occ, vrt));
+            const Space& occ = H.occ;
+            const Space& vrt = H.vrt;
 
-    U omega = this->template get<U>("omega");
+            auto& LA = this->put   ("LA", new DeexcitationOperator<U,2>("L^A", arena, occ, vrt));
+            auto& D  = this->puttmp( "D", new DeexcitationOperator<U,2>(  "D", arena, occ, vrt));
+            auto& N  = this->puttmp( "N", new DeexcitationOperator<U,2>(  "N", arena, occ, vrt));
+            auto& Z  = this->puttmp( "Z", new DeexcitationOperator<U,2>(  "Z", arena, occ, vrt));
 
-    D(0) = (U)1.0;
-    D(1)["ia"]  = H.getIJ()["ii"];
-    D(1)["ia"] -= H.getAB()["aa"];
-    D(2)["ijab"]  = H.getIJ()["ii"];
-    D(2)["ijab"] += H.getIJ()["jj"];
-    D(2)["ijab"] -= H.getAB()["aa"];
-    D(2)["ijab"] -= H.getAB()["bb"];
+            U omega = this->template get<U>("omega");
 
-    D -= omega;
-    D = 1/D;
+            D(0) = (U)1.0;
+            D(1)["ia"]  = H.getIJ()["ii"];
+            D(1)["ia"] -= H.getAB()["aa"];
+            D(2)["ijab"]  = H.getIJ()["ii"];
+            D(2)["ijab"] += H.getIJ()["jj"];
+            D(2)["ijab"] -= H.getAB()["aa"];
+            D(2)["ijab"] -= H.getAB()["bb"];
 
-    N(1) = (U)0.0;
-    N(2) = (U)0.0;
-    //TODO: A.contract(L, N);
-    N(0) = (U)0.0;
+            D -= omega;
+            D = 1/D;
 
-    LA = N*D;
+            N(1) = (U)0.0;
+            N(2) = (U)0.0;
+            //TODO: A.contract(L, N);
+            N(0) = (U)0.0;
 
-    Iterative<U>::run(dag, arena);
+            LA = N*D;
 
-    this->put("convergence", new U(this->conv()));
+            Iterative<U>::run(dag, arena);
 
-    return true;
-}
+            this->put("convergence", new U(this->conv()));
 
-template <typename U>
-void PerturbedLambdaCCSD<U>::iterate(const Arena& arena)
-{
-    const auto& H = this->template get<STTwoElectronOperator<U>>("Hbar");
+            return true;
+        }
 
-    auto& LA = this->template get   <DeexcitationOperator<U,2>>("LA");
-    auto& D  = this->template gettmp<DeexcitationOperator<U,2>>( "D");
-    auto& N  = this->template gettmp<DeexcitationOperator<U,2>>( "N");
-    auto& Z  = this->template gettmp<DeexcitationOperator<U,2>>( "Z");
+        void iterate(const Arena& arena)
+        {
+            const auto& H = this->template get<STTwoElectronOperator<U>>("Hbar");
 
-    Z = N;
-    //TODO: H.contract(LA, Z);
+            auto& LA = this->template get   <DeexcitationOperator<U,2>>("LA");
+            auto& D  = this->template gettmp<DeexcitationOperator<U,2>>( "D");
+            auto& N  = this->template gettmp<DeexcitationOperator<U,2>>( "N");
+            auto& Z  = this->template gettmp<DeexcitationOperator<U,2>>( "Z");
 
-     Z *= D;
-    LA += Z;
+            Z = N;
+            //TODO: H.contract(LA, Z);
 
-    this->conv() = Z.norm(00);
+             Z *= D;
+            LA += Z;
 
-    diis.extrapolate(LA, Z);
-}
+            this->conv() = Z.norm(00);
+
+            diis.extrapolate(LA, Z);
+        }
+};
 
 }
 }

@@ -125,8 +125,7 @@ am____top_builddir__bin_aquarius_SOURCES_DIST = src/autocc/autocc.cxx \
 	src/autocc/diagram.cxx src/autocc/fraction.cxx \
 	src/autocc/fragment.cxx src/autocc/generator.cxx \
 	src/autocc/line.cxx src/autocc/operator.cxx \
-	src/autocc/term.cxx src/cc/1edensity.cxx src/cc/2edensity.cxx \
-	src/cc/ccd.cxx src/cc/ccsd_density.cxx \
+	src/autocc/term.cxx src/cc/ccd.cxx src/cc/ccsd_density.cxx \
 	src/cc/ccsdt_density.cxx src/cc/ccsdtq_density.cxx \
 	src/cc/ccsdtq_1a_density.cxx src/cc/ccsdtq_1b_density.cxx \
 	src/cc/ccsdtq_3_density.cxx src/cc/cc4_density.cxx \
@@ -137,29 +136,32 @@ am____top_builddir__bin_aquarius_SOURCES_DIST = src/autocc/autocc.cxx \
 	src/cc/ccsdt_q_l.cxx src/cc/ccsdt_q_n_opt.cxx \
 	src/cc/ccsdt_q_n.cxx src/cc/ccsdt.cxx src/cc/ccsdtq.cxx \
 	src/cc/ccsdtq_1a.cxx src/cc/ccsdtq_1b.cxx src/cc/ccsdtq_3.cxx \
-	src/cc/cc4.cxx src/cc/cfourgrad.cxx src/cc/eomeeccsd.cxx \
-	src/cc/eomeeccsdt.cxx src/cc/lambdaccsd.cxx \
-	src/cc/lambdaccsdt.cxx src/cc/lambdaccsdt_q.cxx \
-	src/cc/lambdaccsdtq.cxx src/cc/lambdaccsdtq_1a.cxx \
-	src/cc/lambdaccsdtq_1b.cxx src/cc/lambdaccsdtq_3.cxx \
-	src/cc/lambdacc4.cxx src/cc/lccd.cxx src/cc/mp3.cxx \
-	src/cc/mp4dq.cxx src/cc/perturbedccsd.cxx \
+	src/cc/cc4.cxx src/cc/cfourgrad.cxx \
+	src/cc/eomeeccsd_density.cxx src/cc/eomeeccsdt_density.cxx \
+	src/cc/eomeeccsd.cxx src/cc/eomeeccsdt.cxx \
+	src/cc/lambdaccsd.cxx src/cc/lambdaccsdt.cxx \
+	src/cc/lambdaccsdt_q.cxx src/cc/lambdaccsdtq.cxx \
+	src/cc/lambdaccsdtq_1a.cxx src/cc/lambdaccsdtq_1b.cxx \
+	src/cc/lambdaccsdtq_3.cxx src/cc/lambdacc4.cxx src/cc/lccd.cxx \
+	src/cc/lefteomeeccsd.cxx src/cc/lefteomeeccsdt.cxx \
+	src/cc/mp3.cxx src/cc/mp4dq.cxx src/cc/perturbedccsd.cxx \
 	src/cc/perturbedlambdaccsd.cxx src/cc/piccsd.cxx \
 	src/cc/rhfccsd.cxx src/cc/tda_local.cxx \
 	src/cc/rhftda_local.cxx src/cc/rhfeomeeccsd.cxx \
-	src/cc/upsilonccsd.cxx src/input/basis.cxx \
-	src/input/config.cxx src/input/molecule.cxx \
-	src/integrals/1eints.cxx src/integrals/2eints.cxx \
-	src/integrals/cfour1eints.cxx src/integrals/cfour2eints.cxx \
-	src/integrals/center.cxx src/integrals/context.cxx \
-	src/integrals/element.cxx src/integrals/fmgamma.cxx \
-	src/integrals/kei.cxx src/integrals/nai.cxx \
-	src/integrals/os.cxx src/integrals/ovi.cxx \
-	src/integrals/shell.cxx src/jellium/jellium.cxx \
-	src/main/main.cxx src/operator/2eoperator.cxx \
-	src/operator/aomoints.cxx src/operator/fakemoints.cxx \
-	src/operator/rhfaomoints.cxx src/operator/moints.cxx \
-	src/operator/sparseaomoints.cxx \
+	src/cc/upsilonccsd.cxx src/cc/xieomeeccsd.cxx \
+	src/cc/xieomeeccsdt.cxx src/cc/zetaccsd.cxx \
+	src/cc/zetaccsdt.cxx src/input/basis.cxx src/input/config.cxx \
+	src/input/molecule.cxx src/integrals/1eints.cxx \
+	src/integrals/2eints.cxx src/integrals/cfour1eints.cxx \
+	src/integrals/cfour2eints.cxx src/integrals/center.cxx \
+	src/integrals/context.cxx src/integrals/element.cxx \
+	src/integrals/fmgamma.cxx src/integrals/kei.cxx \
+	src/integrals/nai.cxx src/integrals/os.cxx \
+	src/integrals/ovi.cxx src/integrals/shell.cxx \
+	src/jellium/jellium.cxx src/main/main.cxx \
+	src/operator/2eoperator.cxx src/operator/aomoints.cxx \
+	src/operator/fakemoints.cxx src/operator/rhfaomoints.cxx \
+	src/operator/moints.cxx src/operator/sparseaomoints.cxx \
 	src/operator/sparserhfaomoints.cxx src/operator/fcidump.cxx \
 	src/scf/aouhf.cxx src/scf/cfourscf.cxx src/scf/uhf_local.cxx \
 	src/scf/uhf.cxx src/symmetry/symmetry.cxx src/task/task.cxx \
@@ -178,8 +180,7 @@ am___top_builddir__bin_aquarius_OBJECTS = src/autocc/autocc.$(OBJEXT) \
 	src/autocc/diagram.$(OBJEXT) src/autocc/fraction.$(OBJEXT) \
 	src/autocc/fragment.$(OBJEXT) src/autocc/generator.$(OBJEXT) \
 	src/autocc/line.$(OBJEXT) src/autocc/operator.$(OBJEXT) \
-	src/autocc/term.$(OBJEXT) src/cc/1edensity.$(OBJEXT) \
-	src/cc/2edensity.$(OBJEXT) src/cc/ccd.$(OBJEXT) \
+	src/autocc/term.$(OBJEXT) src/cc/ccd.$(OBJEXT) \
 	src/cc/ccsd_density.$(OBJEXT) src/cc/ccsdt_density.$(OBJEXT) \
 	src/cc/ccsdtq_density.$(OBJEXT) \
 	src/cc/ccsdtq_1a_density.$(OBJEXT) \
@@ -195,18 +196,22 @@ am___top_builddir__bin_aquarius_OBJECTS = src/autocc/autocc.$(OBJEXT) \
 	src/cc/ccsdt.$(OBJEXT) src/cc/ccsdtq.$(OBJEXT) \
 	src/cc/ccsdtq_1a.$(OBJEXT) src/cc/ccsdtq_1b.$(OBJEXT) \
 	src/cc/ccsdtq_3.$(OBJEXT) src/cc/cc4.$(OBJEXT) \
-	src/cc/cfourgrad.$(OBJEXT) src/cc/eomeeccsd.$(OBJEXT) \
+	src/cc/cfourgrad.$(OBJEXT) src/cc/eomeeccsd_density.$(OBJEXT) \
+	src/cc/eomeeccsdt_density.$(OBJEXT) src/cc/eomeeccsd.$(OBJEXT) \
 	src/cc/eomeeccsdt.$(OBJEXT) src/cc/lambdaccsd.$(OBJEXT) \
 	src/cc/lambdaccsdt.$(OBJEXT) src/cc/lambdaccsdt_q.$(OBJEXT) \
 	src/cc/lambdaccsdtq.$(OBJEXT) src/cc/lambdaccsdtq_1a.$(OBJEXT) \
 	src/cc/lambdaccsdtq_1b.$(OBJEXT) \
 	src/cc/lambdaccsdtq_3.$(OBJEXT) src/cc/lambdacc4.$(OBJEXT) \
-	src/cc/lccd.$(OBJEXT) src/cc/mp3.$(OBJEXT) \
+	src/cc/lccd.$(OBJEXT) src/cc/lefteomeeccsd.$(OBJEXT) \
+	src/cc/lefteomeeccsdt.$(OBJEXT) src/cc/mp3.$(OBJEXT) \
 	src/cc/mp4dq.$(OBJEXT) src/cc/perturbedccsd.$(OBJEXT) \
 	src/cc/perturbedlambdaccsd.$(OBJEXT) src/cc/piccsd.$(OBJEXT) \
 	src/cc/rhfccsd.$(OBJEXT) src/cc/tda_local.$(OBJEXT) \
 	src/cc/rhftda_local.$(OBJEXT) src/cc/rhfeomeeccsd.$(OBJEXT) \
-	src/cc/upsilonccsd.$(OBJEXT) src/input/basis.$(OBJEXT) \
+	src/cc/upsilonccsd.$(OBJEXT) src/cc/xieomeeccsd.$(OBJEXT) \
+	src/cc/xieomeeccsdt.$(OBJEXT) src/cc/zetaccsd.$(OBJEXT) \
+	src/cc/zetaccsdt.$(OBJEXT) src/input/basis.$(OBJEXT) \
 	src/input/config.$(OBJEXT) src/input/molecule.$(OBJEXT) \
 	src/integrals/1eints.$(OBJEXT) src/integrals/2eints.$(OBJEXT) \
 	src/integrals/cfour1eints.$(OBJEXT) \
@@ -438,8 +443,7 @@ __top_builddir__bin_aquarius_SOURCES = src/autocc/autocc.cxx \
 	src/autocc/diagram.cxx src/autocc/fraction.cxx \
 	src/autocc/fragment.cxx src/autocc/generator.cxx \
 	src/autocc/line.cxx src/autocc/operator.cxx \
-	src/autocc/term.cxx src/cc/1edensity.cxx src/cc/2edensity.cxx \
-	src/cc/ccd.cxx src/cc/ccsd_density.cxx \
+	src/autocc/term.cxx src/cc/ccd.cxx src/cc/ccsd_density.cxx \
 	src/cc/ccsdt_density.cxx src/cc/ccsdtq_density.cxx \
 	src/cc/ccsdtq_1a_density.cxx src/cc/ccsdtq_1b_density.cxx \
 	src/cc/ccsdtq_3_density.cxx src/cc/cc4_density.cxx \
@@ -450,29 +454,32 @@ __top_builddir__bin_aquarius_SOURCES = src/autocc/autocc.cxx \
 	src/cc/ccsdt_q_l.cxx src/cc/ccsdt_q_n_opt.cxx \
 	src/cc/ccsdt_q_n.cxx src/cc/ccsdt.cxx src/cc/ccsdtq.cxx \
 	src/cc/ccsdtq_1a.cxx src/cc/ccsdtq_1b.cxx src/cc/ccsdtq_3.cxx \
-	src/cc/cc4.cxx src/cc/cfourgrad.cxx src/cc/eomeeccsd.cxx \
-	src/cc/eomeeccsdt.cxx src/cc/lambdaccsd.cxx \
-	src/cc/lambdaccsdt.cxx src/cc/lambdaccsdt_q.cxx \
-	src/cc/lambdaccsdtq.cxx src/cc/lambdaccsdtq_1a.cxx \
-	src/cc/lambdaccsdtq_1b.cxx src/cc/lambdaccsdtq_3.cxx \
-	src/cc/lambdacc4.cxx src/cc/lccd.cxx src/cc/mp3.cxx \
-	src/cc/mp4dq.cxx src/cc/perturbedccsd.cxx \
+	src/cc/cc4.cxx src/cc/cfourgrad.cxx \
+	src/cc/eomeeccsd_density.cxx src/cc/eomeeccsdt_density.cxx \
+	src/cc/eomeeccsd.cxx src/cc/eomeeccsdt.cxx \
+	src/cc/lambdaccsd.cxx src/cc/lambdaccsdt.cxx \
+	src/cc/lambdaccsdt_q.cxx src/cc/lambdaccsdtq.cxx \
+	src/cc/lambdaccsdtq_1a.cxx src/cc/lambdaccsdtq_1b.cxx \
+	src/cc/lambdaccsdtq_3.cxx src/cc/lambdacc4.cxx src/cc/lccd.cxx \
+	src/cc/lefteomeeccsd.cxx src/cc/lefteomeeccsdt.cxx \
+	src/cc/mp3.cxx src/cc/mp4dq.cxx src/cc/perturbedccsd.cxx \
 	src/cc/perturbedlambdaccsd.cxx src/cc/piccsd.cxx \
 	src/cc/rhfccsd.cxx src/cc/tda_local.cxx \
 	src/cc/rhftda_local.cxx src/cc/rhfeomeeccsd.cxx \
-	src/cc/upsilonccsd.cxx src/input/basis.cxx \
-	src/input/config.cxx src/input/molecule.cxx \
-	src/integrals/1eints.cxx src/integrals/2eints.cxx \
-	src/integrals/cfour1eints.cxx src/integrals/cfour2eints.cxx \
-	src/integrals/center.cxx src/integrals/context.cxx \
-	src/integrals/element.cxx src/integrals/fmgamma.cxx \
-	src/integrals/kei.cxx src/integrals/nai.cxx \
-	src/integrals/os.cxx src/integrals/ovi.cxx \
-	src/integrals/shell.cxx src/jellium/jellium.cxx \
-	src/main/main.cxx src/operator/2eoperator.cxx \
-	src/operator/aomoints.cxx src/operator/fakemoints.cxx \
-	src/operator/rhfaomoints.cxx src/operator/moints.cxx \
-	src/operator/sparseaomoints.cxx \
+	src/cc/upsilonccsd.cxx src/cc/xieomeeccsd.cxx \
+	src/cc/xieomeeccsdt.cxx src/cc/zetaccsd.cxx \
+	src/cc/zetaccsdt.cxx src/input/basis.cxx src/input/config.cxx \
+	src/input/molecule.cxx src/integrals/1eints.cxx \
+	src/integrals/2eints.cxx src/integrals/cfour1eints.cxx \
+	src/integrals/cfour2eints.cxx src/integrals/center.cxx \
+	src/integrals/context.cxx src/integrals/element.cxx \
+	src/integrals/fmgamma.cxx src/integrals/kei.cxx \
+	src/integrals/nai.cxx src/integrals/os.cxx \
+	src/integrals/ovi.cxx src/integrals/shell.cxx \
+	src/jellium/jellium.cxx src/main/main.cxx \
+	src/operator/2eoperator.cxx src/operator/aomoints.cxx \
+	src/operator/fakemoints.cxx src/operator/rhfaomoints.cxx \
+	src/operator/moints.cxx src/operator/sparseaomoints.cxx \
 	src/operator/sparserhfaomoints.cxx src/operator/fcidump.cxx \
 	src/scf/aouhf.cxx src/scf/cfourscf.cxx src/scf/uhf_local.cxx \
 	src/scf/uhf.cxx src/symmetry/symmetry.cxx src/task/task.cxx \
@@ -611,10 +618,6 @@ src/cc/$(am__dirstamp):
 src/cc/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) src/cc/$(DEPDIR)
 	@: > src/cc/$(DEPDIR)/$(am__dirstamp)
-src/cc/1edensity.$(OBJEXT): src/cc/$(am__dirstamp) \
-	src/cc/$(DEPDIR)/$(am__dirstamp)
-src/cc/2edensity.$(OBJEXT): src/cc/$(am__dirstamp) \
-	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/ccd.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/ccsd_density.$(OBJEXT): src/cc/$(am__dirstamp) \
@@ -673,6 +676,10 @@ src/cc/cc4.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/cfourgrad.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/eomeeccsd_density.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/eomeeccsdt_density.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/eomeeccsd.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/eomeeccsdt.$(OBJEXT): src/cc/$(am__dirstamp) \
@@ -695,6 +702,10 @@ src/cc/lambdacc4.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/lccd.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/lefteomeeccsd.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/lefteomeeccsdt.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/mp3.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/mp4dq.$(OBJEXT): src/cc/$(am__dirstamp) \
@@ -714,6 +725,14 @@ src/cc/rhftda_local.$(OBJEXT): src/cc/$(am__dirstamp) \
 src/cc/rhfeomeeccsd.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/cc/upsilonccsd.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/xieomeeccsd.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/xieomeeccsdt.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/zetaccsd.$(OBJEXT): src/cc/$(am__dirstamp) \
+	src/cc/$(DEPDIR)/$(am__dirstamp)
+src/cc/zetaccsdt.$(OBJEXT): src/cc/$(am__dirstamp) \
 	src/cc/$(DEPDIR)/$(am__dirstamp)
 src/input/$(am__dirstamp):
 	@$(MKDIR_P) src/input
@@ -899,8 +918,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/autocc/$(DEPDIR)/line.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/autocc/$(DEPDIR)/operator.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/autocc/$(DEPDIR)/term.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/1edensity.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/2edensity.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/cc4.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/cc4_density.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/ccd.Po@am__quote@
@@ -931,7 +948,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/cfourgrad.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/e_ccsd_t_n.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/eomeeccsd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/eomeeccsd_density.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/eomeeccsdt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/eomeeccsdt_density.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lambdacc4.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lambdaccsd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lambdaccsdt.Po@am__quote@
@@ -941,6 +960,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lambdaccsdtq_1b.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lambdaccsdtq_3.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lccd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lefteomeeccsd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/lefteomeeccsdt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/mp3.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/mp4dq.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/perturbedccsd.Po@am__quote@
@@ -953,6 +974,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/tda_elemental.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/tda_local.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/upsilonccsd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/xieomeeccsd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/xieomeeccsdt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/zetaccsd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/cc/$(DEPDIR)/zetaccsdt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/input/$(DEPDIR)/basis.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/input/$(DEPDIR)/config.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/input/$(DEPDIR)/molecule.Po@am__quote@

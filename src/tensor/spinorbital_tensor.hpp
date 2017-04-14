@@ -49,7 +49,9 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,S
 
         int getSpin() const { return spin; }
 
-        const symmetry::PointGroup& getGroup() const { return group; }
+        const symmetry::PointGroup& getGroup() const { return cases[0].tensor->getGroup(); }
+
+        const symmetry::Representation& getRepresentation() const { return cases[0].tensor->getRepresentation(); }
 
         SymmetryBlockedTensor<T>& operator()(const vector<int>& alpha_out,
                                              const vector<int>& alpha_in);
@@ -87,7 +89,6 @@ class SpinorbitalTensor : public IndexableCompositeTensor<SpinorbitalTensor<T>,S
                            const vector<int>& alpha_in);
         };
 
-        const symmetry::PointGroup& group;
         vector<op::Space> spaces;
         vector<int> nout, nin;
         int spin;
