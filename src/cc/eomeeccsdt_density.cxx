@@ -284,12 +284,12 @@ class EOMEECCSDTDensity : public Task
             GABIJ["abij"] +=               XAI[    "ai"]*R(1)[    "bj"];
             GABIJ["abij"] -=               DIJ[    "mi"]*T(2)[  "abmj"];
             GABIJ["abij"] +=               DAB[    "ae"]*T(2)[  "ebij"];
-            //GABIJ["abij"] +=  (1.0/ 2.0)*GABCD[  "abef"]* Tau[  "efij"];
+            GABIJ["abij"] +=  (1.0/ 2.0)*GABCD[  "abef"]* Tau[  "efij"];
             GABIJ["abij"] -=             GAIBJ[  "amei"]*T(2)[  "ebmj"];
             GABIJ["abij"] +=  (1.0/ 2.0)*GIJKL[  "mnij"]* Tau[  "abmn"];
             GABIJ["abij"] -=               XMI[    "mi"]*R(2)[  "abmj"];
             GABIJ["abij"] +=               XAE[    "ae"]*R(2)[  "ebij"];
-            //GABIJ["abij"] +=  (1.0/ 2.0)*XABEF[  "abef"]*R(2)[  "efij"];
+            GABIJ["abij"] +=  (1.0/ 2.0)*XABEF[  "abef"]*R(2)[  "efij"];
             GABIJ["abij"] -=             XAMEI[  "amei"]*R(2)[  "ebmj"];
             GABIJ["abij"] +=  (1.0/ 2.0)*XMNIJ[  "mnij"]*R(2)[  "abmn"];
             GABIJ["abij"] +=             XABEJ[  "abej"]*R(1)[    "ei"];
