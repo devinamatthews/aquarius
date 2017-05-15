@@ -30,6 +30,7 @@ class EOMEECCSDTDensity : public Task
             reqs.push_back(Requirement("eomeeccsdt.L", "L"));
             reqs.push_back(Requirement("eomeeccsdt.R", "R"));
             reqs.push_back(Requirement("eomeeccsdt.Zeta", "Z"));
+            reqs.push_back(Requirement("eomeeccsdt.energy", "omega"));
             this->addProduct(Product("eomeeccsdt.D", "D", reqs));
         }
 
@@ -41,6 +42,7 @@ class EOMEECCSDTDensity : public Task
             auto& Rs = this->template get<unique_vector<  ExcitationOperator<U,3>>>("R");
             auto& Ls = this->template get<unique_vector<DeexcitationOperator<U,3>>>("L");
             auto& Zs = this->template get<unique_vector<DeexcitationOperator<U,3>>>("Z");
+            auto& omegas = this->template get<vector<U>>("omega");
 
             const Space& occ = H.occ;
             const Space& vrt = H.vrt;
@@ -87,8 +89,10 @@ class EOMEECCSDTDensity : public Task
             auto& XABEJ  = this->puttmp( "XABEJ", new SpinorbitalTensor<U>("X(ab,ej)", arena, group, rep, {vrt,occ}, {2,0}, {1,1}));
             auto& XAMIJ  = this->puttmp( "XAMIJ", new SpinorbitalTensor<U>("X(am,ij)", arena, group, rep, {vrt,occ}, {1,1}, {0,2}));
             auto& GAIBC2 = this->puttmp("GAIBC2", new SpinorbitalTensor<U>("G(ai,bc)", arena, group, rep, {vrt,occ}, {1,1}, {2,0}));
-            auto& GAIBJ2 = this->puttmp("GAIBJ2", new SpinorbitalTensor<U>("G(ai,bj)", arena, group, rep, {vrt,occ}, {1,1}, {1,1}));
             auto& GIJAK2 = this->puttmp("GIJAK2", new SpinorbitalTensor<U>("G(ij,ak)", arena, group, rep, {vrt,occ}, {0,2}, {1,1}));
+            auto& GAIBJ2 = this->puttmp("GAIBJ2", new SpinorbitalTensor<U>("G(ai,bj)", arena, group, rep, {vrt,occ}, {1,1}, {1,1}));
+            auto& GABCI2 = this->puttmp("GABCI2", new SpinorbitalTensor<U>("G(ab,ci)", arena, group, rep, {vrt,occ}, {2,0}, {1,1}));
+            auto& GAIJK2 = this->puttmp("GAIJK2", new SpinorbitalTensor<U>("G(ai,jk)", arena, group, rep, {vrt,occ}, {1,1}, {0,2}));
 
             printf("T1: %.15f\n", T(1)({1,0},{0,1}).norm(2));
             printf("T2: %.15f\n", T(2)({1,0},{0,1}).norm(2));
@@ -171,17 +175,14 @@ class EOMEECCSDTDensity : public Task
 
             GIJAK["ijak"] +=             GIJAB[  "ijae"]*T(1)[    "ek"];
 
-           GAIBJ2["aibj"]  = -           XMNEJ[  "mibj"]*R(1)[    "am"];
-           GAIBJ2["aibj"] +=             XAMEF[  "aibe"]*R(1)[    "ej"];
-           GAIBJ2["aibj"] -=  (1.0/ 4.0)* Z(3)["imnbef"]*T(3)["aefjmn"];
-           GAIBJ2["aibj"] -=  (1.0/ 4.0)* L(3)["imnbef"]*R(3)["aefjmn"];
-
-            GAIBJ["aibj"]  =            GAIBJ2[  "aibj"];
+            GAIBJ["aibj"]  = -(1.0/ 4.0)* Z(3)["imnbef"]*T(3)["aefjmn"];
+            GAIBJ["aibj"] -=  (1.0/ 4.0)* L(3)["imnbef"]*R(3)["aefjmn"];
+           GAIBJ2["aibj"]  =             GAIBJ[  "aibj"];
             GAIBJ["aibj"] -=  (1.0/ 2.0)*GIJAB[  "imbe"]*T(2)[  "aejm"];
             GAIBJ["aibj"] -=             GIJAK[  "mibj"]*T(1)[    "am"];
             GAIBJ["aibj"] +=             GAIBC[  "aibe"]*T(1)[    "ej"];
-            GAIBJ["aibj"] +=             XMNEJ[  "mibj"]*R(1)[    "am"];
-            GAIBJ["aibj"] -=             XAMEF[  "aibe"]*R(1)[    "ej"];
+
+           GAIJK2["aijk"]  =            GAIBJ2[  "aiek"]*T(1)[    "ej"];
 
             GIJAK["ijak"] +=              L(2)[  "ijae"]*R(1)[    "ek"];
             GAIBC["aibc"] -=              L(2)[  "mibc"]*R(1)[    "am"];
@@ -213,9 +214,13 @@ class EOMEECCSDTDensity : public Task
             XAMIJ["aijk"] +=  (1.0/ 2.0)*XAMEF[  "aief"]* Tau[  "efjk"];
             XAMIJ["aijk"] +=  (1.0/ 2.0)* L(2)[  "imef"]*T(3)["aefjkm"];
 
-           GIJAK2["ijak"]  =              L(2)[  "ijae"]*T(1)[    "ek"];
+            XMNEJ["mnej"] -=              L(2)[  "mnef"]*T(1)[    "fj"];
+
             XAMEI["amei"] -=              L(2)[  "mnef"]*T(2)[  "afin"];
-            XAMEI["amei"] -=            GIJAK2[  "nmei"]*T(1)[    "an"];
+            XAMEI["amei"] -=             XMNEJ[  "nmei"]*T(1)[    "an"];
+            XAMEI["amei"] +=             XAMEF[  "amef"]*T(1)[    "fi"];
+
+            XMNEJ["mnej"] +=              L(2)[  "mnef"]*T(1)[    "fj"];
 
            GIJAK2["ijak"]  =             GIJAK[  "ijak"];
            GAIBC2["aibc"]  =             GAIBC[  "aibc"];
@@ -223,7 +228,10 @@ class EOMEECCSDTDensity : public Task
            GAIBC2["aibc"] +=              L(2)[  "mibc"]*R(1)[    "am"];
            GIJAK2["ijak"] -=              L(2)[  "ijae"]*R(1)[    "ek"];
 
-            GABCI["abci"]  = -             DIA[    "mc"]*T(2)[  "abmi"];
+            GABCI["abci"]  = -(1.0/ 2.0)*GIJAB[  "mnce"]*T(3)["abemin"];
+            GABCI["abci"] -=  (1.0/ 2.0)* L(2)[  "mnce"]*R(3)["abemin"];
+           GABCI2["abci"]  =             GABCI[  "abci"];
+            GABCI["abci"] -=               DIA[    "mc"]*T(2)[  "abmi"];
             GABCI["abci"] -=              L(1)[    "mc"]*R(2)[  "abmi"];
             GABCI["abci"] +=            GAIBC2[  "amce"]*T(2)[  "beim"];
             GABCI["abci"] +=             XAMEF[  "amce"]*R(2)[  "beim"];
@@ -235,10 +243,11 @@ class EOMEECCSDTDensity : public Task
             GABCI["abci"] -=             XAMEI[  "amci"]*R(1)[    "bm"];
             GABCI["abci"] +=               DAB[    "ac"]*T(1)[    "bi"];
             GABCI["abci"] +=               XAE[    "ac"]*R(1)[    "bi"];
-            GABCI["abci"] -=  (1.0/ 2.0)*GIJAB[  "mnce"]*T(3)["abemin"];
-            GABCI["abci"] -=  (1.0/ 2.0)* L(2)[  "mnce"]*R(3)["abemin"];
 
-            GAIJK["aijk"]  =               DIA[    "ie"]*T(2)[  "aejk"];
+            GAIJK["aijk"]  =  (1.0/ 2.0)*GIJAB[  "imef"]*T(3)["aefjkm"];
+            GAIJK["aijk"] +=  (1.0/ 2.0)* L(2)[  "imef"]*R(3)["aefjkm"];
+           GAIJK2["aijk"] +=             GAIJK[  "aijk"];
+            GAIJK["aijk"] +=               DIA[    "ie"]*T(2)[  "aejk"];
             GAIJK["aijk"] +=              L(1)[    "ie"]*R(2)[  "aejk"];
             GAIJK["aijk"] +=            GIJAK2[  "miek"]*T(2)[  "aejm"];
             GAIJK["aijk"] +=             XMNEJ[  "miek"]*R(2)[  "aejm"];
@@ -250,8 +259,6 @@ class EOMEECCSDTDensity : public Task
             GAIJK["aijk"] +=             XAMEI[  "aiek"]*R(1)[    "ej"];
             GAIJK["aijk"] +=               DIJ[    "ik"]*T(1)[    "aj"];
             GAIJK["aijk"] +=               XMI[    "ik"]*R(1)[    "aj"];
-            GAIJK["aijk"] +=  (1.0/ 2.0)*GIJAB[  "imef"]*T(3)["aefjkm"];
-            GAIJK["aijk"] +=  (1.0/ 2.0)* L(2)[  "imef"]*R(3)["aefjkm"];
 
             GIJKL["ijkl"] +=  (1.0/ 2.0)*GIJAB[  "ijef"]* Tau[  "efkl"];
             GIJKL["ijkl"] +=  (1.0/ 2.0)* L(2)[  "ijef"]*R(2)[  "efkl"];
@@ -271,9 +278,6 @@ class EOMEECCSDTDensity : public Task
 
               XMI[  "mi"] +=              L(1)[    "me"]*T(1)[    "ei"];
 
-            XAMEI["amei"] -=             XMNEJ[  "nmei"]*T(1)[    "an"];
-            XAMEI["amei"] +=             XAMEF[  "amef"]*T(1)[    "fi"];
-
             GIJAK["mnej"] -=             GIJAB[  "mnef"]*T(1)[    "fj"];
             GIJAK["mnej"] -=              L(2)[  "mnef"]*R(1)[    "fj"];
             GAIBC["amef"] +=             GIJAB[  "nmef"]*T(1)[    "an"];
@@ -284,12 +288,14 @@ class EOMEECCSDTDensity : public Task
             GABIJ["abij"] +=               XAI[    "ai"]*R(1)[    "bj"];
             GABIJ["abij"] -=               DIJ[    "mi"]*T(2)[  "abmj"];
             GABIJ["abij"] +=               DAB[    "ae"]*T(2)[  "ebij"];
-            //GABIJ["abij"] +=  (1.0/ 2.0)*GABCD[  "abef"]* Tau[  "efij"];
+            GABIJ["abij"] +=  (1.0/ 2.0)*GABCD[  "abef"]* Tau[  "efij"];
             GABIJ["abij"] -=             GAIBJ[  "amei"]*T(2)[  "ebmj"];
             GABIJ["abij"] +=  (1.0/ 2.0)*GIJKL[  "mnij"]* Tau[  "abmn"];
+            GABIJ["abij"] +=            GABCI2[  "abej"]*T(1)[    "ei"];
+            GABIJ["abij"] -=            GAIJK2[  "amij"]*T(1)[    "bm"];
             GABIJ["abij"] -=               XMI[    "mi"]*R(2)[  "abmj"];
             GABIJ["abij"] +=               XAE[    "ae"]*R(2)[  "ebij"];
-            //GABIJ["abij"] +=  (1.0/ 2.0)*XABEF[  "abef"]*R(2)[  "efij"];
+            GABIJ["abij"] +=  (1.0/ 2.0)*XABEF[  "abef"]*R(2)[  "efij"];
             GABIJ["abij"] -=             XAMEI[  "amei"]*R(2)[  "ebmj"];
             GABIJ["abij"] +=  (1.0/ 2.0)*XMNIJ[  "mnij"]*R(2)[  "abmn"];
             GABIJ["abij"] +=             XABEJ[  "abej"]*R(1)[    "ei"];
@@ -377,6 +383,15 @@ class EOMEECCSDTDensity : public Task
 
             printf("\n");
             printf("E: %20.15f\n", E);
+
+            U Ecc = 0.25*scalar(H.getIJAB()["ijab"]*Tau["abij"]);
+
+            printf("\n");
+            printf("E: %20.15f\n", Ecc+omegas.back());
+            printf("E: %20.15f\n", Ecc);
+            printf("E: %20.15f\n", Ecc+omegas.back()*(scalar(L(1)["ia"]*R(1)["ai"])+
+                                                      scalar(L(2)["ijab"]*R(2)["abij"])/4+
+                                                      scalar(L(3)["ijkabc"]*R(3)["abcijk"])/36));
 
             return true;
         }
