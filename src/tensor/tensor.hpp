@@ -905,6 +905,12 @@ T scalar(const tensor::TensorMult<Derived,T>& tm)
     return tm.factor_*tm.B_.tensor_.dot(tm.A_.conj_, tm.A_.tensor_, tm.B_.conj_);
 }
 
+template <typename T, typename=enable_if_t<is_arithmetic<T>::value || is_complex<T>::value>>
+const T& scalar(const T& x)
+{
+    return x;
+}
+
 }
 
 #endif

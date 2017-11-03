@@ -147,8 +147,7 @@ class LeftEOMEECCSD : public Iterative<U>
                             this->log(arena) << "WARNING: Spin character different from initial guess!" << endl;
                         }
 
-                        L /= scalar(conj(L(1)["ia"])*R(1)["ai"]) +
-                             0.25*scalar(conj(L(2)["ijab"])*R(2)["abij"]);
+                        L /= scalar(L*R);
 
                         Ls.emplace_back(L);
 

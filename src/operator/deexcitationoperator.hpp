@@ -8,6 +8,7 @@
 
 #include "mooperator.hpp"
 #include "denominator.hpp"
+#include "excitationoperator.hpp"
 
 namespace aquarius
 {
@@ -134,6 +135,90 @@ class DeexcitationOperator
             return reinterpret_cast<const DeexcitationOperator<T,np_,nh_>&>(*this);
         }
 };
+
+namespace detail
+{
+
+template <typename T, int np, int nh>
+constexpr int get_np(const ExcitationOperator<T,np,nh>&)
+{
+    return np;
+}
+
+template <typename T, int np, int nh>
+constexpr int get_nh(const ExcitationOperator<T,np,nh>&)
+{
+    return nh;
+}
+
+template <typename T1, typename T2, typename T>
+T exdot(const tensor::ScaledTensor<T1,T>& t1,
+        const tensor::ScaledTensor<T2,T>& t2)
+{
+    T s = (T)0;
+
+    int np = get_np(t2.tensor_);
+    int nh = get_nh(t2.tensor_);
+
+    for (int i = abs(np-nh);i <= max(np,nh);i++)
+    {
+        int nv = i - abs(np-nh) + (np > nh ? np-nh : 0);
+        int no = i - abs(np-nh) + (nh > np ? nh-np : 0);
+
+        string out, in;
+        for (int j = 0;j < nv;j++) out.push_back(j);
+        for (int j = 0;j < no;j++) in.push_back(j+nv);
+
+        s += t1.factor_*t2.factor_*t1.tensor_(i).dot(t2.conj_, t2.tensor_(i), out+in, t1.conj_, in+out)/
+               (T)factorial(i)/(T)factorial(i-abs(np-nh));
+    }
+
+    return s;
+}
+
+template <typename T>
+struct is_excitationoperator : std::false_type {};
+
+template <typename T, int np, int nh>
+struct is_excitationoperator<ExcitationOperator<T,np,nh>> : std::true_type { typedef T type; };
+
+template <typename T, int np, int nh>
+struct is_excitationoperator<tensor::ScaledTensor<ExcitationOperator<T,np,nh>,T>> : std::true_type { typedef T type; };
+
+template <typename T, int np, int nh>
+struct is_excitationoperator<tensor::ScaledTensor<const ExcitationOperator<T,np,nh>,T>> : std::true_type { typedef T type; };
+
+template <typename T>
+struct is_deexcitationoperator : std::false_type {};
+
+template <typename T, int np, int nh>
+struct is_deexcitationoperator<DeexcitationOperator<T,np,nh>> : std::true_type { typedef T type; };
+
+template <typename T, int np, int nh>
+struct is_deexcitationoperator<tensor::ScaledTensor<DeexcitationOperator<T,np,nh>,T>> : std::true_type { typedef T type; };
+
+template <typename T, int np, int nh>
+struct is_deexcitationoperator<tensor::ScaledTensor<const DeexcitationOperator<T,np,nh>,T>> : std::true_type { typedef T type; };
+
+}
+
+template <typename T, typename U>
+auto operator*(const T& t1, const U& t2) ->
+    enable_if_t<detail::is_deexcitationoperator<T>::value &&
+                detail::is_excitationoperator<U>::value,
+                typename detail::is_deexcitationoperator<T>::type>
+{
+    return detail::exdot(t1*1, t2*1);
+}
+
+template <typename T, typename U>
+auto operator*(const T& t1, const U& t2) ->
+    enable_if_t<detail::is_excitationoperator<T>::value &&
+                detail::is_deexcitationoperator<U>::value,
+                typename detail::is_excitationoperator<T>::type>
+{
+    return detail::exdot(t2*1, t1*1);
+}
 
 }
 }
