@@ -48,7 +48,7 @@ AS_IF([test $sgemm = SGEMM_], [AC_DEFINE([F77_NAME], [UPPER_UNDERSCORE], [Type o
 #
 # Configure CTF
 #
-AQ_WITH_PACKAGE([CTF], [https://github.com/solomonik/ctf],
+AQ_WITH_PACKAGE([CTF], [https://github.com/cyclops-community/ctf],
                 [ctf.hpp], [],
                 [CTF_linked], [-lctf])
 AM_CONDITIONAL([CTF_IS_LOCAL], [test x"$ctf_INCLUDES" = x" -Isrc/external/ctf/include"])
