@@ -3,14 +3,14 @@
 import sys
 
 if ( len(sys.argv) != 4 ):
-        print "Usage: ./make_input.py <cluster> <basis> <method>"
-        print "<cluster> can be: w1 w2 w3 w4 w5 w6cage w6book w6prism w6cyclic w7 w8s4 w8d2d"
-        print "                  w9 w10 w11i434 w11i4412 w11i443 w11i515 w11i551 w12 w13 w14"
-        print "                  w15 w16 w17int w17surf w18 w19 w20dode w20fused w20face w20edge"
-        print "                  rubrene"
-        print "<basis> can be 6-31G 6-311G cc-pVDZ cc-pVTZ cc-pVQZ aug-cc-pVDZ aug-cc-pVTZ aug-cc-pVQZ etc."
-        print "Note that <basis> is case sensitive and must correspond to a file in AQUARIUS/basis."
-        print "<method> can be ccd, ccsd, or ccsdt"
+        print("Usage: ./make_input.py <cluster> <basis> <method>")
+        print("<cluster> can be: w1 w2 w3 w4 w5 w6cage w6book w6prism w6cyclic w7 w8s4 w8d2d")
+        print("                  w9 w10 w11i434 w11i4412 w11i443 w11i515 w11i551 w12 w13 w14")
+        print("                  w15 w16 w17int w17surf w18 w19 w20dode w20fused w20face w20edge")
+        print("                  rubrene")
+        print("<basis> can be 6-31G 6-311G cc-pVDZ cc-pVTZ cc-pVQZ aug-cc-pVDZ aug-cc-pVTZ aug-cc-pVQZ etc.")
+        print("Note that <basis> is case sensitive and must correspond to a file in AQUARIUS/basis.")
+        print("<method> can be ccd, ccsd, or ccsdt")
         sys.exit()
 
 #------------
@@ -1698,7 +1698,7 @@ name       = cluster+'_'+basis+'_'+method
 filename   = name+'.aq'
 file       = open(filename,'w\n')
 
-print name
+print(name)
 
 print_geom(file,cluster)
 print_basis(file,basis)
